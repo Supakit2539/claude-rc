@@ -158,6 +158,8 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .ed-svg .ed-edge { stroke: transparent; stroke-width: 12; }
 .ed-svg .ed-item { cursor: move; }
 .ed-svg .ed-item.sel polygon { stroke: var(--accent); stroke-width: 2.2; }
+.ed-svg .ed-open.sel polygon, .ed-svg .ed-open.sel polyline { stroke-width: inherit; }
+.ed-svg .ed-hit { fill: transparent; stroke: none; }
 .ed-svg .ed-selbox { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 3; pointer-events: none; }
 .ed-svg .ed-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; cursor: move; }
 .ed-svg .ed-h.sel { fill: var(--accent); }
@@ -428,6 +430,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             <button type="button" data-tool="place:counter" data-obj="counter">เคาน์เตอร์</button>
             <button type="button" data-tool="place:stairs" data-obj="stairs">บันได</button>
             <button type="button" data-tool="place:column" data-obj="column">เสา</button>
+            <button type="button" data-tool="place:door" data-obj="door">🚪 ประตู</button>
+            <button type="button" data-tool="place:window" data-obj="window">🪟 หน้าต่าง</button>
           </div>
           <svg id="edSvg" class="ed-svg" role="application" aria-label="พื้นที่วาดแบบ"></svg>
           <div class="ed-hint" id="edHint"></div>
@@ -673,7 +677,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     ];
 
     // Point-by-point on the work plane, with walls / tall furniture casting shadows
-    const occ = occluders(pts, custom, H, wp);
+    const ro = resolveOpenings(H);
+    const occ = occluders(pts, custom, H, wp, ro);
     const iesOn = lampSel.value === "ies" && IES ? IES : null;
     const dist = distribution(pts, L, W, Hm, wp, H, fixtures, achieved, fixLm, MF, iesOn, $("iesRot").checked, occ);
     const u0 = dist.avg ? dist.min / dist.avg : 0;
@@ -699,7 +704,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
     last = { L, W, H, wp, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct,
       A, P, Hm, RI, UF, MF, N, nMin, lm, watt, fixLm, exact, achieved, totalW, wpm2, kwhMonth, cost, rate, hours, shr, efficacy, u0, space,
-      pts, custom, fixtures, lay, nn, occ };
+      pts, custom, fixtures, lay, nn, occ, ro };
     drawPlan();
     if (view === "3d") update3D();
     if (view === "edit") renderEditor();
@@ -718,7 +723,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     stairs:  { name: "บันได", w: 1.0, d: 3.0, h: null, color: 0xcfc6b8, fill: "#e8e1d4" },
     column:  { name: "เสา", w: 0.4, d: 0.4, h: null, color: 0xbdb6aa, fill: "#a39c90" },
   };
-  let plan = { custom: false, pts: null, walls: [], objs: [], lights: [] };
+  const OPEN_TYPES = {
+    door:   { name: "ประตู", w: 0.9, h: 2.0, sill: 0 },
+    window: { name: "หน้าต่าง", w: 1.2, h: 1.2, sill: 0.9 },
+  };
+  let plan = { custom: false, pts: null, walls: [], objs: [], lights: [], openings: [] };
 
   const isCustom = () => !!(plan.custom && plan.pts && plan.pts.length >= 3);
   function roomPts() {
@@ -741,12 +750,90 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     return c;
   }
   // Parameter t (0..1) along p→q where it crosses segment a–b, or -1
+  let segU = 0; // where along a–b the last segT hit landed (0..1)
   function segT(px, py, qx, qy, ax, ay, bx, by) {
     const rx = qx - px, ry = qy - py, ux = bx - ax, uy = by - ay;
     const den = rx * uy - ry * ux;
     if (Math.abs(den) < 1e-12) return -1;
     const t = ((ax - px) * uy - (ay - py) * ux) / den, u = ((ax - px) * ry - (ay - py) * rx) / den;
+    segU = u;
     return t > 1e-6 && t < 1 - 1e-6 && u >= 0 && u <= 1 ? t : -1;
+  }
+
+  // ---------- Doors & windows: openings that snap to a room edge or an interior wall ----------
+  function hostList(H) {
+    const pts = roomPts(), out = [];
+    pts.forEach((a, i) => {
+      const b = pts[(i + 1) % pts.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (len < 1e-6) return;
+      const d = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+      let n = [-d[1], d[0]];
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      if (!inPoly(pts, mx + n[0] * 0.02, my + n[1] * 0.02)) n = [-n[0], -n[1]];
+      out.push({ key: "e" + i, a, b, len, d, n, t: 0.15, h: H, outline: true });
+    });
+    plan.walls.forEach((w, i) => {
+      const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
+      if (len < 1e-6) return;
+      const d = [(w.b[0] - w.a[0]) / len, (w.b[1] - w.a[1]) / len];
+      out.push({ key: "w" + i, a: w.a, b: w.b, len, d, n: [-d[1], d[0]], t: w.t || 0.1, h: wallH(w, H), outline: false });
+    });
+    return out;
+  }
+  // Nearest host to point p within tol metres → {host, u (centre along host 0..1), c (centre point)}
+  function nearestHost(p, hs, tol, width) {
+    let best = null;
+    hs.forEach((h) => {
+      const u = ((p[0] - h.a[0]) * h.d[0] + (p[1] - h.a[1]) * h.d[1]) / h.len;
+      const uc = Math.max(0, Math.min(1, u));
+      const q = [h.a[0] + h.d[0] * uc * h.len, h.a[1] + h.d[1] * uc * h.len];
+      const dist = Math.hypot(p[0] - q[0], p[1] - q[1]);
+      if (dist <= tol && (!best || dist < best.dist)) best = { host: h, u, dist };
+    });
+    if (!best) return null;
+    const h = best.host, half = Math.min((width || 0) / 2 / h.len, 0.5);
+    const u = Math.max(half, Math.min(1 - half, best.u));
+    return { host: h, u, c: [h.a[0] + h.d[0] * u * h.len, h.a[1] + h.d[1] * u * h.len] };
+  }
+  function resolveOpenings(H) {
+    const hs = hostList(H);
+    return plan.openings.map((o) => {
+      const r = nearestHost([o.x, o.y], hs, 0.3, o.w);
+      if (!r || o.w > r.host.len + 1e-6) return { o, ok: false };
+      const top = Math.min(o.sill + o.h, r.host.h);
+      return { o, ok: true, host: r.host, u: r.u, c: r.c, u0: r.u - o.w / 2 / r.host.len, u1: r.u + o.w / 2 / r.host.len, z0: o.sill, z1: top };
+    });
+  }
+  function openingPrims(ro) {
+    const out = [];
+    ro.forEach((r) => {
+      const o = r.o;
+      if (!r.ok) {
+        const s = 0.25;
+        out.push({ pts: [[o.x - s, o.y - s], [o.x + s, o.y + s]], stroke: "#b3261e", sw: 2 }, { pts: [[o.x + s, o.y - s], [o.x - s, o.y + s]], stroke: "#b3261e", sw: 2 });
+        return;
+      }
+      const { host: h, c } = r, d = h.d, half = o.w / 2, th = h.t / 2 + 0.02;
+      const side = o.flip ? -1 : 1, n = [h.n[0] * side, h.n[1] * side];
+      const P = (al, ac) => [c[0] + d[0] * al + h.n[0] * ac, c[1] + d[1] * al + h.n[1] * ac];
+      out.push({ pts: [P(-half, -th), P(half, -th), P(half, th), P(-half, th)], fill: "ROOM", stroke: "none", closed: true });
+      out.push({ pts: [P(-half, -th), P(-half, th)], stroke: "#2b2924", sw: 1.6 }, { pts: [P(half, -th), P(half, th)], stroke: "#2b2924", sw: 1.6 });
+      if (o.type === "window") {
+        const g = th * 0.45;
+        out.push({ pts: [P(-half, -g), P(half, -g), P(half, g), P(-half, g)], fill: "#d9ecf6", stroke: "#3b6fd1", sw: 1.1, closed: true });
+        out.push({ pts: [P(-half, 0), P(half, 0)], stroke: "#3b6fd1", sw: 1.1 });
+      } else {
+        // Door leaf (shown open 90°) and its swing arc
+        const hs = o.hinge ? 1 : -1, hinge = P(hs * half, 0), far = P(-hs * half, 0);
+        const leafEnd = [hinge[0] + n[0] * o.w, hinge[1] + n[1] * o.w];
+        out.push({ pts: [hinge, leafEnd], stroke: "#2b2924", sw: 2 });
+        const arc = [], a0 = Math.atan2(leafEnd[1] - hinge[1], leafEnd[0] - hinge[0]), a1 = Math.atan2(far[1] - hinge[1], far[0] - hinge[0]);
+        let da = a1 - a0; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+        for (let k = 0; k <= 16; k++) { const a = a0 + da * k / 16; arc.push([hinge[0] + Math.cos(a) * o.w, hinge[1] + Math.sin(a) * o.w]); }
+        out.push({ pts: arc, stroke: "#6b675e", sw: 1, dash: true });
+      }
+    });
+    return out;
   }
   function toWorldOf(o, x, y) {
     const r = (o.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
@@ -760,10 +847,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     return [[w.a[0] + nx, w.a[1] + ny], [w.b[0] + nx, w.b[1] + ny], [w.b[0] - nx, w.b[1] - ny], [w.a[0] - nx, w.a[1] - ny]];
   }
 
-  function occluders(pts, custom, H, wp) {
-    const occ = [];
-    if (custom) pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length]; occ.push([a[0], a[1], b[0], b[1], H]); });
-    plan.walls.forEach((w) => occ.push([w.a[0], w.a[1], w.b[0], w.b[1], wallH(w, H)]));
+  function occluders(pts, custom, H, wp, ro) {
+    const occ = [], gaps = {};
+    (ro || []).forEach((r) => { if (r.ok) (gaps[r.host.key] = gaps[r.host.key] || []).push([r.u0, r.u1, r.z0, r.z1]); });
+    if (custom) pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length]; occ.push([a[0], a[1], b[0], b[1], H, gaps["e" + i] || null]); });
+    plan.walls.forEach((w, i) => occ.push([w.a[0], w.a[1], w.b[0], w.b[1], wallH(w, H), gaps["w" + i] || null]));
     plan.objs.forEach((o) => {
       const t = OBJ_TYPES[o.type], h = objH(o, H);
       if (!t || t.occl === false || h <= wp + 0.05) return;
@@ -855,8 +943,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   function primsSVG(prims, X, Y) {
     return prims.map((p) => {
       const pts = p.pts.map((q) => `${X(q[0]).toFixed(1)},${Y(q[1]).toFixed(1)}`).join(" ");
-      const st = `stroke="${p.stroke || "#57534b"}" stroke-width="${p.sw || 1.1}" stroke-linejoin="round"`;
-      return p.closed ? `<polygon points="${pts}" fill="${p.fill || "none"}" ${st}/>` : `<polyline points="${pts}" fill="none" ${st}/>`;
+      const st = `stroke="${p.stroke || "#57534b"}" stroke-width="${p.sw || 1.1}" stroke-linejoin="round"${p.dash ? ' stroke-dasharray="4 3"' : ""}`;
+      const fill = p.fill === "ROOM" ? "var(--room)" : p.fill || "none";
+      return p.closed ? `<polygon points="${pts}" fill="${fill}" ${st}/>` : `<polyline points="${pts}" fill="none" ${st}/>`;
     }).join("");
   }
   function primsCanvas(ctx, prims, px, k = 1) {
@@ -864,8 +953,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       ctx.beginPath();
       p.pts.forEach((q, i) => (i ? ctx.lineTo(q[0] * px, q[1] * px) : ctx.moveTo(q[0] * px, q[1] * px)));
       if (p.closed) ctx.closePath();
-      if (p.closed && p.fill) { ctx.fillStyle = p.fill; ctx.fill(); }
+      if (p.closed && p.fill) { ctx.fillStyle = p.fill === "ROOM" ? "#f7f5ef" : p.fill; ctx.fill(); }
+      if (p.stroke === "none") return;
+      ctx.setLineDash(p.dash ? [4 * k, 3 * k] : []);
       ctx.strokeStyle = p.stroke || "#57534b"; ctx.lineWidth = (p.sw || 1.1) * k; ctx.lineJoin = "round"; ctx.stroke();
+      ctx.setLineDash([]);
     });
   }
   function allPlanPrims(H) {
@@ -879,7 +971,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const fin = (v) => typeof v === "number" && Number.isFinite(v);
     const pt = (q) => Array.isArray(q) && q.length === 2 && fin(q[0]) && fin(q[1]);
     if (!p || typeof p !== "object") return null;
-    const out = { custom: !!p.custom, pts: null, walls: [], objs: [], lights: [] };
+    const out = { custom: !!p.custom, pts: null, walls: [], objs: [], lights: [], openings: [] };
     if (Array.isArray(p.pts) && p.pts.length >= 3 && p.pts.length <= 200 && p.pts.every(pt)) out.pts = p.pts.map((q) => [q[0], q[1]]);
     else out.custom = false;
     (Array.isArray(p.walls) ? p.walls : []).slice(0, 500).forEach((w) => {
@@ -893,6 +985,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       });
     });
     (Array.isArray(p.lights) ? p.lights : []).slice(0, 2000).forEach((l) => { if (l && fin(l.x) && fin(l.y)) out.lights.push({ x: l.x, y: l.y }); });
+    (Array.isArray(p.openings) ? p.openings : []).slice(0, 500).forEach((o) => {
+      const t = o && OPEN_TYPES[o.type];
+      if (t && fin(o.x) && fin(o.y)) out.openings.push({
+        type: o.type, x: o.x, y: o.y, w: fin(o.w) && o.w > 0.1 ? o.w : t.w, h: fin(o.h) && o.h > 0.1 ? o.h : t.h,
+        sill: fin(o.sill) && o.sill >= 0 ? o.sill : t.sill, flip: !!o.flip, hinge: !!o.hinge,
+      });
+    });
     return out;
   }
   function savePlan() { try { localStorage.setItem("lightPlan", JSON.stringify(plan)); } catch (e) {} }
@@ -919,6 +1018,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     plan.walls.forEach((w) => { sh(w.a); sh(w.b); });
     plan.objs.forEach((o) => { o.x -= mx; o.y -= my; });
     plan.lights.forEach((l) => { l.x -= mx; l.y -= my; });
+    plan.openings.forEach((o) => { o.x -= mx; o.y -= my; });
     ed.ox += mx * ed.s; ed.oy += my * ed.s;
   }
   function ensureCustom() { if (!isCustom()) { plan.pts = roomPts().map((p) => [p[0], p[1]]); plan.custom = true; } }
@@ -975,7 +1075,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   function setTool(t) {
     ed.tool = t; ed.draft = null;
     document.querySelectorAll("#edBar [data-tool], #edLib [data-tool]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tool === t));
-    $("edHint").textContent = t.startsWith("place:") ? `คลิกบนแบบเพื่อวาง${OBJ_TYPES[t.slice(6)].name} · Esc ยกเลิก` : TOOL_HINT[t];
+    $("edHint").textContent = t.startsWith("place:") ? (OPEN_TYPES[t.slice(6)] ? `คลิกบนผนังหรือขอบห้องเพื่อวาง${OPEN_TYPES[t.slice(6)].name} (เกาะผนังอัตโนมัติ) · Esc ยกเลิก` : `คลิกบนแบบเพื่อวาง${OBJ_TYPES[t.slice(6)].name} · Esc ยกเลิก`) : TOOL_HINT[t];
     $("edSvg").style.cursor = t === "select" ? "default" : "crosshair";
     renderEditor();
   }
@@ -1020,6 +1120,17 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       out += `<g data-kind="wall" data-i="${i}" class="ed-item${sel ? " sel" : ""}">${primsSVG(wallPrims(wl, H), X, Y)}</g>`;
       if (sel) ["a", "b"].forEach((e) => { out += `<circle data-kind="wend" data-i="${i}" data-e="${e}" class="ed-h" cx="${X(wl[e][0])}" cy="${Y(wl[e][1])}" r="6"/>`; });
     });
+    // Doors & windows (drawn over walls so they can be picked)
+    const ro = resolveOpenings(H);
+    ro.forEach((r, i) => {
+      const sel = ed.sel && ed.sel.kind === "open" && ed.sel.i === i;
+      out += `<g data-kind="open" data-i="${i}" class="ed-item ed-open${sel ? " sel" : ""}">${primsSVG(openingPrims([r]), X, Y)}`;
+      if (r.ok) { const th = r.host.t / 2 + 0.06, hw = r.o.w / 2, c = r.c, d = r.host.d, n = r.host.n;
+        const Q = (al, ac) => `${X(c[0] + d[0] * al + n[0] * ac)},${Y(c[1] + d[1] * al + n[1] * ac)}`;
+        out += `<polygon class="ed-hit" points="${Q(-hw, -th)} ${Q(hw, -th)} ${Q(hw, th)} ${Q(-hw, th)}"/>`;
+        if (sel) out += `<polygon class="ed-selbox" points="${Q(-hw, -th)} ${Q(hw, -th)} ${Q(hw, th)} ${Q(-hw, th)}"/>`; }
+      out += `</g>`;
+    });
     // Luminaires: auto layout as dashed rings, hand-placed as solid
     if (plan.lights.length) {
       plan.lights.forEach((l, i) => {
@@ -1061,7 +1172,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     if (!sel) {
       const pts = roomPts();
       box.innerHTML = `<div class="ed-ptitle">ภาพรวมแบบ</div>
-        <div class="ed-sum">พื้นที่ ${fmt(Math.abs(polyArea(pts)), 2)} ตร.ม. · ${pts.length} มุม · ผนัง ${plan.walls.length} · วัตถุ ${plan.objs.length} · โคม${plan.lights.length ? `วางเอง ${plan.lights.length}` : "อัตโนมัติ"}</div>`;
+        <div class="ed-sum">พื้นที่ ${fmt(Math.abs(polyArea(pts)), 2)} ตร.ม. · ${pts.length} มุม · ผนัง ${plan.walls.length} · ประตู ${plan.openings.filter((o) => o.type === "door").length} · หน้าต่าง ${plan.openings.filter((o) => o.type === "window").length} · วัตถุ ${plan.objs.length} · โคม${plan.lights.length ? `วางเอง ${plan.lights.length}` : "อัตโนมัติ"}</div>`;
       return;
     }
     let html = "";
@@ -1076,6 +1187,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       html = `<div class="ed-ptitle">ผนัง</div><div class="ed-fields">
         ${numField("len", "ความยาว (ม.)", len)}${numField("t", "ความหนา (ม.)", w.t)}${numField("h", "ความสูง (ม.)", w.h == null ? "" : w.h, `placeholder="เต็มความสูง ${fmt(H, 2)}"`)}</div>
         <div class="ed-acts"><button type="button" data-act="del" class="danger">ลบผนัง</button></div>`;
+    } else if (sel.kind === "open") {
+      const o = plan.openings[sel.i], t = OPEN_TYPES[o.type], r = (last && last.ro && last.ro[sel.i]) || {};
+      html = `<div class="ed-ptitle">${t.name}${r.ok === false ? ' <span class="badge bad">ไม่ได้อยู่บนผนัง</span>' : ""}</div><div class="ed-fields">
+        ${numField("w", "กว้าง (ม.)", o.w)}${numField("h", "สูง (ม.)", o.h)}${o.type === "window" ? numField("sill", "ขอบล่างสูงจากพื้น (ม.)", o.sill) : ""}</div>
+        <div class="ed-acts">${o.type === "door" ? `<button type="button" data-act="flip">⇅ สลับด้านเปิด</button><button type="button" data-act="hinge">⇄ สลับบานพับ</button>` : ""}<button type="button" data-act="del" class="danger">ลบ</button></div>`;
     } else if (sel.kind === "light") {
       const l = plan.lights[sel.i];
       html = `<div class="ed-ptitle">โคมไฟ (วางเอง)</div><div class="ed-fields">${numField("x", "X (ม.)", l.x)}${numField("y", "Y (ม.)", l.y)}</div>
@@ -1102,6 +1218,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         w.b = [r2(w.a[0] + dx / l * v), r2(w.a[1] + dy / l * v)];
       } else if (key === "t" && ok) w.t = Math.min(Math.max(v, 0.02), 2);
       else if (key === "h") w.h = ok && v > 0 ? v : null;
+    } else if (sel.kind === "open" && ok) {
+      const o = plan.openings[sel.i];
+      if (key === "w" || key === "h") o[key] = Math.max(0.2, v); else if (key === "sill") o.sill = Math.max(0, v);
     } else if (sel.kind === "light" && ok) plan.lights[sel.i][key] = v;
     else if (sel.kind === "vtx" && ok) { ensureCustom(); plan.pts[sel.i][key === "x" ? 0 : 1] = v; }
   }
@@ -1112,6 +1231,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     if (sel.kind === "obj") plan.objs.splice(sel.i, 1);
     else if (sel.kind === "wall") plan.walls.splice(sel.i, 1);
     else if (sel.kind === "light") plan.lights.splice(sel.i, 1);
+    else if (sel.kind === "open") plan.openings.splice(sel.i, 1);
     else if (sel.kind === "vtx") { if (roomPts().length <= 3) return; ensureCustom(); plan.pts.splice(sel.i, 1); }
     ed.sel = null; commit();
   }
@@ -1165,6 +1285,16 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         ed.sel = { kind: "light", i: plan.lights.length - 1 };
         return commit(false);
       }
+      if (t.startsWith("place:") && OPEN_TYPES[t.slice(6)]) {
+        const type = t.slice(6), d = OPEN_TYPES[type];
+        const r = nearestHost(raw, hostList(roomH()), 0.6, d.w);
+        if (!r) { $("edHint").textContent = `วาง${d.name}ได้เฉพาะบนผนังหรือขอบห้อง — คลิกให้ใกล้เส้นผนังมากขึ้น`; return; }
+        if (d.w > r.host.len) { $("edHint").textContent = `ผนังนี้สั้นกว่าความกว้าง${d.name}`; return; }
+        snapshot();
+        plan.openings.push({ type, x: r2(r.c[0]), y: r2(r.c[1]), w: d.w, h: d.h, sill: d.sill, flip: false, hinge: false });
+        ed.sel = { kind: "open", i: plan.openings.length - 1 };
+        setTool("select"); return commit(false);
+      }
       if (t.startsWith("place:")) {
         const type = t.slice(6), d = OBJ_TYPES[type];
         snapshot();
@@ -1175,12 +1305,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       // Select tool
       const hit = e.target.closest("[data-kind]");
       const kind = hit && hit.dataset.kind, i = hit ? +hit.dataset.i : -1;
-      if (kind === "obj" || kind === "wall" || kind === "light" || kind === "vtx" || kind === "wend") {
+      if (kind === "obj" || kind === "wall" || kind === "light" || kind === "vtx" || kind === "wend" || kind === "open") {
         ed.sel = { kind: kind === "wend" ? "wall" : kind, i };
         let orig;
         if (kind === "obj") orig = { x: plan.objs[i].x, y: plan.objs[i].y };
         else if (kind === "wall") orig = { a: plan.walls[i].a.slice(), b: plan.walls[i].b.slice() };
         else if (kind === "light") orig = { x: plan.lights[i].x, y: plan.lights[i].y };
+        else if (kind === "open") orig = { x: plan.openings[i].x, y: plan.openings[i].y };
         ed.drag = { kind, i, e: hit.dataset.e, start: raw, orig, moved: false, snap: JSON.stringify(plan) };
       } else {
         ed.sel = null;
@@ -1200,6 +1331,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const g = (v) => (ed.snap ? Math.round(v / 0.05) * 0.05 : v);
       if (d.kind === "obj") { const o = plan.objs[d.i]; o.x = r2(d.orig.x + g(dx)); o.y = r2(d.orig.y + g(dy)); }
       else if (d.kind === "light") { const l = plan.lights[d.i]; const q = snapPt([d.orig.x + dx, d.orig.y + dy]); l.x = q[0]; l.y = q[1]; }
+      else if (d.kind === "open") {
+        const o = plan.openings[d.i], r = nearestHost(raw, hostList(roomH()), 1.0, o.w);
+        if (r) { const g2 = ed.snap ? 0.05 : 0.01, al = Math.round(r.u * r.host.len / g2) * g2 / r.host.len, u = Math.max(o.w / 2 / r.host.len, Math.min(1 - o.w / 2 / r.host.len, al));
+          o.x = r2(r.host.a[0] + r.host.d[0] * u * r.host.len); o.y = r2(r.host.a[1] + r.host.d[1] * u * r.host.len); }
+      }
       else if (d.kind === "wall") { const w = plan.walls[d.i]; w.a = [r2(d.orig.a[0] + g(dx)), r2(d.orig.a[1] + g(dy))]; w.b = [r2(d.orig.b[0] + g(dx)), r2(d.orig.b[1] + g(dy))]; }
       else if (d.kind === "wend") { const w = plan.walls[d.i], other = d.e === "a" ? w.b : w.a; w[d.e] = orthoSnap(snapPt(raw, { wall: d.i }), other); }
       else if (d.kind === "vtx") {
@@ -1255,8 +1391,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       }
       else if (act === "autolights") { if (!plan.lights.length) return; snapshot(); plan.lights = []; ed.sel = null; commit(false); }
       else if (act === "clear") {
-        if (!plan.walls.length && !plan.objs.length && !plan.lights.length && !isCustom()) return;
-        snapshot(); plan = { custom: false, pts: null, walls: [], objs: [], lights: [] }; ed.sel = null; commit(); fitEditor(); renderEditor();
+        if (!plan.walls.length && !plan.objs.length && !plan.lights.length && !plan.openings.length && !isCustom()) return;
+        snapshot(); plan = { custom: false, pts: null, walls: [], objs: [], lights: [], openings: [] }; ed.sel = null; commit(); fitEditor(); renderEditor();
       }
       else if (act === "save") savePlanFile();
       else if (act === "open") $("edFile").click();
@@ -1272,6 +1408,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const b = e.target.closest("button[data-act]"); if (!b) return;
       if (b.dataset.act === "del") deleteSel();
       else if (b.dataset.act === "rot90") rotateSel();
+      else if ((b.dataset.act === "flip" || b.dataset.act === "hinge") && ed.sel && ed.sel.kind === "open") {
+        snapshot(); const o = plan.openings[ed.sel.i]; o[b.dataset.act] = !o[b.dataset.act]; commit(false);
+      }
       else if (b.dataset.act === "dup" && ed.sel && ed.sel.kind === "obj") {
         snapshot(); const o = { ...plan.objs[ed.sel.i] }; o.x = r2(o.x + 0.3); o.y = r2(o.y + 0.3);
         plan.objs.push(o); ed.sel = { kind: "obj", i: plan.objs.length - 1 }; commit(false);
@@ -1597,7 +1736,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             let blocked = false;
             for (let k = 0; k < occ.length; k++) {
               const o = occ[k], t = segT(x, z, fx, fz, o[0], o[1], o[2], o[3]);
-              if (t >= 0 && o[4] > wp + t * rise) { blocked = true; break; }
+              if (t < 0) continue;
+              const zh = wp + t * rise;
+              if (o[4] <= zh) continue;
+              if (o[5]) { const u = segU; if (o[5].some((g) => u >= g[0] && u <= g[1] && zh >= g[2] && zh <= g[3])) continue; }
+              blocked = true; break;
             }
             if (blocked) continue;
           }
@@ -1869,15 +2012,32 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       return geo;
     };
     group.add(new THREE.Mesh(polyGeo(pts, 0, false), floorMat));
+    // Openings per host, as rectangles in the wall's local (x along wall, y up) frame
+    const ro3 = last.ro || [];
+    const holesOn = (key, len, sgn) => ro3.filter((r) => r.ok && r.host.key === key)
+      .map((r) => ({ x: sgn * (r.u - 0.5) * len, w: r.o.w, y0: r.z0, y1: r.z1 }))
+      .filter((hl) => hl.y1 - hl.y0 > 0.02);
+    const wallShape = (len, h, holes) => {
+      const sh = new THREE.Shape();
+      sh.moveTo(-len / 2, 0); sh.lineTo(len / 2, 0); sh.lineTo(len / 2, h); sh.lineTo(-len / 2, h); sh.closePath();
+      holes.forEach((hl) => {
+        const x0 = Math.max(hl.x - hl.w / 2, -len / 2 + 0.005), x1 = Math.min(hl.x + hl.w / 2, len / 2 - 0.005);
+        const y0 = Math.max(hl.y0, 0.005), y1 = Math.min(hl.y1, h - 0.005);
+        const hp = new THREE.Path(); hp.moveTo(x0, y0); hp.lineTo(x0, y1); hp.lineTo(x1, y1); hp.lineTo(x1, y0); hp.closePath();
+        sh.holes.push(hp);
+      });
+      return sh;
+    };
     pts.forEach((a, i) => {
       const b = pts[(i + 1) % pts.length], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
       if (len < 1e-6) return;
       let nx = -dy / len, ny = dx / len;
       const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
       if (!inPoly(pts, mx + nx * 0.02, my + ny * 0.02)) { nx = -nx; ny = -ny; }
-      const wall = new THREE.Mesh(new THREE.PlaneGeometry(len, H), wallMat);
-      wall.position.set(mx + ox, H / 2, my + oz);
-      wall.rotation.y = Math.atan2(nx, ny);
+      const phi = Math.atan2(nx, ny), sgn = (Math.cos(phi) * dx - Math.sin(phi) * dy) / len >= 0 ? 1 : -1;
+      const wall = new THREE.Mesh(new THREE.ShapeGeometry(wallShape(len, H, holesOn("e" + i, len, sgn))), wallMat);
+      wall.position.set(mx + ox, 0, my + oz);
+      wall.rotation.y = phi;
       group.add(wall);
     });
     const loop = (y) => {
@@ -1906,7 +2066,43 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const g = new THREE.Group();
       g.position.set((w.a[0] + w.b[0]) / 2 + ox, 0, (w.a[1] + w.b[1]) / 2 + oz);
       g.rotation.y = -Math.atan2(dy, dx);
-      box(g, len, h, w.t || 0.1, 0, h / 2, 0, h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7);
+      const wi = plan.walls.indexOf(w), holes = holesOn("w" + wi, len, 1), th = w.t || 0.1;
+      if (!holes.length) box(g, len, h, th, 0, h / 2, 0, h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7);
+      else {
+        const geo = new THREE.ExtrudeGeometry(wallShape(len, h, holes), { depth: th, bevelEnabled: false });
+        geo.translate(0, 0, -th / 2);
+        const m = new THREE.Mesh(geo, mat(h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7));
+        g.add(m);
+        g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat));
+      }
+      group.add(g);
+    });
+    // Door leaves (ajar) and window glazing
+    const glass = new THREE.MeshLambertMaterial({ color: 0x9fc7dd, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
+    ro3.forEach((r) => {
+      if (!r.ok) return;
+      const o = r.o, h = r.host, hgt = r.z1 - r.z0;
+      if (hgt <= 0.02) return;
+      const g = new THREE.Group();
+      g.position.set(r.c[0] + ox, 0, r.c[1] + oz);
+      g.rotation.y = -Math.atan2(h.d[1], h.d[0]);
+      const side = (o.flip ? -1 : 1) * (h.n[0] * -h.d[1] + h.n[1] * h.d[0] >= 0 ? 1 : -1);
+      if (o.type === "window") {
+        const fr = 0.04, z = 0;
+        box(g, o.w, fr, h.t + 0.02, 0, r.z0 + fr / 2, z, 0xf4f2ee); box(g, o.w, fr, h.t + 0.02, 0, r.z1 - fr / 2, z, 0xf4f2ee);
+        box(g, fr, hgt, h.t + 0.02, -o.w / 2 + fr / 2, r.z0 + hgt / 2, z, 0xf4f2ee); box(g, fr, hgt, h.t + 0.02, o.w / 2 - fr / 2, r.z0 + hgt / 2, z, 0xf4f2ee);
+        box(g, fr * 0.7, hgt - 2 * fr, 0.03, 0, r.z0 + hgt / 2, z, 0xf4f2ee);
+        const pane = new THREE.Mesh(new THREE.PlaneGeometry(o.w - 2 * fr, hgt - 2 * fr), glass);
+        pane.position.set(0, r.z0 + hgt / 2, 0); g.add(pane);
+      } else {
+        const hs = o.hinge ? 1 : -1, pivot = new THREE.Group();
+        pivot.position.set(hs * o.w / 2, 0, 0);
+        pivot.rotation.y = hs * side * (Math.PI / 180) * 70;
+        box(pivot, o.w - 0.02, hgt - 0.01, 0.04, -hs * (o.w / 2 - 0.01), hgt / 2, 0, 0x9c7a5b);
+        g.add(pivot);
+        box(g, 0.05, hgt, h.t + 0.02, -o.w / 2 - 0.025, hgt / 2, 0, 0xf4f2ee); box(g, 0.05, hgt, h.t + 0.02, o.w / 2 + 0.025, hgt / 2, 0, 0xf4f2ee);
+        box(g, o.w + 0.1, 0.05, h.t + 0.02, 0, hgt + 0.025, 0, 0xf4f2ee);
+      }
       group.add(g);
     });
     plan.objs.forEach((o) => {
@@ -2102,6 +2298,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       <g clip-path="url(#roomClip)">${bg}${glow}</g>
       <g opacity="${heat ? 0.8 : 1}">${primsSVG(allPlanPrims(H), X, Y)}</g>
       <polygon points="${poly}" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linejoin="round"/>
+      ${primsSVG(openingPrims(d.ro), X, Y)}
       ${fx}${dims}`;
     const spacing = d.lay.kind === "grid"
       ? `<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`
@@ -2153,6 +2350,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     ctx.beginPath();
     d.pts.forEach((q, i) => (i ? ctx.lineTo(q[0] * px, q[1] * px) : ctx.moveTo(q[0] * px, q[1] * px)));
     ctx.closePath(); ctx.strokeStyle = "#2b2924"; ctx.lineWidth = 5; ctx.lineJoin = "round"; ctx.stroke();
+    primsCanvas(ctx, openingPrims(d.ro), px, 2);
     if (withFixtures) {
       d.fixtures.forEach(([fx0, fy0], k) => {
         const x = fx0 * px, y = fy0 * px;
@@ -2247,6 +2445,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <tr><td>${d.custom ? "รูปทรงห้อง" : "ขนาด (ยาว × กว้าง × สูง)"}</td><td>${d.custom ? `วาดเอง ${d.pts.length} มุม · กรอบ ${fmt(d.L, 2)} × ${fmt(d.W, 2)} ม. · สูง ${fmt(d.H, 2)} ม.` : `${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.`}</td></tr>
         ${d.custom ? `<tr><td>เส้นรอบรูป</td><td>${fmt(d.P, 2)} ม.</td></tr>` : ""}
         ${plan.walls.length || plan.objs.length ? `<tr><td>ผนังภายใน / เฟอร์นิเจอร์</td><td>${plan.walls.length} / ${plan.objs.length} รายการ</td></tr>` : ""}
+        ${plan.openings.length ? `<tr><td>ประตู / หน้าต่าง</td><td>${plan.openings.filter((o) => o.type === "door").length} / ${plan.openings.filter((o) => o.type === "window").length} บาน</td></tr>` : ""}
         <tr><td>พื้นที่</td><td>${fmt(d.A, 2)} ตร.ม.</td></tr>
         <tr><td>ความสูงระนาบใช้งาน</td><td>${fmt(d.wp, 2)} ม.</td></tr>
         <tr><td>ค่าสะท้อนแสง</td><td>${REFL_TXT[d.refl]}</td></tr>
