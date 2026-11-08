@@ -140,6 +140,16 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .scale .bar { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2c1e5a, #3b4f9c, #1f9e89, #b5de2b, #fde725); }
 .plan-wrap { display: flex; justify-content: center; }
+.probe { position: absolute; transform: translate(-50%, calc(-100% - 10px)); background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px 9px; font-size: 12px; line-height: 1.35; pointer-events: none; box-shadow: 0 2px 10px rgba(0,0,0,.15); white-space: nowrap; text-align: center; }
+.probe b { display: block; font-size: 14px; color: var(--accent); }
+.probe::after { content: ""; position: absolute; left: 50%; bottom: -14px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+.surf { margin-top: 10px; }
+.surf .surf-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 4px; }
+.surf .surf-head .hint { display: inline; }
+.surf th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.surf td { font-size: 13px; padding: 5px 0; }
+.surf .r { text-align: right; padding-left: 10px; white-space: nowrap; }
 .ed-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 8px; }
 .ed-grp { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .ed-bar button, .ed-lib button, .ed-acts button {
@@ -432,7 +442,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           </div>
         </div>
         <div id="pane3d">
-          <div class="view3d" id="view3d" aria-label="มุมมองห้อง 3 มิติ"></div>
+          <div class="view3d" id="view3d" aria-label="มุมมองห้อง 3 มิติ"><div class="probe hidden" id="probe"></div></div>
+          <div class="surf hidden" id="surfTable"></div>
         </div>
         <div id="pane2d" class="hidden">
           <div class="plan-wrap"><svg id="plan" role="img" aria-label="ผังตำแหน่งโคมไฟ"></svg></div>
@@ -501,7 +512,10 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             <option value="art" selected>แสงจากโคม</option>
             <option value="day">แสงธรรมชาติ</option>
             <option value="sum">รวมทั้งสอง</option>
+            <option value="surf">ความสว่างบนพื้นผิว (3D)</option>
           </select></label>
+          <label id="surfShadowWrap" class="hidden"><input type="checkbox" id="surfShadow" checked>เงาบนพื้นผิว</label>
+          <span id="surfNote" class="hint"></span>
           <label id="beamsWrap"><input type="checkbox" id="showBeams" checked>ลำแสง</label>
           <div class="scale"><span>0</span><span class="bar"></span><span id="scaleMax">–</span><span>lux</span></div>
         </div>
@@ -761,8 +775,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       : !dday ? "หน้าต่างต้องอยู่บนขอบห้อง (ผนังภายนอก) และสูงกว่าระนาบใช้งาน"
       : `คำนวณจากหน้าต่าง ${dday.windows} บาน · พื้นที่กระจก ${fmt(dday.glazing, 2)} ตร.ม. (${fmt(dday.glazing / A * 100, 1)}% ของพื้นที่ห้อง)`;
     const modeSel = $("mapMode");
-    [...modeSel.options].forEach((o) => { if (o.value !== "art") o.disabled = !dday; });
-    if (!dday && modeSel.value !== "art") modeSel.value = "art";
+    [...modeSel.options].forEach((o) => { if (o.value === "day" || o.value === "sum") o.disabled = !dday; });
+    if (!dday && (modeSel.value === "day" || modeSel.value === "sum")) modeSel.value = "art";
     if (dday) {
       const dfB = dday.dfAvg >= 5 ? `<span class="badge ok">สว่างมาก</span>` : dday.dfAvg >= 2 ? `<span class="badge ok">พอใช้</span>` : `<span class="badge warn">น้อย</span>`;
       rows.splice(rows.length - 1, 0,
@@ -2346,7 +2360,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       vals[n] = vals[n] * MF * k + indirect;
       if (inside[n]) { if (vals[n] < min) min = vals[n]; if (vals[n] > max) max = vals[n]; }
     }
-    return { nx, nz, vals, inside, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget, directShare: avgTarget ? 1 - indirect / avgTarget : 1 };
+    return { nx, nz, vals, inside, k, indirect, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget, directShare: avgTarget ? 1 - indirect / avgTarget : 1 };
   }
 
   const RAMP = [[0, [44, 30, 90]], [0.25, [59, 79, 156]], [0.5, [31, 158, 137]], [0.75, [181, 222, 43]], [1, [253, 231, 37]]];
@@ -2518,6 +2532,240 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     return [r, g, b].map((v) => Math.round(Math.min(Math.max(v, 0), 255)));
   }
 
+  // ---------- Illuminance on material surfaces (3D, per pixel, with shadows) ----------
+  const SURF_MAXF = 96, SURF_MAXO = 192;
+  const SURF_VS = `
+    varying vec3 vW; varying vec3 vN;
+    void main() {
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vW = w.xyz;
+      vN = normalize((vec4(normalMatrix * normal, 0.0) * viewMatrix).xyz);
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }`;
+  const SURF_FS = `
+    precision highp float;
+    uniform sampler2D tFix; uniform float nFix; uniform float fixW;
+    uniform sampler2D tOcc; uniform float nOcc; uniform float occW;
+    uniform sampler2D tIES; uniform float useIES; uniform float imax; uniform float I0; uniform float rotC;
+    uniform float MF; uniform float kS; uniform float indirect; uniform float scaleMax; uniform vec2 off; uniform float shadows;
+    varying vec3 vW; varying vec3 vN;
+    vec3 ramp(float t) {
+      t = clamp(t, 0.0, 1.0);
+      vec3 c0 = vec3(44.0, 30.0, 90.0) / 255.0, c1 = vec3(59.0, 79.0, 156.0) / 255.0, c2 = vec3(31.0, 158.0, 137.0) / 255.0,
+           c3 = vec3(181.0, 222.0, 43.0) / 255.0, c4 = vec3(253.0, 231.0, 37.0) / 255.0;
+      if (t < 0.25) return mix(c0, c1, t / 0.25);
+      if (t < 0.5) return mix(c1, c2, (t - 0.25) / 0.25);
+      if (t < 0.75) return mix(c2, c3, (t - 0.5) / 0.25);
+      return mix(c3, c4, (t - 0.75) / 0.25);
+    }
+    vec4 occT(float i, float k) { return texture2D(tOcc, vec2((i * 4.0 + k + 0.5) / occW, 0.5)); }
+    void main() {
+      vec3 n = normalize(vN);
+      if (!gl_FrontFacing) n = -n;
+      vec3 N = vec3(n.x, n.z, n.y);                       // plan frame: x, y (= world z), up
+      vec3 P = vec3(vW.x - off.x, vW.z - off.y, vW.y) + N * 0.01;
+      float E = 0.0;
+      for (int i = 0; i < ${SURF_MAXF}; i++) {
+        if (float(i) >= nFix) break;
+        vec3 F = texture2D(tFix, vec2((float(i) + 0.5) / fixW, 0.5)).xyz;
+        vec3 v = F - P; float d2 = dot(v, v); float d = sqrt(d2);
+        float cs = dot(N, v) / d;
+        if (cs <= 0.0) continue;
+        float cg = v.z / d, I;
+        if (useIES > 0.5) {
+          float g = degrees(acos(clamp(cg, -1.0, 1.0)));
+          float C = mod(degrees(atan(-v.y, -v.x)) - rotC + 720.0, 360.0);
+          I = imax * texture2D(tIES, vec2((g + 0.5) / 181.0, (C / 5.0 + 0.5) / 73.0)).r;
+        } else I = I0 * max(cg, 0.0);
+        if (I <= 0.0) continue;
+        if (shadows > 0.5) {
+          bool bl = false;
+          for (int k = 0; k < ${SURF_MAXO}; k++) {
+            if (float(k) >= nOcc) break;
+            vec4 s = occT(float(k), 0.0), hb = occT(float(k), 1.0);
+            vec2 r = F.xy - P.xy, u = s.zw - s.xy;
+            float den = r.x * u.y - r.y * u.x;
+            if (abs(den) < 1e-9) continue;
+            vec2 ap = s.xy - P.xy;
+            float t = (ap.x * u.y - ap.y * u.x) / den, uu = (ap.x * r.y - ap.y * r.x) / den;
+            if (t <= 1e-4 || t >= 0.9999 || uu < 0.0 || uu > 1.0) continue;
+            float zh = P.z + t * (F.z - P.z);
+            if (hb.x <= zh || zh < hb.y) continue;
+            bool gap = false;
+            if (hb.z > 0.5) { vec4 g0 = occT(float(k), 2.0); if (uu >= g0.x && uu <= g0.y && zh >= g0.z && zh <= g0.w) gap = true; }
+            if (hb.z > 1.5) { vec4 g1 = occT(float(k), 3.0); if (uu >= g1.x && uu <= g1.y && zh >= g1.z && zh <= g1.w) gap = true; }
+            if (gap) continue;
+            bl = true; break;
+          }
+          if (bl) continue;
+        }
+        E += I * cs / d2;
+      }
+      E = E * MF * kS + indirect;
+      gl_FragColor = vec4(ramp(E / scaleMax) * (0.86 + 0.14 * max(n.y, 0.0)), 1.0);
+    }`;
+
+  // Same physics on the CPU, for click read-outs and the surface table
+  function surfaceLux(px, py, pz, nx, ny, nz, useShadow = true) {
+    const d = last; if (!d) return 0;
+    const ies = d.lamp && d.lamp.id === "ies" && IES ? IES : null, rot = $("iesRot").checked, I0 = d.fixLm / Math.PI;
+    px += nx * 0.01; py += ny * 0.01; pz += nz * 0.01;
+    let e = 0;
+    for (const f of d.fixtures) {
+      const vx = f[0] - px, vy = f[1] - py, vz = d.H - pz, d2 = vx * vx + vy * vy + vz * vz, dd = Math.sqrt(d2);
+      const cs = (nx * vx + ny * vy + nz * vz) / dd;
+      if (cs <= 0) continue;
+      const cg = vz / dd;
+      const I = ies ? lookupI(ies, Math.acos(Math.max(-1, Math.min(1, cg))) * 180 / Math.PI, Math.atan2(-vy, -vx) * 180 / Math.PI - (rot ? 90 : 0)) : I0 * Math.max(cg, 0);
+      if (I <= 0) continue;
+      if (useShadow) {
+        let blocked = false;
+        for (const o of d.occ) {
+          const t = segT(px, py, f[0], f[1], o[0], o[1], o[2], o[3]);
+          if (t < 0) continue;
+          const zh = pz + t * vz;
+          if (o[4] <= zh || (o[6] && zh < o[6])) continue;
+          if (o[5]) { const u = segU; if (o[5].some((g) => u >= g[0] && u <= g[1] && zh >= g[2] && zh <= g[3])) continue; }
+          blocked = true; break;
+        }
+        if (blocked) continue;
+      }
+      e += I * cs / d2;
+    }
+    return e * d.MF * (d.dist.k || 1) + (d.dist.indirect || 0);
+  }
+
+  // Average / min / max lux on each surface: floor, every room edge, interior walls, top of every object
+  let surfCache = null;
+  function surfaceStats() {
+    const d = last; if (!d) return [];
+    if (surfCache && surfCache.ref === d) return surfCache.rows;
+    const rows = [], step = Math.max(0.2, Math.max(d.L, d.W) / 28), H = d.H;
+    const agg = (name, vals, extra = "") => { if (!vals.length) return; let s = 0, mn = Infinity, mx = 0; vals.forEach((v) => { s += v; mn = Math.min(mn, v); mx = Math.max(mx, v); }); rows.push({ name, avg: s / vals.length, min: mn, max: mx, n: vals.length, extra }); };
+    const fl = [];
+    for (let y = step / 2; y < d.W; y += step) for (let x = step / 2; x < d.L; x += step) if (inPoly(d.pts, x, y)) fl.push(surfaceLux(x, y, 0.002, 0, 0, 1));
+    agg("พื้น", fl);
+    const corners = roomCorners(), dense = d.pts;
+    corners.forEach((a, i) => {
+      const b = corners[(i + 1) % corners.length], path = [a, ...arcPts(a, b, isCustom() ? bulgeOf(i) : 0), b], vals = [];
+      for (let k = 0; k < path.length - 1; k++) {
+        const p0 = path[k], p1 = path[k + 1], len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); if (len < 1e-6) continue;
+        const dx = (p1[0] - p0[0]) / len, dy = (p1[1] - p0[1]) / len; let nx = -dy, ny = dx;
+        const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2; if (!inPoly(dense, mx + nx * 0.02, my + ny * 0.02)) { nx = -nx; ny = -ny; }
+        for (let s = step / 2; s < len; s += step) for (let z = 0.2; z < H - 0.1; z += Math.max(0.3, step)) vals.push(surfaceLux(p0[0] + dx * s, p0[1] + dy * s, z, nx, ny, 0));
+      }
+      agg(`ผนังด้านที่ ${i + 1}`, vals);
+    });
+    plan.walls.forEach((w, i) => {
+      const path = wallPath(w), hgt = wallH(w, H), vals = [];
+      for (let k = 0; k < path.length - 1; k++) {
+        const p0 = path[k], p1 = path[k + 1], len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); if (len < 1e-6) continue;
+        const dx = (p1[0] - p0[0]) / len, dy = (p1[1] - p0[1]) / len, off = (w.t || 0.1) / 2;
+        for (const sd of [1, -1]) for (let s = step / 2; s < len; s += step) for (let z = 0.2; z < hgt - 0.05; z += Math.max(0.3, step))
+          vals.push(surfaceLux(p0[0] + dx * s - dy * off * sd, p0[1] + dy * s + dx * off * sd, z, -dy * sd, dx * sd, 0));
+      }
+      agg(`ผนังภายใน ${i + 1}${w.bulge ? " (โค้ง)" : ""}`, vals, "สองด้าน");
+    });
+    plan.objs.slice(0, 40).forEach((o) => {
+      const t = OBJ_TYPES[o.type]; if (!t) return;
+      const top = objTop(o, H); if (top >= H - 0.02) return;
+      const fp = objFootprint(o), vals = [], st = Math.max(0.08, Math.min(step, Math.min(o.w, o.d) / 4));
+      const xs = fp.map((q) => q[0]), ys = fp.map((q) => q[1]);
+      for (let y = Math.min(...ys) + st / 2; y < Math.max(...ys); y += st) for (let x = Math.min(...xs) + st / 2; x < Math.max(...xs); x += st) if (inPoly(fp, x, y)) vals.push(surfaceLux(x, y, top + 0.002, 0, 0, 1));
+      if (!vals.length) vals.push(surfaceLux(o.x, o.y, top + 0.002, 0, 0, 1));
+      agg(`ผิวบน${o.type === "model" ? " " + (o.name || "โมเดล") : t.name}`, vals, `สูง ${fmt(top, 2)} ม.`);
+    });
+    surfCache = { ref: d, rows };
+    return rows;
+  }
+  function renderSurfTable() {
+    const box = $("surfTable");
+    const on = $("mapMode").value === "surf" && view === "3d";
+    box.classList.toggle("hidden", !on);
+    $("surfShadowWrap").classList.toggle("hidden", !on);
+    if (!on) return;
+    const rows = surfaceStats();
+    box.innerHTML = `<div class="surf-head"><b>ความสว่างบนพื้นผิว (แสงจากโคม)</b><span class="hint">คลิกบนพื้นผิวในภาพ 3D เพื่ออ่านค่า lux ณ จุดนั้น</span></div>
+      <table><thead><tr><th>พื้นผิว</th><th class="r">E<sub>avg</sub></th><th class="r">E<sub>min</sub></th><th class="r">E<sub>max</sub></th></tr></thead><tbody>${
+      rows.map((r) => `<tr><td>${esc(r.name)}${r.extra ? ` <span class="hint" style="display:inline">${esc(r.extra)}</span>` : ""}</td><td class="r">${fmt(r.avg)} lx</td><td class="r">${fmt(r.min)}</td><td class="r">${fmt(r.max)}</td></tr>`).join("")}</tbody></table>`;
+  }
+
+  function surfMaterials() {
+    const d = last, ies = d.lamp && d.lamp.id === "ies" && IES ? IES : null;
+    (three.surfTex || []).forEach((t) => t.dispose());
+    const nF = Math.min(d.fixtures.length, SURF_MAXF), fw = Math.max(1, nF);
+    const fData = new Float32Array(fw * 4);
+    d.fixtures.slice(0, nF).forEach((f, i) => { fData[i * 4] = f[0]; fData[i * 4 + 1] = f[1]; fData[i * 4 + 2] = d.H; });
+    const tFix = new THREE.DataTexture(fData, fw, 1, THREE.RGBAFormat, THREE.FloatType);
+    const occ = d.occ, nO = Math.min(occ.length, SURF_MAXO), ow = Math.max(1, nO) * 4;
+    const oData = new Float32Array(ow * 4);
+    occ.slice(0, nO).forEach((o, i) => {
+      const b = i * 16, g = o[5] || [];
+      oData.set([o[0], o[1], o[2], o[3]], b);
+      oData.set([o[4], o[6] || -1e4, Math.min(g.length, 2), 0], b + 4);
+      if (g[0]) oData.set(g[0], b + 8);
+      if (g[1]) oData.set(g[1], b + 12);
+    });
+    const tOcc = new THREE.DataTexture(oData, ow, 1, THREE.RGBAFormat, THREE.FloatType);
+    const iData = new Uint8Array(181 * 73 * 4);
+    if (ies) for (let ci = 0; ci <= 72; ci++) for (let gi = 0; gi <= 180; gi++) iData[(ci * 181 + gi) * 4] = Math.round(Math.min(1, ies.tbl[ci * 181 + gi] / ies.imax) * 255);
+    const tIES = new THREE.DataTexture(iData, 181, 73, THREE.RGBAFormat);
+    [tFix, tOcc].forEach((t) => { t.magFilter = t.minFilter = THREE.NearestFilter; t.needsUpdate = true; });
+    tIES.magFilter = tIES.minFilter = THREE.LinearFilter; tIES.needsUpdate = true;
+    three.surfTex = [tFix, tOcc, tIES];
+    const shadowsOn = $("surfShadow").checked && occ.length <= SURF_MAXO;
+    const uniforms = {
+      tFix: { value: tFix }, nFix: { value: nF }, fixW: { value: fw },
+      tOcc: { value: tOcc }, nOcc: { value: nO }, occW: { value: ow },
+      tIES: { value: tIES }, useIES: { value: ies ? 1 : 0 }, imax: { value: ies ? ies.imax : 0 }, I0: { value: d.fixLm / Math.PI }, rotC: { value: $("iesRot").checked ? 90 : 0 },
+      MF: { value: d.MF }, kS: { value: d.dist.k || 1 }, indirect: { value: d.dist.indirect || 0 }, scaleMax: { value: d.scaleMax },
+      off: { value: new THREE.Vector2(-d.L / 2, -d.W / 2) }, shadows: { value: shadowsOn ? 1 : 0 },
+    };
+    const mk = (side) => new THREE.ShaderMaterial({ uniforms, vertexShader: SURF_VS, fragmentShader: SURF_FS, side });
+    return { front: mk(THREE.FrontSide), both: mk(THREE.DoubleSide), limited: d.fixtures.length > SURF_MAXF || (occ.length > SURF_MAXO && $("surfShadow").checked) };
+  }
+  function applySurfMaterials(group) {
+    const m = surfMaterials();
+    group.traverse((o) => {
+      if (!o.isMesh || o.userData.noSurf) return;
+      const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!mat || mat.isMeshBasicMaterial || mat.transparent || mat.isShaderMaterial) return;
+      o.material = mat.side === THREE.DoubleSide ? m.both : m.front;
+      o.userData.surf = true;
+    });
+    $("surfNote").textContent = m.limited ? `แสดงผลแบบย่อ: โคมเกิน ${SURF_MAXF} ดวงหรือสิ่งบังแสงเกิน ${SURF_MAXO} ชิ้น จึงไม่ได้คิดบางส่วน` : "";
+  }
+
+  // Click a surface in 3D to read its lux
+  function probeAt(e) {
+    if (!three || $("mapMode").value !== "surf") return;
+    const r = three.renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    const rc = new THREE.Raycaster(); rc.setFromCamera(ndc, three.camera);
+    const hit = rc.intersectObjects(three.group.children, true).find((h) => h.object.userData.surf && h.face);
+    if (!hit) { three.probe = null; render3D(); return; }
+    const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    if (n.dot(rc.ray.direction) > 0) n.negate();
+    three.probe = { p: hit.point.clone(), n };
+    updateProbe(); render3D();
+  }
+  function updateProbe() {
+    const lab = $("probe");
+    if (!three || !three.probe || $("mapMode").value !== "surf" || !last) { lab.classList.add("hidden"); return; }
+    const { p, n } = three.probe, d = last;
+    const E = surfaceLux(p.x + d.L / 2, p.z + d.W / 2, p.y, n.x, n.z, n.y);
+    three.probe.E = E;
+    lab.innerHTML = `<b>${fmt(E)} lux</b><span>สูง ${fmt(p.y, 2)} ม.</span>`;
+    lab.classList.remove("hidden");
+  }
+  function placeProbe() {
+    const lab = $("probe");
+    if (!three || !three.probe || lab.classList.contains("hidden")) return;
+    const v = three.probe.p.clone().project(three.camera), el = three.el;
+    lab.style.left = ((v.x + 1) / 2 * el.clientWidth) + "px";
+    lab.style.top = ((1 - v.y) / 2 * el.clientHeight) + "px";
+  }
+
   // ---------- 3D view ----------
   let view = "3d", last = null, three = null;
 
@@ -2539,6 +2787,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const dl = new THREE.DirectionalLight(0xffffff, 0.35); dl.position.set(4, 10, 6); scene.add(dl);
       const group = new THREE.Group(); scene.add(group);
       three = { el, renderer, scene, camera, controls, group, fitKey: "" };
+      let down = null;
+      renderer.domElement.addEventListener("pointerdown", (e) => { down = [e.clientX, e.clientY]; });
+      renderer.domElement.addEventListener("pointerup", (e) => { if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 4) probeAt(e); down = null; });
       new ResizeObserver(() => { resize3D(); render3D(); }).observe(el);
       resize3D();
       return true;
@@ -2556,7 +2807,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     camera.aspect = w / h; camera.updateProjectionMatrix();
   }
 
-  function render3D() { if (three) three.renderer.render(three.scene, three.camera); }
+  function render3D() { if (three) { three.renderer.render(three.scene, three.camera); placeProbe(); } }
 
   function clearGroup(group) {
     group.traverse((o) => {
@@ -2743,7 +2994,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     });
 
     // Work-plane map, cut to the room outline
-    if ($("showHeat").checked || $("showNums").checked || $("showIso").checked) {
+    const surfMode = $("mapMode").value === "surf";
+    if (!surfMode && ($("showHeat").checked || $("showNums").checked || $("showIso").checked)) {
       const mp = mapDist();
       const cv = workPlaneCanvas(L, W, mp.dist, mp.scaleMax, 2048 / Math.max(L, W), $("showHeat").checked, $("showNums").checked, 80, $("showIso").checked);
       const tex = new THREE.CanvasTexture(cv);
@@ -2753,6 +3005,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: $("showHeat").checked ? 0.92 : 1, side: THREE.DoubleSide, depthWrite: false }));
       group.add(plane);
     }
+
+    if (surfMode) applySurfMaterials(group); else $("surfNote").textContent = "";
 
     // Fixtures
     const [kr, kg, kb] = kelvinRGB(last.cct);
@@ -2827,7 +3081,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           lens.rotation.x = Math.PI / 2; lens.position.y = -0.021; fx.add(lens);
         }
         group.add(fx);
-        if ($("showBeams").checked) {
+        if ($("showBeams").checked && !surfMode) {
           const cone = new THREE.Mesh(new THREE.ConeGeometry(beamR, beamH, 32, 1, true), beamMat);
           cone.position.set(x, wp + beamH / 2, z);
           group.add(cone);
@@ -2846,6 +3100,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       controls.maxDistance = span * 5;
       controls.update();
     }
+    updateProbe();
+    renderSurfTable();
     render3D();
   }
 
@@ -2863,6 +3119,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     $("orbitHint").classList.toggle("hidden", v !== "3d");
     $("beamsWrap").classList.toggle("hidden", v !== "3d");
     if (v === "3d") { resize3D(); update3D(); }
+    renderSurfTable();
     if (v === "edit") { if (!ed.fitted) { fitEditor(); ed.fitted = true; } renderEditor(); renderProps(); }
   }
 
@@ -2997,7 +3254,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const g1 = emax ? emin / emax : 0;
     const per100 = eavg ? d.wpm2 / eavg * 100 : 0;
     const pass = eavg >= d.E * 0.95;
-    const total = d.dday ? 7 : 6;
+    const total = (d.dday ? 7 : 6) + 1;
     const page = (n, title, body) => `
       <div class="rp">
         <div class="hd"><span>${esc(proj)} · ${esc(room)}</span><span>${esc(date)}</span></div>
@@ -3033,7 +3290,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             <tr><td>ความสว่างเฉลี่ย / เป้าหมาย</td><td>${fmt(eavg)} / ${fmt(d.E)} lux</td></tr>
           </table>
         </div>
-        <div class="ft"><span>สารบัญ: 2 สรุปผล · 3 รายการโคมไฟ · 4 ผังติดตั้ง · 5 เส้น isolux / สีเทียม · 6 ตารางค่าความสว่าง${d.dday ? " · 7 แสงธรรมชาติ" : ""}</span><span>หน้า 1 / ${total}</span></div>
+        <div class="ft"><span>สารบัญ: 2 สรุปผล · 3 รายการโคมไฟ · 4 ผังติดตั้ง · 5 เส้น isolux / สีเทียม · 6 ตารางค่าความสว่าง${d.dday ? " · 7 แสงธรรมชาติ" : ""} · ${total} ความสว่างบนพื้นผิว</span><span>หน้า 1 / ${total}</span></div>
       </div>`);
 
     pages.push(page(2, "สรุปผลการคำนวณ", `
@@ -3120,6 +3377,20 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       ${vgrid}
       <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: ${iesR ? `แสงตรงคำนวณแบบจุดต่อจุดจากข้อมูลความเข้มแสงในไฟล์ ${iesR.format} (${esc(iesR.fileName)}) คิดเป็น ${fmt(d.dist.directShare * 100)}% ของค่าเฉลี่ย ส่วนแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ` : "แสงตรงคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ"} โดยค่าเฉลี่ยเท่ากับผลจาก Lumen Method
         ยังไม่ได้คำนวณแสงสะท้อนแบบ radiosity เหมือนโปรแกรม DIALux จึงเป็นค่าประมาณเพื่อการวางแผน ควรตรวจสอบก่อนใช้งานจริง</p>`));
+    const addSurfPage = () => {
+      const sel = $("mapMode"), prev = sel.value, prevProbe = three && three.probe;
+      sel.value = "surf"; if (three) three.probe = null;
+      const img = capture3D();
+      sel.value = prev; if (three) three.probe = prevProbe; update3D();
+      const rows = surfaceStats().slice(0, 24);
+      pages.push(page(total, "ความสว่างบนพื้นผิว (แสงจากโคม)", `
+        ${img ? `<img class="img" style="max-height:330px;border-radius:6px" src="${img}">` : ""}
+        <div style="display:flex;align-items:center;gap:8px;margin:6px 0 4px;color:#6b675e"><span>0</span><div class="scalebar" style="flex:1"></div><span>${fmt(d.scaleMax)} lux</span></div>
+        <table style="margin-top:8px"><tr><th>พื้นผิว</th><th class="r">E<sub>avg</sub> (lx)</th><th class="r">E<sub>min</sub></th><th class="r">E<sub>max</sub></th><th class="r">U₀</th></tr>${
+          rows.map((r) => `<tr><td>${esc(r.name)}${r.extra ? ` <span style="color:#8a857a">· ${esc(r.extra)}</span>` : ""}</td><td class="r">${fmt(r.avg)}</td><td class="r">${fmt(r.min)}</td><td class="r">${fmt(r.max)}</td><td class="r">${fmt(r.avg ? r.min / r.avg : 0, 2)}</td></tr>`).join("")}</table>
+        <p style="color:#8a857a;font-size:10.5px;margin-top:12px">ความสว่างบนพื้นผิวคิดจากแสงตรงของโคมทุกดวงตามมุมตกกระทบของแต่ละพื้นผิว${d.lamp && d.lamp.id === "ies" && IES ? " และข้อมูลความเข้มแสงจากไฟล์ " + esc(IES.format) : ""}
+          รวมเงาจากผนังและเฟอร์นิเจอร์ บวกแสงสะท้อนภายในแบบสม่ำเสมอเท่ากับที่ใช้กับระนาบใช้งาน ไม่รวมแสงธรรมชาติ</p>`));
+    };
     if (d.dday) {
       const dy = d.dday, daySrc = { dist: dy, scaleMax: d.dayScale };
       pages.push(page(7, "แสงธรรมชาติ (Daylight Factor)", `
@@ -3143,6 +3414,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <p style="color:#8a857a;font-size:10.5px;margin-top:14px">วิธีคำนวณ: Sky Component คำนวณแบบจุดต่อจุดผ่านหน้าต่างแต่ละบานภายใต้ท้องฟ้าครึ้มมาตรฐาน CIE โดยคิดการบังจากผนังและเฟอร์นิเจอร์
           ส่วนแสงสะท้อนภายใน (IRC) ใช้สูตร BRE แบบสม่ำเสมอทั้งห้อง ไม่รวมแสงแดดส่องตรง แสงสะท้อนจากภายนอก และสิ่งบังภายนอกอาคาร ค่าที่ได้เป็นค่าประมาณเพื่อการวางแผน</p>`));
     }
+    addSurfPage();
     return pages;
   }
 
@@ -3231,7 +3503,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   $("btn2d").addEventListener("click", () => setView("2d"));
   $("btnEdit").addEventListener("click", () => setView("edit"));
   ["showBeams", "showHeat", "showNums", "showIso"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(); update3D(); }));
-  $("mapMode").addEventListener("change", () => { $("scaleMax").textContent = fmt(mapDist().scaleMax); drawPlan(); update3D(); });
+  $("mapMode").addEventListener("change", () => {
+    $("scaleMax").textContent = fmt(mapDist().scaleMax);
+    if ($("mapMode").value === "surf" && view !== "3d" && window.THREE) setView("3d");
+    if (three && $("mapMode").value !== "surf") three.probe = null;
+    drawPlan(); update3D(); renderSurfTable();
+  });
+  $("surfShadow").addEventListener("change", () => { update3D(); });
   ["len", "wid", "hgt"].forEach((id) => $(id).addEventListener("input", () => { if (view === "edit") renderProps(); }));
 
   loadPlan();
