@@ -140,6 +140,23 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .scale .bar { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2c1e5a, #3b4f9c, #1f9e89, #b5de2b, #fde725); }
 .plan-wrap { display: flex; justify-content: center; }
+.ghost {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent);
+  background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 9px; padding: 7px 12px; cursor: pointer;
+}
+.ghost:hover { filter: brightness(1.05); }
+.ies-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
+.ies-info { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+.ies-info .t { font-weight: 600; font-size: 14px; line-height: 1.35; word-break: break-word; }
+.ies-info .m { font-size: 12px; color: var(--muted); word-break: break-word; }
+.ies-info .polar { display: flex; justify-content: center; margin: 8px 0 4px; }
+.ies-info .polar svg { width: 100%; max-width: 260px; height: auto; }
+.ies-info table td { padding: 4px 0; font-size: 13px; }
+.ies-info .acts { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.ies-info .acts label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text); cursor: pointer; }
+.ies-info .acts input { width: auto; accent-color: var(--accent); }
+.linkbtn { font: inherit; font-size: 13px; background: none; border: 0; color: var(--bad); cursor: pointer; padding: 4px 0; }
+.err { color: var(--bad); }
 .primary {
   width: 100%; font: inherit; font-weight: 600; color: #1d1c19; background: var(--accent); border: 0;
   border-radius: 10px; padding: 10px 14px; cursor: pointer; margin: 4px 0 6px;
@@ -242,6 +259,21 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <div class="field">
           <label for="lamp">ชนิดหลอด / โคม</label>
           <select id="lamp"></select>
+        </div>
+        <div class="ies-row">
+          <label class="ghost" for="iesFile">⤓ นำเข้าไฟล์ IES ของโคมจริง</label>
+          <input id="iesFile" type="file" accept=".ies,.IES" hidden>
+          <span class="hint" id="iesMsg">ไฟล์ข้อมูลโฟโตเมตริก (LM-63) จากผู้ผลิตโคม</span>
+        </div>
+        <div class="ies-info hidden" id="iesInfo">
+          <div class="t" id="iesName"></div>
+          <div class="m" id="iesMeta"></div>
+          <div class="polar" id="iesPolar"></div>
+          <table><tbody id="iesTable"></tbody></table>
+          <div class="acts">
+            <label><input type="checkbox" id="iesRot">หมุนโคม 90°</label>
+            <button type="button" class="linkbtn" id="iesRemove">ลบไฟล์ IES</button>
+          </div>
         </div>
         <div class="row two" id="customLamp">
           <div class="field"><label for="lm">ฟลักซ์ส่องสว่าง</label><div class="unit"><input id="lm" type="number" min="10" step="10" value="1000"><span>lm</span></div></div>
@@ -462,9 +494,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   function syncLamp() {
     const l = LAMPS.find((x) => x.id === lampSel.value);
-    const custom = !l.lm;
-    $("customLamp").classList.toggle("hidden", !custom);
-    if (!custom) { $("lm").value = l.lm; $("watt").value = l.w; }
+    const custom = !l.lm, isIES = l.id === "ies";
+    $("customLamp").classList.toggle("hidden", !custom && !(isIES && !l.w));
+    $("lm").disabled = isIES;
+    if (!custom) { $("lm").value = l.lm; if (!(isIES && !l.w)) $("watt").value = l.w; }
+    $("perFix").disabled = isIES;
+    if (isIES) $("perFix").value = 1;
+    showIES();
   }
 
   function syncSpace() {
@@ -539,7 +575,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       ["ค่าไฟต่อปี", `${fmt(cost * 12)} ฿`],
     ];
     // Illuminance distribution on the work plane (point-source model scaled to the lumen-method average)
-    const dist = distribution(L, W, Hm, g, sx, sy, achieved);
+    const iesOn = lampSel.value === "ies" && IES ? IES : null;
+    const dist = distribution(L, W, Hm, g, sx, sy, achieved, fixLm, MF, iesOn, $("iesRot").checked);
     const u0 = dist.avg ? dist.min / dist.avg : 0;
     const u0Badge = u0 >= 0.6 ? `<span class="badge ok">สม่ำเสมอ</span>` : u0 >= 0.4 ? `<span class="badge warn">พอใช้</span>` : `<span class="badge bad">ไม่สม่ำเสมอ</span>`;
     rows.splice(rows.length - 1, 0, [
@@ -568,10 +605,199 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
 
   // ---------- Illuminance distribution ----------
-  function distribution(L, W, Hm, g, sx, sy, avgTarget) {
+
+  // ---------- IES (IESNA LM-63) photometry ----------
+  let IES = null;
+
+  function parseIES(text, fileName) {
+    const lines = text.replace(/\r/g, "").split("\n");
+    const meta = {};
+    let i = 0;
+    for (; i < lines.length; i++) {
+      const ln = lines[i].trim();
+      const m = ln.match(/^\[([A-Z_]+)\]\s*(.*)$/i);
+      if (m) { const k = m[1].toUpperCase(); meta[k] = meta[k] ? meta[k] + " " + m[2].trim() : m[2].trim(); }
+      if (/^TILT\s*=/i.test(ln)) break;
+    }
+    if (i >= lines.length) throw new Error("ไม่พบบรรทัด TILT= (ไม่ใช่ไฟล์ IES ที่ถูกต้อง)");
+    const tilt = lines[i].split("=")[1].trim().toUpperCase();
+    const nums = lines.slice(i + 1).join(" ").trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    let p = 0;
+    if (tilt === "INCLUDE") { p++; const n = nums[p++]; p += 2 * n; }
+    else if (tilt !== "NONE") throw new Error("ไม่รองรับไฟล์ที่อ้างอิงข้อมูล TILT ภายนอก");
+    const [nLamps, lmLamp, mult, nV, nH, ptype, units, w, l, h] = nums.slice(p, p + 10); p += 10;
+    const [bf, , watts] = nums.slice(p, p + 3); p += 3;
+    if (![nV, nH].every((n) => Number.isInteger(n) && n > 0 && n < 2000)) throw new Error("จำนวนมุมในไฟล์ไม่ถูกต้อง");
+    const V = nums.slice(p, p + nV); p += nV;
+    const H = nums.slice(p, p + nH); p += nH;
+    const cd = [];
+    for (let k = 0; k < nH; k++) { cd.push(nums.slice(p, p + nV).map((v) => v * (mult || 1) * (bf || 1))); p += nV; }
+    if (cd.length !== nH || cd[nH - 1].length !== nV || cd.flat().some((v) => !Number.isFinite(v)) || V.some((v) => !Number.isFinite(v)))
+      throw new Error("ข้อมูลค่าความเข้มแสง (candela) ไม่ครบ");
+    if (ptype !== 1) throw new Error("รองรับเฉพาะโฟโตเมตรีแบบ Type C (โคมทั่วไป)");
+    const toM = units === 1 ? 0.3048 : 1;
+    const ies = {
+      fileName, meta, V, H, cd, nLamps, lmLamp, watts: watts > 0 ? watts : 0,
+      width: (w || 0) * toM, length: (l || 0) * toM, height: (h || 0) * toM,
+    };
+    // Resample to a regular 1° (γ) × 5° (C) table for fast lookup
+    const tbl = new Float32Array(181 * 73);
+    for (let ci = 0; ci <= 72; ci++) for (let gi = 0; gi <= 180; gi++) tbl[ci * 181 + gi] = rawI(ies, gi, ci * 5);
+    ies.tbl = tbl;
+    // Luminaire flux: Φ = ∬ I(γ,C) sinγ dγ dC
+    let flux = 0, imax = 0;
+    const dg = Math.PI / 180, dc = 5 * Math.PI / 180;
+    for (let ci = 0; ci < 72; ci++) for (let gi = 0; gi < 180; gi++) {
+      const I = lookupI(ies, gi + 0.5, ci * 5 + 2.5);
+      flux += I * Math.sin((gi + 0.5) * dg) * dg * dc;
+    }
+    for (const row of cd) for (const v of row) imax = Math.max(imax, v);
+    ies.flux = flux; ies.imax = imax;
+    const lampLm = nLamps > 0 && lmLamp > 0 ? nLamps * lmLamp : 0;
+    ies.lor = lampLm ? flux / lampLm : null;
+    let down = 0;
+    for (let ci = 0; ci < 72; ci++) for (let gi = 0; gi < 90; gi++) down += lookupI(ies, gi + 0.5, ci * 5 + 2.5) * Math.sin((gi + 0.5) * dg) * dg * dc;
+    ies.downward = flux ? down / flux : 1;
+    if (!(flux > 1)) throw new Error("ค่าฟลักซ์จากไฟล์เป็นศูนย์");
+    ies.name = meta.LUMINAIRE || meta.LUMCAT || meta.LAMPCAT || fileName.replace(/\.ies$/i, "");
+    return ies;
+  }
+
+  // Interpolate the raw IES table at (γ, C) in degrees, honouring the file's C-plane symmetry
+  function rawI(ies, g, c) {
+    const { V, H, cd } = ies, last = H[H.length - 1];
+    c = ((c % 360) + 360) % 360;
+    if (H.length === 1) c = H[0];
+    else if (last === 90) { if (c > 180) c = 360 - c; if (c > 90) c = 180 - c; }
+    else if (last === 180) { if (c > 180) c = 360 - c; }
+    const seg = (arr, x, wrap) => {
+      if (arr.length === 1) return [0, 0, 0];
+      if (x <= arr[0]) return wrap ? null : [0, 0, 0];
+      for (let k = 0; k < arr.length - 1; k++) if (x <= arr[k + 1]) return [k, k + 1, (x - arr[k]) / (arr[k + 1] - arr[k] || 1)];
+      return null;
+    };
+    let hs = seg(H, c, false);
+    if (!hs) { // beyond last C plane (e.g. 0–355): wrap to the first plane at 360°
+      const k = H.length - 1, span = 360 - H[k] + H[0];
+      hs = [k, 0, span ? (c - H[k]) / span : 0];
+    }
+    if (g < V[0] || g > V[V.length - 1]) return 0;
+    const vs = seg(V, g, false) || [V.length - 1, V.length - 1, 0];
+    const at = (hi) => cd[hi][vs[0]] * (1 - vs[2]) + cd[hi][vs[1]] * vs[2];
+    return at(hs[0]) * (1 - hs[2]) + at(hs[1]) * hs[2];
+  }
+
+  function lookupI(ies, g, c) {
+    if (!ies.tbl) return rawI(ies, g, c);
+    g = Math.min(Math.max(g, 0), 180);
+    c = ((c % 360) + 360) % 360;
+    const gi = Math.min(Math.floor(g), 179), tg = g - gi;
+    const ci = Math.min(Math.floor(c / 5), 71), tc = c / 5 - ci;
+    const t = ies.tbl, a = ci * 181, b = (ci + 1) * 181;
+    return (t[a + gi] * (1 - tg) + t[a + gi + 1] * tg) * (1 - tc) + (t[b + gi] * (1 - tg) + t[b + gi + 1] * tg) * tc;
+  }
+
+  // Polar light-distribution curve (cd/klm): C0–C180 solid, C90–C270 dashed
+  function polarSVG(ies, colors) {
+    const S = 260, cx = S / 2, cy = S / 2, R = S / 2 - 22;
+    const k = 1000 / ies.flux;
+    let maxv = 0;
+    for (let gdeg = 0; gdeg <= 180; gdeg += 2) for (const c of [0, 90, 180, 270]) maxv = Math.max(maxv, lookupI(ies, gdeg, c) * k);
+    const nice = [10, 20, 25, 50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1500, 2000, 3000, 5000, 10000, 20000];
+    const top = nice.find((n) => n >= maxv) || maxv;
+    const curve = (c1, c2) => {
+      const pts = [];
+      for (let gdeg = 0; gdeg <= 180; gdeg += 2) { const r = lookupI(ies, gdeg, c1) * k / top * R; pts.push([cx + r * Math.sin(gdeg * Math.PI / 180), cy + r * Math.cos(gdeg * Math.PI / 180)]); }
+      for (let gdeg = 180; gdeg >= 0; gdeg -= 2) { const r = lookupI(ies, gdeg, c2) * k / top * R; pts.push([cx - r * Math.sin(gdeg * Math.PI / 180), cy + r * Math.cos(gdeg * Math.PI / 180)]); }
+      return pts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join("") + "Z";
+    };
+    let grid = "";
+    for (let f = 1; f <= 4; f++) grid += `<circle cx="${cx}" cy="${cy}" r="${R * f / 4}" fill="none" stroke="${colors.grid}" stroke-width="1"/>`;
+    for (let a = 0; a < 180; a += 30) {
+      const dx = R * Math.sin(a * Math.PI / 180), dy = R * Math.cos(a * Math.PI / 180);
+      grid += `<line x1="${cx - dx}" y1="${cy - dy}" x2="${cx + dx}" y2="${cy + dy}" stroke="${colors.grid}" stroke-width="1"/>`;
+    }
+    const lab = [1, 2, 3, 4].map((f) => `<text x="${cx + R * f / 4 - 2}" y="${cy - 3}" font-size="9" text-anchor="end" fill="${colors.muted}">${fmt(top * f / 4)}</text>`).join("");
+    return `<svg viewBox="0 0 ${S} ${S + 34}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="กราฟการกระจายแสง">
+      ${grid}${lab}
+      <path d="${curve(90, 270)}" fill="none" stroke="${colors.c90}" stroke-width="2" stroke-dasharray="5 3"/>
+      <path d="${curve(0, 180)}" fill="${colors.fill}" stroke="${colors.c0}" stroke-width="2.2"/>
+      <text x="${cx}" y="${S - 6}" font-size="9" text-anchor="middle" fill="${colors.muted}">0°</text>
+      <text x="${cx}" y="13" font-size="9" text-anchor="middle" fill="${colors.muted}">180°</text>
+      <text x="${cx - R}" y="${cy + 12}" font-size="9" fill="${colors.muted}">90°</text>
+      <text x="${cx + R}" y="${cy + 12}" font-size="9" text-anchor="end" fill="${colors.muted}">90°</text>
+      <line x1="20" y1="${S + 14}" x2="38" y2="${S + 14}" stroke="${colors.c0}" stroke-width="2.2"/>
+      <text x="42" y="${S + 17}" font-size="10" fill="${colors.muted}">C0–C180</text>
+      <line x1="104" y1="${S + 14}" x2="122" y2="${S + 14}" stroke="${colors.c90}" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="126" y="${S + 17}" font-size="10" fill="${colors.muted}">C90–C270</text>
+      <text x="${S - 8}" y="${S + 17}" font-size="10" text-anchor="end" fill="${colors.muted}">cd/klm</text>
+    </svg>`;
+  }
+
+  function beamAngle(ies) {
+    // Full angle at which the mean C0/C90 intensity falls to 50 % of its peak
+    const v = (g) => (lookupI(ies, g, 0) + lookupI(ies, g, 90)) / 2;
+    let peak = 0, at = 0;
+    for (let g = 0; g <= 90; g += 0.5) if (v(g) > peak) { peak = v(g); at = g; }
+    for (let g = at; g <= 180; g += 0.5) if (v(g) < peak * 0.5) return g * 2;
+    return 180;
+  }
+
+  function showIES() {
+    const on = !!IES;
+    $("iesInfo").classList.toggle("hidden", !on || lampSel.value !== "ies");
+    if (!on) return;
+    $("iesName").textContent = IES.name;
+    $("iesMeta").textContent = [IES.meta.MANUFAC, IES.meta.LUMCAT && "รุ่น " + IES.meta.LUMCAT, IES.fileName].filter(Boolean).join(" · ");
+    $("iesPolar").innerHTML = polarSVG(IES, { grid: "var(--border)", muted: "var(--muted)", c0: "var(--accent)", c90: "#3b6fd1", fill: "color-mix(in srgb, var(--accent) 14%, transparent)" });
+    const dims = IES.width < 0 || IES.length < 0 ? `Ø ${fmt(Math.abs(IES.width) * 1000)} มม.` : `${fmt(IES.length * 1000)} × ${fmt(IES.width * 1000)} × ${fmt(IES.height * 1000)} มม.`;
+    const rows = [
+      ["ฟลักซ์ของโคม", `${fmt(IES.flux)} lm`],
+      ["กำลังไฟ", IES.watts ? `${fmt(IES.watts, 1)} W` : `<span class="err">ไม่ระบุในไฟล์ — กรอกด้านล่าง</span>`],
+      ["ประสิทธิภาพโคม", IES.watts ? `${fmt(IES.flux / IES.watts)} lm/W` : "–"],
+      ["ความเข้มสูงสุด", `${fmt(IES.imax)} cd`],
+      ["มุมลำแสง (50%)", `${fmt(beamAngle(IES))}°`],
+      ["แสงลงด้านล่าง", `${fmt(IES.downward * 100)} %`],
+      ...(IES.lor ? [["LOR (ประสิทธิภาพโคม)", `${fmt(IES.lor * 100)} %`]] : []),
+      ["ขนาดโคม", dims],
+    ];
+    $("iesTable").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  }
+
+  function setIES(ies, text) {
+    IES = ies;
+    let entry = LAMPS.find((x) => x.id === "ies");
+    if (!entry) { entry = { id: "ies", shape: "ies" }; LAMPS.splice(LAMPS.length - 1, 0, entry); }
+    Object.assign(entry, { name: "IES: " + ies.name, lm: Math.round(ies.flux), w: ies.watts || 0 });
+    let opt = lampSel.querySelector('option[value="ies"]');
+    if (!opt) { opt = document.createElement("option"); opt.value = "ies"; lampSel.insertBefore(opt, lampSel.querySelector('option[value="custom"]')); }
+    opt.textContent = `${entry.name} · ${fmt(entry.lm)} lm`;
+    lampSel.value = "ies";
+    $("iesMsg").textContent = "นำเข้าไฟล์แล้ว";
+    $("iesMsg").classList.remove("err");
+    try { if (text && text.length < 300000) localStorage.setItem("iesFile", JSON.stringify({ name: ies.fileName, text })); } catch (e) {}
+    syncLamp(); calc();
+  }
+
+  function clearIES() {
+    IES = null;
+    const i = LAMPS.findIndex((x) => x.id === "ies");
+    if (i >= 0) LAMPS.splice(i, 1);
+    const wasIES = lampSel.value === "ies";
+    const opt = lampSel.querySelector('option[value="ies"]');
+    if (opt) opt.remove();
+    if (wasIES || !lampSel.value) lampSel.value = "t8led18";
+    $("iesMsg").textContent = "ไฟล์ข้อมูลโฟโตเมตริก (LM-63) จากผู้ผลิตโคม";
+    try { localStorage.removeItem("iesFile"); } catch (e) {}
+    syncLamp(); calc();
+  }
+
+  // Point-by-point: direct illuminance from each luminaire (IES candela table, or Lambertian),
+  // plus a uniform inter-reflected part so the mean equals the lumen-method average
+  function distribution(L, W, Hm, g, sx, sy, avgTarget, fixLm, MF, ies, rot) {
     const nx = 72, nz = Math.max(8, Math.min(144, Math.round(72 * W / L)));
     const vals = new Float32Array(nx * nz);
-    const h2 = Hm * Hm;
+    const h2 = Hm * Hm, I0 = fixLm / Math.PI, rad = 180 / Math.PI;
     let sum = 0;
     for (let j = 0; j < nz; j++) {
       const z = (j + 0.5) / nz * W;
@@ -583,16 +809,24 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           for (let c = 0; c < g.cols; c++) {
             const dx = x - (c + 0.5) * sx;
             const d2 = dx * dx + dz * dz + h2;
-            e += h2 / (d2 * d2); // Lambertian: I0·cos²θ/d²  ∝  h²/d⁴
+            if (ies) {
+              const d = Math.sqrt(d2), gam = Math.acos(Hm / d) * rad;
+              const cang = Math.atan2(dz, dx) * rad - (rot ? 90 : 0);
+              e += lookupI(ies, gam, cang) * (Hm / d) / d2; // E = I(γ,C)·cosγ / d²
+            } else {
+              e += I0 * h2 / (d2 * d2); // Lambertian: I0·cos²γ/d²
+            }
           }
         }
         vals[j * nx + i] = e; sum += e;
       }
     }
-    const k = sum ? avgTarget / (sum / vals.length) : 0;
+    const meanDirect = sum / vals.length * MF;
+    const k = meanDirect > avgTarget && meanDirect > 0 ? avgTarget / meanDirect : 1;
+    const indirect = Math.max(avgTarget - meanDirect * k, 0);
     let min = Infinity, max = 0;
-    for (let n = 0; n < vals.length; n++) { vals[n] *= k; if (vals[n] < min) min = vals[n]; if (vals[n] > max) max = vals[n]; }
-    return { nx, nz, vals, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget };
+    for (let n = 0; n < vals.length; n++) { vals[n] = vals[n] * MF * k + indirect; if (vals[n] < min) min = vals[n]; if (vals[n] > max) max = vals[n]; }
+    return { nx, nz, vals, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget, directShare: avgTarget ? 1 - indirect / avgTarget : 1 };
   }
 
   const RAMP = [[0, [44, 30, 90]], [0.25, [59, 79, 156]], [0.5, [31, 158, 137]], [0.75, [181, 222, 43]], [1, [253, 231, 37]]];
@@ -884,6 +1118,23 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             b.position.set((t - (perFix - 1) / 2) * 0.14, -hang - 0.05, 0);
             fx.add(b);
           }
+        } else if (shape === "ies" && IES) {
+          const round = IES.width < 0 || IES.length < 0;
+          let w = Math.abs(IES.width), len = Math.abs(IES.length) || w;
+          const hh = Math.min(Math.max(IES.height, 0.03), 0.3);
+          if (w < 0.05 && len < 0.05) { w = len = 0.2; }
+          if ($("iesRot").checked) [w, len] = [len, w];
+          if (round) {
+            const cyl = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, hh, 28), body);
+            cyl.position.y = -hh / 2; fx.add(cyl);
+            const lens = new THREE.Mesh(new THREE.CircleGeometry(w / 2 * 0.85, 28), glow);
+            lens.rotation.x = Math.PI / 2; lens.position.y = -hh - 0.002; fx.add(lens);
+          } else {
+            const box = new THREE.Mesh(new THREE.BoxGeometry(len, hh, w), body);
+            box.position.y = -hh / 2; fx.add(box);
+            const lens = new THREE.Mesh(new THREE.PlaneGeometry(len * 0.92, w * 0.85), glow);
+            lens.rotation.x = Math.PI / 2; lens.position.y = -hh - 0.002; fx.add(lens);
+          }
         } else {
           const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.02, 24), body);
           ring.position.y = -0.01; fx.add(ring);
@@ -1021,7 +1272,24 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const room = $("roomName").value.trim() || d.space.name;
     const who = $("designer").value.trim();
     const date = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
-    const lampName = d.lamp && d.lamp.lm ? d.lamp.name : `หลอดกำหนดเอง ${fmt(d.lm)} lm / ${fmt(d.watt, 1)} W`;
+    const iesR = d.lamp && d.lamp.id === "ies" && IES ? IES : null;
+    const lampName = iesR ? [iesR.meta.MANUFAC, iesR.name].filter(Boolean).join(" ") : d.lamp && d.lamp.lm ? d.lamp.name : `หลอดกำหนดเอง ${fmt(d.lm)} lm / ${fmt(d.watt, 1)} W`;
+    const iesBlock = iesR ? `
+      <h3>ข้อมูลโฟโตเมตริก (ไฟล์ IES)</h3>
+      <div class="grid2" style="align-items:start">
+        <div style="border:1px solid #e2dfd6;border-radius:6px;padding:6px">${polarSVG(iesR, { grid: "#e2dfd6", muted: "#6b675e", c0: "#d98a00", c90: "#3b6fd1", fill: "rgba(217,138,0,.12)" })}</div>
+        <table class="kv">
+          <tr><td>ไฟล์</td><td>${esc(iesR.fileName)}</td></tr>
+          ${iesR.meta.MANUFAC ? `<tr><td>ผู้ผลิต</td><td>${esc(iesR.meta.MANUFAC)}</td></tr>` : ""}
+          ${iesR.meta.LUMCAT ? `<tr><td>รุ่น</td><td>${esc(iesR.meta.LUMCAT)}</td></tr>` : ""}
+          <tr><td>ฟลักซ์ของโคม</td><td>${fmt(iesR.flux)} lm</td></tr>
+          <tr><td>ความเข้มสูงสุด</td><td>${fmt(iesR.imax)} cd</td></tr>
+          <tr><td>มุมลำแสง (50%)</td><td>${fmt(beamAngle(iesR))}°</td></tr>
+          <tr><td>แสงลงด้านล่าง</td><td>${fmt(iesR.downward * 100)} %</td></tr>
+          ${iesR.lor ? `<tr><td>LOR</td><td>${fmt(iesR.lor * 100)} %</td></tr>` : ""}
+          <tr><td>การวางโคม</td><td>C0 ${$("iesRot").checked ? "ตามแนวกว้าง (Y)" : "ตามแนวยาว (X)"}</td></tr>
+        </table>
+      </div>` : "";
     const { step: isoStep } = isoLevels(d.dist);
     const emin = d.dist.min, emax = d.dist.max, eavg = d.achieved;
     const g1 = emax ? emin / emax : 0;
@@ -1119,7 +1387,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       <h3>สูตรที่ใช้</h3>
       <p style="font-family:ui-monospace,Menlo,monospace;background:#f6f4ee;padding:10px 12px;border-radius:6px">
         N = (E × A) ÷ (Φ × n × UF × MF) = (${fmt(d.E)} × ${fmt(d.A, 2)}) ÷ (${fmt(d.lm)} × ${d.perFix} × ${fmt(d.UF, 2)} × ${fmt(d.MF, 2)}) = ${fmt(d.exact, 2)}</p>
-      <p style="color:#6b675e">RI = (L × W) ÷ (Hm × (L + W)) = (${fmt(d.L, 2)} × ${fmt(d.W, 2)}) ÷ (${fmt(d.Hm, 2)} × ${fmt(d.L + d.W, 2)}) = ${fmt(d.RI, 2)}</p>`));
+      <p style="color:#6b675e">RI = (L × W) ÷ (Hm × (L + W)) = (${fmt(d.L, 2)} × ${fmt(d.W, 2)}) ÷ (${fmt(d.Hm, 2)} × ${fmt(d.L + d.W, 2)}) = ${fmt(d.RI, 2)}</p>
+      ${iesBlock}`));
 
     const fixRows = fixList.slice(0, 40).map(([n, x, y, z]) => `<tr><td>${n}</td><td class="r">${fmt(x, 2)}</td><td class="r">${fmt(y, 2)}</td><td class="r">${fmt(z, 2)}</td></tr>`).join("");
     pages.push(page(4, "ผังการติดตั้งโคมไฟ", `
@@ -1141,8 +1410,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       <p style="color:#6b675e;margin-top:0">จุดคำนวณทุก ${fmt(step, 2)} ม. บนระนาบใช้งานที่ความสูง ${fmt(d.wp, 2)} ม.${xsShow.length < xs.length || zsShow.length < zs.length ? " (แสดงบางจุดเนื่องจากห้องมีขนาดใหญ่)" : ""}</p>
       <img class="img" style="margin-bottom:14px;max-height:360px" src="${planImage(false, true, false, false)}">
       ${vgrid}
-      <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: การกระจายความสว่างคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และปรับให้ค่าเฉลี่ยเท่ากับผลจาก Lumen Method
-        ไม่รวมการสะท้อนแสงแยกรายจุดและข้อมูลการกระจายแสง (IES/LDT) ของโคมจริง ควรตรวจสอบกับข้อมูลผู้ผลิตก่อนใช้งานจริง</p>`));
+      <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: ${iesR ? `แสงตรงคำนวณแบบจุดต่อจุดจากข้อมูลความเข้มแสงในไฟล์ IES (${esc(iesR.fileName)}) คิดเป็น ${fmt(d.dist.directShare * 100)}% ของค่าเฉลี่ย ส่วนแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ` : "แสงตรงคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ"} โดยค่าเฉลี่ยเท่ากับผลจาก Lumen Method
+        ยังไม่ได้คำนวณแสงสะท้อนแบบ radiosity เหมือนโปรแกรม DIALux จึงเป็นค่าประมาณเพื่อการวางแผน ควรตรวจสอบก่อนใช้งานจริง</p>`));
     return pages;
   }
 
@@ -1196,7 +1465,25 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const s = SPACES.find((x) => x.id === spaceSel.value);
     if (s.lux && parseFloat($("lux").value) !== s.lux) { spaceSel.value = "custom"; updateLuxHint(); }
   });
-  ["lm", "watt"].forEach((id) => $(id).addEventListener("input", () => { lampSel.value = "custom"; }));
+  ["lm", "watt"].forEach((id) => $(id).addEventListener("input", () => { if (lampSel.value !== "ies") lampSel.value = "custom"; }));
+  $("iesFile").addEventListener("change", async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    ev.target.value = "";
+    if (!f) return;
+    try {
+      if (f.size > 2e6) throw new Error("ไฟล์ใหญ่เกินไป");
+      const text = await f.text();
+      setIES(parseIES(text, f.name), text);
+    } catch (e) {
+      $("iesMsg").textContent = "นำเข้าไม่สำเร็จ: " + (e && e.message ? e.message : "รูปแบบไฟล์ไม่ถูกต้อง");
+      $("iesMsg").classList.add("err");
+    }
+  });
+  $("iesRemove").addEventListener("click", clearIES);
+  try {
+    const saved = JSON.parse(localStorage.getItem("iesFile") || "null");
+    if (saved && saved.text) { IES = parseIES(saved.text, saved.name); setTimeout(() => { setIES(IES, null); }, 0); }
+  } catch (e) { IES = null; }
   document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", calc));
 
   // Theme toggle
