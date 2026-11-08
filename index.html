@@ -199,6 +199,9 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .ies-info .acts input { width: auto; accent-color: var(--accent); }
 .linkbtn { font: inherit; font-size: 13px; background: none; border: 0; color: var(--bad); cursor: pointer; padding: 4px 0; }
 .err { color: var(--bad); }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); margin-bottom: 12px; cursor: pointer; }
+.chk input { width: auto; accent-color: var(--accent); }
+select.mini { width: auto; padding: 3px 6px; font-size: 12px; }
 .primary {
   width: 100%; font: inherit; font-weight: 600; color: #1d1c19; background: var(--accent); border: 0;
   border-radius: 10px; padding: 10px 14px; cursor: pointer; margin: 4px 0 6px;
@@ -355,7 +358,31 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       </section>
 
       <section class="card">
-        <h2><span class="n">5</span>รายงาน PDF</h2>
+        <h2><span class="n">5</span>แสงธรรมชาติ</h2>
+        <label class="chk"><input type="checkbox" id="dayOn" checked> คิดแสงธรรมชาติจากหน้าต่าง</label>
+        <div class="row two">
+          <div class="field"><label for="sky">สภาพท้องฟ้า</label>
+            <select id="sky">
+              <option value="10000" selected>ฟ้าครึ้ม CIE (10,000 lx)</option>
+              <option value="20000">มีเมฆบางส่วน (20,000 lx)</option>
+              <option value="30000">ฟ้าโปร่ง ไม่รวมแดดตรง (30,000 lx)</option>
+              <option value="5000">ฟ้าครึ้มมาก / เช้า-เย็น (5,000 lx)</option>
+            </select>
+          </div>
+          <div class="field"><label for="glass">ชนิดกระจก</label>
+            <select id="glass">
+              <option value="0.8" selected>กระจกใส (τ 0.80)</option>
+              <option value="0.65">กระจก Low-E (τ 0.65)</option>
+              <option value="0.5">กระจกสีตัดแสง (τ 0.50)</option>
+              <option value="0.3">กระจกสะท้อนแสง (τ 0.30)</option>
+            </select>
+          </div>
+        </div>
+        <span class="hint" id="dayHint"></span>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">6</span>รายงาน PDF</h2>
         <div class="field"><label for="projName">ชื่อโครงการ</label><input id="projName" type="text" maxlength="80" placeholder="เช่น อาคารสำนักงาน ชั้น 3"></div>
         <div class="row two">
           <div class="field"><label for="roomName">ชื่อห้อง</label><input id="roomName" type="text" maxlength="60" placeholder="เช่น ห้อง 301"></div>
@@ -450,6 +477,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <label><input type="checkbox" id="showIso" checked>เส้น isolux</label>
           <label><input type="checkbox" id="showNums">ค่า lux รายจุด</label>
           <label><input type="checkbox" id="showHeat" checked>แผนที่ความสว่าง</label>
+          <label>แสดง <select id="mapMode" class="mini">
+            <option value="art" selected>แสงจากโคม</option>
+            <option value="day">แสงธรรมชาติ</option>
+            <option value="sum">รวมทั้งสอง</option>
+          </select></label>
           <label id="beamsWrap"><input type="checkbox" id="showBeams" checked>ลำแสง</label>
           <div class="scale"><span>0</span><span class="bar"></span><span id="scaleMax">–</span><span>lux</span></div>
         </div>
@@ -689,7 +721,37 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     ]);
 
     const scaleMax = Math.max(E * 1.5, dist.max, 1);
-    $("scaleMax").textContent = fmt(scaleMax);
+
+    // Daylight
+    const dayOn = $("dayOn").checked, tau = parseFloat($("glass").value), Eext = parseFloat($("sky").value);
+    const nWin = ro.filter((r) => r.ok && r.o.type === "window").length;
+    const dday = dayOn ? daylight(pts, L, W, A, P, wp, H, ro, occ, refl, tau, Eext) : null;
+    const dsum = dday ? combineDist(dist, dday, L, W) : null;
+    const dayScale = dday ? Math.max(E * 1.5, Math.min(dday.max, Math.max(E * 4, 1000)), 1) : scaleMax;
+    const sumScale = dsum ? Math.max(E * 1.5, Math.min(dsum.max, Math.max(E * 4, 1000)), 1) : scaleMax;
+    let daySave = 0, dayReach = 0;
+    if (dday && E > 0) {
+      let c = 0;
+      for (let n = 0; n < dday.vals.length; n++) if (dday.inside[n]) { c++; daySave += Math.min(1, dday.vals[n] / E); if (dday.vals[n] >= E) dayReach++; }
+      daySave /= c || 1; dayReach /= c || 1;
+    }
+    $("dayHint").textContent = !dayOn ? "ปิดการคำนวณแสงธรรมชาติอยู่"
+      : !nWin ? "ยังไม่มีหน้าต่างในแบบ — วางหน้าต่างที่แท็บ \"แก้ไขแบบ\""
+      : !dday ? "หน้าต่างต้องอยู่บนขอบห้อง (ผนังภายนอก) และสูงกว่าระนาบใช้งาน"
+      : `คำนวณจากหน้าต่าง ${dday.windows} บาน · พื้นที่กระจก ${fmt(dday.glazing, 2)} ตร.ม. (${fmt(dday.glazing / A * 100, 1)}% ของพื้นที่ห้อง)`;
+    const modeSel = $("mapMode");
+    [...modeSel.options].forEach((o) => { if (o.value !== "art") o.disabled = !dday; });
+    if (!dday && modeSel.value !== "art") modeSel.value = "art";
+    if (dday) {
+      const dfB = dday.dfAvg >= 5 ? `<span class="badge ok">สว่างมาก</span>` : dday.dfAvg >= 2 ? `<span class="badge ok">พอใช้</span>` : `<span class="badge warn">น้อย</span>`;
+      rows.splice(rows.length - 1, 0,
+        [`แสงธรรมชาติ: Daylight Factor เฉลี่ย / ต่ำสุด <span class="hint">DF ≥ 2% ถือว่ามีแสงธรรมชาติพอใช้ · แสงสะท้อนภายใน ${fmt(dday.irc, 2)}%</span>`, `${fmt(dday.dfAvg, 2)}% / ${fmt(dday.dfMin, 2)}% ${dfB}`],
+        [`แสงธรรมชาติเฉลี่ย <span class="hint">ท้องฟ้าภายนอก ${fmt(Eext)} lx · ต่ำสุด ${fmt(dday.min)} · สูงสุด ${fmt(dday.max)} lux</span>`, `${fmt(dday.avg)} lux`],
+        [`รวมโคม + แสงธรรมชาติ <span class="hint">ต่ำสุด ${fmt(dsum.min)} lux · พื้นที่ที่แสงธรรมชาติอย่างเดียวถึงเป้า ${fmt(dayReach * 100)}%</span>`, `${fmt(dsum.avg)} lux`],
+        [`ศักยภาพลดการใช้ไฟช่วงกลางวัน <span class="hint">ถ้าใช้เซนเซอร์หรี่ไฟตามแสงธรรมชาติ ภายใต้ท้องฟ้าที่เลือก</span>`, `~${fmt(daySave * 100)}% · ${fmt(cost * daySave)} ฿/เดือน`]);
+    }
+    const shown = mapDist({ dist, scaleMax, dday, dsum, dayScale, sumScale });
+    $("scaleMax").textContent = fmt(shown.scaleMax);
     const space = SPACES.find((x) => x.id === spaceSel.value);
     const cct = $("cct").value === "auto" ? space.cct : parseInt($("cct").value, 10);
     const [cr, cg, cb] = kelvinRGB(cct);
@@ -704,7 +766,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
     last = { L, W, H, wp, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct,
       A, P, Hm, RI, UF, MF, N, nMin, lm, watt, fixLm, exact, achieved, totalW, wpm2, kwhMonth, cost, rate, hours, shr, efficacy, u0, space,
-      pts, custom, fixtures, lay, nn, occ, ro };
+      pts, custom, fixtures, lay, nn, occ, ro, dday, dsum, dayScale, sumScale, daySave, dayReach, tau, Eext };
     drawPlan();
     if (view === "3d") update3D();
     if (view === "edit") renderEditor();
@@ -1457,6 +1519,109 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   }
 
+  // ---------- Daylight (Daylight Factor: CIE overcast sky component + BRE internally reflected component) ----------
+  const REFL3 = { light: [0.7, 0.5, 0.2], medium: [0.5, 0.3, 0.2], dark: [0.3, 0.1, 0.1] }; // ceiling, wall, floor
+  const FRAME = 0.8, GLASS_MF = 0.9;
+  function daylight(pts, L, W, A, P, wp, H, ro, occ, refl, tau, Eext) {
+    const wins = ro.filter((r) => r.ok && r.o.type === "window" && r.host.outline && r.z1 > Math.max(r.z0, wp) + 0.02);
+    if (!wins.length) return null;
+    // Window patches (only the part above the work plane can light it)
+    const patches = [];
+    let Wg = 0, hmSum = 0;
+    wins.forEach((r) => {
+      const o = r.o, h = r.host, z0 = r.z0, z1 = r.z1, hgt = z1 - z0;
+      Wg += o.w * hgt; hmSum += o.w * hgt * (z0 + z1) / 2;
+      const zb = Math.max(z0, wp + 0.01);
+      const nI = Math.max(2, Math.min(8, Math.round(o.w / 0.3))), nJ = Math.max(2, Math.min(6, Math.round((z1 - zb) / 0.3)));
+      const dA = (o.w / nI) * ((z1 - zb) / nJ);
+      for (let i = 0; i < nI; i++) for (let j = 0; j < nJ; j++) {
+        const al = -o.w / 2 + (i + 0.5) * o.w / nI;
+        patches.push([r.c[0] + h.d[0] * al, r.c[1] + h.d[1] * al, zb + (j + 0.5) * (z1 - zb) / nJ, -h.n[0], -h.n[1], dA]);
+      }
+    });
+    const nx = Math.round(Math.min(48, Math.max(24, Math.sqrt((2.5e6 / Math.max(1, patches.length * (1 + occ.length))) * (L / W)))));
+    const nz = Math.max(6, Math.min(96, Math.round(nx * W / L)));
+    const df = new Float32Array(nx * nz), inside = new Uint8Array(nx * nz);
+    const norm = 9 / (7 * Math.PI);
+    for (let j = 0; j < nz; j++) {
+      const y = (j + 0.5) / nz * W;
+      for (let i = 0; i < nx; i++) {
+        const x = (i + 0.5) / nx * L, n = j * nx + i;
+        if (!inPoly(pts, x, y)) continue;
+        inside[n] = 1;
+        let sc = 0;
+        for (const [qx, qy, qz, nox, noy, dA] of patches) {
+          const vx = qx - x, vy = qy - y, vz = qz - wp;
+          if (vz <= 0) continue;
+          const r2 = vx * vx + vy * vy + vz * vz, r = Math.sqrt(r2);
+          const cosb = (vx * nox + vy * noy) / r;
+          if (cosb <= 0) continue;
+          let blocked = false;
+          for (let k = 0; k < occ.length; k++) {
+            const o = occ[k], t = segT(x, y, qx, qy, o[0], o[1], o[2], o[3]);
+            if (t < 0) continue;
+            const zh = wp + t * vz;
+            if (o[4] <= zh) continue;
+            if (o[5]) { const u = segU; if (o[5].some((g) => u >= g[0] && u <= g[1] && zh >= g[2] && zh <= g[3])) continue; }
+            blocked = true; break;
+          }
+          if (blocked) continue;
+          const sinT = vz / r;
+          sc += ((1 + 2 * sinT) / 3) * sinT * (dA * cosb / r2); // CIE overcast luminance × cos(incidence) × dΩ
+        }
+        df[n] = sc * norm * 100 * tau * FRAME * GLASS_MF; // sky component, %
+      }
+    }
+    // Internally reflected component (BRE split-flux), uniform over the room
+    const [rc, rw, rf] = REFL3[refl] || REFL3.medium;
+    const Atot = 2 * A + P * H, Awall = Math.max(P * H - Wg, 0);
+    const Rav = (A * rc + A * rf + Awall * rw + Wg * 0.1) / Atot;
+    const hm = hmSum / Wg;
+    const below = Math.max(P * hm - Wg / 2, 0), above = Math.max(P * (H - hm) - Wg / 2, 0);
+    const Rfw = (A * rf + below * rw) / (A + below), Rcw = (A * rc + above * rw) / (A + above);
+    const irc = ((tau * Wg * FRAME) / (Atot * (1 - Rav))) * (39 * Rfw + 5 * Rcw) * GLASS_MF;
+    const vals = new Float32Array(nx * nz);
+    let sum = 0, cnt = 0, min = Infinity, max = 0, dfSum = 0, dfMin = Infinity, dfMax = 0;
+    for (let n = 0; n < df.length; n++) {
+      df[n] += irc;
+      vals[n] = df[n] / 100 * Eext;
+      if (!inside[n]) continue;
+      cnt++; sum += vals[n]; dfSum += df[n];
+      min = Math.min(min, vals[n]); max = Math.max(max, vals[n]); dfMin = Math.min(dfMin, df[n]); dfMax = Math.max(dfMax, df[n]);
+    }
+    // Inside cells next to the boundary keep their own value; outside cells copy the nearest inside one so maps blend cleanly
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+      const n = j * nx + i; if (inside[n]) continue;
+      let best = -1, bd = Infinity;
+      for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
+        const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= nz) continue;
+        const m = jj * nx + ii; if (inside[m] && di * di + dj * dj < bd) { bd = di * di + dj * dj; best = m; }
+      }
+      if (best >= 0) { vals[n] = vals[best]; df[n] = df[best]; } else { vals[n] = irc / 100 * Eext; df[n] = irc; }
+    }
+    return {
+      nx, nz, vals, df, inside, Eext, windows: wins.length, glazing: Wg, irc,
+      min: cnt ? min : 0, max, avg: cnt ? sum / cnt : 0, dfAvg: cnt ? dfSum / cnt : 0, dfMin: cnt ? dfMin : 0, dfMax,
+    };
+  }
+  function combineDist(art, day, L, W) {
+    const vals = new Float32Array(art.vals.length);
+    let min = Infinity, max = 0, sum = 0, cnt = 0;
+    for (let j = 0; j < art.nz; j++) for (let i = 0; i < art.nx; i++) {
+      const n = j * art.nx + i, x = (i + 0.5) / art.nx * L, y = (j + 0.5) / art.nz * W;
+      vals[n] = art.vals[n] + sampleE(day, L, W, x, y);
+      if (art.inside[n]) { cnt++; sum += vals[n]; min = Math.min(min, vals[n]); max = Math.max(max, vals[n]); }
+    }
+    return { nx: art.nx, nz: art.nz, vals, inside: art.inside, min: cnt ? min : 0, max, avg: cnt ? sum / cnt : 0 };
+  }
+  // Which work-plane map the views show
+  function mapDist(d = last) {
+    const mode = $("mapMode").value;
+    if (mode === "day" && d.dday) return { dist: d.dday, scaleMax: d.dayScale, label: "แสงธรรมชาติ" };
+    if (mode === "sum" && d.dsum) return { dist: d.dsum, scaleMax: d.sumScale, label: "แสงจากโคม + แสงธรรมชาติ" };
+    return { dist: d.dist, scaleMax: d.scaleMax, label: "แสงจากโคม" };
+  }
+
   // ---------- Illuminance distribution ----------
 
   // ---------- IES (IESNA LM-63) photometry ----------
@@ -2141,7 +2306,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
     // Work-plane map, cut to the room outline
     if ($("showHeat").checked || $("showNums").checked || $("showIso").checked) {
-      const cv = workPlaneCanvas(L, W, dist, last.scaleMax, 2048 / Math.max(L, W), $("showHeat").checked, $("showNums").checked, 80, $("showIso").checked);
+      const mp = mapDist();
+      const cv = workPlaneCanvas(L, W, mp.dist, mp.scaleMax, 2048 / Math.max(L, W), $("showHeat").checked, $("showNums").checked, 80, $("showIso").checked);
       const tex = new THREE.CanvasTexture(cv);
       tex.anisotropy = three.renderer.capabilities.getMaxAnisotropy();
       tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
@@ -2276,8 +2442,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const sp = Math.min(sx || 1.5, sy || 1.5);
     const glowR = Math.max(sp * scale * 0.75, 10);
     const heat = $("showHeat").checked, nums = $("showNums").checked, iso = $("showIso").checked;
+    const mp = mapDist();
     const bg = heat || nums || iso
-      ? `<image href="${workPlaneCanvas(L, W, d.dist, d.scaleMax, scale * 2, heat, nums, 34, iso).toDataURL()}" x="${pad}" y="${pad}" width="${rw}" height="${rh}" preserveAspectRatio="none"/>`
+      ? `<image href="${workPlaneCanvas(L, W, mp.dist, mp.scaleMax, scale * 2, heat, nums, 34, iso).toDataURL()}" x="${pad}" y="${pad}" width="${rw}" height="${rh}" preserveAspectRatio="none"/>`
       : "";
     const dot = Math.max(Math.min(6, sp * scale * 0.18), 3);
     let fx = "", glow = "";
@@ -2304,7 +2471,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       ? `<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`
       : `<span>${d.lay.kind === "manual" ? "โคมวางเอง" : "จัดโคมตามรูปทรงห้อง"} ${fmt(fixtures.length)} ดวง${fixtures.length > 1 ? ` · ระยะห่างเฉลี่ย ${fmt(d.nn.mean, 2)} ม.` : ""}</span>`;
     $("legend").innerHTML =
-      `<span>● ตำแหน่งโคม</span>${iso && isoLevels(d.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(d.dist).step)} lux</span>` : ""}${nums ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}${spacing}${plan.walls.length || plan.objs.length ? "<span>คิดเงาจากผนังและเฟอร์นิเจอร์ที่สูงกว่าระนาบใช้งาน</span>" : ""}`;
+      `${d.dday ? `<span><b>${mp.label}</b></span>` : ""}<span>● ตำแหน่งโคม</span>${iso && isoLevels(mp.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(mp.dist).step)} lux</span>` : ""}${nums ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}${spacing}${plan.walls.length || plan.objs.length ? "<span>คิดเงาจากผนังและเฟอร์นิเจอร์ที่สูงกว่าระนาบใช้งาน</span>" : ""}`;
   }
 
   // ---------- PDF report (DIALux-style) ----------
@@ -2337,9 +2504,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     return url;
   }
 
-  function planImage(heat, nums, iso, withFixtures) {
+  function planImage(heat, nums, iso, withFixtures, src) {
     const d = last, px = 1300 / Math.max(d.L, d.W);
-    const cv = workPlaneCanvas(d.L, d.W, d.dist, d.scaleMax, px, heat, nums, 30, iso);
+    const cv = workPlaneCanvas(d.L, d.W, src ? src.dist : d.dist, src ? src.scaleMax : d.scaleMax, px, heat, nums, 30, iso);
     const ctx = cv.getContext("2d");
     ctx.globalCompositeOperation = "destination-over";
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -2392,7 +2559,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const g1 = emax ? emin / emax : 0;
     const per100 = eavg ? d.wpm2 / eavg * 100 : 0;
     const pass = eavg >= d.E * 0.95;
-    const total = 6;
+    const total = d.dday ? 7 : 6;
     const page = (n, title, body) => `
       <div class="rp">
         <div class="hd"><span>${esc(proj)} · ${esc(room)}</span><span>${esc(date)}</span></div>
@@ -2428,7 +2595,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             <tr><td>ความสว่างเฉลี่ย / เป้าหมาย</td><td>${fmt(eavg)} / ${fmt(d.E)} lux</td></tr>
           </table>
         </div>
-        <div class="ft"><span>สารบัญ: 2 สรุปผล · 3 รายการโคมไฟ · 4 ผังติดตั้ง · 5 เส้น isolux / สีเทียม · 6 ตารางค่าความสว่าง</span><span>หน้า 1 / ${total}</span></div>
+        <div class="ft"><span>สารบัญ: 2 สรุปผล · 3 รายการโคมไฟ · 4 ผังติดตั้ง · 5 เส้น isolux / สีเทียม · 6 ตารางค่าความสว่าง${d.dday ? " · 7 แสงธรรมชาติ" : ""}</span><span>หน้า 1 / ${total}</span></div>
       </div>`);
 
     pages.push(page(2, "สรุปผลการคำนวณ", `
@@ -2460,6 +2627,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <tr><td>E<sub>min</sub> / E<sub>max</sub></td><td>${fmt(g1, 2)}</td></tr>
         <tr><td>อัตราส่วนระยะห่างต่อความสูง (S/Hm)</td><td>${fmt(d.shr, 2)}</td></tr>
         <tr><td>อุณหภูมิสีของแสง</td><td>${fmt(d.cct)} K</td></tr>
+        ${d.dday ? `<tr><td>แสงธรรมชาติ: DF เฉลี่ย / ต่ำสุด</td><td>${fmt(d.dday.dfAvg, 2)}% / ${fmt(d.dday.dfMin, 2)}%</td></tr>
+        <tr><td>แสงธรรมชาติเฉลี่ย (ท้องฟ้า ${fmt(d.Eext)} lx)</td><td>${fmt(d.dday.avg)} lux</td></tr>` : ""}
       </table>
       <h3>พลังงาน</h3>
       <table class="kv">
@@ -2513,6 +2682,29 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       ${vgrid}
       <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: ${iesR ? `แสงตรงคำนวณแบบจุดต่อจุดจากข้อมูลความเข้มแสงในไฟล์ ${iesR.format} (${esc(iesR.fileName)}) คิดเป็น ${fmt(d.dist.directShare * 100)}% ของค่าเฉลี่ย ส่วนแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ` : "แสงตรงคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ"} โดยค่าเฉลี่ยเท่ากับผลจาก Lumen Method
         ยังไม่ได้คำนวณแสงสะท้อนแบบ radiosity เหมือนโปรแกรม DIALux จึงเป็นค่าประมาณเพื่อการวางแผน ควรตรวจสอบก่อนใช้งานจริง</p>`));
+    if (d.dday) {
+      const dy = d.dday, daySrc = { dist: dy, scaleMax: d.dayScale };
+      pages.push(page(7, "แสงธรรมชาติ (Daylight Factor)", `
+        <div class="big">
+          <div>DF เฉลี่ย<b>${fmt(dy.dfAvg, 2)}%</b></div>
+          <div>DF ต่ำสุด<b>${fmt(dy.dfMin, 2)}%</b></div>
+          <div>E<sub>avg</sub> แสงธรรมชาติ<b>${fmt(dy.avg)} lx</b></div>
+          <div>ลดการใช้ไฟได้<b>~${fmt(d.daySave * 100)}%</b></div>
+        </div>
+        <h3>เส้น isolux และสีเทียมของแสงธรรมชาติ (ท้องฟ้า ${fmt(dy.Eext)} lx)</h3>
+        <img class="img" style="max-height:330px" src="${planImage(true, false, true, false, daySrc)}">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px;color:#6b675e"><span>0</span><div class="scalebar" style="flex:1"></div><span>${fmt(d.dayScale)} lux</span></div>
+        <table class="kv" style="margin-top:10px">
+          <tr><td>หน้าต่างที่ได้รับแสง / พื้นที่กระจก</td><td>${dy.windows} บาน / ${fmt(dy.glazing, 2)} ตร.ม. (${fmt(dy.glazing / d.A * 100, 1)}% ของพื้นที่ห้อง)</td></tr>
+          <tr><td>ค่าส่องผ่านกระจก (τ) · กรอบหน้าต่าง · ความสกปรก</td><td>${fmt(d.tau, 2)} · ${fmt(FRAME, 2)} · ${fmt(GLASS_MF, 2)}</td></tr>
+          <tr><td>แสงสะท้อนภายใน (IRC)</td><td>${fmt(dy.irc, 2)}%</td></tr>
+          <tr><td>E<sub>min</sub> / E<sub>max</sub> แสงธรรมชาติ</td><td>${fmt(dy.min)} / ${fmt(dy.max)} lux</td></tr>
+          <tr><td>รวมโคม + แสงธรรมชาติ (เฉลี่ย / ต่ำสุด)</td><td>${fmt(d.dsum.avg)} / ${fmt(d.dsum.min)} lux</td></tr>
+          <tr><td>พื้นที่ที่แสงธรรมชาติอย่างเดียวถึง ${fmt(d.E)} lux</td><td>${fmt(d.dayReach * 100)}%</td></tr>
+        </table>
+        <p style="color:#8a857a;font-size:10.5px;margin-top:14px">วิธีคำนวณ: Sky Component คำนวณแบบจุดต่อจุดผ่านหน้าต่างแต่ละบานภายใต้ท้องฟ้าครึ้มมาตรฐาน CIE โดยคิดการบังจากผนังและเฟอร์นิเจอร์
+          ส่วนแสงสะท้อนภายใน (IRC) ใช้สูตร BRE แบบสม่ำเสมอทั้งห้อง ไม่รวมแสงแดดส่องตรง แสงสะท้อนจากภายนอก และสิ่งบังภายนอกอาคาร ค่าที่ได้เป็นค่าประมาณเพื่อการวางแผน</p>`));
+    }
     return pages;
   }
 
@@ -2601,6 +2793,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   $("btn2d").addEventListener("click", () => setView("2d"));
   $("btnEdit").addEventListener("click", () => setView("edit"));
   ["showBeams", "showHeat", "showNums", "showIso"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(); update3D(); }));
+  $("mapMode").addEventListener("change", () => { $("scaleMax").textContent = fmt(mapDist().scaleMax); drawPlan(); update3D(); });
   ["len", "wid", "hgt"].forEach((id) => $(id).addEventListener("input", () => { if (view === "edit") renderProps(); }));
 
   loadPlan();
