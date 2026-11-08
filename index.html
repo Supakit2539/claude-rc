@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คำนวณแสงสว่าง</title>
+<meta name="description" content="คำนวณจำนวนหลอดไฟที่เหมาะสมตามขนาดพื้นที่ ด้วยวิธี Lumen Method">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-2: #f0eee8;
+  --border: #e2dfd6;
+  --text: #1d1c19;
+  --muted: #6b675e;
+  --accent: #d98a00;
+  --accent-soft: #fff3d6;
+  --ok: #2f7d4f;
+  --warn: #b25c00;
+  --bad: #b3261e;
+  --room: #fbfaf6;
+  --glow: rgba(255, 190, 60, 0.35);
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15140f;
+    --surface: #1e1d18;
+    --surface-2: #27261f;
+    --border: #36342b;
+    --text: #f0ede4;
+    --muted: #a39e90;
+    --accent: #ffb52e;
+    --accent-soft: #3a2d10;
+    --ok: #6cc28f;
+    --warn: #f0a24a;
+    --bad: #ff8a80;
+    --room: #1a1914;
+    --glow: rgba(255, 190, 60, 0.28);
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15140f;
+  --surface: #1e1d18;
+  --surface-2: #27261f;
+  --border: #36342b;
+  --text: #f0ede4;
+  --muted: #a39e90;
+  --accent: #ffb52e;
+  --accent-soft: #3a2d10;
+  --ok: #6cc28f;
+  --warn: #f0a24a;
+  --bad: #ff8a80;
+  --room: #1a1914;
+  --glow: rgba(255, 190, 60, 0.28);
+  --shadow: none;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans Thai", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 28px 16px 48px; }
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+h1 { font-size: 26px; line-height: 1.25; margin: 0 0 4px; font-weight: 700; }
+.sub { color: var(--muted); margin: 0; }
+.theme-btn {
+  flex: none; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 10px; width: 40px; height: 40px; cursor: pointer; font-size: 18px;
+}
+.grid { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px; box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 16px; }
+.card h2 { font-size: 15px; margin: 0 0 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.card h2 .n {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+  display: inline-grid; place-items: center; font-size: 12px; font-weight: 700;
+}
+.row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; min-width: 0; }
+.field:last-child { margin-bottom: 0; }
+label { font-size: 13px; color: var(--muted); }
+input, select {
+  width: 100%; font: inherit; color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px; min-width: 0;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.unit { position: relative; }
+.unit input { padding-right: 38px; }
+.unit span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+.hint { font-size: 12px; color: var(--muted); }
+.hidden { display: none !important; }
+
+.hero {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px;
+}
+@media (max-width: 520px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat.main { background: var(--accent-soft); border-color: transparent; }
+.stat .k { font-size: 13px; color: var(--muted); }
+.stat .v { font-size: 30px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat.main .v { color: var(--accent); }
+.stat .v small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.stat .d { font-size: 12px; color: var(--muted); }
+
+.plan-wrap { display: flex; justify-content: center; }
+#plan { width: 100%; height: auto; max-height: 420px; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; justify-content: center; }
+
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td { padding: 7px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+td:last-child { text-align: right; font-weight: 500; padding-left: 12px; white-space: nowrap; }
+td .hint { display: block; }
+
+.badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.badge.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+
+.notes { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.notes li + li { margin-top: 4px; }
+.formula { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: nowrap; }
+footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>💡 คำนวณแสงสว่างตามขนาดพื้นที่</h1>
+      <p class="sub">หาจำนวนหลอดไฟที่เหมาะสมด้วยวิธี Lumen Method พร้อมผังการติดตั้งและค่าไฟโดยประมาณ</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="สลับธีม">◐</button>
+  </header>
+
+  <div class="grid">
+    <!-- Inputs -->
+    <div>
+      <section class="card">
+        <h2><span class="n">1</span>ขนาดห้อง</h2>
+        <div class="row">
+          <div class="field"><label for="len">ความยาว</label><div class="unit"><input id="len" type="number" min="0.5" step="0.1" value="6"><span>ม.</span></div></div>
+          <div class="field"><label for="wid">ความกว้าง</label><div class="unit"><input id="wid" type="number" min="0.5" step="0.1" value="4"><span>ม.</span></div></div>
+          <div class="field"><label for="hgt">ความสูงฝ้า</label><div class="unit"><input id="hgt" type="number" min="1.5" step="0.1" value="2.7"><span>ม.</span></div></div>
+        </div>
+        <div class="row two">
+          <div class="field"><label for="work">ความสูงระนาบใช้งาน</label><div class="unit"><input id="work" type="number" min="0" step="0.05" value="0.75"><span>ม.</span></div></div>
+          <div class="field"><label for="refl">สีผนัง / ฝ้า</label>
+            <select id="refl">
+              <option value="light">สีอ่อน (ขาว, ครีม)</option>
+              <option value="medium" selected>สีกลาง</option>
+              <option value="dark">สีเข้ม</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">2</span>ประเภทพื้นที่</h2>
+        <div class="field">
+          <label for="space">การใช้งาน</label>
+          <select id="space"></select>
+        </div>
+        <div class="field">
+          <label for="lux">ความสว่างที่ต้องการ</label>
+          <div class="unit"><input id="lux" type="number" min="10" step="10" value="300"><span>lux</span></div>
+          <span class="hint" id="luxHint"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">3</span>หลอดไฟ</h2>
+        <div class="field">
+          <label for="lamp">ชนิดหลอด / โคม</label>
+          <select id="lamp"></select>
+        </div>
+        <div class="row two" id="customLamp">
+          <div class="field"><label for="lm">ฟลักซ์ส่องสว่าง</label><div class="unit"><input id="lm" type="number" min="10" step="10" value="1000"><span>lm</span></div></div>
+          <div class="field"><label for="watt">กำลังไฟ</label><div class="unit"><input id="watt" type="number" min="0.5" step="0.5" value="10"><span>W</span></div></div>
+        </div>
+        <div class="row two">
+          <div class="field"><label for="perFix">จำนวนหลอดต่อโคม</label><input id="perFix" type="number" min="1" max="8" step="1" value="1"></div>
+          <div class="field"><label for="mf">สภาพแวดล้อม</label>
+            <select id="mf">
+              <option value="0.8">สะอาด (MF 0.8)</option>
+              <option value="0.7" selected>ปกติ (MF 0.7)</option>
+              <option value="0.6">ฝุ่นมาก (MF 0.6)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">4</span>ค่าไฟ</h2>
+        <div class="row two">
+          <div class="field"><label for="hours">เปิดใช้งานต่อวัน</label><div class="unit"><input id="hours" type="number" min="0" max="24" step="0.5" value="8"><span>ชม.</span></div></div>
+          <div class="field"><label for="rate">ค่าไฟต่อหน่วย</label><div class="unit"><input id="rate" type="number" min="0" step="0.1" value="4.5"><span>฿</span></div></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Results -->
+    <div>
+      <div class="hero">
+        <div class="stat main">
+          <div class="k">จำนวนโคมที่แนะนำ</div>
+          <div class="v" id="rFix">–</div>
+          <div class="d" id="rFixD"></div>
+        </div>
+        <div class="stat">
+          <div class="k">ความสว่างที่ได้</div>
+          <div class="v" id="rLux">–</div>
+          <div class="d" id="rLuxD"></div>
+        </div>
+        <div class="stat">
+          <div class="k">ค่าไฟต่อเดือน</div>
+          <div class="v" id="rCost">–</div>
+          <div class="d" id="rCostD"></div>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>ผังการติดตั้งโดยประมาณ</h2>
+        <div class="plan-wrap"><svg id="plan" role="img" aria-label="ผังตำแหน่งโคมไฟ"></svg></div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="card">
+        <h2>รายละเอียดการคำนวณ</h2>
+        <table><tbody id="details"></tbody></table>
+      </section>
+
+      <section class="card">
+        <h2>สูตรที่ใช้</h2>
+        <div class="formula">N = (E × A) ÷ (Φ × n × UF × MF)</div>
+        <ul class="notes" style="margin-top:10px">
+          <li><b>E</b> ความสว่างที่ต้องการ (lux), <b>A</b> พื้นที่ (ตร.ม.)</li>
+          <li><b>Φ</b> ลูเมนต่อหลอด, <b>n</b> จำนวนหลอดต่อโคม</li>
+          <li><b>UF</b> สัมประสิทธิ์การใช้ประโยชน์ ประมาณจากดัชนีห้อง RI = (L×W) ÷ (Hm×(L+W)) และสีผนัง</li>
+          <li><b>MF</b> ตัวประกอบการบำรุงรักษา ชดเชยฝุ่นและการเสื่อมของหลอด</li>
+          <li>ค่าความสว่างแนะนำอ้างอิงแนวทาง TIEA / EN 12464-1 ผลลัพธ์เป็นค่าประมาณเบื้องต้น ควรตรวจสอบกับข้อมูลโคมจริงจากผู้ผลิต</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+  <footer>ผลลัพธ์เป็นการประมาณเพื่อการวางแผนเบื้องต้น</footer>
+</div>
+
+<script>
+(() => {
+  // Recommended illuminance (lux)
+  const SPACES = [
+    { id: "living", name: "ห้องนั่งเล่น", lux: 150, group: "บ้านพักอาศัย" },
+    { id: "bedroom", name: "ห้องนอน", lux: 100, group: "บ้านพักอาศัย" },
+    { id: "kitchen", name: "ห้องครัว", lux: 300, group: "บ้านพักอาศัย" },
+    { id: "dining", name: "ห้องรับประทานอาหาร", lux: 200, group: "บ้านพักอาศัย" },
+    { id: "bath", name: "ห้องน้ำ", lux: 150, group: "บ้านพักอาศัย" },
+    { id: "study", name: "ห้องอ่านหนังสือ / ทำงานที่บ้าน", lux: 500, group: "บ้านพักอาศัย" },
+    { id: "corridor", name: "ทางเดิน / บันได", lux: 100, group: "บ้านพักอาศัย" },
+    { id: "garage", name: "โรงจอดรถ", lux: 75, group: "บ้านพักอาศัย" },
+    { id: "office", name: "สำนักงานทั่วไป", lux: 500, group: "อาคารพาณิชย์" },
+    { id: "meeting", name: "ห้องประชุม", lux: 500, group: "อาคารพาณิชย์" },
+    { id: "classroom", name: "ห้องเรียน", lux: 300, group: "อาคารพาณิชย์" },
+    { id: "lobby", name: "โถงต้อนรับ", lux: 200, group: "อาคารพาณิชย์" },
+    { id: "shop", name: "ร้านค้า / พื้นที่ขาย", lux: 300, group: "อาคารพาณิชย์" },
+    { id: "restaurant", name: "ร้านอาหาร", lux: 200, group: "อาคารพาณิชย์" },
+    { id: "hospital", name: "ห้องตรวจโรค", lux: 500, group: "อาคารพาณิชย์" },
+    { id: "warehouse", name: "คลังสินค้า", lux: 150, group: "อุตสาหกรรม" },
+    { id: "factory", name: "โรงงาน งานทั่วไป", lux: 300, group: "อุตสาหกรรม" },
+    { id: "fine", name: "งานละเอียด / ประกอบชิ้นส่วน", lux: 750, group: "อุตสาหกรรม" },
+    { id: "custom", name: "กำหนดเอง", lux: null, group: "อื่น ๆ" },
+  ];
+
+  // Lamp presets: lumens per lamp, watts per lamp
+  const LAMPS = [
+    { id: "led9", name: "LED Bulb 9W (E27)", lm: 806, w: 9 },
+    { id: "led12", name: "LED Bulb 12W (E27)", lm: 1100, w: 12 },
+    { id: "dl12", name: "LED Downlight 12W", lm: 1000, w: 12 },
+    { id: "t8led9", name: "LED Tube T8 9W (60 ซม.)", lm: 900, w: 9 },
+    { id: "t8led18", name: "LED Tube T8 18W (120 ซม.)", lm: 1800, w: 18 },
+    { id: "panel36", name: "LED Panel 60×60 36W", lm: 3600, w: 36 },
+    { id: "hb100", name: "LED High Bay 100W", lm: 13000, w: 100 },
+    { id: "t8fl36", name: "หลอดฟลูออเรสเซนต์ T8 36W", lm: 2850, w: 36 },
+    { id: "cfl20", name: "หลอดตะเกียบ CFL 20W", lm: 1200, w: 20 },
+    { id: "inc60", name: "หลอดไส้ 60W", lm: 710, w: 60 },
+    { id: "custom", name: "กำหนดเอง", lm: null, w: null },
+  ];
+
+  // Simplified utilisation-factor table vs room index
+  const RI_PTS = [0.6, 0.8, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5];
+  const UF_TBL = {
+    light:  [0.40, 0.47, 0.52, 0.57, 0.61, 0.66, 0.70, 0.73, 0.77, 0.79],
+    medium: [0.34, 0.41, 0.46, 0.51, 0.55, 0.60, 0.64, 0.67, 0.71, 0.74],
+    dark:   [0.28, 0.34, 0.39, 0.44, 0.48, 0.53, 0.57, 0.60, 0.64, 0.67],
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n, d = 0) => Number(n).toLocaleString("th-TH", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const num = (id, fallback) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : fallback; };
+
+  // Populate selects
+  const spaceSel = $("space");
+  let currentGroup = null, og;
+  SPACES.forEach((s) => {
+    if (s.group !== currentGroup) { og = document.createElement("optgroup"); og.label = s.group; spaceSel.appendChild(og); currentGroup = s.group; }
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = s.lux ? `${s.name} — ${s.lux} lux` : s.name;
+    og.appendChild(o);
+  });
+  spaceSel.value = "office";
+  $("lux").value = 500;
+
+  const lampSel = $("lamp");
+  LAMPS.forEach((l) => {
+    const o = document.createElement("option");
+    o.value = l.id; o.textContent = l.lm ? `${l.name} · ${fmt(l.lm)} lm` : l.name;
+    lampSel.appendChild(o);
+  });
+  lampSel.value = "t8led18";
+  $("perFix").value = 2;
+
+  function interpUF(ri, refl) {
+    const t = UF_TBL[refl];
+    if (ri <= RI_PTS[0]) return t[0] * Math.max(ri / RI_PTS[0], 0.5);
+    if (ri >= RI_PTS[RI_PTS.length - 1]) return t[t.length - 1];
+    for (let i = 0; i < RI_PTS.length - 1; i++) {
+      if (ri >= RI_PTS[i] && ri <= RI_PTS[i + 1]) {
+        const f = (ri - RI_PTS[i]) / (RI_PTS[i + 1] - RI_PTS[i]);
+        return t[i] + f * (t[i + 1] - t[i]);
+      }
+    }
+    return t[0];
+  }
+
+  // Choose a cols×rows grid with count >= n that best matches room aspect
+  function layout(n, L, W) {
+    if (n <= 0) return { cols: 0, rows: 0 };
+    let best = null;
+    for (let cols = 1; cols <= n; cols++) {
+      const rows = Math.ceil(n / cols);
+      const total = cols * rows;
+      const sx = L / cols, sy = W / rows;
+      const aspectErr = Math.abs(Math.log(sx / sy));
+      const score = (total - n) * 1.2 + aspectErr * 2;
+      if (!best || score < best.score) best = { cols, rows, score };
+    }
+    return best;
+  }
+
+  function syncLamp() {
+    const l = LAMPS.find((x) => x.id === lampSel.value);
+    const custom = !l.lm;
+    $("customLamp").classList.toggle("hidden", !custom);
+    if (!custom) { $("lm").value = l.lm; $("watt").value = l.w; }
+  }
+
+  function syncSpace() {
+    const s = SPACES.find((x) => x.id === spaceSel.value);
+    if (s.lux) $("lux").value = s.lux;
+    updateLuxHint();
+  }
+
+  function updateLuxHint() {
+    const s = SPACES.find((x) => x.id === spaceSel.value);
+    $("luxHint").textContent = s.lux ? `ค่าแนะนำสำหรับ${s.name}: ${s.lux} lux` : "ระบุค่าความสว่างเอง";
+  }
+
+  function calc() {
+    const L = Math.max(num("len", 0), 0.1);
+    const W = Math.max(num("wid", 0), 0.1);
+    const H = num("hgt", 2.7);
+    const wp = Math.max(num("work", 0.75), 0);
+    const E = Math.max(num("lux", 0), 0);
+    const lm = Math.max(num("lm", 0), 1);
+    const watt = Math.max(num("watt", 0), 0);
+    const perFix = Math.max(Math.round(num("perFix", 1)), 1);
+    const MF = parseFloat($("mf").value);
+    const refl = $("refl").value;
+    const hours = Math.min(Math.max(num("hours", 0), 0), 24);
+    const rate = Math.max(num("rate", 0), 0);
+
+    const A = L * W;
+    const Hm = Math.max(H - wp, 0.3);
+    const RI = (L * W) / (Hm * (L + W));
+    const UF = interpUF(RI, refl);
+    const fixLm = lm * perFix;
+    const exact = (E * A) / (fixLm * UF * MF);
+    const nMin = Math.max(Math.ceil(exact - 1e-9), E > 0 ? 1 : 0);
+    const g = layout(nMin, L, W);
+    const N = g.cols * g.rows;
+    const achieved = (N * fixLm * UF * MF) / A;
+    const totalW = N * perFix * watt;
+    const wpm2 = totalW / A;
+    const kwhMonth = (totalW / 1000) * hours * 30;
+    const cost = kwhMonth * rate;
+    const sx = g.cols ? L / g.cols : 0, sy = g.rows ? W / g.rows : 0;
+    const shr = Math.max(sx, sy) / Hm;
+    const efficacy = watt ? lm / watt : 0;
+
+    // Hero
+    $("rFix").innerHTML = `${fmt(N)}<small>โคม</small>`;
+    $("rFixD").textContent = `${fmt(N * perFix)} หลอด · จัด ${g.cols} × ${g.rows}`;
+    $("rLux").innerHTML = `${fmt(achieved)}<small>lux</small>`;
+    const ratio = E ? achieved / E : 1;
+    $("rLuxD").innerHTML = E
+      ? `เป้าหมาย ${fmt(E)} lux ` + (ratio >= 1.5 ? `<span class="badge warn">สว่างเกิน</span>` : ratio >= 0.95 ? `<span class="badge ok">ผ่าน</span>` : `<span class="badge bad">ไม่ถึง</span>`)
+      : "";
+    $("rCost").innerHTML = `${fmt(cost)}<small>฿</small>`;
+    $("rCostD").textContent = `${fmt(kwhMonth, 1)} kWh/เดือน · ${fmt(totalW)} W`;
+
+    // Details
+    const shrBadge = shr <= 1.5 ? `<span class="badge ok">กระจายแสงดี</span>` : shr <= 2 ? `<span class="badge warn">อาจมีจุดมืด</span>` : `<span class="badge bad">ห่างเกินไป</span>`;
+    const lpdLimit = E >= 500 ? 12 : E >= 300 ? 10 : 8;
+    const lpdBadge = wpm2 <= lpdLimit ? `<span class="badge ok">ประหยัด</span>` : `<span class="badge warn">สูง</span>`;
+    const rows = [
+      ["พื้นที่ห้อง (A)", `${fmt(A, 2)} ตร.ม.`],
+      ["ความสูงติดตั้งเหนือระนาบใช้งาน (Hm)", `${fmt(Hm, 2)} ม.`],
+      ["ดัชนีห้อง (RI)", fmt(RI, 2)],
+      ["สัมประสิทธิ์การใช้ประโยชน์ (UF)", fmt(UF, 2)],
+      ["ตัวประกอบการบำรุงรักษา (MF)", fmt(MF, 2)],
+      ["ลูเมนต่อโคม", `${fmt(fixLm)} lm`],
+      ["ลูเมนรวมที่ต้องการ", `${fmt((E * A) / (UF * MF))} lm`],
+      ["จำนวนโคมตามสูตร", `${fmt(exact, 2)} → ${fmt(N)} โคม`],
+      [`ระยะห่างโคม <span class="hint">ยาว × กว้าง · S/Hm = ${fmt(shr, 2)}</span>`, `${fmt(sx, 2)} × ${fmt(sy, 2)} ม. ${shrBadge}`],
+      [`ความหนาแน่นกำลังไฟ <span class="hint">ประสิทธิภาพหลอด ${fmt(efficacy)} lm/W</span>`, `${fmt(wpm2, 1)} W/ตร.ม. ${lpdBadge}`],
+      ["ค่าไฟต่อปี", `${fmt(cost * 12)} ฿`],
+    ];
+    $("details").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+
+    drawPlan(L, W, g, sx, sy);
+  }
+
+  function drawPlan(L, W, g, sx, sy) {
+    const svg = $("plan");
+    const pad = 36;
+    const maxW = 640, maxH = 380;
+    const scale = Math.min((maxW - pad * 2) / L, (maxH - pad * 2) / W);
+    const rw = L * scale, rh = W * scale;
+    const vw = rw + pad * 2, vh = rh + pad * 2;
+    svg.setAttribute("viewBox", `0 0 ${vw} ${vh}`);
+    const glowR = Math.max(Math.min(sx, sy) * scale * 0.75, 10);
+    const dot = Math.max(Math.min(6, Math.min(sx, sy) * scale * 0.18), 3);
+    let fixtures = "";
+    for (let r = 0; r < g.rows; r++) {
+      for (let c = 0; c < g.cols; c++) {
+        const x = pad + (c + 0.5) * sx * scale;
+        const y = pad + (r + 0.5) * sy * scale;
+        fixtures += `<circle cx="${x}" cy="${y}" r="${glowR}" fill="url(#glow)"/>`;
+        fixtures += `<circle cx="${x}" cy="${y}" r="${dot}" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`;
+      }
+    }
+    // spacing dimension for first gap
+    let dims = "";
+    if (g.cols >= 1) {
+      const y = pad + rh + 18;
+      dims += `<text x="${pad + rw / 2}" y="${y}" text-anchor="middle" font-size="12" fill="var(--muted)">${fmt(L, 1)} ม.</text>`;
+    }
+    const x0 = pad - 14;
+    dims += `<text x="${x0}" y="${pad + rh / 2}" text-anchor="middle" font-size="12" fill="var(--muted)" transform="rotate(-90 ${x0} ${pad + rh / 2})">${fmt(W, 1)} ม.</text>`;
+    svg.innerHTML = `
+      <defs>
+        <radialGradient id="glow"><stop offset="0" stop-color="var(--glow)"/><stop offset="1" stop-color="var(--glow)" stop-opacity="0"/></radialGradient>
+        <clipPath id="roomClip"><rect x="${pad}" y="${pad}" width="${rw}" height="${rh}" rx="4"/></clipPath>
+      </defs>
+      <rect x="${pad}" y="${pad}" width="${rw}" height="${rh}" rx="4" fill="var(--room)" stroke="var(--border)" stroke-width="2"/>
+      <g clip-path="url(#roomClip)">${fixtures}</g>
+      ${dims}`;
+    $("legend").innerHTML =
+      `<span>● ตำแหน่งโคม</span><span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`;
+  }
+
+  // Events
+  lampSel.addEventListener("change", () => { syncLamp(); calc(); });
+  spaceSel.addEventListener("change", () => { syncSpace(); calc(); });
+  $("lux").addEventListener("input", () => {
+    const s = SPACES.find((x) => x.id === spaceSel.value);
+    if (s.lux && parseFloat($("lux").value) !== s.lux) { spaceSel.value = "custom"; updateLuxHint(); }
+  });
+  ["lm", "watt"].forEach((id) => $(id).addEventListener("input", () => { lampSel.value = "custom"; }));
+  document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", calc));
+
+  // Theme toggle
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  $("themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+  });
+
+  syncLamp();
+  updateLuxHint();
+  calc();
+})();
+</script>
+</body>
+</html>
