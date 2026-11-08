@@ -261,9 +261,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <select id="lamp"></select>
         </div>
         <div class="ies-row">
-          <label class="ghost" for="iesFile">⤓ นำเข้าไฟล์ IES ของโคมจริง</label>
-          <input id="iesFile" type="file" accept=".ies,.IES" hidden>
-          <span class="hint" id="iesMsg">ไฟล์ข้อมูลโฟโตเมตริก (LM-63) จากผู้ผลิตโคม</span>
+          <label class="ghost" for="iesFile">⤓ นำเข้าไฟล์ IES / LDT ของโคมจริง</label>
+          <input id="iesFile" type="file" accept=".ies,.IES,.ldt,.LDT" hidden>
+          <span class="hint" id="iesMsg">ไฟล์โฟโตเมตริก IES (LM-63) หรือ EULUMDAT (.ldt) จากผู้ผลิตโคม</span>
         </div>
         <div class="ies-info hidden" id="iesInfo">
           <div class="t" id="iesName"></div>
@@ -272,7 +272,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <table><tbody id="iesTable"></tbody></table>
           <div class="acts">
             <label><input type="checkbox" id="iesRot">หมุนโคม 90°</label>
-            <button type="button" class="linkbtn" id="iesRemove">ลบไฟล์ IES</button>
+            <button type="button" class="linkbtn" id="iesRemove">ลบไฟล์โคม</button>
           </div>
         </div>
         <div class="row two" id="customLamp">
@@ -637,9 +637,81 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     if (ptype !== 1) throw new Error("รองรับเฉพาะโฟโตเมตรีแบบ Type C (โคมทั่วไป)");
     const toM = units === 1 ? 0.3048 : 1;
     const ies = {
-      fileName, meta, V, H, cd, nLamps, lmLamp, watts: watts > 0 ? watts : 0,
+      format: "IES", fileName, meta, V, H, cd, watts: watts > 0 ? watts : 0,
+      lampLm: nLamps > 0 && lmLamp > 0 ? nLamps * lmLamp : 0,
       width: (w || 0) * toM, length: (l || 0) * toM, height: (h || 0) * toM,
     };
+    ies.name = meta.LUMINAIRE || meta.LUMCAT || meta.LAMPCAT || fileName.replace(/\.ies$/i, "");
+    return finishPhotometry(ies);
+  }
+
+  // EULUMDAT (.ldt): intensities in cd/klm of lamp flux, with C-plane symmetry flag Isym
+  function parseLDT(text, fileName) {
+    const L = text.replace(/\r/g, "").split("\n");
+    const n = (i) => { const v = parseFloat(String(L[i] || "").trim().replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
+    const str = (i) => String(L[i] || "").trim();
+    const isym = n(2), Mc = Math.round(n(3)), Ng = Math.round(n(5));
+    if (![0, 1, 2, 3, 4].includes(isym) || !(Mc > 0 && Mc <= 1441) || !(Ng > 0 && Ng <= 1441))
+      throw new Error("ส่วนหัวไฟล์ LDT ไม่ถูกต้อง");
+    const sets = Math.round(n(25));
+    if (!(sets >= 1 && sets <= 20)) throw new Error("จำนวนชุดหลอดในไฟล์ LDT ไม่ถูกต้อง");
+    let lampLm = 0, watts = 0;
+    const cctTxt = [];
+    for (let k = 0; k < sets; k++) {
+      lampLm += Math.abs(n(26 + 2 * sets + k)) || 0;
+      if (str(26 + 3 * sets + k)) cctTxt.push(str(26 + 3 * sets + k));
+      watts += n(26 + 5 * sets + k) || 0;
+    }
+    let p = 26 + 6 * sets + 10; // skip 10 direct ratios
+    const Call = []; for (let k = 0; k < Mc; k++) Call.push(n(p++));
+    const G = []; for (let k = 0; k < Ng; k++) G.push(n(p++));
+    let mc1 = 1, mc2 = Mc;
+    if (isym === 1) mc2 = 1;
+    else if (isym === 2) mc2 = Mc / 2 + 1;
+    else if (isym === 3) { mc1 = 3 * Mc / 4 + 1; mc2 = mc1 + Mc / 2; }
+    else if (isym === 4) mc2 = Mc / 4 + 1;
+    const rows = [];
+    const vals = L.slice(p).join(" ").trim().split(/\s+/).filter(Boolean).map((v) => parseFloat(v.replace(",", ".")));
+    let q = 0;
+    for (let c = mc1; c <= mc2; c++) { rows.push({ idx: (c - 1) % Mc, v: vals.slice(q, q + Ng) }); q += Ng; }
+    if (Call.some((v) => !Number.isFinite(v)) || G.some((v) => !Number.isFinite(v)) || rows.some((r) => r.v.length !== Ng || r.v.some((v) => !Number.isFinite(v))))
+      throw new Error("ข้อมูลค่าความเข้มแสงในไฟล์ LDT ไม่ครบ");
+    const conv = n(23) > 0 ? n(23) : 1;
+    const scale = (lampLm || 1000) / 1000 * conv;
+    const byAngle = new Map(rows.map((r) => [Math.round(Call[r.idx] * 1000), r.v]));
+    const find = (c) => {
+      c = ((c % 360) + 360) % 360;
+      if (isym === 2) { if (c > 180) c = 360 - c; }
+      else if (isym === 3) { if (c > 90 && c < 270) c = (180 - c + 360) % 360; }
+      else if (isym === 4) { if (c > 180) c = 360 - c; if (c > 90) c = 180 - c; }
+      const v = byAngle.get(Math.round(c * 1000));
+      if (v) return v;
+      let best = null, bd = 1e9; // nearest stored plane (tolerates rounding in the file)
+      for (const [a, vv] of byAngle) { const d = Math.abs(a / 1000 - c); if (d < bd) { bd = d; best = vv; } }
+      return best;
+    };
+    let H, cd;
+    if (isym === 1) { H = [0]; cd = [rows[0].v.map((v) => v * scale)]; }
+    else { H = Call.slice(); cd = H.map((c) => find(c).map((v) => v * scale)); }
+    const mm = 0.001;
+    const lenM = n(12) * mm || 0, widM = n(13) * mm || 0;
+    const ldt = {
+      format: "LDT", fileName, V: G, H, cd, watts: watts > 0 ? watts : 0, lampLm,
+      meta: { MANUFAC: str(0), LUMCAT: str(9), LUMINAIRE: str(8), CCT: cctTxt.join(", ") },
+      // EULUMDAT: width 0 means a round luminaire whose diameter is the "length" field
+      width: widM > 0 ? widM : -lenM, length: widM > 0 ? lenM : 0, height: n(14) * mm || 0,
+      lorFile: n(22) > 0 ? n(22) / 100 : null,
+    };
+    ldt.name = ldt.meta.LUMINAIRE || ldt.meta.LUMCAT || fileName.replace(/\.ldt$/i, "");
+    return finishPhotometry(ldt);
+  }
+
+  function parsePhotometry(text, fileName) {
+    const isIES = /\.ies$/i.test(fileName) || /^\s*IESNA/i.test(text) || /^\s*TILT\s*=/im.test(text);
+    return isIES ? parseIES(text, fileName) : parseLDT(text, fileName);
+  }
+
+  function finishPhotometry(ies) {
     // Resample to a regular 1° (γ) × 5° (C) table for fast lookup
     const tbl = new Float32Array(181 * 73);
     for (let ci = 0; ci <= 72; ci++) for (let gi = 0; gi <= 180; gi++) tbl[ci * 181 + gi] = rawI(ies, gi, ci * 5);
@@ -651,15 +723,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const I = lookupI(ies, gi + 0.5, ci * 5 + 2.5);
       flux += I * Math.sin((gi + 0.5) * dg) * dg * dc;
     }
-    for (const row of cd) for (const v of row) imax = Math.max(imax, v);
+    for (const row of ies.cd) for (const v of row) imax = Math.max(imax, v);
     ies.flux = flux; ies.imax = imax;
-    const lampLm = nLamps > 0 && lmLamp > 0 ? nLamps * lmLamp : 0;
-    ies.lor = lampLm ? flux / lampLm : null;
+    ies.lor = ies.lampLm ? flux / ies.lampLm : null;
     let down = 0;
     for (let ci = 0; ci < 72; ci++) for (let gi = 0; gi < 90; gi++) down += lookupI(ies, gi + 0.5, ci * 5 + 2.5) * Math.sin((gi + 0.5) * dg) * dg * dc;
     ies.downward = flux ? down / flux : 1;
     if (!(flux > 1)) throw new Error("ค่าฟลักซ์จากไฟล์เป็นศูนย์");
-    ies.name = meta.LUMINAIRE || meta.LUMCAT || meta.LAMPCAT || fileName.replace(/\.ies$/i, "");
     return ies;
   }
 
@@ -748,7 +818,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     $("iesInfo").classList.toggle("hidden", !on || lampSel.value !== "ies");
     if (!on) return;
     $("iesName").textContent = IES.name;
-    $("iesMeta").textContent = [IES.meta.MANUFAC, IES.meta.LUMCAT && "รุ่น " + IES.meta.LUMCAT, IES.fileName].filter(Boolean).join(" · ");
+    $("iesMeta").textContent = [IES.meta.MANUFAC, IES.meta.LUMCAT && "รุ่น " + IES.meta.LUMCAT, IES.meta.CCT && "CCT " + IES.meta.CCT, IES.fileName].filter(Boolean).join(" · ");
     $("iesPolar").innerHTML = polarSVG(IES, { grid: "var(--border)", muted: "var(--muted)", c0: "var(--accent)", c90: "#3b6fd1", fill: "color-mix(in srgb, var(--accent) 14%, transparent)" });
     const dims = IES.width < 0 || IES.length < 0 ? `Ø ${fmt(Math.abs(IES.width) * 1000)} มม.` : `${fmt(IES.length * 1000)} × ${fmt(IES.width * 1000)} × ${fmt(IES.height * 1000)} มม.`;
     const rows = [
@@ -768,7 +838,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     IES = ies;
     let entry = LAMPS.find((x) => x.id === "ies");
     if (!entry) { entry = { id: "ies", shape: "ies" }; LAMPS.splice(LAMPS.length - 1, 0, entry); }
-    Object.assign(entry, { name: "IES: " + ies.name, lm: Math.round(ies.flux), w: ies.watts || 0 });
+    Object.assign(entry, { name: ies.format + ": " + ies.name, lm: Math.round(ies.flux), w: ies.watts || 0 });
     let opt = lampSel.querySelector('option[value="ies"]');
     if (!opt) { opt = document.createElement("option"); opt.value = "ies"; lampSel.insertBefore(opt, lampSel.querySelector('option[value="custom"]')); }
     opt.textContent = `${entry.name} · ${fmt(entry.lm)} lm`;
@@ -787,7 +857,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const opt = lampSel.querySelector('option[value="ies"]');
     if (opt) opt.remove();
     if (wasIES || !lampSel.value) lampSel.value = "t8led18";
-    $("iesMsg").textContent = "ไฟล์ข้อมูลโฟโตเมตริก (LM-63) จากผู้ผลิตโคม";
+    $("iesMsg").textContent = "ไฟล์โฟโตเมตริก IES (LM-63) หรือ EULUMDAT (.ldt) จากผู้ผลิตโคม";
     try { localStorage.removeItem("iesFile"); } catch (e) {}
     syncLamp(); calc();
   }
@@ -1130,9 +1200,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             const lens = new THREE.Mesh(new THREE.CircleGeometry(w / 2 * 0.85, 28), glow);
             lens.rotation.x = Math.PI / 2; lens.position.y = -hh - 0.002; fx.add(lens);
           } else {
-            const box = new THREE.Mesh(new THREE.BoxGeometry(len, hh, w), body);
+            const box = new THREE.Mesh(new THREE.BoxGeometry(w, hh, len), body);
             box.position.y = -hh / 2; fx.add(box);
-            const lens = new THREE.Mesh(new THREE.PlaneGeometry(len * 0.92, w * 0.85), glow);
+            const lens = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.92, len * 0.85), glow);
             lens.rotation.x = Math.PI / 2; lens.position.y = -hh - 0.002; fx.add(lens);
           }
         } else {
@@ -1275,7 +1345,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const iesR = d.lamp && d.lamp.id === "ies" && IES ? IES : null;
     const lampName = iesR ? [iesR.meta.MANUFAC, iesR.name].filter(Boolean).join(" ") : d.lamp && d.lamp.lm ? d.lamp.name : `หลอดกำหนดเอง ${fmt(d.lm)} lm / ${fmt(d.watt, 1)} W`;
     const iesBlock = iesR ? `
-      <h3>ข้อมูลโฟโตเมตริก (ไฟล์ IES)</h3>
+      <h3>ข้อมูลโฟโตเมตริก (ไฟล์ ${iesR.format})</h3>
       <div class="grid2" style="align-items:start">
         <div style="border:1px solid #e2dfd6;border-radius:6px;padding:6px">${polarSVG(iesR, { grid: "#e2dfd6", muted: "#6b675e", c0: "#d98a00", c90: "#3b6fd1", fill: "rgba(217,138,0,.12)" })}</div>
         <table class="kv">
@@ -1410,7 +1480,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       <p style="color:#6b675e;margin-top:0">จุดคำนวณทุก ${fmt(step, 2)} ม. บนระนาบใช้งานที่ความสูง ${fmt(d.wp, 2)} ม.${xsShow.length < xs.length || zsShow.length < zs.length ? " (แสดงบางจุดเนื่องจากห้องมีขนาดใหญ่)" : ""}</p>
       <img class="img" style="margin-bottom:14px;max-height:360px" src="${planImage(false, true, false, false)}">
       ${vgrid}
-      <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: ${iesR ? `แสงตรงคำนวณแบบจุดต่อจุดจากข้อมูลความเข้มแสงในไฟล์ IES (${esc(iesR.fileName)}) คิดเป็น ${fmt(d.dist.directShare * 100)}% ของค่าเฉลี่ย ส่วนแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ` : "แสงตรงคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ"} โดยค่าเฉลี่ยเท่ากับผลจาก Lumen Method
+      <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: ${iesR ? `แสงตรงคำนวณแบบจุดต่อจุดจากข้อมูลความเข้มแสงในไฟล์ ${iesR.format} (${esc(iesR.fileName)}) คิดเป็น ${fmt(d.dist.directShare * 100)}% ของค่าเฉลี่ย ส่วนแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ` : "แสงตรงคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และแสงสะท้อนประมาณเป็นค่าสม่ำเสมอ"} โดยค่าเฉลี่ยเท่ากับผลจาก Lumen Method
         ยังไม่ได้คำนวณแสงสะท้อนแบบ radiosity เหมือนโปรแกรม DIALux จึงเป็นค่าประมาณเพื่อการวางแผน ควรตรวจสอบก่อนใช้งานจริง</p>`));
     return pages;
   }
@@ -1473,7 +1543,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     try {
       if (f.size > 2e6) throw new Error("ไฟล์ใหญ่เกินไป");
       const text = await f.text();
-      setIES(parseIES(text, f.name), text);
+      setIES(parsePhotometry(text, f.name), text);
     } catch (e) {
       $("iesMsg").textContent = "นำเข้าไม่สำเร็จ: " + (e && e.message ? e.message : "รูปแบบไฟล์ไม่ถูกต้อง");
       $("iesMsg").classList.add("err");
@@ -1482,7 +1552,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   $("iesRemove").addEventListener("click", clearIES);
   try {
     const saved = JSON.parse(localStorage.getItem("iesFile") || "null");
-    if (saved && saved.text) { IES = parseIES(saved.text, saved.name); setTimeout(() => { setIES(IES, null); }, 0); }
+    if (saved && saved.text) { IES = parsePhotometry(saved.text, saved.name); setTimeout(() => { setIES(IES, null); }, 0); }
   } catch (e) { IES = null; }
   document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", calc));
 
