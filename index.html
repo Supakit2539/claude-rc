@@ -140,6 +140,37 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .scale .bar { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2c1e5a, #3b4f9c, #1f9e89, #b5de2b, #fde725); }
 .plan-wrap { display: flex; justify-content: center; }
+.primary {
+  width: 100%; font: inherit; font-weight: 600; color: #1d1c19; background: var(--accent); border: 0;
+  border-radius: 10px; padding: 10px 14px; cursor: pointer; margin: 4px 0 6px;
+}
+.primary:disabled { opacity: .6; cursor: progress; }
+#reportRoot { position: fixed; left: -10000px; top: 0; }
+.rp {
+  width: 794px; height: 1123px; background: #fff; color: #1d1c19; padding: 56px 56px 48px; box-sizing: border-box;
+  font-family: "IBM Plex Sans Thai", system-ui, sans-serif; font-size: 12px; line-height: 1.5; position: relative; overflow: hidden;
+}
+.rp .hd { display: flex; justify-content: space-between; border-bottom: 2px solid #d98a00; padding-bottom: 8px; margin-bottom: 18px; font-size: 11px; color: #6b675e; }
+.rp .ft { position: absolute; left: 56px; right: 56px; bottom: 28px; display: flex; justify-content: space-between; font-size: 10px; color: #8a857a; border-top: 1px solid #e2dfd6; padding-top: 6px; }
+.rp h2 { font-size: 18px; margin: 0 0 12px; }
+.rp h3 { font-size: 13px; margin: 18px 0 8px; color: #6b675e; font-weight: 600; }
+.rp table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.rp th, .rp td { border-bottom: 1px solid #e8e5dc; padding: 5px 6px; text-align: left; }
+.rp th { background: #f6f4ee; font-weight: 600; }
+.rp td.r, .rp th.r { text-align: right; }
+.rp .kv td:first-child { color: #6b675e; width: 55%; }
+.rp .kv td:last-child { text-align: right; font-weight: 600; }
+.rp .img { max-width: 100%; width: auto; height: auto; border: 1px solid #e2dfd6; display: block; margin: 0 auto; }
+.rp .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.rp .big { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 4px; }
+.rp .big div { background: #fff6e0; border-radius: 8px; padding: 10px 12px; }
+.rp .big b { display: block; font-size: 20px; color: #b36f00; }
+.rp .vg td { text-align: center; padding: 3px 2px; font-size: 10.5px; }
+.rp .vg th { text-align: center; padding: 3px 2px; font-size: 10px; }
+.rp .scalebar { height: 10px; border-radius: 3px; background: linear-gradient(90deg, #2c1e5a, #3b4f9c, #1f9e89, #b5de2b, #fde725); }
+.rp .cover { display: flex; flex-direction: column; justify-content: center; height: 860px; }
+.rp .cover h1 { font-size: 34px; margin: 0 0 8px; }
+.rp .ok { color: #2f7d4f; } .rp .bad { color: #b3261e; } .rp .warn { color: #b25c00; }
 .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--border); }
 #plan { width: 100%; height: auto; max-height: 420px; display: block; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; justify-content: center; }
@@ -246,6 +277,17 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <div class="field"><label for="hours">เปิดใช้งานต่อวัน</label><div class="unit"><input id="hours" type="number" min="0" max="24" step="0.5" value="8"><span>ชม.</span></div></div>
           <div class="field"><label for="rate">ค่าไฟต่อหน่วย</label><div class="unit"><input id="rate" type="number" min="0" step="0.1" value="4.5"><span>฿</span></div></div>
         </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">5</span>รายงาน PDF</h2>
+        <div class="field"><label for="projName">ชื่อโครงการ</label><input id="projName" type="text" maxlength="80" placeholder="เช่น อาคารสำนักงาน ชั้น 3"></div>
+        <div class="row two">
+          <div class="field"><label for="roomName">ชื่อห้อง</label><input id="roomName" type="text" maxlength="60" placeholder="เช่น ห้อง 301"></div>
+          <div class="field"><label for="designer">ผู้ออกแบบ</label><input id="designer" type="text" maxlength="60"></div>
+        </div>
+        <button type="button" class="primary" id="pdfBtn">ส่งออกรายงาน PDF</button>
+        <span class="hint" id="pdfStatus" role="status"></span>
       </section>
     </div>
 
@@ -519,7 +561,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     ]);
     $("details").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
 
-    last = { L, W, H, wp, g, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct };
+    last = { L, W, H, wp, g, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct,
+      A, Hm, RI, UF, MF, N, lm, watt, fixLm, exact, achieved, totalW, wpm2, kwhMonth, cost, rate, hours, shr, efficacy, u0, space };
     drawPlan(L, W, g, sx, sy);
     if (view === "3d") update3D();
   }
@@ -925,6 +968,227 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       `<span>● ตำแหน่งโคม</span>${iso && isoLevels(last.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(last.dist).step)} lux</span>` : ""}${$("showNums").checked ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`;
   }
 
+  // ---------- PDF report (DIALux-style) ----------
+  const LIBS = [
+    "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+  ];
+  function loadScript(src) {
+    return new Promise((res, rej) => {
+      if (document.querySelector(`script[src="${src}"]`)) return res();
+      const el = document.createElement("script");
+      el.src = src; el.onload = res; el.onerror = () => rej(new Error("load " + src));
+      document.head.appendChild(el);
+    });
+  }
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const REFL_TXT = { light: "สีอ่อน (เพดาน 70% / ผนัง 50% / พื้น 20%)", medium: "สีกลาง (เพดาน 50% / ผนัง 30% / พื้น 20%)", dark: "สีเข้ม (เพดาน 30% / ผนัง 10% / พื้น 10%)" };
+
+  function capture3D() {
+    if (!init3D()) return null;
+    const { renderer, camera } = three;
+    const prev = view;
+    update3D();
+    renderer.setSize(1400, 840, false);
+    camera.aspect = 1400 / 840; camera.updateProjectionMatrix();
+    renderer.render(three.scene, camera);
+    const url = renderer.domElement.toDataURL("image/png");
+    resize3D(); render3D();
+    view = prev;
+    return url;
+  }
+
+  function planImage(heat, nums, iso, withFixtures) {
+    const d = last, px = 1300 / Math.max(d.L, d.W);
+    const cv = workPlaneCanvas(d.L, d.W, d.dist, d.scaleMax, px, heat, nums, 30, iso);
+    const ctx = cv.getContext("2d");
+    ctx.strokeStyle = "#555"; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, cv.width - 3, cv.height - 3);
+    if (withFixtures) {
+      for (let r = 0; r < d.g.rows; r++) for (let c = 0; c < d.g.cols; c++) {
+        const x = (c + 0.5) * d.sx * px, y = (r + 0.5) * d.sy * px;
+        ctx.fillStyle = "#d98a00"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#1d1c19"; ctx.font = "600 22px 'IBM Plex Sans Thai', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText(String(r * d.g.cols + c + 1), x + 15, y - 14);
+      }
+    }
+    return cv.toDataURL("image/png");
+  }
+
+  function reportPages() {
+    const d = last;
+    const proj = $("projName").value.trim() || "โครงการแสงสว่าง";
+    const room = $("roomName").value.trim() || d.space.name;
+    const who = $("designer").value.trim();
+    const date = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
+    const lampName = d.lamp && d.lamp.lm ? d.lamp.name : `หลอดกำหนดเอง ${fmt(d.lm)} lm / ${fmt(d.watt, 1)} W`;
+    const { step: isoStep } = isoLevels(d.dist);
+    const emin = d.dist.min, emax = d.dist.max, eavg = d.achieved;
+    const g1 = emax ? emin / emax : 0;
+    const per100 = eavg ? d.wpm2 / eavg * 100 : 0;
+    const pass = eavg >= d.E * 0.95;
+    const total = 6;
+    const page = (n, title, body) => `
+      <div class="rp">
+        <div class="hd"><span>${esc(proj)} · ${esc(room)}</span><span>${esc(date)}</span></div>
+        <h2>${title}</h2>${body}
+        <div class="ft"><span>${who ? "ผู้ออกแบบ: " + esc(who) + " · " : ""}คำนวณด้วยวิธี Lumen Method (ค่าประมาณเบื้องต้น)</span><span>หน้า ${n} / ${total}</span></div>
+      </div>`;
+
+    const img3d = capture3D();
+    const fixList = [];
+    for (let r = 0; r < d.g.rows; r++) for (let c = 0; c < d.g.cols; c++)
+      fixList.push([r * d.g.cols + c + 1, (c + 0.5) * d.sx, (r + 0.5) * d.sy, d.H]);
+
+    // Value grid
+    const { step, pts } = calcGrid(d.L, d.W);
+    const xs = [...new Set(pts.map((p) => p[0].toFixed(3)))].map(Number);
+    const zs = [...new Set(pts.map((p) => p[1].toFixed(3)))].map(Number);
+    const maxCols = 14;
+    const xsShow = xs.length > maxCols ? xs.filter((_, i) => i % Math.ceil(xs.length / maxCols) === 0) : xs;
+    const zsShow = zs.length > 22 ? zs.filter((_, i) => i % Math.ceil(zs.length / 22) === 0) : zs;
+    const vgrid = `<table class="vg"><tr><th>Y \\ X (ม.)</th>${xsShow.map((x) => `<th>${fmt(x, 2)}</th>`).join("")}</tr>${
+      zsShow.map((z) => `<tr><th>${fmt(z, 2)}</th>${xsShow.map((x) => `<td>${Math.round(sampleE(d.dist, d.L, d.W, x, z))}</td>`).join("")}</tr>`).join("")}</table>`;
+
+    const pages = [];
+    pages.push(`
+      <div class="rp">
+        <div class="cover">
+          <div style="font-size:13px;color:#b36f00;font-weight:600;letter-spacing:.04em">รายงานการคำนวณแสงสว่าง</div>
+          <h1>${esc(proj)}</h1>
+          <div style="font-size:18px;color:#6b675e">${esc(room)} · ${esc(d.space.name)}</div>
+          ${img3d ? `<img class="img" style="margin-top:28px;border-radius:8px;width:100%" src="${img3d}">` : ""}
+          <table class="kv" style="margin-top:24px;width:60%">
+            <tr><td>วันที่</td><td>${esc(date)}</td></tr>
+            ${who ? `<tr><td>ผู้ออกแบบ</td><td>${esc(who)}</td></tr>` : ""}
+            <tr><td>ขนาดห้อง</td><td>${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.</td></tr>
+            <tr><td>ความสว่างเฉลี่ย / เป้าหมาย</td><td>${fmt(eavg)} / ${fmt(d.E)} lux</td></tr>
+          </table>
+        </div>
+        <div class="ft"><span>สารบัญ: 2 สรุปผล · 3 รายการโคมไฟ · 4 ผังติดตั้ง · 5 เส้น isolux / สีเทียม · 6 ตารางค่าความสว่าง</span><span>หน้า 1 / ${total}</span></div>
+      </div>`);
+
+    pages.push(page(2, "สรุปผลการคำนวณ", `
+      <div class="big">
+        <div>E<sub>avg</sub><b>${fmt(eavg)} lx</b></div>
+        <div>E<sub>min</sub><b>${fmt(emin)} lx</b></div>
+        <div>E<sub>max</sub><b>${fmt(emax)} lx</b></div>
+        <div>U₀ (E<sub>min</sub>/E<sub>avg</sub>)<b>${fmt(d.u0, 2)}</b></div>
+      </div>
+      <p style="margin:6px 0 0">ผลการประเมิน: <b class="${pass ? "ok" : "bad"}">${pass ? "ผ่านเกณฑ์ความสว่างที่ต้องการ" : "ความสว่างต่ำกว่าเกณฑ์"}</b>
+        (${fmt(d.E)} lux สำหรับ${esc(d.space.name)})</p>
+      <h3>ข้อมูลห้อง</h3>
+      <table class="kv">
+        <tr><td>ขนาด (ยาว × กว้าง × สูง)</td><td>${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.</td></tr>
+        <tr><td>พื้นที่</td><td>${fmt(d.A, 2)} ตร.ม.</td></tr>
+        <tr><td>ความสูงระนาบใช้งาน</td><td>${fmt(d.wp, 2)} ม.</td></tr>
+        <tr><td>ค่าสะท้อนแสง</td><td>${REFL_TXT[d.refl]}</td></tr>
+        <tr><td>ตัวประกอบการบำรุงรักษา (MF)</td><td>${fmt(d.MF, 2)}</td></tr>
+      </table>
+      <h3>ผลการคำนวณ (Lumen Method)</h3>
+      <table class="kv">
+        <tr><td>ความสูงติดตั้งเหนือระนาบใช้งาน (Hm)</td><td>${fmt(d.Hm, 2)} ม.</td></tr>
+        <tr><td>ดัชนีห้อง (RI)</td><td>${fmt(d.RI, 2)}</td></tr>
+        <tr><td>สัมประสิทธิ์การใช้ประโยชน์ (UF)</td><td>${fmt(d.UF, 2)}</td></tr>
+        <tr><td>จำนวนโคมตามสูตร → ที่ติดตั้ง</td><td>${fmt(d.exact, 2)} → ${fmt(d.N)} โคม (${d.g.cols} × ${d.g.rows})</td></tr>
+        <tr><td>E<sub>min</sub> / E<sub>max</sub></td><td>${fmt(g1, 2)}</td></tr>
+        <tr><td>อัตราส่วนระยะห่างต่อความสูง (S/Hm)</td><td>${fmt(d.shr, 2)}</td></tr>
+        <tr><td>อุณหภูมิสีของแสง</td><td>${fmt(d.cct)} K</td></tr>
+      </table>
+      <h3>พลังงาน</h3>
+      <table class="kv">
+        <tr><td>กำลังไฟฟ้ารวม</td><td>${fmt(d.totalW)} W</td></tr>
+        <tr><td>ความหนาแน่นกำลังไฟฟ้าส่องสว่าง (LPD)</td><td>${fmt(d.wpm2, 2)} W/ตร.ม.</td></tr>
+        <tr><td>กำลังไฟฟ้าจำเพาะ</td><td>${fmt(per100, 2)} W/ตร.ม./100 lx</td></tr>
+        <tr><td>พลังงานไฟฟ้า (${fmt(d.hours, 1)} ชม./วัน)</td><td>${fmt(d.kwhMonth, 1)} kWh/เดือน · ${fmt(d.kwhMonth * 12)} kWh/ปี</td></tr>
+        <tr><td>ค่าไฟฟ้า (${fmt(d.rate, 2)} ฿/หน่วย)</td><td>${fmt(d.cost)} ฿/เดือน · ${fmt(d.cost * 12)} ฿/ปี</td></tr>
+      </table>`));
+
+    pages.push(page(3, "รายการโคมไฟ", `
+      <table>
+        <tr><th>จำนวน</th><th>รายการ</th><th class="r">หลอด/โคม</th><th class="r">ฟลักซ์/โคม</th><th class="r">กำลังไฟ/โคม</th><th class="r">ประสิทธิภาพ</th><th class="r">CCT</th></tr>
+        <tr><td>${fmt(d.N)}</td><td>${esc(lampName)}</td><td class="r">${d.perFix}</td><td class="r">${fmt(d.fixLm)} lm</td>
+          <td class="r">${fmt(d.watt * d.perFix, 1)} W</td><td class="r">${fmt(d.efficacy)} lm/W</td><td class="r">${fmt(d.cct)} K</td></tr>
+      </table>
+      <h3>ผลรวม</h3>
+      <table class="kv">
+        <tr><td>จำนวนโคม / จำนวนหลอด</td><td>${fmt(d.N)} โคม / ${fmt(d.N * d.perFix)} หลอด</td></tr>
+        <tr><td>ฟลักซ์ส่องสว่างรวม</td><td>${fmt(d.N * d.fixLm)} lm</td></tr>
+        <tr><td>กำลังไฟฟ้ารวม</td><td>${fmt(d.totalW)} W</td></tr>
+      </table>
+      <h3>สูตรที่ใช้</h3>
+      <p style="font-family:ui-monospace,Menlo,monospace;background:#f6f4ee;padding:10px 12px;border-radius:6px">
+        N = (E × A) ÷ (Φ × n × UF × MF) = (${fmt(d.E)} × ${fmt(d.A, 2)}) ÷ (${fmt(d.lm)} × ${d.perFix} × ${fmt(d.UF, 2)} × ${fmt(d.MF, 2)}) = ${fmt(d.exact, 2)}</p>
+      <p style="color:#6b675e">RI = (L × W) ÷ (Hm × (L + W)) = (${fmt(d.L, 2)} × ${fmt(d.W, 2)}) ÷ (${fmt(d.Hm, 2)} × ${fmt(d.L + d.W, 2)}) = ${fmt(d.RI, 2)}</p>`));
+
+    const fixRows = fixList.slice(0, 40).map(([n, x, y, z]) => `<tr><td>${n}</td><td class="r">${fmt(x, 2)}</td><td class="r">${fmt(y, 2)}</td><td class="r">${fmt(z, 2)}</td></tr>`).join("");
+    pages.push(page(4, "ผังการติดตั้งโคมไฟ", `
+      <img class="img" style="max-height:430px" src="${planImage(false, false, false, true)}">
+      <p style="color:#6b675e;margin:6px 0 0">ระยะห่างโคม ${fmt(d.sx, 2)} × ${fmt(d.sy, 2)} ม. · ระยะจากผนัง ${fmt(d.sx / 2, 2)} / ${fmt(d.sy / 2, 2)} ม. · จุดอ้างอิง (0,0) มุมซ้ายบน</p>
+      <h3>ตำแหน่งโคม${fixList.length > 40 ? ` (แสดง 40 จาก ${fixList.length})` : ""}</h3>
+      <table style="width:60%"><tr><th>ลำดับ</th><th class="r">X (ม.)</th><th class="r">Y (ม.)</th><th class="r">Z (ม.)</th></tr>${fixRows}</table>`));
+
+    pages.push(page(5, "ระนาบใช้งาน: เส้น isolux และสีเทียม", `
+      <h3 style="margin-top:0">เส้น isolux (ทุก ${fmt(isoStep)} lux) ที่ความสูง ${fmt(d.wp, 2)} ม.</h3>
+      <img class="img" style="max-height:330px" src="${planImage(false, false, true, true)}">
+      <h3>สีเทียม (False colour)</h3>
+      <img class="img" style="max-height:330px" src="${planImage(true, false, true, false)}">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;color:#6b675e"><span>0</span><div class="scalebar" style="flex:1"></div><span>${fmt(d.scaleMax)} lux</span></div>
+      <table class="kv" style="margin-top:10px"><tr><td>E<sub>avg</sub> / E<sub>min</sub> / E<sub>max</sub></td><td>${fmt(eavg)} / ${fmt(emin)} / ${fmt(emax)} lux</td></tr>
+      <tr><td>U₀ / E<sub>min</sub>/E<sub>max</sub></td><td>${fmt(d.u0, 2)} / ${fmt(g1, 2)}</td></tr></table>`));
+
+    pages.push(page(6, "ตารางค่าความสว่าง (lux)", `
+      <p style="color:#6b675e;margin-top:0">จุดคำนวณทุก ${fmt(step, 2)} ม. บนระนาบใช้งานที่ความสูง ${fmt(d.wp, 2)} ม.${xsShow.length < xs.length || zsShow.length < zs.length ? " (แสดงบางจุดเนื่องจากห้องมีขนาดใหญ่)" : ""}</p>
+      <img class="img" style="margin-bottom:14px;max-height:360px" src="${planImage(false, true, false, false)}">
+      ${vgrid}
+      <p style="color:#8a857a;font-size:10.5px;margin-top:14px">หมายเหตุ: การกระจายความสว่างคำนวณด้วยแบบจำลองแหล่งกำเนิดแสงแบบจุด (Lambertian) และปรับให้ค่าเฉลี่ยเท่ากับผลจาก Lumen Method
+        ไม่รวมการสะท้อนแสงแยกรายจุดและข้อมูลการกระจายแสง (IES/LDT) ของโคมจริง ควรตรวจสอบกับข้อมูลผู้ผลิตก่อนใช้งานจริง</p>`));
+    return pages;
+  }
+
+  async function exportPDF() {
+    const btn = $("pdfBtn"), status = $("pdfStatus");
+    btn.disabled = true; status.textContent = "กำลังสร้างรายงาน…";
+    const root = document.createElement("div");
+    root.id = "reportRoot";
+    try {
+      for (const src of LIBS) await loadScript(src);
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      root.innerHTML = reportPages().join("");
+      document.body.appendChild(root);
+      await Promise.all([...root.querySelectorAll("img")].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; })));
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
+      const pages = root.querySelectorAll(".rp");
+      for (let i = 0; i < pages.length; i++) {
+        status.textContent = `กำลังสร้างหน้า ${i + 1} / ${pages.length}…`;
+        const cv = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", logging: false });
+        if (i) pdf.addPage();
+        pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
+      }
+      const proj = ($("projName").value.trim() || "lighting-report").replace(/[\\/:*?"<>|]+/g, "-");
+      const filename = `${proj}.pdf`;
+      const blob = pdf.output("blob");
+      const dl = window.claude && typeof window.claude.use === "function" ? await window.claude.use("downloads") : null;
+      if (dl) {
+        try { await dl.save({ filename, data: blob }); status.textContent = "บันทึกรายงานแล้ว"; }
+        catch (e) { status.textContent = e && e.code === "declined" ? "ยกเลิกการบันทึก" : "บันทึกไฟล์ไม่สำเร็จ"; }
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        status.textContent = "ดาวน์โหลดรายงานแล้ว";
+      }
+    } catch (e) {
+      console.warn(e);
+      status.textContent = "สร้างรายงานไม่สำเร็จ (ต้องใช้อินเทอร์เน็ตเพื่อโหลดตัวสร้าง PDF)";
+    } finally {
+      root.remove();
+      btn.disabled = false;
+    }
+  }
+
   // Events
   lampSel.addEventListener("change", () => { syncLamp(); calc(); });
   spaceSel.addEventListener("change", () => { syncSpace(); calc(); });
@@ -944,6 +1208,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
   });
 
+  $("pdfBtn").addEventListener("click", exportPDF);
   $("btn3d").addEventListener("click", () => setView("3d"));
   $("btn2d").addEventListener("click", () => setView("2d"));
   ["showBeams", "showHeat", "showNums", "showIso"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(last.L, last.W, last.g, last.sx, last.sy); update3D(); }));
