@@ -150,6 +150,9 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .surf th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding: 4px 0; border-bottom: 1px solid var(--border); }
 .surf td { font-size: 13px; padding: 5px 0; }
 .surf .r { text-align: right; padding-left: 10px; white-space: nowrap; }
+.mode-seg { display: flex; flex-wrap: wrap; margin: -6px 0 18px; width: fit-content; max-width: 100%; }
+.mode-seg button { padding: 7px 14px; font-size: 14px; }
+.view3d.night { background: radial-gradient(ellipse at 50% 20%, #1c2540, #07090f); }
 .ed-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 8px; }
 .ed-grp { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .ed-bar button, .ed-lib button, .ed-acts button {
@@ -282,11 +285,85 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     </div>
     <button class="theme-btn" id="themeBtn" type="button" aria-label="สลับธีม">◐</button>
   </header>
+  <div class="seg mode-seg" id="modeSeg" role="group" aria-label="ประเภทงาน">
+    <button type="button" data-mode="in" aria-pressed="true">🏠 ภายในอาคาร</button>
+    <button type="button" data-mode="out" aria-pressed="false">🌃 ภายนอกอาคาร · ไฟถนน · สปอร์ตไลท์ · สนามฟุตบอล</button>
+  </div>
 
   <div class="grid">
     <!-- Inputs -->
     <div>
-      <section class="card">
+      <section class="card out-only hidden">
+        <h2><span class="n">1</span>ประเภทงานภายนอก</h2>
+        <div class="field"><label for="oType">ประเภท</label>
+          <select id="oType"><option value="road">ไฟถนน</option><option value="sport">ไฟสนามฟุตบอล (สปอร์ตไลท์)</option><option value="area">ฟลัดไลท์ ลานกว้าง / ลานจอดรถ</option></select></div>
+        <div class="field"><label for="oClass">มาตรฐาน / ระดับความสว่าง</label><select id="oClass"></select><span class="hint" id="oClassHint"></span></div>
+        <div class="row two hidden" id="oCustomReq">
+          <div class="field"><label for="oReqE">E<sub>avg</sub> ที่ต้องการ</label><div class="unit"><input id="oReqE" type="number" min="0.5" step="1" value="20"><span>lux</span></div></div>
+          <div class="field"><label for="oReqU">ความสม่ำเสมอ (Emin/Eavg)</label><input id="oReqU" type="number" min="0" max="1" step="0.05" value="0.4"></div>
+        </div>
+      </section>
+      <section class="card out-only hidden">
+        <h2><span class="n">2</span>ขนาดและการติดตั้ง</h2>
+        <div id="oGeoRoad">
+          <div class="row two">
+            <div class="field"><label for="oRw">ความกว้างผิวจราจร</label><div class="unit"><input id="oRw" type="number" min="2" step="0.5" value="7"><span>ม.</span></div></div>
+            <div class="field"><label for="oLanes">จำนวนช่องจราจร</label><input id="oLanes" type="number" min="1" max="8" step="1" value="2"></div>
+          </div>
+          <div class="field"><label for="oArr">การจัดวางเสา</label>
+            <select id="oArr"><option value="single">ด้านเดียว</option><option value="staggered">สองฝั่งสลับ</option><option value="opposite">สองฝั่งตรงกัน</option><option value="central">เกาะกลาง (โคมคู่)</option></select></div>
+          <div class="row">
+            <div class="field"><label for="oPh">ความสูงเสา</label><div class="unit"><input id="oPh" type="number" min="3" step="0.5" value="9"><span>ม.</span></div></div>
+            <div class="field"><label for="oOh">ระยะยื่นเข้าถนน</label><div class="unit"><input id="oOh" type="number" step="0.25" value="1"><span>ม.</span></div></div>
+            <div class="field"><label for="oTilt">มุมเงยโคม</label><div class="unit"><input id="oTilt" type="number" min="0" max="30" step="1" value="5"><span>°</span></div></div>
+          </div>
+          <div class="field"><label for="oSp">ระยะห่างเสา</label><div class="unit"><input id="oSp" type="number" min="5" step="1" value="30"><span>ม.</span></div></div>
+          <label class="chk"><input type="checkbox" id="oAutoSp" checked> หาระยะห่างที่กว้างที่สุดที่ยังผ่านเกณฑ์อัตโนมัติ</label>
+        </div>
+        <div id="oGeoSport" class="hidden">
+          <div class="row two">
+            <div class="field"><label for="oFl">ความยาวสนาม</label><div class="unit"><input id="oFl" type="number" min="20" step="1" value="105"><span>ม.</span></div></div>
+            <div class="field"><label for="oFw">ความกว้างสนาม</label><div class="unit"><input id="oFw" type="number" min="15" step="1" value="68"><span>ม.</span></div></div>
+          </div>
+          <div class="field"><label for="oPoles">การจัดวางเสา</label>
+            <select id="oPoles"><option value="4">4 เสามุมสนาม</option><option value="6" selected>6 เสา (ด้านละ 3)</option><option value="8">8 เสา (ด้านละ 4)</option></select></div>
+          <div class="row">
+            <div class="field"><label for="oSph">ความสูงเสา</label><div class="unit"><input id="oSph" type="number" min="8" step="1" value="30"><span>ม.</span></div></div>
+            <div class="field"><label for="oSset">ระยะร่นจากเส้นข้าง</label><div class="unit"><input id="oSset" type="number" min="0" step="0.5" value="5"><span>ม.</span></div></div>
+            <div class="field"><label for="oHeads">โคมต่อเสา</label><input id="oHeads" type="number" min="1" max="60" step="1" value="12"></div>
+          </div>
+          <label class="chk"><input type="checkbox" id="oAutoHeads" checked> หาจำนวนโคมต่อเสาและมุมลำแสงที่ใช้กำลังไฟน้อยที่สุดที่ผ่านเกณฑ์อัตโนมัติ (เล็งโคมให้อัตโนมัติ)</label>
+        </div>
+        <div id="oGeoArea" class="hidden">
+          <div class="row two">
+            <div class="field"><label for="oAl">ความยาวพื้นที่</label><div class="unit"><input id="oAl" type="number" min="5" step="1" value="60"><span>ม.</span></div></div>
+            <div class="field"><label for="oAw">ความกว้างพื้นที่</label><div class="unit"><input id="oAw" type="number" min="5" step="1" value="40"><span>ม.</span></div></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="oAph">ความสูงเสา</label><div class="unit"><input id="oAph" type="number" min="3" step="0.5" value="12"><span>ม.</span></div></div>
+            <div class="field"><label for="oApps">เสาต่อด้านยาว</label><input id="oApps" type="number" min="1" max="10" step="1" value="3"></div>
+            <div class="field"><label for="oAhd">โคมต่อเสา</label><input id="oAhd" type="number" min="1" max="8" step="1" value="2"></div>
+          </div>
+          <div class="field"><label for="oAset">ระยะร่นเสาจากขอบพื้นที่</label><div class="unit"><input id="oAset" type="number" min="0" step="0.5" value="1"><span>ม.</span></div></div>
+          <label class="chk"><input type="checkbox" id="oAutoArea" checked> หาจำนวนเสา จำนวนโคม และรุ่นโคมที่ใช้กำลังไฟน้อยที่สุดที่ผ่านเกณฑ์อัตโนมัติ</label>
+        </div>
+      </section>
+      <section class="card out-only hidden">
+        <h2><span class="n">3</span>โคมไฟ</h2>
+        <div class="field"><label for="oLamp">ชนิดโคม</label><select id="oLamp"></select><span class="hint" id="oLampInfo"></span></div>
+        <div class="ies-row">
+          <label class="ghost" for="oIesFile">⤓ นำเข้าไฟล์ IES / LDT ของโคมจริง</label>
+          <input id="oIesFile" type="file" accept=".ies,.IES,.ldt,.LDT" hidden>
+          <span class="hint" id="oIesMsg">ใช้การกระจายแสงจริงของโคมรุ่นที่เลือก</span>
+        </div>
+        <div class="field hidden" id="oIesWWrap"><label for="oIesW">กำลังไฟของโคม (ไฟล์ไม่ระบุ)</label><div class="unit"><input id="oIesW" type="number" min="1" step="1" value="100"><span>W</span></div></div>
+        <div class="polar" id="oPolar" style="display:flex;justify-content:center;max-width:240px;margin:0 auto 8px"></div>
+        <div class="row two">
+          <div class="field"><label for="oCct">อุณหภูมิสี</label><select id="oCct"><option value="3000">3000K</option><option value="4000" selected>4000K</option><option value="5700">5700K</option></select></div>
+          <div class="field"><label for="oMF">ตัวประกอบการบำรุงรักษา</label><select id="oMF"><option value="0.9">0.90 (สะอาดมาก)</option><option value="0.8" selected>0.80 (ทั่วไป)</option><option value="0.7">0.70 (ฝุ่น/มลภาวะสูง)</option></select></div>
+        </div>
+      </section>
+      <section class="card in-only">
         <h2><span class="n">1</span>ขนาดห้อง</h2>
         <div class="row">
           <div class="field"><label for="len">ความยาว</label><div class="unit"><input id="len" type="number" min="0.5" step="0.1" value="6"><span>ม.</span></div></div>
@@ -313,7 +390,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         </div>
       </section>
 
-      <section class="card">
+      <section class="card in-only">
         <h2><span class="n">2</span>ประเภทพื้นที่</h2>
         <div class="field">
           <label for="space">การใช้งาน</label>
@@ -326,7 +403,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         </div>
       </section>
 
-      <section class="card">
+      <section class="card in-only">
         <h2><span class="n">3</span>หลอดไฟ</h2>
         <div class="field">
           <label for="lamp">ชนิดหลอด / โคม</label>
@@ -383,7 +460,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         </div>
       </section>
 
-      <section class="card">
+      <section class="card in-only">
         <h2><span class="n">5</span>แสงธรรมชาติ</h2>
         <label class="chk"><input type="checkbox" id="dayOn" checked> คิดแสงธรรมชาติจากหน้าต่าง</label>
         <div class="row two">
@@ -445,7 +522,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <div class="seg" role="group" aria-label="มุมมอง">
             <button type="button" id="btn3d" aria-pressed="true">3D</button>
             <button type="button" id="btn2d" aria-pressed="false">2D</button>
-            <button type="button" id="btnEdit" aria-pressed="false">✏️ แก้ไขแบบ</button>
+            <button type="button" id="btnEdit" class="in-only" aria-pressed="false">✏️ แก้ไขแบบ</button>
           </div>
         </div>
         <div id="pane3d">
@@ -536,7 +613,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <table><tbody id="details"></tbody></table>
       </section>
 
-      <section class="card">
+      <section class="card in-only">
         <h2>สูตรที่ใช้</h2>
         <div class="formula">N = (E × A) ÷ (Φ × n × UF × MF)</div>
         <ul class="notes" style="margin-top:10px">
@@ -678,6 +755,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
 
   function calc() {
+    if (OUT.on) return calcOut();
     const custom = isCustom();
     const pts = roomPts();
     const L = Math.max(Math.max(...pts.map((p) => p[0])), 0.1);
@@ -2532,7 +2610,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     return segs;
   }
 
-  function drawIsolux(ctx, L, W, dist, pxPerM, heat, scaleMax, fsMax) {
+  function drawIsolux(ctx, L, W, dist, pxPerM, heat, scaleMax, fsMax, clipPoly = last && last.pts) {
     const { levels } = isoLevels(dist);
     const fs = Math.max(10, Math.min(fsMax * 0.8, Math.min(L, W) * pxPerM / 14));
     const placed = [];
@@ -2549,7 +2627,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       // Up to two labels per line, kept clear of the edges and of each other
       const minGap = fs * 4, edge = fs * 1.2;
       const cands = segs.map(([p, q]) => [(p[0] + q[0]) / 2 * pxPerM, (p[1] + q[1]) / 2 * pxPerM])
-        .filter(([x, y]) => x > edge * 1.5 && y > edge && x < L * pxPerM - edge * 1.5 && y < W * pxPerM - edge && (!last || inPoly(last.pts, x / pxPerM, y / pxPerM)));
+        .filter(([x, y]) => x > edge * 1.5 && y > edge && x < L * pxPerM - edge * 1.5 && y < W * pxPerM - edge && (!clipPoly || inPoly(clipPoly, x / pxPerM, y / pxPerM)));
       let count = 0;
       for (let k = 0; k < cands.length && count < 2; k += Math.max(1, Math.floor(cands.length / 7))) {
         const [x, y] = cands[k];
@@ -2929,10 +3007,10 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   const surfModeOn = () => { const m = $("mapMode").value; return m === "surf" || m === "real"; };
   function renderSurfTable() {
     const box = $("surfTable");
-    const on = surfModeOn() && view === "3d";
+    const on = !OUT.on && surfModeOn() && view === "3d";
     box.classList.toggle("hidden", !on);
     $("surfShadowWrap").classList.toggle("hidden", !on);
-    $("expoWrap").classList.toggle("hidden", !(on && $("mapMode").value === "real"));
+    $("expoWrap").classList.toggle("hidden", !((on || (OUT.on && view === "3d")) && $("mapMode").value === "real"));
     if (!on) return;
     const rows = surfaceStats();
     box.innerHTML = `<div class="surf-head"><b>ความสว่างบนพื้นผิว (แสงจากโคม${radActive() ? " + การสะท้อนแบบ radiosity" : ""})</b><span class="hint">คลิกบนพื้นผิวในภาพ 3D เพื่ออ่านค่า lux ณ จุดนั้น</span></div>
@@ -3034,11 +3112,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   // Click a surface in 3D to read its lux
   function probeAt(e) {
-    if (!three || !surfModeOn()) return;
+    if (!three || !(OUT.on || surfModeOn())) return;
     const r = three.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     const rc = new THREE.Raycaster(); rc.setFromCamera(ndc, three.camera);
-    const hit = rc.intersectObjects(three.group.children, true).find((h) => h.object.userData.surf && h.face);
+    const hit = rc.intersectObjects(three.group.children, true).find((h) => (OUT.on ? h.object.material && h.object.material.isShaderMaterial : h.object.userData.surf) && h.face);
     if (!hit) { three.probe = null; updateProbe(); render3D(); return; }
     const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
     if (n.dot(rc.ray.direction) > 0) n.negate();
@@ -3047,9 +3125,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
   function updateProbe() {
     const lab = $("probe");
-    if (!three || !three.probe || !surfModeOn() || !last) { lab.classList.add("hidden"); return; }
-    const { p, n } = three.probe, d = last;
-    const E = surfaceLux(p.x + d.L / 2, p.z + d.W / 2, p.y, n.x, n.z, n.y);
+    if (!three || !three.probe || !(OUT.on ? OUT.last : surfModeOn() && last)) { lab.classList.add("hidden"); return; }
+    const { p, n } = three.probe;
+    let E;
+    if (OUT.on) { const o = OUT.last, R = o.region; E = outE(o.lay.lums, o.ph, o.MF, [p.x + R.x0 + R.w / 2, p.z + R.y0 + R.h / 2, p.y], [n.x, n.z, n.y]); }
+    else { const d = last; E = surfaceLux(p.x + d.L / 2, p.z + d.W / 2, p.y, n.x, n.z, n.y); }
     three.probe.E = E;
     lab.innerHTML = `<b>${fmt(E)} lux</b><span>สูง ${fmt(p.y, 2)} ม.</span>`;
     lab.classList.remove("hidden");
@@ -3117,7 +3197,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   const WALL = { light: 0xf3f0e8, medium: 0xd2cbbb, dark: 0x6f6a61 };
 
   function update3D() {
+    if (OUT.on) return update3DOut();
     if (!last || !init3D()) return;
+    three.el.classList.remove("night");
     const { L, W, H, wp, sx, sy, E, dist, refl, lamp, perFix, pts, fixtures } = last;
     const { group, camera, controls } = three;
     clearGroup(group);
@@ -3421,6 +3503,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
 
   function drawPlan() {
+    if (OUT.on) return drawPlanOut();
     const d = last; if (!d) return;
     const { L, W, sx, sy, pts, fixtures, H } = d;
     const svg = $("plan");
@@ -3464,6 +3547,632 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       : `<span>${d.lay.kind === "manual" ? "โคมวางเอง" : "จัดโคมตามรูปทรงห้อง"} ${fmt(fixtures.length)} ดวง${fixtures.length > 1 ? ` · ระยะห่างเฉลี่ย ${fmt(d.nn.mean, 2)} ม.` : ""}</span>`;
     $("legend").innerHTML =
       `${d.dday ? `<span><b>${mp.label}</b></span>` : ""}<span>● ตำแหน่งโคม</span>${iso && isoLevels(mp.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(mp.dist).step)} lux</span>` : ""}${nums ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}${spacing}${plan.walls.length || plan.objs.length ? "<span>คิดเงาจากผนังและเฟอร์นิเจอร์ที่สูงกว่าระนาบใช้งาน</span>" : ""}`;
+  }
+
+  // ======================================================================
+  //  OUTDOOR: road lighting, floodlit areas and football pitches
+  // ======================================================================
+  const OUT = { on: false, last: null, ies: null, photCache: new Map() };
+  const O_CLASSES = {
+    road: [
+      { id: "M2", name: "M2 ถนนสายหลัก ความเร็วสูง", E: 22, Uo: 0.4, note: "เทียบจาก L 1.5 cd/m² (ถนนลาดยาง R3)" },
+      { id: "M3", name: "M3 ถนนสายหลักในเมือง", E: 15, Uo: 0.4, note: "เทียบจาก L 1.0 cd/m²" },
+      { id: "M4", name: "M4 ถนนสายรอง", E: 11, Uo: 0.4, note: "เทียบจาก L 0.75 cd/m²" },
+      { id: "M5", name: "M5 ถนนสายรองความเร็วต่ำ", E: 7.5, Uo: 0.35, note: "เทียบจาก L 0.5 cd/m²" },
+      { id: "C2", name: "C2 ทางแยก / พื้นที่ขัดแย้งจราจร", E: 20, Uo: 0.4 },
+      { id: "C3", name: "C3 ทางแยกขนาดกลาง", E: 15, Uo: 0.4 },
+      { id: "C4", name: "C4 ทางแยกขนาดเล็ก", E: 10, Uo: 0.4 },
+      { id: "P1", name: "P1 ถนนในชุมชน / ทางเท้าคนเดินมาก", E: 15, Emin: 3 },
+      { id: "P2", name: "P2 ถนนซอย / หมู่บ้าน", E: 10, Emin: 2 },
+      { id: "P3", name: "P3 ถนนซอยคนเดินน้อย", E: 7.5, Emin: 1.5 },
+      { id: "P4", name: "P4 ทางเดิน / ทางจักรยาน", E: 5, Emin: 1 },
+      { id: "custom", name: "กำหนดเอง", E: 10, Uo: 0.4 },
+    ],
+    sport: [
+      { id: "I", name: "EN 12193 Class I — แข่งขันระดับอาชีพ / ถ่ายทอดทั่วไป", E: 500, U2: 0.7 },
+      { id: "II", name: "EN 12193 Class II — แข่งขันระดับสโมสร", E: 200, U2: 0.6 },
+      { id: "III", name: "EN 12193 Class III — ฝึกซ้อม / สันทนาการ", E: 75, U2: 0.5 },
+      { id: "custom", name: "กำหนดเอง", E: 300, U2: 0.6 },
+    ],
+    area: [
+      { id: "park1", name: "ลานจอดรถ จราจรเบาบาง (EN 12464-2)", E: 5, Uo: 0.25 },
+      { id: "park2", name: "ลานจอดรถ จราจรปานกลาง", E: 10, Uo: 0.25 },
+      { id: "park3", name: "ลานจอดรถ จราจรหนาแน่น", E: 20, Uo: 0.25 },
+      { id: "yard", name: "ลานขนถ่ายสินค้า / ลานทำงานกลางแจ้ง", E: 50, Uo: 0.4 },
+      { id: "plaza", name: "ลานกิจกรรม / ลานอเนกประสงค์", E: 30, Uo: 0.4 },
+      { id: "court", name: "ลานกีฬาอเนกประสงค์ (สันทนาการ)", E: 75, Uo: 0.5 },
+      { id: "custom", name: "กำหนดเอง", E: 20, Uo: 0.4 },
+    ],
+  };
+  const O_LAMPS = {
+    road: [
+      { id: "st60", name: "โคมไฟถนน LED 60W", lm: 7800, w: 60, dist: "road" },
+      { id: "st100", name: "โคมไฟถนน LED 100W", lm: 13000, w: 100, dist: "road" },
+      { id: "st150", name: "โคมไฟถนน LED 150W", lm: 19500, w: 150, dist: "road" },
+      { id: "st200", name: "โคมไฟถนน LED 200W", lm: 26000, w: 200, dist: "road" },
+    ],
+    sport: [
+      { id: "sp500", name: "สปอร์ตไลท์ LED 500W มุม 30°", lm: 70000, w: 500, beam: 30 },
+      { id: "sp1000n", name: "สปอร์ตไลท์ LED 1000W มุมแคบ 15°", lm: 135000, w: 1000, beam: 15 },
+      { id: "sp1000", name: "สปอร์ตไลท์ LED 1000W มุม 25°", lm: 135000, w: 1000, beam: 25 },
+      { id: "sp1000w", name: "สปอร์ตไลท์ LED 1000W มุมกว้าง 40°", lm: 135000, w: 1000, beam: 40 },
+      { id: "sp1500", name: "สปอร์ตไลท์ LED 1500W มุม 25°", lm: 200000, w: 1500, beam: 25 },
+    ],
+    area: [
+      { id: "fl100", name: "ฟลัดไลท์ LED 100W มุมกว้าง 60°", lm: 13000, w: 100, beam: 60 },
+      { id: "fl200", name: "ฟลัดไลท์ LED 200W มุม 45°", lm: 26000, w: 200, beam: 45 },
+      { id: "fl400", name: "ฟลัดไลท์ LED 400W มุม 30°", lm: 52000, w: 400, beam: 30 },
+      { id: "fl600", name: "ฟลัดไลท์ LED 600W มุม 40°", lm: 78000, w: 600, beam: 40 },
+    ],
+  };
+  const O_DEFAULT = { road: ["M4", "st100"], sport: ["II", "sp1000"], area: ["park2", "fl200"] };
+
+  // Synthetic photometry for the presets, built through the same pipeline as imported IES files
+  function makePhot(lamp) {
+    const key = `${lamp.dist || "beam"}|${lamp.beam || 0}|${lamp.lm}`;
+    if (OUT.photCache.has(key)) return OUT.photCache.get(key);
+    const V = [], H = [];
+    for (let g = 0; g <= 180; g += 2.5) V.push(g);
+    let fn;
+    if (lamp.dist === "road") {
+      for (let c = 0; c < 360; c += 5) H.push(c);
+      fn = (g, c) => {
+        const cr = c * Math.PI / 180, a = Math.cos(cr) ** 2, st = Math.max(Math.sin(cr), 0) ** 2, hs = Math.max(-Math.sin(cr), 0) ** 2;
+        const peak = 66 * a + 52 * st + 30 * hs, wd = 26 * a + 22 * st + 18 * hs;
+        if (g >= 88) return 0;
+        return g <= peak ? 0.35 + 0.65 * Math.exp(-(((g - peak) / wd) ** 2)) : Math.exp(-(((g - peak) / 7) ** 2));
+      };
+    } else {
+      H.push(0);
+      const n = Math.log(0.5) / Math.log(Math.cos((lamp.beam / 2) * Math.PI / 180));
+      fn = (g) => (g < 90 ? Math.cos(g * Math.PI / 180) ** n : 0);
+    }
+    const cd = H.map((c) => V.map((g) => fn(g, c) * 1000));
+    let ph = finishPhotometry({ format: "preset", fileName: lamp.name, meta: { LUMINAIRE: lamp.name }, V, H, cd, watts: lamp.w, lampLm: 0, width: 0.5, length: 0.3, height: 0.1 });
+    const k = lamp.lm / ph.flux;
+    ph = finishPhotometry({ ...ph, cd: cd.map((row) => row.map((v) => v * k)), tbl: null });
+    ph.name = lamp.name;
+    OUT.photCache.set(key, ph);
+    return ph;
+  }
+
+  const ov = (id, d) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : d; };
+  const v3 = { sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+    cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+    norm: (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; } };
+  // Orientation frame: D = beam axis (photometric nadir), C90 points toward s (street/forward side)
+  function frame(D, s) {
+    D = v3.norm(D);
+    let c0 = v3.cross(s, D);
+    if (Math.hypot(...c0) < 1e-6) c0 = v3.cross([1, 0, 0], D);
+    c0 = v3.norm(c0);
+    return { D, C0: c0, C90: v3.cross(D, c0) };
+  }
+  function aimed(F, T, pole) {
+    const D = v3.norm(v3.sub(T, F)), s = v3.norm([D[0], D[1], 0.0001]);
+    return { F, aim: [T[0], T[1]], pole, ...frame(D, s) };
+  }
+
+  // Build poles + luminaires for the current outdoor type
+  function outLayout(type, p, ph) {
+    const poles = [], lums = [];
+    if (type === "road") {
+      const { W, S, h, oh, tilt, arr, spans } = p, t = tilt * Math.PI / 180;
+      const head = (x, side, poleY) => {
+        const y = side > 0 ? oh : W - oh, D = [0, Math.sin(t) * side, -Math.cos(t)];
+        lums.push({ F: [x, y, h], aim: null, pole: poles.length - 1, ...frame(D, [0, side, 0]) });
+      };
+      const A = (x) => { poles.push({ x, y: -0.5, h, arm: [x, oh] }); head(x, 1); };
+      const B = (x) => { poles.push({ x, y: W + 0.5, h, arm: [x, W - oh] }); head(x, -1); };
+      const n = spans;
+      if (arr === "single") for (let i = 0; i <= n; i++) A(i * S);
+      else if (arr === "opposite") for (let i = 0; i <= n; i++) { A(i * S); B(i * S); }
+      else if (arr === "staggered") for (let i = 0; i <= n; i++) (i % 2 ? B : A)(i * S);
+      else for (let i = 0; i <= n; i++) { // central median: twin arms
+        poles.push({ x: i * S, y: W / 2, h, twin: true });
+        const tD = (side) => [0, Math.sin(t) * side, -Math.cos(t)];
+        lums.push({ F: [i * S, W / 2 - oh, h], aim: null, pole: poles.length - 1, ...frame(tD(-1), [0, -1, 0]) });
+        lums.push({ F: [i * S, W / 2 + oh, h], aim: null, pole: poles.length - 1, ...frame(tD(1), [0, 1, 0]) });
+      }
+      return { poles, lums, region: { x0: 0, y0: -6, w: n * S, h: W + 12 }, calc: { x0: S, x1: (n - 1) * S, y0: 0, y1: W } };
+    }
+    const fieldL = type === "sport" ? p.L : p.L, fieldW = p.W;
+    let polePos = [];
+    if (type === "sport") {
+      const st = p.set;
+      if (p.layout === "4") polePos = [[-st, -st], [fieldL + st, -st], [-st, fieldW + st], [fieldL + st, fieldW + st]];
+      else {
+        const k = p.layout === "6" ? 3 : 4, xs = k === 3 ? [0.12, 0.5, 0.88] : [0.08, 0.36, 0.64, 0.92];
+        xs.forEach((f) => { polePos.push([fieldL * f, -st]); polePos.push([fieldL * f, fieldW + st]); });
+      }
+    } else {
+      const n = p.nps;
+      for (let i = 0; i < n; i++) { const x = fieldL * (i + 0.5) / n; polePos.push([x, -p.set]); polePos.push([x, fieldW + p.set]); }
+    }
+    const cx = fieldL / 2, cy = fieldW / 2;
+    // Candidate aiming points = the calculation grid of the field
+    const st = type === "sport" ? 5 : Math.max(1, Math.min(fieldL, fieldW) / 10);
+    const gnx = Math.max(4, Math.round(fieldL / st)), gny = Math.max(3, Math.round(fieldW / st)), gpts = [];
+    for (let jj = 0; jj < gny; jj++) for (let ii = 0; ii < gnx; ii++) gpts.push([(ii + 0.5) * fieldL / gnx, (jj + 0.5) * fieldW / gny]);
+    const xsAll = polePos.map((q) => q[0]).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+    const heads = [];
+    polePos.forEach(([px, py]) => {
+      poles.push({ x: px, y: py, h: p.h });
+      const pi = poles.length - 1, n = p.heads;
+      // Zone this pole may aim into: its slice along the length (+10 % overlap) and ~60 % of the width on its own side
+      const xi = xsAll.indexOf(px), ov2 = fieldL * 0.1;
+      const zx0 = (xi <= 0 ? 0 : (xsAll[xi - 1] + px) / 2) - ov2, zx1 = (xi >= xsAll.length - 1 ? fieldL : (xsAll[xi + 1] + px) / 2) + ov2;
+      const near = py < cy, share = type === "sport" ? 0.62 : 0.6;
+      const zy0 = near ? 0 : fieldW * (1 - share), zy1 = near ? fieldW * share : fieldW;
+      const zone = gpts.map((q, k) => (q[0] >= zx0 && q[0] <= zx1 && q[1] >= zy0 && q[1] <= zy1 ? k : -1)).filter((k) => k >= 0);
+      const f = v3.norm([cx - px, cy - py, 0]), l = [-f[1], f[0], 0];
+      const perRow = type === "sport" ? 6 : 4, nRows = Math.ceil(n / perRow);
+      for (let i = 0; i < n; i++) {
+        const r = Math.floor(i / perRow), c = i % perRow, inRow = Math.min(perRow, n - r * perRow);
+        const off = (c - (inRow - 1) / 2) * (type === "sport" ? 0.7 : 0.5);
+        heads.push({ pi, k: i, zone, F: [px + l[0] * off + f[0] * 0.4, py + l[1] * off + f[1] * 0.4, p.h + (nRows - 1 - r) * 0.8 - (type === "sport" ? 0 : 0.2)] });
+      }
+    });
+    // Greedy aiming: floodlights take turns (round-robin over poles) and each aims at the darkest point of its zone
+    const Eg = new Float64Array(gpts.length);
+    heads.sort((a, b) => a.k - b.k || a.pi - b.pi);
+    for (const hd of heads) {
+      let best = -1, bv = Infinity, bd = -1;
+      for (const k of hd.zone) {
+        const dd = Math.hypot(gpts[k][0] - hd.F[0], gpts[k][1] - hd.F[1]);
+        if (Eg[k] < bv - 1e-9 || (Math.abs(Eg[k] - bv) <= 1e-9 && dd > bd)) { bv = Eg[k]; best = k; bd = dd; }
+      }
+      const T = best >= 0 ? gpts[best] : [cx, cy];
+      const L = aimed(hd.F, [T[0], T[1], 0], hd.pi);
+      lums.push(L);
+      if (ph) for (let k = 0; k < gpts.length; k++) Eg[k] += outE([L], ph, 1, [gpts[k][0], gpts[k][1], 0], [0, 0, 1]);
+    }
+    const m = type === "sport" ? 15 : 10;
+    return { poles, lums, region: { x0: -m, y0: -m, w: fieldL + 2 * m, h: fieldW + 2 * m }, calc: { x0: 0, x1: fieldL, y0: 0, y1: fieldW } };
+  }
+
+  // Illuminance at P with surface normal N (plan frame, z up)
+  function outE(lums, ph, MF, P, N) {
+    let e = 0;
+    for (const L of lums) {
+      const vx = P[0] - L.F[0], vy = P[1] - L.F[1], vz = P[2] - L.F[2], d2 = vx * vx + vy * vy + vz * vz, d = Math.sqrt(d2);
+      const ux = vx / d, uy = vy / d, uz = vz / d;
+      const ci = -(N[0] * ux + N[1] * uy + N[2] * uz);
+      if (ci <= 0) continue;
+      const cg = ux * L.D[0] + uy * L.D[1] + uz * L.D[2];
+      const g = Math.acos(Math.max(-1, Math.min(1, cg))) * 180 / Math.PI;
+      const c = Math.atan2(ux * L.C90[0] + uy * L.C90[1] + uz * L.C90[2], ux * L.C0[0] + uy * L.C0[1] + uz * L.C0[2]) * 180 / Math.PI;
+      const I = lookupI(ph, g, c);
+      if (I > 0) e += I * ci / d2;
+    }
+    return e * MF;
+  }
+  // Calculation grid on the task area (EN 13201 / EN 12193 style spacing)
+  function outGrid(type, lay, p) {
+    const c = lay.calc, pts = [];
+    let nx, ny;
+    if (type === "road") {
+      const S = p.S, spans = Math.max(1, Math.round((c.x1 - c.x0) / S)), N = Math.max(10, Math.ceil(S / 3));
+      nx = N * spans; ny = 3 * p.lanes;
+    } else if (type === "sport") { nx = Math.max(6, Math.round((c.x1 - c.x0) / 5)); ny = Math.max(4, Math.round((c.y1 - c.y0) / 5)); }
+    else { const st = Math.max(1, Math.min(c.x1 - c.x0, c.y1 - c.y0) / 10); nx = Math.max(4, Math.round((c.x1 - c.x0) / st)); ny = Math.max(3, Math.round((c.y1 - c.y0) / st)); }
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) pts.push([c.x0 + (i + 0.5) * (c.x1 - c.x0) / nx, c.y0 + (j + 0.5) * (c.y1 - c.y0) / ny]);
+    return { pts, nx, ny };
+  }
+  function outMetrics(type, lay, ph, MF, p) {
+    const g = outGrid(type, lay, p), vals = g.pts.map((q) => outE(lay.lums, ph, MF, [q[0], q[1], 0], [0, 0, 1]));
+    let s = 0, mn = Infinity, mx = 0; vals.forEach((v) => { s += v; mn = Math.min(mn, v); mx = Math.max(mx, v); });
+    const avg = s / vals.length, res = { avg, min: mn, max: mx, Uo: avg ? mn / avg : 0, U1: mx ? mn / mx : 0, grid: g, vals };
+    if (type === "sport") { // vertical illuminance toward the main camera (centre of a long side, 15 m up, 30 m back)
+      const cam = [p.L / 2, -30, 15];
+      const ev = g.pts.map((q) => { const n = v3.norm([cam[0] - q[0], cam[1] - q[1], 0]); return outE(lay.lums, ph, MF, [q[0], q[1], 1.5], n); });
+      let se = 0, me = Infinity; ev.forEach((v) => { se += v; me = Math.min(me, v); });
+      res.evAvg = se / ev.length; res.evMin = me;
+    }
+    return res;
+  }
+  const outPass = (cls, m) => m.avg >= cls.E * 0.995 && (cls.Uo == null || m.Uo >= cls.Uo - 1e-6) && (cls.U2 == null || m.Uo >= cls.U2 - 1e-6) && (cls.Emin == null || m.min >= cls.Emin - 1e-6);
+
+  function outParams(type) {
+    if (type === "road") return { W: Math.max(2, ov("oRw", 7)), lanes: Math.max(1, Math.round(ov("oLanes", 2))), S: Math.max(5, ov("oSp", 30)), h: Math.max(3, ov("oPh", 9)), oh: ov("oOh", 1), tilt: Math.max(0, Math.min(30, ov("oTilt", 5))), arr: $("oArr").value, spans: 4 };
+    if (type === "sport") return { L: Math.max(20, ov("oFl", 105)), W: Math.max(15, ov("oFw", 68)), layout: $("oPoles").value, h: Math.max(8, ov("oSph", 30)), set: Math.max(0, ov("oSset", 5)), heads: Math.max(1, Math.round(ov("oHeads", 12))) };
+    return { L: Math.max(5, ov("oAl", 60)), W: Math.max(5, ov("oAw", 40)), h: Math.max(3, ov("oAph", 12)), set: Math.max(0, ov("oAset", 1)), nps: Math.max(1, Math.round(ov("oApps", 3))), heads: Math.max(1, Math.round(ov("oAhd", 2))) };
+  }
+  // Auto design: road → widest spacing; sports → fewest floodlights per pole; area → least installed power
+  function outAuto(type, p, ph, MF, cls) {
+    if (type === "road" && $("oAutoSp").checked) {
+      let pick = null;
+      for (let S = Math.round(Math.min(60, p.h * 6)); S >= 10; S--) {
+        const q = { ...p, S }, m = outMetrics(type, outLayout(type, q, ph), ph, MF, q);
+        if (outPass(cls, m)) { pick = S; break; }
+      }
+      p.S = pick || 10; p.autoOk = !!pick; $("oSp").value = p.S;
+    } else if (type === "sport" && $("oAutoHeads").checked) {
+      // Fewest kW: try each preset floodlight (or the imported file), smallest number per pole that passes
+      let best = null;
+      const cands = $("oLamp").value === "ies" ? [{ lamp: null, ph, w: p.watts }] : O_LAMPS.sport.map((l) => ({ lamp: l, ph: makePhot(l), w: l.w }));
+      const poles = p.layout === "4" ? 4 : p.layout === "6" ? 6 : 8;
+      for (const c of cands) for (let n = 1; n <= 60; n++) {
+        if (best && poles * n * c.w >= best.cost) break;
+        const q = { ...p, heads: n }, m = outMetrics(type, outLayout(type, q, c.ph), c.ph, MF, q);
+        if (outPass(cls, m)) { best = { n, cost: poles * n * c.w, lamp: c.lamp }; break; }
+      }
+      p.heads = best ? best.n : 60; p.autoOk = !!best; $("oHeads").value = p.heads;
+      if (best && best.lamp) { $("oLamp").value = best.lamp.id; p.pickLamp = best.lamp; }
+    } else if (type === "area" && $("oAutoArea").checked) {
+      // Least installed power: try every preset floodlight (or the imported file) with 1–10 poles per side and 1–8 heads
+      let best = null;
+      const cands = $("oLamp").value === "ies" ? [{ lamp: null, ph, w: p.watts }] : O_LAMPS.area.map((l) => ({ lamp: l, ph: makePhot(l), w: l.w }));
+      for (const c of cands) for (let nps = 1; nps <= 10; nps++) for (let heads = 1; heads <= 8; heads++) {
+        const cost = nps * 2 * heads * c.w;
+        if (best && cost >= best.cost) continue;
+        const q = { ...p, nps, heads }, m = outMetrics(type, outLayout(type, q, c.ph), c.ph, MF, q);
+        if (outPass(cls, m)) best = { nps, heads, cost, lamp: c.lamp };
+      }
+      if (best) { p.nps = best.nps; p.heads = best.heads; if (best.lamp) { $("oLamp").value = best.lamp.id; p.pickLamp = best.lamp; } } else { p.nps = 10; p.heads = 8; }
+      p.autoOk = !!best; $("oApps").value = p.nps; $("oAhd").value = p.heads;
+    }
+    return p;
+  }
+
+  function outLampList(type) { const l = O_LAMPS[type].slice(); if (OUT.ies) l.push({ id: "ies", name: "IES: " + OUT.ies.name, lm: Math.round(OUT.ies.flux), w: OUT.ies.watts || 0, ies: true }); return l; }
+  function outSyncType(keepSel) {
+    const type = $("oType").value;
+    ["oGeoRoad", "oGeoSport", "oGeoArea"].forEach((id) => $(id).classList.toggle("hidden", id !== { road: "oGeoRoad", sport: "oGeoSport", area: "oGeoArea" }[type]));
+    const cs = $("oClass"), ls = $("oLamp"), prevC = cs.value, prevL = ls.value;
+    cs.innerHTML = O_CLASSES[type].map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
+    ls.innerHTML = outLampList(type).map((l) => `<option value="${l.id}">${l.name}${l.ies ? "" : ` · ${fmt(l.lm)} lm`}</option>`).join("");
+    cs.value = keepSel && O_CLASSES[type].some((c) => c.id === prevC) ? prevC : O_DEFAULT[type][0];
+    ls.value = keepSel && outLampList(type).some((l) => l.id === prevL) ? prevL : O_DEFAULT[type][1];
+    $("oCct").value = type === "road" ? "4000" : "5700";
+  }
+  function outClass(type) {
+    const c = O_CLASSES[type].find((x) => x.id === $("oClass").value) || O_CLASSES[type][0];
+    const custom = c.id === "custom";
+    $("oCustomReq").classList.toggle("hidden", !custom);
+    if (!custom) return c;
+    const u = Math.max(0, Math.min(1, ov("oReqU", 0.4)));
+    return { ...c, E: Math.max(0.1, ov("oReqE", c.E)), Uo: type === "sport" ? null : u, U2: type === "sport" ? u : null };
+  }
+
+  function calcOut() {
+    const type = $("oType").value, cls = outClass(type), MF = parseFloat($("oMF").value) || 0.8;
+    const lamp = outLampList(type).find((l) => l.id === $("oLamp").value) || O_LAMPS[type][0];
+    const ph = lamp.ies && OUT.ies ? OUT.ies : makePhot(lamp);
+    const watts = lamp.ies ? (OUT.ies.watts || ov("oIesW", 100)) : lamp.w;
+    $("oIesWWrap").classList.toggle("hidden", !(lamp.ies && !OUT.ies.watts));
+    $("oPolar").innerHTML = polarSVG(ph, { grid: "var(--border)", muted: "var(--muted)", c0: "var(--accent)", c90: "#3b6fd1", fill: "color-mix(in srgb, var(--accent) 14%, transparent)" });
+    $("oLampInfo").textContent = `${fmt(ph.flux)} lm · ${fmt(watts)} W · ${watts ? fmt(ph.flux / watts) : "–"} lm/W · มุมลำแสง ${fmt(beamAngle(ph))}°`;
+    $("oClassHint").textContent = `เกณฑ์: E_avg ≥ ${fmt(cls.E, cls.E < 10 ? 1 : 0)} lux` + (cls.Uo != null ? ` · U₀ ≥ ${fmt(cls.Uo, 2)}` : "") + (cls.U2 != null ? ` · U₂ (Emin/Eavg) ≥ ${fmt(cls.U2, 2)}` : "") + (cls.Emin != null ? ` · E_min ≥ ${fmt(cls.Emin, 1)} lux` : "") + (cls.note ? ` · ${cls.note}` : "");
+    let p = outParams(type);
+    p.watts = watts;
+    $("oSp").disabled = type === "road" && $("oAutoSp").checked;
+    $("oHeads").disabled = type === "sport" && $("oAutoHeads").checked;
+    $("oApps").disabled = $("oAhd").disabled = type === "area" && $("oAutoArea").checked;
+    p = outAuto(type, p, ph, MF, cls);
+    let lampF = lamp, phF = ph, wattsF = watts;
+    if (p.pickLamp) { lampF = p.pickLamp; phF = makePhot(lampF); wattsF = lampF.w; }
+    return calcOutFinish(type, cls, MF, lampF, phF, wattsF, p);
+  }
+  function calcOutFinish(type, cls, MF, lamp, ph, watts, p) {
+    $("oPolar").innerHTML = polarSVG(ph, { grid: "var(--border)", muted: "var(--muted)", c0: "var(--accent)", c90: "#3b6fd1", fill: "color-mix(in srgb, var(--accent) 14%, transparent)" });
+    $("oLampInfo").textContent = `${fmt(ph.flux)} lm · ${fmt(watts)} W · ${watts ? fmt(ph.flux / watts) : "–"} lm/W · มุมลำแสง ${fmt(beamAngle(ph))}°`;
+    const lay = outLayout(type, p, ph), m = outMetrics(type, lay, ph, MF, p), pass = outPass(cls, m);
+    // Display map over the whole region (task area + surroundings)
+    const R = lay.region, nx = Math.round(Math.max(60, Math.min(160, 160 * Math.sqrt(R.w / R.h)))), ny = Math.max(20, Math.round(nx * R.h / R.w));
+    const vals = new Float32Array(nx * ny), inside = new Uint8Array(nx * ny);
+    let dmax = 0, dmin = Infinity;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const x = R.x0 + (i + 0.5) / nx * R.w, y = R.y0 + (j + 0.5) / ny * R.h, n = j * nx + i;
+      vals[n] = outE(lay.lums, ph, MF, [x, y, 0], [0, 0, 1]);
+      dmax = Math.max(dmax, vals[n]); dmin = Math.min(dmin, vals[n]);
+      inside[n] = x >= lay.calc.x0 && x <= lay.calc.x1 && y >= lay.calc.y0 && y <= lay.calc.y1 ? 1 : 0;
+    }
+    const dist = { nx, nz: ny, vals, inside, min: m.min, max: Math.max(m.max, 1e-3), avg: m.avg };
+    const scaleMax = Math.max(cls.E * 1.6, m.max, 1);
+    const N = lay.lums.length, totalW = N * watts, hours = Math.min(Math.max(num("hours", 0), 0), 24), rate = Math.max(num("rate", 0), 0);
+    const kwhMonth = totalW / 1000 * hours * 30, cost = kwhMonth * rate;
+    const areaTask = (lay.calc.x1 - lay.calc.x0) * (lay.calc.y1 - lay.calc.y0);
+    // Hero
+    $("rFixK").textContent = "จำนวนโคม";
+    $("rFix").innerHTML = `${fmt(N)}<small>โคม</small>`;
+    $("rFixD").textContent = `เสา ${fmt(lay.poles.length)} ต้น` + (type === "road" ? ` · ระยะห่าง ${fmt(p.S)} ม.` : ` · ${fmt(type === "sport" ? p.heads : p.heads)} โคม/ต้น`);
+    $("rLux").innerHTML = `${fmt(m.avg, m.avg < 20 ? 1 : 0)}<small>lux</small>`;
+    $("rLux").title = "";
+    $("rLuxD").innerHTML = `เป้าหมาย ${fmt(cls.E, cls.E < 10 ? 1 : 0)} lux ` + (pass ? `<span class="badge ok">ผ่าน</span>` : `<span class="badge bad">ไม่ผ่าน</span>`);
+    $("rCost").innerHTML = `${fmt(cost)}<small>฿</small>`;
+    $("rCostD").textContent = `${fmt(kwhMonth, 1)} kWh/เดือน · ${fmt(totalW / 1000, 1)} kW`;
+    // Details
+    const ok = (b) => (b ? `<span class="badge ok">ผ่าน</span>` : `<span class="badge bad">ไม่ผ่าน</span>`);
+    const rows = [
+      [`ประเภทงาน <span class="hint">${esc(cls.name)}</span>`, { road: "ไฟถนน", sport: "ไฟสนามฟุตบอล", area: "ฟลัดไลท์ลานกว้าง" }[type]],
+      [`ความสว่างเฉลี่ยแนวราบ (E<sub>avg</sub>) <span class="hint">พื้นที่คำนวณ ${fmt(areaTask)} ตร.ม. · ${m.grid.nx} × ${m.grid.ny} จุด</span>`, `${fmt(m.avg, 1)} lux ${ok(m.avg >= cls.E * 0.995)}`],
+      [`E<sub>min</sub> / E<sub>max</sub>`, `${fmt(m.min, 1)} / ${fmt(m.max, 1)} lux${cls.Emin != null ? " " + ok(m.min >= cls.Emin) : ""}`],
+      [type === "sport" ? "ความสม่ำเสมอ U₂ = Emin/Eavg · U₁ = Emin/Emax" : "ความสม่ำเสมอ U₀ = Emin/Eavg", type === "sport" ? `${fmt(m.Uo, 2)} · ${fmt(m.U1, 2)} ${cls.U2 != null ? ok(m.Uo >= cls.U2) : ""}` : `${fmt(m.Uo, 2)} ${cls.Uo != null ? ok(m.Uo >= cls.Uo) : ""}`],
+    ];
+    if (type === "sport") rows.push([`ความสว่างแนวตั้งหันหากล้องหลัก (E<sub>v</sub>) <span class="hint">ที่ 1.5 ม. กล้องกลางด้านยาว สูง 15 ม.</span>`, `${fmt(m.evAvg)} lux · ต่ำสุด ${fmt(m.evMin)}`]);
+    if (type === "road") rows.push([`การจัดวาง <span class="hint">ความสูงเสา ${fmt(p.h, 1)} ม. · ระยะยื่น ${fmt(p.oh, 1)} ม. · มุมเงย ${fmt(p.tilt)}°</span>`, `${{ single: "ด้านเดียว", opposite: "สองฝั่งตรงกัน", staggered: "สองฝั่งสลับ", central: "เกาะกลาง" }[p.arr]} · ระยะห่าง ${fmt(p.S)} ม. (S/H = ${fmt(p.S / p.h, 1)})`]);
+    else rows.push([`การจัดวาง <span class="hint">เสาสูง ${fmt(p.h)} ม. · ระยะร่น ${fmt(p.set, 1)} ม.</span>`, `เสา ${lay.poles.length} ต้น × ${p.heads} โคม`]);
+    if (p.autoOk === false) rows.push(["ออกแบบอัตโนมัติ", `<span class="badge bad">ยังไม่ถึงเกณฑ์</span> <span class="hint" style="display:inline">ลองโคมกำลังสูงขึ้น เสาสูงขึ้น หรือเปลี่ยนการจัดวาง</span>`]);
+    rows.push([`กำลังไฟฟ้ารวม <span class="hint">${fmt(totalW / Math.max(areaTask, 1), 2)} W/ตร.ม.</span>`, `${fmt(totalW)} W`]);
+    rows.push(["ค่าไฟต่อปี", `${fmt(cost * 12)} ฿`]);
+    $("details").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+    $("scaleMax").textContent = fmt(scaleMax);
+    OUT.last = { type, cls, lamp, ph, watts, MF, p, lay, m, pass, dist, region: R, scaleMax, N, totalW, kwhMonth, cost, hours, rate, areaTask, cct: parseInt($("oCct").value, 10) };
+    drawPlanOut();
+    if (view === "3d") update3DOut();
+  }
+
+  // ---------- Outdoor 2D plan ----------
+  function outCanvas(o, pxPerM, heat, iso, nums) {
+    const R = o.region, d = o.dist, cw = Math.round(R.w * pxPerM), ch = Math.round(R.h * pxPerM);
+    const cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+    const ctx = cv.getContext("2d");
+    if (heat) {
+      const lo = document.createElement("canvas"); lo.width = d.nx; lo.height = d.nz;
+      const lc = lo.getContext("2d"), img = lc.createImageData(d.nx, d.nz);
+      for (let n = 0; n < d.vals.length; n++) { const [r, g, b] = ramp(d.vals[n] / o.scaleMax); img.data.set([r, g, b, 255], n * 4); }
+      lc.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(lo, 0, 0, cw, ch);
+    } else { ctx.fillStyle = "#f4f1ea"; ctx.fillRect(0, 0, cw, ch); }
+    if (iso) drawIsolux(ctx, R.w, R.h, d, pxPerM, heat, o.scaleMax, Math.max(10, Math.min(30, pxPerM * 1.6)), null);
+    if (nums) {
+      const g = o.m.grid, fs = Math.max(8, Math.min(22, pxPerM * Math.min((o.lay.calc.x1 - o.lay.calc.x0) / g.nx, (o.lay.calc.y1 - o.lay.calc.y0) / g.ny) * 0.32));
+      ctx.font = `600 ${fs}px "IBM Plex Sans Thai", system-ui, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineWidth = Math.max(2, fs * 0.22);
+      g.pts.forEach((q, i) => {
+        const x = (q[0] - R.x0) * pxPerM, y = (q[1] - R.y0) * pxPerM, t = fmt(o.m.vals[i], o.m.vals[i] < 20 ? 1 : 0);
+        if (heat) { ctx.strokeStyle = "rgba(20,16,40,.75)"; ctx.strokeText(t, x, y); ctx.fillStyle = "#fff"; } else ctx.fillStyle = "#2b2924";
+        ctx.fillText(t, x, y);
+      });
+    }
+    return cv;
+  }
+  function outOverlay(o, X, Y, s, onLight = false) {
+    const c = o.lay.calc, p = o.p, out = [], WH = onLight ? "#6b675e" : "#ffffff";
+    const line = (x0, y0, x1, y1, st = WH, w = 1.5, dash = "") => out.push(`<line x1="${X(x0)}" y1="${Y(y0)}" x2="${X(x1)}" y2="${Y(y1)}" stroke="${st}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ""} stroke-linecap="round"/>`);
+    if (o.type === "road") {
+      const L = o.region.w;
+      line(0, 0, L, 0, onLight ? "#2b2924" : "#e9e5dd", 2.2); line(0, p.W, L, p.W, onLight ? "#2b2924" : "#e9e5dd", 2.2);
+      for (let k = 1; k < p.lanes; k++) line(0, p.W * k / p.lanes, L, p.W * k / p.lanes, WH, 1.4, "8 8");
+    } else if (o.type === "sport") {
+      const L = p.L, W = p.W, sc = Math.min(L / 105, W / 68);
+      out.push(`<rect x="${X(0)}" y="${Y(0)}" width="${L * s}" height="${W * s}" fill="none" stroke="${WH}" stroke-width="1.6"/>`);
+      line(L / 2, 0, L / 2, W);
+      out.push(`<circle cx="${X(L / 2)}" cy="${Y(W / 2)}" r="${9.15 * sc * s}" fill="none" stroke="${WH}" stroke-width="1.4"/>`);
+      [[0, 1], [L, -1]].forEach(([x, dir]) => {
+        out.push(`<rect x="${X(dir > 0 ? x : x - 16.5 * sc)}" y="${Y(W / 2 - 20.16 * sc)}" width="${16.5 * sc * s}" height="${40.32 * sc * s}" fill="none" stroke="${WH}" stroke-width="1.4"/>`);
+        out.push(`<rect x="${X(dir > 0 ? x : x - 5.5 * sc)}" y="${Y(W / 2 - 9.16 * sc)}" width="${5.5 * sc * s}" height="${18.32 * sc * s}" fill="none" stroke="${WH}" stroke-width="1.4"/>`);
+      });
+    } else out.push(`<rect x="${X(c.x0)}" y="${Y(c.y0)}" width="${(c.x1 - c.x0) * s}" height="${(c.y1 - c.y0) * s}" fill="none" stroke="${WH}" stroke-width="1.8"/>`);
+    out.push(`<rect x="${X(c.x0)}" y="${Y(c.y0)}" width="${(c.x1 - c.x0) * s}" height="${(c.y1 - c.y0) * s}" fill="none" stroke="#d98a00" stroke-width="1.4" stroke-dasharray="6 4"/>`);
+    // Aim lines then poles
+    o.lay.lums.forEach((L) => { if (L.aim) line(L.F[0], L.F[1], L.aim[0], L.aim[1], onLight ? "rgba(59,111,209,.45)" : "rgba(255,255,255,.45)", 0.8); });
+    o.lay.lums.forEach((L) => { if (L.aim) out.push(`<circle cx="${X(L.aim[0])}" cy="${Y(L.aim[1])}" r="1.8" fill="${onLight ? "#3b6fd1" : "#fff"}"/>`); });
+    o.lay.poles.forEach((P, i) => {
+      if (P.arm) line(P.x, P.y, P.arm[0], P.arm[1], "#2b2924", 2.2);
+      out.push(`<circle cx="${X(P.x)}" cy="${Y(P.y)}" r="5" fill="#d98a00" stroke="#fff" stroke-width="1.5"/><text x="${X(P.x) + 7}" y="${Y(P.y) - 6}" font-size="10" fill="#2b2924" paint-order="stroke" stroke="#fff" stroke-width="3">${i + 1}</text>`);
+    });
+    return out.join("");
+  }
+  function drawPlanOut() {
+    const o = OUT.last; if (!o) return;
+    const R = o.region, svg = $("plan"), pad = 20, maxW = 640, maxH = 400;
+    const s = Math.min((maxW - pad * 2) / R.w, (maxH - pad * 2) / R.h), X = (x) => pad + (x - R.x0) * s, Y = (y) => pad + (y - R.y0) * s;
+    svg.setAttribute("viewBox", `0 0 ${R.w * s + pad * 2} ${R.h * s + pad * 2}`);
+    const heat = $("showHeat").checked, iso = $("showIso").checked, nums = $("showNums").checked;
+    const img = outCanvas(o, s * 2, heat, iso, nums).toDataURL();
+    svg.innerHTML = `<image href="${img}" x="${pad}" y="${pad}" width="${R.w * s}" height="${R.h * s}" preserveAspectRatio="none"/>${outOverlay(o, X, Y, s, !heat)}
+      <text x="${pad + R.w * s / 2}" y="${pad + R.h * s + 15}" text-anchor="middle" font-size="11" fill="var(--muted)">${fmt(R.w, 1)} ม.</text>`;
+    const iL = isoLevels(o.dist);
+    $("legend").innerHTML = `<span>● เสาไฟ (ลำดับ)</span><span>เส้นประสีส้ม = พื้นที่คำนวณ</span>${o.lay.lums.some((L) => L.aim) ? "<span>เส้นขาว = ทิศเล็งโคม</span>" : ""}${iso && iL.step ? `<span>เส้น isolux ทุก ${fmt(iL.step, iL.step < 1 ? 1 : 0)} lux</span>` : ""}${nums ? "<span>ตัวเลข = lux ที่จุดคำนวณตามมาตรฐาน</span>" : ""}`;
+  }
+
+  // ---------- Outdoor 3D ----------
+  const OUT_FS = `
+    precision highp float;
+    uniform sampler2D tLum; uniform float nLum; uniform float lumW;
+    uniform sampler2D tPh; uniform float imax; uniform float MF; uniform float scaleMax; uniform vec2 off;
+    uniform float realistic; uniform vec3 albedo; uniform vec3 lightCol; uniform float exposure;
+    varying vec3 vW; varying vec3 vN;
+    vec3 ramp(float t) {
+      t = clamp(t, 0.0, 1.0);
+      vec3 c0 = vec3(44.0, 30.0, 90.0) / 255.0, c1 = vec3(59.0, 79.0, 156.0) / 255.0, c2 = vec3(31.0, 158.0, 137.0) / 255.0,
+           c3 = vec3(181.0, 222.0, 43.0) / 255.0, c4 = vec3(253.0, 231.0, 37.0) / 255.0;
+      if (t < 0.25) return mix(c0, c1, t / 0.25);
+      if (t < 0.5) return mix(c1, c2, (t - 0.25) / 0.25);
+      if (t < 0.75) return mix(c2, c3, (t - 0.5) / 0.25);
+      return mix(c3, c4, (t - 0.75) / 0.25);
+    }
+    vec3 lt(float i, float k) { return texture2D(tLum, vec2((i * 3.0 + k + 0.5) / lumW, 0.5)).xyz; }
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+    void main() {
+      vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+      vec3 N = vec3(n.x, n.z, n.y), P = vec3(vW.x - off.x, vW.z - off.y, vW.y) + N * 0.01;
+      float E = 0.0;
+      for (int i = 0; i < 640; i++) {
+        if (float(i) >= nLum) break;
+        vec3 F = lt(float(i), 0.0), D = lt(float(i), 1.0), C0 = lt(float(i), 2.0);
+        vec3 v = P - F; float d2 = dot(v, v); vec3 u = v / sqrt(d2);
+        float ci = -dot(N, u); if (ci <= 0.0) continue;
+        float g = degrees(acos(clamp(dot(u, D), -1.0, 1.0)));
+        float C = mod(degrees(atan(dot(u, cross(D, C0)), dot(u, C0))) + 360.0, 360.0);
+        float I = imax * texture2D(tPh, vec2((g + 0.5) / 181.0, (C / 5.0 + 0.5) / 73.0)).r;
+        E += I * ci / d2;
+      }
+      E *= MF;
+      if (realistic > 0.5) {
+        vec3 c = aces(albedo * lightCol * E * exposure + albedo * 0.012);
+        gl_FragColor = vec4(pow(c, vec3(1.0 / 2.2)), 1.0);
+      } else gl_FragColor = vec4(ramp(E / scaleMax) * (0.86 + 0.14 * max(n.y, 0.0)), 1.0);
+    }`;
+  function update3DOut() {
+    const o = OUT.last; if (!o || !init3D()) return;
+    const { group, camera, controls } = three;
+    clearGroup(group); updateProbe();
+    const R = o.region, cx = R.x0 + R.w / 2, cy = R.y0 + R.h / 2, W2 = (x, y, z = 0) => new THREE.Vector3(x - cx, z, y - cy);
+    const realistic = $("mapMode").value === "real";
+    three.el.classList.toggle("night", realistic);
+    (three.surfTex || []).forEach((t) => t.dispose());
+    const n = Math.min(o.lay.lums.length, 640), lw = Math.max(1, n) * 3, data = new Float32Array(lw * 4);
+    o.lay.lums.slice(0, n).forEach((L, i) => { data.set([...L.F, 0], i * 12); data.set([...L.D, 0], i * 12 + 4); data.set([...L.C0, 0], i * 12 + 8); });
+    const tLum = new THREE.DataTexture(data, lw, 1, THREE.RGBAFormat, THREE.FloatType); tLum.magFilter = tLum.minFilter = THREE.NearestFilter; tLum.needsUpdate = true;
+    const ph = o.ph, pd = new Uint8Array(181 * 73 * 4);
+    for (let ci = 0; ci <= 72; ci++) for (let gi = 0; gi <= 180; gi++) pd[(ci * 181 + gi) * 4] = Math.round(Math.min(1, ph.tbl[ci * 181 + gi] / ph.imax) * 255);
+    const tPh = new THREE.DataTexture(pd, 181, 73, THREE.RGBAFormat); tPh.magFilter = tPh.minFilter = THREE.LinearFilter; tPh.needsUpdate = true;
+    three.surfTex = [tLum, tPh];
+    const lin = (k) => kelvinRGB(k).map((v) => srgbLin(v / 255)), lc = lin(o.cct), w5 = lin(5000);
+    const tint = lc.map((v, i) => 1 + 0.6 * (v / w5[i] - 1)), lt = 0.2126 * tint[0] + 0.7152 * tint[1] + 0.0722 * tint[2];
+    const shared = { tLum: { value: tLum }, nLum: { value: n }, lumW: { value: lw }, tPh: { value: tPh }, imax: { value: ph.imax }, MF: { value: o.MF }, scaleMax: { value: o.scaleMax },
+      off: { value: new THREE.Vector2(-cx, -cy) }, realistic: { value: realistic ? 1 : 0 }, lightCol: { value: new THREE.Vector3(...tint.map((v) => v / lt)) },
+      exposure: { value: (0.5 / (0.1 * Math.max(o.m.avg, o.cls.E * 0.5, 2))) * Math.pow(2, parseFloat($("expo").value) || 0) } };
+    const sm = (alb) => new THREE.ShaderMaterial({ uniforms: { ...shared, albedo: { value: new THREE.Vector3(...alb) } }, vertexShader: SURF_VS, fragmentShader: OUT_FS, side: THREE.DoubleSide });
+    const plane = (x0, y0, w, h, z, mat) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h, 1, 1), mat); m.rotation.x = -Math.PI / 2; const c = W2(x0 + w / 2, y0 + h / 2, z); m.position.copy(c); group.add(m); return m; };
+    // Ground: surroundings, task surface and markings
+    const big = Math.max(R.w, R.h) * 0.35;
+    const gAlb = o.type === "road" ? [0.09, 0.1, 0.06] : o.type === "sport" ? [0.06, 0.09, 0.05] : [0.12, 0.12, 0.11];
+    plane(R.x0 - big, R.y0 - big, R.w + 2 * big, R.h + 2 * big, -0.02, sm(gAlb));
+    const white = sm([0.75, 0.75, 0.72]);
+    if (o.type === "road") {
+      plane(R.x0, 0, R.w, o.p.W, 0, sm([0.07, 0.07, 0.07]));
+      plane(R.x0, -2.5, R.w, 2.5, 0.01, sm([0.22, 0.21, 0.2])); plane(R.x0, o.p.W, R.w, 2.5, 0.01, sm([0.22, 0.21, 0.2]));
+      for (let k = 1; k < o.p.lanes; k++) for (let x = 0; x < R.w; x += 12) plane(x, o.p.W * k / o.p.lanes - 0.07, 6, 0.14, 0.015, white);
+      plane(R.x0, 0.15, R.w, 0.12, 0.015, white); plane(R.x0, o.p.W - 0.27, R.w, 0.12, 0.015, white);
+    } else if (o.type === "sport") {
+      const L = o.p.L, W = o.p.W, sc = Math.min(L / 105, W / 68), lw2 = 0.12;
+      plane(-4, -4, L + 8, W + 8, 0, sm([0.05, 0.11, 0.04]));
+      for (let k = 0; k < 10; k++) if (k % 2) plane(k * L / 10, 0, L / 10, W, 0.003, sm([0.06, 0.13, 0.05]));
+      plane(0, -lw2 / 2, L, lw2, 0.01, white); plane(0, W - lw2 / 2, L, lw2, 0.01, white);
+      plane(-lw2 / 2, 0, lw2, W, 0.01, white); plane(L - lw2 / 2, 0, lw2, W, 0.01, white); plane(L / 2 - lw2 / 2, 0, lw2, W, 0.01, white);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(9.15 * sc - lw2 / 2, 9.15 * sc + lw2 / 2, 64), white); ring.rotation.x = -Math.PI / 2; ring.position.copy(W2(L / 2, W / 2, 0.012)); group.add(ring);
+      [[0, 1], [L, -1]].forEach(([x, dir]) => {
+        const bw = 16.5 * sc, bh = 40.32 * sc, x0 = dir > 0 ? x : x - bw;
+        plane(x0, W / 2 - bh / 2 - lw2 / 2, bw, lw2, 0.01, white); plane(x0, W / 2 + bh / 2 - lw2 / 2, bw, lw2, 0.01, white);
+        plane(x + dir * bw - lw2 / 2, W / 2 - bh / 2, lw2, bh, 0.01, white);
+      });
+    } else plane(0, 0, o.p.L, o.p.W, 0, sm([0.2, 0.2, 0.19]));
+    // Poles and luminaire heads
+    const poleMat = sm([0.35, 0.35, 0.36]), headMat = new THREE.MeshLambertMaterial({ color: 0x55585e });
+    const [kr, kg, kb] = kelvinRGB(o.cct), glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(kr / 255, kg / 255, kb / 255).lerp(new THREE.Color(1, 1, 1), 0.5) });
+    o.lay.poles.forEach((P) => {
+      const r = o.type === "road" ? 0.09 : o.type === "sport" ? 0.35 : 0.15;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.7, r, P.h, 16), poleMat); pole.position.copy(W2(P.x, P.y, P.h / 2)); group.add(pole);
+      if (P.arm) {
+        const a = W2(P.x, P.y, P.h), b = W2(P.arm[0], P.arm[1], P.h), len = a.distanceTo(b);
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(len, 0.08, 0.08), headMat); arm.position.copy(a.clone().add(b).multiplyScalar(0.5)); arm.lookAt(b); arm.rotateY(Math.PI / 2); group.add(arm);
+      }
+      if (o.type === "sport") { const fr = new THREE.Mesh(new THREE.BoxGeometry(4.6, Math.max(1, Math.ceil(o.p.heads / 6)) * 0.8 + 0.4, 0.15), headMat); fr.position.copy(W2(P.x, P.y, P.h + (Math.ceil(o.p.heads / 6) - 1) * 0.4)); fr.lookAt(W2(o.p.L / 2, o.p.W / 2, P.h)); group.add(fr); }
+    });
+    const showBeams = $("showBeams").checked, beamMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(kr / 255, kg / 255, kb / 255), transparent: true, opacity: (realistic ? 0.5 : 1) * Math.min(0.06, 1.2 / Math.max(o.lay.lums.length, 1)), blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const ba = beamAngle(o.ph);
+    o.lay.lums.forEach((L) => {
+      const toW = (v) => new THREE.Vector3(v[0], v[2], v[1]);
+      const Yw = toW(L.D).negate(), Xw = toW(L.C0), Zw = new THREE.Vector3().crossVectors(Xw, Yw).normalize();
+      const q = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(Xw, Yw, Zw));
+      const g = new THREE.Group(); g.position.copy(W2(L.F[0], L.F[1], L.F[2])); g.quaternion.copy(q);
+      const sz = o.type === "road" ? [0.7, 0.12, 0.3] : o.type === "sport" ? [0.6, 0.18, 0.6] : [0.45, 0.12, 0.35];
+      const body = new THREE.Mesh(new THREE.BoxGeometry(...sz), headMat); g.add(body);
+      const lens = new THREE.Mesh(new THREE.PlaneGeometry(sz[0] * 0.85, sz[2] * 0.8), glow); lens.rotation.x = Math.PI / 2; lens.position.y = -sz[1] / 2 - 0.005; g.add(lens);
+      group.add(g);
+      if (showBeams && L.F[2] > 0 && L.D[2] < -0.05 && ba < 120) {
+        const len = Math.min(L.F[2] / -L.D[2], 200), rad = Math.tan(Math.min(ba, 100) / 2 * Math.PI / 180) * len;
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(rad, len, 24, 1, true), beamMat);
+        cone.position.copy(W2(L.F[0] + L.D[0] * len / 2, L.F[1] + L.D[1] * len / 2, L.F[2] + L.D[2] * len / 2));
+        cone.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), toW(L.D).negate()));
+        group.add(cone);
+      }
+    });
+    const key = "out|" + o.type + "|" + [R.w, R.h].join("|");
+    if (three.fitKey !== key) {
+      three.fitKey = key;
+      const span = Math.max(R.w, R.h);
+      camera.far = Math.max(1000, span * 10); camera.updateProjectionMatrix();
+      camera.position.set(span * 0.45, span * 0.55, span * 0.75);
+      controls.target.set(0, 0, 0); controls.minDistance = 3; controls.maxDistance = span * 6; controls.update();
+    }
+    $("surfTable").classList.add("hidden");
+    render3D();
+  }
+
+  // ---------- Outdoor PDF ----------
+  function outPlanImage(heat, iso, nums) {
+    const o = OUT.last, R = o.region, px = 1300 / Math.max(R.w, R.h);
+    const cv = outCanvas(o, px, heat, iso, nums), ctx = cv.getContext("2d");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cv.width}" height="${cv.height}">${outOverlay(o, (x) => (x - R.x0) * px, (y) => (y - R.y0) * px, px, !heat)}</svg>`;
+    return new Promise((res) => {
+      const im = new Image();
+      im.onload = () => { ctx.drawImage(im, 0, 0); res(cv.toDataURL("image/png")); };
+      im.onerror = () => res(cv.toDataURL("image/png"));
+      im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    });
+  }
+  async function outReportPages() {
+    const o = OUT.last, m = o.m, p = o.p, cls = o.cls;
+    const proj = $("projName").value.trim() || "โครงการแสงสว่างภายนอกอาคาร";
+    const room = $("roomName").value.trim() || { road: "งานไฟถนน", sport: "สนามฟุตบอล", area: "ลานกว้าง" }[o.type];
+    const who = $("designer").value.trim();
+    const date = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
+    const total = 6;
+    const page = (n, title, body) => `<div class="rp"><div class="hd"><span>${esc(proj)} · ${esc(room)}</span><span>${esc(date)}</span></div><h2>${title}</h2>${body}
+      <div class="ft"><span>${who ? "ผู้ออกแบบ: " + esc(who) + " · " : ""}คำนวณแบบจุดต่อจุด (ค่าประมาณเบื้องต้น)</span><span>หน้า ${n} / ${total}</span></div></div>`;
+    const sel = $("mapMode"), prev = sel.value; sel.value = "real"; const img3d = capture3D(); sel.value = prev; update3D();
+    const req = (b) => (b ? `<b class="ok">ผ่าน</b>` : `<b class="bad">ไม่ผ่าน</b>`);
+    const typeName = { road: "ไฟถนน", sport: "ไฟสนามฟุตบอล", area: "ฟลัดไลท์ลานกว้าง" }[o.type];
+    const pages = [];
+    pages.push(`<div class="rp"><div class="cover">
+      <div style="font-size:13px;color:#b36f00;font-weight:600">รายงานการคำนวณแสงสว่างภายนอกอาคาร</div><h1>${esc(proj)}</h1>
+      <div style="font-size:18px;color:#6b675e">${esc(room)} · ${typeName}</div>
+      ${img3d ? `<img class="img" style="margin-top:28px;border-radius:8px;width:100%" src="${img3d}">` : ""}
+      <table class="kv" style="margin-top:24px;width:60%"><tr><td>วันที่</td><td>${esc(date)}</td></tr>${who ? `<tr><td>ผู้ออกแบบ</td><td>${esc(who)}</td></tr>` : ""}
+      <tr><td>เกณฑ์</td><td>${esc(cls.name)}</td></tr><tr><td>E<sub>avg</sub> ที่ได้ / เกณฑ์</td><td>${fmt(m.avg, 1)} / ${fmt(cls.E, 1)} lux</td></tr></table></div>
+      <div class="ft"><span>สารบัญ: 2 สรุปผล · 3 โคมไฟ · 4 ผังติดตั้ง · 5 เส้น isolux / สีเทียม · 6 ตารางค่าความสว่าง</span><span>หน้า 1 / ${total}</span></div></div>`);
+    pages.push(page(2, "สรุปผลเทียบเกณฑ์", `
+      <div class="big"><div>E<sub>avg</sub><b>${fmt(m.avg, 1)} lx</b></div><div>E<sub>min</sub><b>${fmt(m.min, 1)} lx</b></div><div>${o.type === "sport" ? "U₂" : "U₀"}<b>${fmt(m.Uo, 2)}</b></div><div>ผลรวม<b class="${o.pass ? "ok" : "bad"}">${o.pass ? "ผ่าน" : "ไม่ผ่าน"}</b></div></div>
+      <h3>เกณฑ์: ${esc(cls.name)}</h3>
+      <table><tr><th>ค่า</th><th class="r">เกณฑ์</th><th class="r">ผลคำนวณ</th><th class="r">ผล</th></tr>
+        <tr><td>E<sub>avg</sub> (lux)</td><td class="r">≥ ${fmt(cls.E, 1)}</td><td class="r">${fmt(m.avg, 1)}</td><td class="r">${req(m.avg >= cls.E * 0.995)}</td></tr>
+        ${cls.Uo != null ? `<tr><td>U₀ = Emin/Eavg</td><td class="r">≥ ${fmt(cls.Uo, 2)}</td><td class="r">${fmt(m.Uo, 2)}</td><td class="r">${req(m.Uo >= cls.Uo)}</td></tr>` : ""}
+        ${cls.U2 != null ? `<tr><td>U₂ = Emin/Eavg</td><td class="r">≥ ${fmt(cls.U2, 2)}</td><td class="r">${fmt(m.Uo, 2)}</td><td class="r">${req(m.Uo >= cls.U2)}</td></tr>` : ""}
+        ${cls.Emin != null ? `<tr><td>E<sub>min</sub> (lux)</td><td class="r">≥ ${fmt(cls.Emin, 1)}</td><td class="r">${fmt(m.min, 1)}</td><td class="r">${req(m.min >= cls.Emin)}</td></tr>` : ""}
+      </table>
+      ${cls.note ? `<p style="color:#8a857a;font-size:10.5px">${esc(cls.note)} — คลาส M ตามมาตรฐานใช้ค่าความส่องสว่าง (cd/m²) ของผิวถนน ที่นี่แปลงเป็นค่าความสว่าง (lux) โดยประมาณ</p>` : ""}
+      <h3>ผลอื่น ๆ</h3><table class="kv">
+        <tr><td>E<sub>max</sub> · U₁ = Emin/Emax</td><td>${fmt(m.max, 1)} lux · ${fmt(m.U1, 2)}</td></tr>
+        ${o.type === "sport" ? `<tr><td>E<sub>v</sub> หันหากล้องหลัก (เฉลี่ย / ต่ำสุด)</td><td>${fmt(m.evAvg)} / ${fmt(m.evMin)} lux</td></tr>` : ""}
+        <tr><td>พื้นที่คำนวณ / จุดคำนวณ</td><td>${fmt(o.areaTask)} ตร.ม. · ${m.grid.nx} × ${m.grid.ny}</td></tr>
+        <tr><td>ตัวประกอบการบำรุงรักษา (MF)</td><td>${fmt(o.MF, 2)}</td></tr></table>
+      <h3>พลังงาน</h3><table class="kv">
+        <tr><td>จำนวนโคม / เสา</td><td>${o.N} โคม / ${o.lay.poles.length} ต้น</td></tr>
+        <tr><td>กำลังไฟฟ้ารวม</td><td>${fmt(o.totalW)} W (${fmt(o.totalW / Math.max(o.areaTask, 1), 2)} W/ตร.ม.)</td></tr>
+        <tr><td>พลังงาน (${fmt(o.hours, 1)} ชม./วัน)</td><td>${fmt(o.kwhMonth, 1)} kWh/เดือน</td></tr>
+        <tr><td>ค่าไฟฟ้า (${fmt(o.rate, 2)} ฿/หน่วย)</td><td>${fmt(o.cost)} ฿/เดือน · ${fmt(o.cost * 12)} ฿/ปี</td></tr></table>`));
+    pages.push(page(3, "โคมไฟและการกระจายแสง", `
+      <table><tr><th>จำนวน</th><th>รายการ</th><th class="r">ฟลักซ์/โคม</th><th class="r">กำลังไฟ/โคม</th><th class="r">ประสิทธิภาพ</th><th class="r">มุมลำแสง</th></tr>
+      <tr><td>${o.N}</td><td>${esc(o.ph.name || o.lamp.name)}</td><td class="r">${fmt(o.ph.flux)} lm</td><td class="r">${fmt(o.watts)} W</td><td class="r">${o.watts ? fmt(o.ph.flux / o.watts) : "–"} lm/W</td><td class="r">${fmt(beamAngle(o.ph))}°</td></tr></table>
+      <div class="grid2" style="margin-top:14px;align-items:start"><div style="border:1px solid #e2dfd6;border-radius:6px;padding:6px">${polarSVG(o.ph, { grid: "#e2dfd6", muted: "#6b675e", c0: "#d98a00", c90: "#3b6fd1", fill: "rgba(217,138,0,.12)" })}</div>
+      <table class="kv"><tr><td>ความเข้มสูงสุด</td><td>${fmt(o.ph.imax)} cd</td></tr><tr><td>อุณหภูมิสี</td><td>${fmt(o.cct)} K</td></tr>
+      ${o.type === "road" ? `<tr><td>ความสูงเสา / ระยะยื่น / มุมเงย</td><td>${fmt(p.h, 1)} ม. / ${fmt(p.oh, 1)} ม. / ${fmt(p.tilt)}°</td></tr><tr><td>ระยะห่างเสา</td><td>${fmt(p.S)} ม.</td></tr>` : `<tr><td>ความสูงเสา / ระยะร่น</td><td>${fmt(p.h)} ม. / ${fmt(p.set, 1)} ม.</td></tr><tr><td>โคมต่อต้น</td><td>${p.heads}</td></tr>`}
+      </table></div>
+      <p style="color:#8a857a;font-size:10.5px;margin-top:10px">${o.lamp.ies ? "การกระจายแสงจากไฟล์ที่นำเข้า" : "การกระจายแสงเป็นแบบจำลองทั่วไปของโคมประเภทนี้ ควรใช้ไฟล์ IES/LDT ของรุ่นจริงเพื่อผลที่แม่นยำ"}</p>`));
+    const tilt = (L) => Math.acos(Math.max(-1, Math.min(1, -L.D[2]))) * 180 / Math.PI, az = (L) => (Math.atan2(L.D[1], L.D[0]) * 180 / Math.PI + 360) % 360;
+    const rowsL = o.lay.lums.slice(0, 60).map((L, i) => `<tr><td>${i + 1}</td><td class="r">${L.pole + 1}</td><td class="r">${fmt(L.F[0], 1)}</td><td class="r">${fmt(L.F[1], 1)}</td><td class="r">${fmt(L.F[2], 1)}</td><td class="r">${fmt(tilt(L))}°</td><td class="r">${fmt(az(L))}°</td><td class="r">${L.aim ? `${fmt(L.aim[0], 1)}, ${fmt(L.aim[1], 1)}` : "–"}</td></tr>`);
+    const nCols = Math.min(3, Math.max(1, Math.ceil(rowsL.length / 22))), per = Math.ceil(rowsL.length / nCols), th = `<tr><th>#</th><th class="r">เสา</th><th class="r">X</th><th class="r">Y</th><th class="r">Z</th><th class="r">เอียง</th><th class="r">ทิศ</th><th class="r">จุดเล็ง</th></tr>`;
+    pages.push(page(4, "ผังติดตั้งและการเล็งโคม", `
+      <img class="img" style="max-height:${per > 18 ? 290 : 380}px" src="${await outPlanImage(false, false, false)}">
+      <p style="color:#6b675e;margin:6px 0 4px">มุมเอียงวัดจากแนวดิ่ง · ทิศวัดจากแกน X ทวนเข็ม · หน่วยระยะเป็นเมตร${o.lay.lums.length > 60 ? ` · แสดง 60 จาก ${o.lay.lums.length} โคม` : ""}</p>
+      <div style="display:flex;gap:6px">${[0, 1, 2].slice(0, nCols).map((k) => `<table style="flex:1;font-size:8.5px">${th}${rowsL.slice(k * per, (k + 1) * per).join("")}</table>`).join("")}</div>`));
+    pages.push(page(5, "เส้น isolux และสีเทียม", `
+      <h3 style="margin-top:0">เส้น isolux (ทุก ${fmt(isoLevels(o.dist).step, isoLevels(o.dist).step < 1 ? 1 : 0)} lux)</h3>
+      <img class="img" style="max-height:330px" src="${await outPlanImage(false, true, false)}">
+      <h3>สีเทียม</h3><img class="img" style="max-height:330px" src="${await outPlanImage(true, true, false)}">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;color:#6b675e"><span>0</span><div class="scalebar" style="flex:1"></div><span>${fmt(o.scaleMax)} lux</span></div>`));
+    const g = m.grid, xs = [...new Set(g.pts.map((q) => q[0].toFixed(2)))], ys = [...new Set(g.pts.map((q) => q[1].toFixed(2)))];
+    const stepX = Math.ceil(xs.length / 16), stepY = Math.ceil(ys.length / 24);
+    const vg = `<table class="vg"><tr><th>Y \\ X</th>${xs.filter((_, i) => i % stepX === 0).map((x) => `<th>${fmt(+x, 1)}</th>`).join("")}</tr>${
+      ys.filter((_, j) => j % stepY === 0).map((y) => `<tr><th>${fmt(+y, 1)}</th>${xs.filter((_, i) => i % stepX === 0).map((x) => { const k = g.pts.findIndex((q) => q[0].toFixed(2) === x && q[1].toFixed(2) === y); return `<td>${k >= 0 ? fmt(m.vals[k], m.vals[k] < 20 ? 1 : 0) : ""}</td>`; }).join("")}</tr>`).join("")}</table>`;
+    pages.push(page(6, "ตารางค่าความสว่าง (lux) ที่จุดคำนวณ", `
+      <p style="color:#6b675e;margin-top:0">กริดตามแนวทาง ${o.type === "road" ? "EN 13201 (3 จุดต่อช่องจราจร, ตามยาวไม่น้อยกว่า 10 จุดต่อช่วงเสา)" : o.type === "sport" ? "EN 12193 (ประมาณทุก 5 ม.)" : "EN 12464-2"}${stepX > 1 || stepY > 1 ? " · แสดงบางจุด" : ""}</p>
+      <img class="img" style="margin-bottom:12px;max-height:320px" src="${await outPlanImage(false, false, true)}">${vg}
+      <p style="color:#8a857a;font-size:10.5px;margin-top:12px">คำนวณแสงตรงแบบจุดต่อจุดจากการกระจายแสงของโคมและมุมเล็ง ไม่รวมแสงสะท้อน (ภายนอกอาคารมีผลน้อย) ไม่ได้คำนวณค่าความส่องสว่างผิวถนน (L), ค่าแสงบาดตา TI/GR และแสงรบกวนภายนอกพื้นที่ ผลเป็นค่าประมาณเพื่อการวางแผน</p>`));
+    return pages;
   }
 
   // ---------- PDF report (DIALux-style) ----------
@@ -3729,7 +4438,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     try {
       for (const src of LIBS) await loadScript(src);
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      root.innerHTML = reportPages().join("");
+      root.innerHTML = (OUT.on ? await outReportPages() : reportPages()).join("");
       document.body.appendChild(root);
       await Promise.all([...root.querySelectorAll("img")].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; })));
       const { jsPDF } = window.jspdf;
@@ -3815,6 +4524,33 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   $("surfShadow").addEventListener("change", () => { update3D(); });
   $("expo").addEventListener("input", () => { update3D(); });
   ["len", "wid", "hgt"].forEach((id) => $(id).addEventListener("input", () => { if (view === "edit") renderProps(); }));
+
+  function setMode(out) {
+    OUT.on = out;
+    document.querySelectorAll("#modeSeg button").forEach((b) => b.setAttribute("aria-pressed", (b.dataset.mode === "out") === out));
+    document.querySelectorAll(".in-only").forEach((el) => el.classList.toggle("hidden", out));
+    document.querySelectorAll(".out-only").forEach((el) => el.classList.toggle("hidden", !out));
+    [...$("mapMode").options].forEach((o) => { o.hidden = out && (o.value === "day" || o.value === "sum" || o.value === "surf"); });
+    if (out && ["day", "sum", "surf"].includes($("mapMode").value)) $("mapMode").value = "art";
+    if (out && !$("oClass").options.length) outSyncType(false);
+    if (three) { three.fitKey = ""; three.probe = null; }
+    if (view === "edit") setView(window.THREE ? "3d" : "2d");
+    calc(); renderSurfTable(); update3D();
+    if (!out) $("rLux").title = "";
+  }
+  $("modeSeg").addEventListener("click", (e) => { const b = e.target.closest("button[data-mode]"); if (b) setMode(b.dataset.mode === "out"); });
+  $("oType").addEventListener("change", () => { outSyncType(false); calc(); });
+  $("oIesFile").addEventListener("change", async (ev) => {
+    const f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    try {
+      if (f.size > 2e6) throw new Error("ไฟล์ใหญ่เกินไป");
+      OUT.ies = parsePhotometry(await f.text(), f.name);
+      outSyncType(true); $("oLamp").value = "ies";
+      $("oIesMsg").textContent = "นำเข้าไฟล์แล้ว: " + f.name; $("oIesMsg").classList.remove("err");
+      calc();
+    } catch (e) { $("oIesMsg").textContent = "นำเข้าไม่สำเร็จ: " + (e && e.message ? e.message : "รูปแบบไฟล์ไม่ถูกต้อง"); $("oIesMsg").classList.add("err"); }
+  });
 
   loadPlan();
   initEditor();
