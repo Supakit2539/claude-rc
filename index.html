@@ -140,6 +140,46 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .scale .bar { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2c1e5a, #3b4f9c, #1f9e89, #b5de2b, #fde725); }
 .plan-wrap { display: flex; justify-content: center; }
+.ed-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 8px; }
+.ed-grp { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.ed-bar button, .ed-lib button, .ed-acts button {
+  font: inherit; font-size: 13px; color: var(--text); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer; white-space: nowrap;
+}
+.ed-bar button:hover, .ed-lib button:hover, .ed-acts button:hover { border-color: var(--accent); }
+.ed-bar button[aria-pressed="true"], .ed-lib button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.ed-bar2 { justify-content: flex-start; margin: 10px 0 0; }
+.ed-lib { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+.ed-svg { display: block; width: 100%; height: 460px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); touch-action: none; user-select: none; }
+@media (max-width: 520px) { .ed-svg { height: 360px; } }
+.ed-svg .g { stroke: var(--border); stroke-width: 1; opacity: .55; }
+.ed-svg .gm { stroke: var(--border); stroke-width: 1.2; }
+.ed-svg .ed-room { fill: var(--room); stroke: var(--text); stroke-width: 3; stroke-linejoin: round; }
+.ed-svg .ed-edge { stroke: transparent; stroke-width: 12; }
+.ed-svg .ed-item { cursor: move; }
+.ed-svg .ed-item.sel polygon { stroke: var(--accent); stroke-width: 2.2; }
+.ed-svg .ed-selbox { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 3; pointer-events: none; }
+.ed-svg .ed-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; cursor: move; }
+.ed-svg .ed-h.sel { fill: var(--accent); }
+.ed-svg .ed-light { fill: var(--accent); stroke: var(--surface); stroke-width: 2; cursor: move; }
+.ed-svg .ed-light.sel { stroke: var(--text); stroke-width: 2.5; }
+.ed-svg .ed-auto { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 3 2; pointer-events: none; }
+.ed-svg .ed-draft { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 4; pointer-events: none; }
+.ed-svg .ed-dpt { fill: var(--accent); pointer-events: none; }
+.ed-svg .ed-close { fill: none; stroke: var(--accent); stroke-width: 2; pointer-events: none; }
+.ed-svg .ed-lbl { font-size: 11px; fill: var(--muted); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; pointer-events: none; }
+.ed-svg .ed-lbl.strong { fill: var(--accent); font-weight: 600; font-size: 12px; }
+.ed-svg .ed-name { font-size: 10px; fill: #3a3833; pointer-events: none; }
+.ed-hint { font-size: 12px; color: var(--muted); margin: 6px 0 8px; min-height: 18px; }
+.ed-props { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.ed-ptitle { font-weight: 600; margin-bottom: 6px; }
+.ed-sum { font-size: 13px; color: var(--muted); }
+.ed-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.ed-f { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.ed-f input { padding: 5px 8px; font-size: 13px; }
+.ed-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ed-acts .danger { color: var(--bad); }
+.ed-acts button:disabled { opacity: .5; cursor: not-allowed; }
 .ghost {
   display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent);
   background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 9px; padding: 7px 12px; cursor: pointer;
@@ -229,6 +269,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <div class="field"><label for="wid">ความกว้าง</label><div class="unit"><input id="wid" type="number" min="0.5" step="0.1" value="4"><span>ม.</span></div></div>
           <div class="field"><label for="hgt">ความสูงฝ้า</label><div class="unit"><input id="hgt" type="number" min="1.5" step="0.1" value="2.7"><span>ม.</span></div></div>
         </div>
+        <p class="hint hidden" id="shapeHint" style="margin:-4px 0 10px"></p>
         <div class="row two">
           <div class="field"><label for="work">ความสูงระนาบใช้งาน</label><div class="unit"><input id="work" type="number" min="0" step="0.05" value="0.75"><span>ม.</span></div></div>
           <div class="field"><label for="refl">สีผนัง / ฝ้า</label>
@@ -327,7 +368,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     <div>
       <div class="hero">
         <div class="stat main">
-          <div class="k">จำนวนโคมที่แนะนำ</div>
+          <div class="k" id="rFixK">จำนวนโคมที่แนะนำ</div>
           <div class="v" id="rFix">–</div>
           <div class="d" id="rFixD"></div>
         </div>
@@ -349,6 +390,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <div class="seg" role="group" aria-label="มุมมอง">
             <button type="button" id="btn3d" aria-pressed="true">3D</button>
             <button type="button" id="btn2d" aria-pressed="false">2D</button>
+            <button type="button" id="btnEdit" aria-pressed="false">✏️ แก้ไขแบบ</button>
           </div>
         </div>
         <div id="pane3d">
@@ -357,7 +399,49 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <div id="pane2d" class="hidden">
           <div class="plan-wrap"><svg id="plan" role="img" aria-label="ผังตำแหน่งโคมไฟ"></svg></div>
         </div>
-        <div class="tools">
+        <div id="paneEdit" class="hidden">
+          <div class="ed-bar" id="edBar" role="toolbar" aria-label="เครื่องมือวาดแบบ">
+            <div class="ed-grp">
+              <button type="button" data-tool="select" title="เลือก/ย้าย (V)">↖ เลือก</button>
+              <button type="button" data-tool="room" title="วาดผังห้อง (P)">⬠ ผังห้อง</button>
+              <button type="button" data-tool="wall" title="วาดผนัง (W)">▮ ผนัง</button>
+              <button type="button" data-tool="light" title="วางโคมเอง">💡 โคม</button>
+            </div>
+            <div class="ed-grp">
+              <button type="button" data-act="undo" title="ย้อนกลับ (Ctrl+Z)">↶</button>
+              <button type="button" data-act="redo" title="ทำซ้ำ (Ctrl+Y)">↷</button>
+              <button type="button" data-act="zout" title="ซูมออก">−</button>
+              <button type="button" data-act="zin" title="ซูมเข้า">+</button>
+              <button type="button" data-act="fit" title="พอดีจอ">⤢</button>
+              <button type="button" data-act="snap" aria-pressed="true" title="สแนปกริด/มุม">⌗ สแนป</button>
+            </div>
+          </div>
+          <div class="ed-lib" id="edLib" aria-label="วัตถุ">
+            <span>วาง:</span>
+            <button type="button" data-tool="place:desk" data-obj="desk">โต๊ะทำงาน</button>
+            <button type="button" data-tool="place:table" data-obj="table">โต๊ะประชุม</button>
+            <button type="button" data-tool="place:chair" data-obj="chair">เก้าอี้</button>
+            <button type="button" data-tool="place:sofa" data-obj="sofa">โซฟา</button>
+            <button type="button" data-tool="place:bed" data-obj="bed">เตียง</button>
+            <button type="button" data-tool="place:cabinet" data-obj="cabinet">ตู้</button>
+            <button type="button" data-tool="place:shelf" data-obj="shelf">ชั้นวาง</button>
+            <button type="button" data-tool="place:counter" data-obj="counter">เคาน์เตอร์</button>
+            <button type="button" data-tool="place:stairs" data-obj="stairs">บันได</button>
+            <button type="button" data-tool="place:column" data-obj="column">เสา</button>
+          </div>
+          <svg id="edSvg" class="ed-svg" role="application" aria-label="พื้นที่วาดแบบ"></svg>
+          <div class="ed-hint" id="edHint"></div>
+          <div class="ed-props" id="edProps"></div>
+          <div class="ed-bar ed-bar2" id="edBar2">
+            <button type="button" data-act="rect">▭ กลับเป็นห้องสี่เหลี่ยม</button>
+            <button type="button" data-act="autolights">โคมอัตโนมัติ</button>
+            <button type="button" data-act="clear">ล้างแบบ</button>
+            <button type="button" data-act="save">บันทึกแบบ (.json)</button>
+            <button type="button" data-act="open">เปิดแบบ</button>
+            <input type="file" id="edFile" accept=".json,application/json" hidden>
+          </div>
+        </div>
+        <div class="tools" id="viewTools">
           <span id="orbitHint">ลากเพื่อหมุน · เลื่อนล้อ/บีบเพื่อซูม · คลิกขวา/สองนิ้วเพื่อเลื่อน</span>
           <label><input type="checkbox" id="showIso" checked>เส้น isolux</label>
           <label><input type="checkbox" id="showNums">ค่า lux รายจุด</label>
@@ -379,7 +463,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <ul class="notes" style="margin-top:10px">
           <li><b>E</b> ความสว่างที่ต้องการ (lux), <b>A</b> พื้นที่ (ตร.ม.)</li>
           <li><b>Φ</b> ลูเมนต่อหลอด, <b>n</b> จำนวนหลอดต่อโคม</li>
-          <li><b>UF</b> สัมประสิทธิ์การใช้ประโยชน์ ประมาณจากดัชนีห้อง RI = (L×W) ÷ (Hm×(L+W)) และสีผนัง</li>
+          <li><b>UF</b> สัมประสิทธิ์การใช้ประโยชน์ ประมาณจากดัชนีห้อง RI = 2A ÷ (Hm×P) (ห้องสี่เหลี่ยม = L×W ÷ (Hm×(L+W))) และสีผนัง</li>
           <li><b>MF</b> ตัวประกอบการบำรุงรักษา ชดเชยฝุ่นและการเสื่อมของหลอด</li>
           <li>ค่าความสว่างแนะนำอ้างอิงแนวทาง TIEA / EN 12464-1 ผลลัพธ์เป็นค่าประมาณเบื้องต้น ควรตรวจสอบกับข้อมูลโคมจริงจากผู้ผลิต</li>
         </ul>
@@ -515,8 +599,14 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
 
   function calc() {
-    const L = Math.max(num("len", 0), 0.1);
-    const W = Math.max(num("wid", 0), 0.1);
+    const custom = isCustom();
+    const pts = roomPts();
+    const L = Math.max(Math.max(...pts.map((p) => p[0])), 0.1);
+    const W = Math.max(Math.max(...pts.map((p) => p[1])), 0.1);
+    if (custom) { $("len").value = +L.toFixed(2); $("wid").value = +W.toFixed(2); }
+    $("len").disabled = $("wid").disabled = custom;
+    $("shapeHint").textContent = custom ? `รูปทรงห้องมาจากแบบที่วาด (${pts.length} มุม) — แก้ไขได้ที่แท็บ "แก้ไขแบบ"` : "";
+    $("shapeHint").classList.toggle("hidden", !custom);
     const H = num("hgt", 2.7);
     const wp = Math.max(num("work", 0.75), 0);
     const E = Math.max(num("lux", 0), 0);
@@ -528,27 +618,32 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const hours = Math.min(Math.max(num("hours", 0), 0), 24);
     const rate = Math.max(num("rate", 0), 0);
 
-    const A = L * W;
+    const A = Math.max(Math.abs(polyArea(pts)), 0.01);
+    const P = polyPerim(pts);
     const Hm = Math.max(H - wp, 0.3);
-    const RI = (L * W) / (Hm * (L + W));
+    const RI = (2 * A) / (Hm * P); // equals L·W / (Hm·(L+W)) for a rectangle
     const UF = interpUF(RI, refl);
     const fixLm = lm * perFix;
     const exact = (E * A) / (fixLm * UF * MF);
     const nMin = Math.max(Math.ceil(exact - 1e-9), E > 0 ? 1 : 0);
-    const g = layout(nMin, L, W);
-    const N = g.cols * g.rows;
+    const lay = fixtureLayout(nMin, pts, L, W, custom);
+    const fixtures = lay.pos;
+    const N = fixtures.length;
+    const nn = nnStats(fixtures);
+    const grid = lay.kind === "grid";
+    const sx = grid ? lay.sx : nn.mean, sy = grid ? lay.sy : nn.mean;
+    const shr = (grid ? Math.max(sx, sy) : nn.max) / Hm;
     const achieved = (N * fixLm * UF * MF) / A;
     const totalW = N * perFix * watt;
     const wpm2 = totalW / A;
     const kwhMonth = (totalW / 1000) * hours * 30;
     const cost = kwhMonth * rate;
-    const sx = g.cols ? L / g.cols : 0, sy = g.rows ? W / g.rows : 0;
-    const shr = Math.max(sx, sy) / Hm;
     const efficacy = watt ? lm / watt : 0;
 
     // Hero
+    $("rFixK").textContent = lay.kind === "manual" ? "จำนวนโคม (วางเอง)" : "จำนวนโคมที่แนะนำ";
     $("rFix").innerHTML = `${fmt(N)}<small>โคม</small>`;
-    $("rFixD").textContent = `${fmt(N * perFix)} หลอด · จัด ${g.cols} × ${g.rows}`;
+    $("rFixD").textContent = `${fmt(N * perFix)} หลอด · ` + (grid ? `จัด ${lay.cols} × ${lay.rows}` : lay.kind === "poly" ? "จัดตามรูปทรงห้อง" : `ต้องการอย่างน้อย ${fmt(nMin)} โคม`);
     $("rLux").innerHTML = `${fmt(achieved)}<small>lux</small>`;
     const ratio = E ? achieved / E : 1;
     $("rLuxD").innerHTML = E
@@ -562,25 +657,29 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const lpdLimit = E >= 500 ? 12 : E >= 300 ? 10 : 8;
     const lpdBadge = wpm2 <= lpdLimit ? `<span class="badge ok">ประหยัด</span>` : `<span class="badge warn">สูง</span>`;
     const rows = [
-      ["พื้นที่ห้อง (A)", `${fmt(A, 2)} ตร.ม.`],
+      [`พื้นที่ห้อง (A)${custom ? ` <span class="hint">รูปทรงอิสระ ${pts.length} มุม · เส้นรอบรูป ${fmt(P, 2)} ม.</span>` : ""}`, `${fmt(A, 2)} ตร.ม.`],
       ["ความสูงติดตั้งเหนือระนาบใช้งาน (Hm)", `${fmt(Hm, 2)} ม.`],
       ["ดัชนีห้อง (RI)", fmt(RI, 2)],
       ["สัมประสิทธิ์การใช้ประโยชน์ (UF)", fmt(UF, 2)],
       ["ตัวประกอบการบำรุงรักษา (MF)", fmt(MF, 2)],
       ["ลูเมนต่อโคม", `${fmt(fixLm)} lm`],
       ["ลูเมนรวมที่ต้องการ", `${fmt((E * A) / (UF * MF))} lm`],
-      ["จำนวนโคมตามสูตร", `${fmt(exact, 2)} → ${fmt(N)} โคม`],
-      [`ระยะห่างโคม <span class="hint">ยาว × กว้าง · S/Hm = ${fmt(shr, 2)}</span>`, `${fmt(sx, 2)} × ${fmt(sy, 2)} ม. ${shrBadge}`],
+      ["จำนวนโคมตามสูตร", `${fmt(exact, 2)} → ${fmt(N)} โคม${lay.kind === "manual" ? " (วางเอง)" : ""}`],
+      grid
+        ? [`ระยะห่างโคม <span class="hint">ยาว × กว้าง · S/Hm = ${fmt(shr, 2)}</span>`, `${fmt(sx, 2)} × ${fmt(sy, 2)} ม. ${shrBadge}`]
+        : [`ระยะห่างโคมเฉลี่ย <span class="hint">ระยะใกล้สุดเฉลี่ย · S/Hm สูงสุด = ${fmt(shr, 2)}</span>`, N > 1 ? `${fmt(nn.mean, 2)} ม. ${shrBadge}` : "–"],
       [`ความหนาแน่นกำลังไฟ <span class="hint">ประสิทธิภาพหลอด ${fmt(efficacy)} lm/W</span>`, `${fmt(wpm2, 1)} W/ตร.ม. ${lpdBadge}`],
       ["ค่าไฟต่อปี", `${fmt(cost * 12)} ฿`],
     ];
-    // Illuminance distribution on the work plane (point-source model scaled to the lumen-method average)
+
+    // Point-by-point on the work plane, with walls / tall furniture casting shadows
+    const occ = occluders(pts, custom, H, wp);
     const iesOn = lampSel.value === "ies" && IES ? IES : null;
-    const dist = distribution(L, W, Hm, g, sx, sy, achieved, fixLm, MF, iesOn, $("iesRot").checked);
+    const dist = distribution(pts, L, W, Hm, wp, H, fixtures, achieved, fixLm, MF, iesOn, $("iesRot").checked, occ);
     const u0 = dist.avg ? dist.min / dist.avg : 0;
     const u0Badge = u0 >= 0.6 ? `<span class="badge ok">สม่ำเสมอ</span>` : u0 >= 0.4 ? `<span class="badge warn">พอใช้</span>` : `<span class="badge bad">ไม่สม่ำเสมอ</span>`;
     rows.splice(rows.length - 1, 0, [
-      `ความสม่ำเสมอของแสง (U₀ = Emin/Eavg) <span class="hint">ต่ำสุด ${fmt(dist.min)} · สูงสุด ${fmt(dist.max)} lux</span>`,
+      `ความสม่ำเสมอของแสง (U₀ = Emin/Eavg) <span class="hint">ต่ำสุด ${fmt(dist.min)} · สูงสุด ${fmt(dist.max)} lux${occ.length ? " · รวมเงาจากผนัง/เฟอร์นิเจอร์" : ""}</span>`,
       `${fmt(u0, 2)} ${u0Badge}`,
     ]);
 
@@ -598,10 +697,625 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     ]);
     $("details").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
 
-    last = { L, W, H, wp, g, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct,
-      A, Hm, RI, UF, MF, N, lm, watt, fixLm, exact, achieved, totalW, wpm2, kwhMonth, cost, rate, hours, shr, efficacy, u0, space };
-    drawPlan(L, W, g, sx, sy);
+    last = { L, W, H, wp, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct,
+      A, P, Hm, RI, UF, MF, N, nMin, lm, watt, fixLm, exact, achieved, totalW, wpm2, kwhMonth, cost, rate, hours, shr, efficacy, u0, space,
+      pts, custom, fixtures, lay, nn, occ };
+    drawPlan();
     if (view === "3d") update3D();
+    if (view === "edit") renderEditor();
+  }
+
+  // ---------- Floor-plan model: freeform room outline, walls, furniture, hand-placed luminaires ----------
+  const OBJ_TYPES = {
+    desk:    { name: "โต๊ะทำงาน", w: 1.2, d: 0.6, h: 0.75, color: 0xb08968, fill: "#dcc6ab" },
+    table:   { name: "โต๊ะประชุม", w: 2.4, d: 1.2, h: 0.75, color: 0x9c7a5b, fill: "#d2b89b" },
+    chair:   { name: "เก้าอี้", w: 0.5, d: 0.5, h: 0.9, color: 0x4f5560, fill: "#a9adb5", occl: false },
+    sofa:    { name: "โซฟา", w: 2.0, d: 0.85, h: 0.8, color: 0x7d8fa3, fill: "#b7c3d1" },
+    bed:     { name: "เตียง", w: 1.6, d: 2.0, h: 0.5, color: 0xa88b6c, fill: "#e4d9cb" },
+    cabinet: { name: "ตู้", w: 1.0, d: 0.5, h: 2.0, color: 0xe2ddd3, fill: "#d6d0c4" },
+    shelf:   { name: "ชั้นวาง", w: 1.0, d: 0.35, h: 1.8, color: 0x8a6f55, fill: "#cbb59c" },
+    counter: { name: "เคาน์เตอร์", w: 2.0, d: 0.6, h: 0.9, color: 0xd8d2c6, fill: "#cfc8ba" },
+    stairs:  { name: "บันได", w: 1.0, d: 3.0, h: null, color: 0xcfc6b8, fill: "#e8e1d4" },
+    column:  { name: "เสา", w: 0.4, d: 0.4, h: null, color: 0xbdb6aa, fill: "#a39c90" },
+  };
+  let plan = { custom: false, pts: null, walls: [], objs: [], lights: [] };
+
+  const isCustom = () => !!(plan.custom && plan.pts && plan.pts.length >= 3);
+  function roomPts() {
+    if (isCustom()) return plan.pts;
+    const L = Math.max(num("len", 0), 0.1), W = Math.max(num("wid", 0), 0.1);
+    return [[0, 0], [L, 0], [L, W], [0, W]];
+  }
+  const roomH = () => num("hgt", 2.7);
+  const objH = (o, H) => (o.h == null ? H : o.h);
+  const wallH = (w, H) => (w.h == null ? H : w.h);
+
+  function polyArea(p) { let a = 0; for (let i = 0; i < p.length; i++) { const q = p[(i + 1) % p.length]; a += p[i][0] * q[1] - q[0] * p[i][1]; } return a / 2; }
+  function polyPerim(p) { let s = 0; for (let i = 0; i < p.length; i++) { const q = p[(i + 1) % p.length]; s += Math.hypot(q[0] - p[i][0], q[1] - p[i][1]); } return s; }
+  function inPoly(p, x, y) {
+    let c = false;
+    for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+      const [xi, yi] = p[i], [xj, yj] = p[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+  // Parameter t (0..1) along p→q where it crosses segment a–b, or -1
+  function segT(px, py, qx, qy, ax, ay, bx, by) {
+    const rx = qx - px, ry = qy - py, ux = bx - ax, uy = by - ay;
+    const den = rx * uy - ry * ux;
+    if (Math.abs(den) < 1e-12) return -1;
+    const t = ((ax - px) * uy - (ay - py) * ux) / den, u = ((ax - px) * ry - (ay - py) * rx) / den;
+    return t > 1e-6 && t < 1 - 1e-6 && u >= 0 && u <= 1 ? t : -1;
+  }
+  function toWorldOf(o, x, y) {
+    const r = (o.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+    return [o.x + x * c - y * s, o.y + x * s + y * c];
+  }
+  const rectLocal = (o, x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => toWorldOf(o, x, y));
+  const objCorners = (o) => rectLocal(o, -o.w / 2, -o.d / 2, o.w / 2, o.d / 2);
+  function wallCorners(w) {
+    const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], len = Math.hypot(dx, dy) || 1, t = (w.t || 0.1) / 2;
+    const nx = -dy / len * t, ny = dx / len * t;
+    return [[w.a[0] + nx, w.a[1] + ny], [w.b[0] + nx, w.b[1] + ny], [w.b[0] - nx, w.b[1] - ny], [w.a[0] - nx, w.a[1] - ny]];
+  }
+
+  function occluders(pts, custom, H, wp) {
+    const occ = [];
+    if (custom) pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length]; occ.push([a[0], a[1], b[0], b[1], H]); });
+    plan.walls.forEach((w) => occ.push([w.a[0], w.a[1], w.b[0], w.b[1], wallH(w, H)]));
+    plan.objs.forEach((o) => {
+      const t = OBJ_TYPES[o.type], h = objH(o, H);
+      if (!t || t.occl === false || h <= wp + 0.05) return;
+      const c = objCorners(o);
+      for (let k = 0; k < 4; k++) occ.push([c[k][0], c[k][1], c[(k + 1) % 4][0], c[(k + 1) % 4][1], h]);
+    });
+    return occ;
+  }
+
+  function fixtureLayout(n, pts, L, W, custom) {
+    if (plan.lights.length) return { pos: plan.lights.map((l) => [l.x, l.y]), kind: "manual" };
+    if (n <= 0) return { pos: [], kind: custom ? "poly" : "grid", cols: 0, rows: 0, sx: 0, sy: 0 };
+    // Keep luminaires clear of interior walls and columns
+    const distSeg = (x, y, a, b) => {
+      const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1e-9;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2));
+      return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy);
+    };
+    const cols = plan.objs.filter((o) => o.type === "column");
+    const blocked = (x, y) => plan.walls.some((w) => distSeg(x, y, w.a, w.b) < (w.t || 0.1) / 2 + 0.2) ||
+      cols.some((o) => { const c = objCorners(o); return inPoly(c, x, y) || c.some((q, k) => distSeg(x, y, q, c[(k + 1) % 4]) < 0.2); });
+    if (!custom && !plan.walls.length && !cols.length) {
+      const g = layout(n, L, W), sx = L / g.cols, sy = W / g.rows, pos = [];
+      for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) pos.push([(c + 0.5) * sx, (r + 0.5) * sy]);
+      return { pos, kind: "grid", cols: g.cols, rows: g.rows, sx, sy };
+    }
+    // Try grid sizes with near-square spacing; keep the one that reaches n with the fewest extra luminaires
+    let best = null;
+    const maxCells = Math.max(4 * n + 16, Math.ceil(n * (L * W) / Math.max(Math.abs(polyArea(pts)), 1e-6)) * 3);
+    for (let nc = 1; nc <= 200; nc++) {
+      for (let nr = 1; nr <= 200 && nc * nr <= maxCells; nr++) {
+        const sx = L / nc, sy = W / nr, asp = Math.abs(Math.log(sx / sy));
+        if (asp > 0.6 || nc * nr < n) continue;
+        const pos = [];
+        for (let r = 0; r < nr; r++) for (let c = 0; c < nc; c++) {
+          const x = (c + 0.5) * sx, y = (r + 0.5) * sy;
+          if (inPoly(pts, x, y) && !blocked(x, y)) pos.push([x, y]);
+        }
+        if (pos.length < n) continue;
+        const score = (pos.length - n) * 1.2 + asp * 2;
+        if (!best || score < best.score) best = { score, pos, kind: "poly", cols: nc, rows: nr, sx, sy };
+      }
+      if (nc * 1 > maxCells) break;
+    }
+    if (best) return best;
+    return { pos: [], kind: "poly", cols: 0, rows: 0, sx: 0, sy: 0 };
+  }
+
+  function nnStats(pos) {
+    if (pos.length < 2) return { mean: 0, max: 0 };
+    let sum = 0, max = 0;
+    pos.forEach((p, i) => {
+      let best = Infinity;
+      pos.forEach((q, j) => { if (i !== j) best = Math.min(best, Math.hypot(p[0] - q[0], p[1] - q[1])); });
+      sum += best; max = Math.max(max, best);
+    });
+    return { mean: sum / pos.length, max };
+  }
+
+  // Plan symbols as simple primitives in metres, drawn by both the SVG editor/plan and the PDF canvas
+  function objPrims(o, H) {
+    const t = OBJ_TYPES[o.type] || OBJ_TYPES.cabinet, hw = o.w / 2, hd = o.d / 2, out = [];
+    const R = (x0, y0, x1, y1, fill, extra = {}) => out.push({ pts: rectLocal(o, x0, y0, x1, y1), fill, closed: true, ...extra });
+    const Ln = (x0, y0, x1, y1, extra = {}) => out.push({ pts: [toWorldOf(o, x0, y0), toWorldOf(o, x1, y1)], ...extra });
+    R(-hw, -hd, hw, hd, t.fill);
+    if (o.type === "sofa") { R(-hw, -hd, hw, -hd + Math.min(0.22, o.d * 0.3), "#9fb0c2"); R(-hw, -hd, -hw + 0.18, hd, "#9fb0c2"); R(hw - 0.18, -hd, hw, hd, "#9fb0c2"); }
+    else if (o.type === "bed") {
+      const py = -hd + 0.08, ph = Math.min(0.3, o.d * 0.2);
+      R(-hw + 0.08, py, -0.04, py + ph, "#fff"); R(0.04, py, hw - 0.08, py + ph, "#fff");
+      Ln(-hw, -hd + o.d * 0.38, hw, -hd + o.d * 0.38);
+    } else if (o.type === "chair") R(-hw, -hd, hw, -hd + Math.min(0.1, o.d * 0.25), "#7e838d");
+    else if (o.type === "cabinet") { Ln(-hw, -hd, hw, hd); Ln(hw, -hd, -hw, hd); }
+    else if (o.type === "shelf") Ln(-hw, 0, hw, 0);
+    else if (o.type === "counter") R(-hw + 0.04, -hd + 0.04, hw - 0.04, hd - 0.04, null);
+    else if (o.type === "column") { Ln(-hw, -hd, hw, hd); Ln(hw, -hd, -hw, hd); }
+    else if (o.type === "stairs") {
+      const n = Math.max(2, Math.round(objH(o, H) / 0.175)), run = o.d / n;
+      for (let i = 1; i < n; i++) Ln(-hw, -hd + i * run, hw, -hd + i * run, { sw: 0.8 });
+      const ay0 = -hd + run * 0.5, ay1 = hd - run * 0.6;
+      Ln(0, ay0, 0, ay1, { stroke: "#b25c00", sw: 1.6 });
+      out.push({ pts: [toWorldOf(o, -Math.min(0.15, hw * 0.5), ay1 - 0.2), toWorldOf(o, 0, ay1), toWorldOf(o, Math.min(0.15, hw * 0.5), ay1 - 0.2)], stroke: "#b25c00", sw: 1.6 });
+    }
+    return out;
+  }
+  function wallPrims(w, H) {
+    const full = wallH(w, H) >= H - 1e-6;
+    return [{ pts: wallCorners(w), fill: full ? "#5b5850" : "#9a958b", closed: true, stroke: "#3a3833" }];
+  }
+  function primsSVG(prims, X, Y) {
+    return prims.map((p) => {
+      const pts = p.pts.map((q) => `${X(q[0]).toFixed(1)},${Y(q[1]).toFixed(1)}`).join(" ");
+      const st = `stroke="${p.stroke || "#57534b"}" stroke-width="${p.sw || 1.1}" stroke-linejoin="round"`;
+      return p.closed ? `<polygon points="${pts}" fill="${p.fill || "none"}" ${st}/>` : `<polyline points="${pts}" fill="none" ${st}/>`;
+    }).join("");
+  }
+  function primsCanvas(ctx, prims, px, k = 1) {
+    prims.forEach((p) => {
+      ctx.beginPath();
+      p.pts.forEach((q, i) => (i ? ctx.lineTo(q[0] * px, q[1] * px) : ctx.moveTo(q[0] * px, q[1] * px)));
+      if (p.closed) ctx.closePath();
+      if (p.closed && p.fill) { ctx.fillStyle = p.fill; ctx.fill(); }
+      ctx.strokeStyle = p.stroke || "#57534b"; ctx.lineWidth = (p.sw || 1.1) * k; ctx.lineJoin = "round"; ctx.stroke();
+    });
+  }
+  function allPlanPrims(H) {
+    const out = [];
+    plan.objs.forEach((o) => out.push(...objPrims(o, H)));
+    plan.walls.forEach((w) => out.push(...wallPrims(w, H)));
+    return out;
+  }
+
+  function validPlan(p) {
+    const fin = (v) => typeof v === "number" && Number.isFinite(v);
+    const pt = (q) => Array.isArray(q) && q.length === 2 && fin(q[0]) && fin(q[1]);
+    if (!p || typeof p !== "object") return null;
+    const out = { custom: !!p.custom, pts: null, walls: [], objs: [], lights: [] };
+    if (Array.isArray(p.pts) && p.pts.length >= 3 && p.pts.length <= 200 && p.pts.every(pt)) out.pts = p.pts.map((q) => [q[0], q[1]]);
+    else out.custom = false;
+    (Array.isArray(p.walls) ? p.walls : []).slice(0, 500).forEach((w) => {
+      if (w && pt(w.a) && pt(w.b)) out.walls.push({ a: [w.a[0], w.a[1]], b: [w.b[0], w.b[1]], t: fin(w.t) && w.t > 0 ? Math.min(w.t, 2) : 0.1, h: fin(w.h) && w.h > 0 ? w.h : null });
+    });
+    (Array.isArray(p.objs) ? p.objs : []).slice(0, 500).forEach((o) => {
+      if (o && OBJ_TYPES[o.type] && fin(o.x) && fin(o.y)) out.objs.push({
+        type: o.type, x: o.x, y: o.y, rot: fin(o.rot) ? o.rot : 0,
+        w: fin(o.w) && o.w > 0 ? o.w : OBJ_TYPES[o.type].w, d: fin(o.d) && o.d > 0 ? o.d : OBJ_TYPES[o.type].d,
+        h: fin(o.h) && o.h > 0 ? o.h : OBJ_TYPES[o.type].h,
+      });
+    });
+    (Array.isArray(p.lights) ? p.lights : []).slice(0, 2000).forEach((l) => { if (l && fin(l.x) && fin(l.y)) out.lights.push({ x: l.x, y: l.y }); });
+    return out;
+  }
+  function savePlan() { try { localStorage.setItem("lightPlan", JSON.stringify(plan)); } catch (e) {} }
+  function loadPlan() { try { const p = validPlan(JSON.parse(localStorage.getItem("lightPlan") || "null")); if (p) plan = p; } catch (e) {} }
+
+  // ---------- Plan editor (SketchUp-like drawing on a 2D grid) ----------
+  const ed = { tool: "select", s: 60, ox: 40, oy: 40, sel: null, drag: null, draft: null, cursor: null, snap: true, fitted: false };
+  const hist = { past: [], future: [] };
+  let calcRaf = 0;
+  const scheduleCalc = () => { if (!calcRaf) calcRaf = requestAnimationFrame(() => { calcRaf = 0; calc(); }); };
+
+  function snapshot() { hist.past.push(JSON.stringify(plan)); if (hist.past.length > 100) hist.past.shift(); hist.future = []; }
+  function undo() { if (!hist.past.length) return; hist.future.push(JSON.stringify(plan)); plan = validPlan(JSON.parse(hist.past.pop())); ed.sel = null; commit(false); }
+  function redo() { if (!hist.future.length) return; hist.past.push(JSON.stringify(plan)); plan = validPlan(JSON.parse(hist.future.pop())); ed.sel = null; commit(false); }
+  function commit(normalize = true) { if (normalize) normalizePlan(); savePlan(); calc(); renderEditor(); renderProps(); }
+
+  // Keep the room outline's bounding box at (0,0) so all other code can use 0..L × 0..W
+  function normalizePlan() {
+    if (!isCustom()) return;
+    const mx = Math.min(...plan.pts.map((p) => p[0])), my = Math.min(...plan.pts.map((p) => p[1]));
+    if (Math.abs(mx) < 1e-9 && Math.abs(my) < 1e-9) return;
+    const sh = (q) => { q[0] -= mx; q[1] -= my; };
+    plan.pts.forEach(sh);
+    plan.walls.forEach((w) => { sh(w.a); sh(w.b); });
+    plan.objs.forEach((o) => { o.x -= mx; o.y -= my; });
+    plan.lights.forEach((l) => { l.x -= mx; l.y -= my; });
+    ed.ox += mx * ed.s; ed.oy += my * ed.s;
+  }
+  function ensureCustom() { if (!isCustom()) { plan.pts = roomPts().map((p) => [p[0], p[1]]); plan.custom = true; } }
+
+  const r2 = (v) => Math.round(v * 100) / 100;
+  function snapPt(p, exclude) {
+    const tol = 10 / ed.s;
+    const cands = roomPts().slice();
+    plan.walls.forEach((w, i) => { if (!(exclude && exclude.wall === i)) cands.push(w.a, w.b); });
+    let best = null, bd = tol;
+    cands.forEach((q) => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < bd) { bd = d; best = q; } });
+    if (best) return [best[0], best[1]];
+    if (!ed.snap) return [r2(p[0]), r2(p[1])];
+    const g = ed.s > 120 ? 0.05 : 0.1;
+    return [Math.round(p[0] / g) * g, Math.round(p[1] / g) * g].map(r2);
+  }
+  function orthoSnap(p, prev) {
+    if (!prev || !ed.snap) return p;
+    const dx = p[0] - prev[0], dy = p[1] - prev[1], len = Math.hypot(dx, dy);
+    if (len < 1e-9) return p;
+    const ang = Math.atan2(dy, dx), step = Math.PI / 4, a = Math.round(ang / step) * step;
+    if (Math.abs(ang - a) > 8 * Math.PI / 180) return p;
+    const l2 = Math.round(len / 0.05) * 0.05;
+    return [r2(prev[0] + Math.cos(a) * l2), r2(prev[1] + Math.sin(a) * l2)];
+  }
+
+  function edWorld(e) {
+    const r = $("edSvg").getBoundingClientRect();
+    return [(e.clientX - r.left - ed.ox) / ed.s, (e.clientY - r.top - ed.oy) / ed.s];
+  }
+  function fitEditor() {
+    const svg = $("edSvg"), w = svg.clientWidth || 600, h = svg.clientHeight || 460;
+    const all = roomPts().slice();
+    plan.walls.forEach((wl) => all.push(wl.a, wl.b));
+    plan.objs.forEach((o) => all.push(...objCorners(o)));
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    ed.s = Math.max(5, Math.min(400, Math.min((w - 80) / Math.max(x1 - x0, 0.5), (h - 80) / Math.max(y1 - y0, 0.5))));
+    ed.ox = (w - (x1 - x0) * ed.s) / 2 - x0 * ed.s;
+    ed.oy = (h - (y1 - y0) * ed.s) / 2 - y0 * ed.s;
+  }
+  function zoomAt(f, cx, cy) {
+    const s2 = Math.max(5, Math.min(400, ed.s * f));
+    ed.ox = cx - (cx - ed.ox) * (s2 / ed.s); ed.oy = cy - (cy - ed.oy) * (s2 / ed.s); ed.s = s2;
+    renderEditor();
+  }
+
+  const TOOL_HINT = {
+    select: "คลิกเพื่อเลือก · ลากเพื่อย้าย · ลากพื้นที่ว่างเพื่อเลื่อนมุมมอง · ล้อเมาส์เพื่อซูม · ดับเบิลคลิกขอบห้องเพื่อเพิ่มมุม · Delete ลบ · R หมุน 90° · Ctrl+Z ย้อนกลับ",
+    room: "คลิกวางมุมห้องทีละจุด (ล็อกแนว 0°/45°/90° อัตโนมัติ) · คลิกจุดแรก กด Enter หรือดับเบิลคลิกเพื่อปิดรูป · Esc ยกเลิก",
+    wall: "คลิกจุดเริ่มและจุดปลายของผนัง วาดต่อเนื่องได้ · ดับเบิลคลิกหรือ Esc เพื่อจบ · ความสูงผนังปรับได้ในแผงด้านล่าง",
+    light: "คลิกเพื่อวางโคมเอง — ครั้งแรกจะคัดลอกตำแหน่งโคมอัตโนมัติมาให้ปรับต่อ",
+  };
+  function setTool(t) {
+    ed.tool = t; ed.draft = null;
+    document.querySelectorAll("#edBar [data-tool], #edLib [data-tool]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tool === t));
+    $("edHint").textContent = t.startsWith("place:") ? `คลิกบนแบบเพื่อวาง${OBJ_TYPES[t.slice(6)].name} · Esc ยกเลิก` : TOOL_HINT[t];
+    $("edSvg").style.cursor = t === "select" ? "default" : "crosshair";
+    renderEditor();
+  }
+
+  function renderEditor() {
+    if (view !== "edit") return;
+    const svg = $("edSvg"), w = svg.clientWidth || 600, h = svg.clientHeight || 460, s = ed.s, H = roomH();
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    const X = (x) => ed.ox + x * s, Y = (y) => ed.oy + y * s;
+    let out = "";
+    // Grid
+    const step = s > 90 ? 0.5 : s > 35 ? 1 : s > 14 ? 2 : 5, major = step * (step === 0.5 ? 2 : 5);
+    for (let k = Math.floor(-ed.ox / s / step); k * step <= (w - ed.ox) / s; k++) {
+      const x = k * step, m = Math.abs(x / major - Math.round(x / major)) < 1e-6;
+      out += `<line x1="${X(x)}" y1="0" x2="${X(x)}" y2="${h}" class="${m ? "gm" : "g"}"/>`;
+    }
+    for (let k = Math.floor(-ed.oy / s / step); k * step <= (h - ed.oy) / s; k++) {
+      const y = k * step, m = Math.abs(y / major - Math.round(y / major)) < 1e-6;
+      out += `<line x1="0" y1="${Y(y)}" x2="${w}" y2="${Y(y)}" class="${m ? "gm" : "g"}"/>`;
+    }
+    // Room outline
+    const pts = roomPts();
+    out += `<polygon class="ed-room" points="${pts.map((p) => `${X(p[0])},${Y(p[1])}`).join(" ")}"/>`;
+    pts.forEach((a, i) => {
+      const b = pts[(i + 1) % pts.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      out += `<line data-kind="edge" data-i="${i}" class="ed-edge" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`;
+      if (len * s > 40) {
+        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, cx = (b[0] - a[0]) / len, cy = (b[1] - a[1]) / len;
+        let nx = -cy, ny = cx; if (inPoly(pts, mx + nx * 0.05, my + ny * 0.05)) { nx = -nx; ny = -ny; }
+        out += `<text class="ed-lbl" x="${X(mx) + nx * 14}" y="${Y(my) + ny * 14 + 4}" text-anchor="middle">${fmt(len, 2)} ม.</text>`;
+      }
+    });
+    // Objects
+    plan.objs.forEach((o, i) => {
+      const sel = ed.sel && ed.sel.kind === "obj" && ed.sel.i === i;
+      out += `<g data-kind="obj" data-i="${i}" class="ed-item${sel ? " sel" : ""}">${primsSVG(objPrims(o, H), X, Y)}</g>`;
+      if (Math.min(o.w, o.d) * s > 34) out += `<text class="ed-name" x="${X(o.x)}" y="${Y(o.y) + 4}" text-anchor="middle">${OBJ_TYPES[o.type].name}</text>`;
+    });
+    // Walls
+    plan.walls.forEach((wl, i) => {
+      const sel = ed.sel && ed.sel.kind === "wall" && ed.sel.i === i;
+      out += `<g data-kind="wall" data-i="${i}" class="ed-item${sel ? " sel" : ""}">${primsSVG(wallPrims(wl, H), X, Y)}</g>`;
+      if (sel) ["a", "b"].forEach((e) => { out += `<circle data-kind="wend" data-i="${i}" data-e="${e}" class="ed-h" cx="${X(wl[e][0])}" cy="${Y(wl[e][1])}" r="6"/>`; });
+    });
+    // Luminaires: auto layout as dashed rings, hand-placed as solid
+    if (plan.lights.length) {
+      plan.lights.forEach((l, i) => {
+        const sel = ed.sel && ed.sel.kind === "light" && ed.sel.i === i;
+        out += `<circle data-kind="light" data-i="${i}" class="ed-light${sel ? " sel" : ""}" cx="${X(l.x)}" cy="${Y(l.y)}" r="7"/>`;
+      });
+    } else if (last && last.fixtures) {
+      last.fixtures.forEach((f) => { out += `<circle class="ed-auto" cx="${X(f[0])}" cy="${Y(f[1])}" r="6"/>`; });
+    }
+    // Room corner handles
+    if (ed.tool === "select") pts.forEach((p, i) => {
+      const sel = ed.sel && ed.sel.kind === "vtx" && ed.sel.i === i;
+      out += `<rect data-kind="vtx" data-i="${i}" class="ed-h${sel ? " sel" : ""}" x="${X(p[0]) - 5}" y="${Y(p[1]) - 5}" width="10" height="10"/>`;
+    });
+    // Selection outline for objects
+    if (ed.sel && ed.sel.kind === "obj" && plan.objs[ed.sel.i]) {
+      const c = objCorners(plan.objs[ed.sel.i]);
+      out += `<polygon class="ed-selbox" points="${c.map((q) => `${X(q[0])},${Y(q[1])}`).join(" ")}"/>`;
+    }
+    // Drafting preview
+    if (ed.draft && ed.cursor) {
+      const prev = ed.draft[ed.draft.length - 1], cur = orthoSnap(ed.cursor, prev);
+      const chain = ed.draft.concat([cur]);
+      out += `<polyline class="ed-draft" points="${chain.map((p) => `${X(p[0])},${Y(p[1])}`).join(" ")}"/>`;
+      if (ed.tool === "room" && ed.draft.length >= 3) out += `<circle class="ed-close" cx="${X(ed.draft[0][0])}" cy="${Y(ed.draft[0][1])}" r="9"/>`;
+      ed.draft.forEach((p) => { out += `<circle class="ed-dpt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.5"/>`; });
+      const len = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]);
+      out += `<text class="ed-lbl strong" x="${X((cur[0] + prev[0]) / 2)}" y="${Y((cur[1] + prev[1]) / 2) - 8}" text-anchor="middle">${fmt(len, 2)} ม.</text>`;
+    } else if (ed.cursor && ed.tool !== "select") {
+      out += `<circle class="ed-dpt" cx="${X(ed.cursor[0])}" cy="${Y(ed.cursor[1])}" r="3.5"/>`;
+    }
+    out += `<text class="ed-lbl" x="10" y="${h - 10}">มาตราส่วนกริด ${fmt(step, step < 1 ? 1 : 0)} ม.</text>`;
+    svg.innerHTML = out;
+  }
+
+  const numField = (key, label, val, extra = "") => `<label class="ed-f"><span>${label}</span><input type="number" step="0.05" data-prop="${key}" value="${val === "" ? "" : r2(val)}" ${extra}></label>`;
+  function renderProps() {
+    const box = $("edProps"), sel = ed.sel, H = roomH();
+    if (!sel) {
+      const pts = roomPts();
+      box.innerHTML = `<div class="ed-ptitle">ภาพรวมแบบ</div>
+        <div class="ed-sum">พื้นที่ ${fmt(Math.abs(polyArea(pts)), 2)} ตร.ม. · ${pts.length} มุม · ผนัง ${plan.walls.length} · วัตถุ ${plan.objs.length} · โคม${plan.lights.length ? `วางเอง ${plan.lights.length}` : "อัตโนมัติ"}</div>`;
+      return;
+    }
+    let html = "";
+    if (sel.kind === "obj") {
+      const o = plan.objs[sel.i], t = OBJ_TYPES[o.type];
+      html = `<div class="ed-ptitle">${t.name}</div><div class="ed-fields">
+        ${numField("w", "กว้าง (ม.)", o.w)}${numField("d", "ลึก (ม.)", o.d)}${numField("h", "สูง (ม.)", objH(o, H))}
+        ${numField("rot", "หมุน (°)", o.rot)}${numField("x", "X (ม.)", o.x)}${numField("y", "Y (ม.)", o.y)}</div>
+        <div class="ed-acts"><button type="button" data-act="rot90">↻ หมุน 90°</button><button type="button" data-act="dup">⧉ ทำสำเนา</button><button type="button" data-act="del" class="danger">ลบ</button></div>`;
+    } else if (sel.kind === "wall") {
+      const w = plan.walls[sel.i], len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
+      html = `<div class="ed-ptitle">ผนัง</div><div class="ed-fields">
+        ${numField("len", "ความยาว (ม.)", len)}${numField("t", "ความหนา (ม.)", w.t)}${numField("h", "ความสูง (ม.)", w.h == null ? "" : w.h, `placeholder="เต็มความสูง ${fmt(H, 2)}"`)}</div>
+        <div class="ed-acts"><button type="button" data-act="del" class="danger">ลบผนัง</button></div>`;
+    } else if (sel.kind === "light") {
+      const l = plan.lights[sel.i];
+      html = `<div class="ed-ptitle">โคมไฟ (วางเอง)</div><div class="ed-fields">${numField("x", "X (ม.)", l.x)}${numField("y", "Y (ม.)", l.y)}</div>
+        <div class="ed-acts"><button type="button" data-act="del" class="danger">ลบโคม</button></div>`;
+    } else if (sel.kind === "vtx") {
+      const p = roomPts()[sel.i];
+      html = `<div class="ed-ptitle">มุมห้องที่ ${sel.i + 1}</div><div class="ed-fields">${numField("x", "X (ม.)", p[0])}${numField("y", "Y (ม.)", p[1])}</div>
+        <div class="ed-acts"><button type="button" data-act="del" class="danger" ${roomPts().length <= 3 ? "disabled" : ""}>ลบมุมนี้</button></div>`;
+    }
+    box.innerHTML = html;
+  }
+
+  function applyProp(key, raw) {
+    const sel = ed.sel, v = parseFloat(raw), ok = Number.isFinite(v);
+    if (sel.kind === "obj") {
+      const o = plan.objs[sel.i];
+      if (key === "h") o.h = ok && v > 0 ? v : OBJ_TYPES[o.type].h;
+      else if ((key === "w" || key === "d") && ok) o[key] = Math.max(0.05, v);
+      else if (ok) o[key] = key === "rot" ? ((v % 360) + 360) % 360 : v;
+    } else if (sel.kind === "wall") {
+      const w = plan.walls[sel.i];
+      if (key === "len" && ok && v > 0.05) {
+        const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], l = Math.hypot(dx, dy) || 1;
+        w.b = [r2(w.a[0] + dx / l * v), r2(w.a[1] + dy / l * v)];
+      } else if (key === "t" && ok) w.t = Math.min(Math.max(v, 0.02), 2);
+      else if (key === "h") w.h = ok && v > 0 ? v : null;
+    } else if (sel.kind === "light" && ok) plan.lights[sel.i][key] = v;
+    else if (sel.kind === "vtx" && ok) { ensureCustom(); plan.pts[sel.i][key === "x" ? 0 : 1] = v; }
+  }
+
+  function deleteSel() {
+    const sel = ed.sel; if (!sel) return;
+    snapshot();
+    if (sel.kind === "obj") plan.objs.splice(sel.i, 1);
+    else if (sel.kind === "wall") plan.walls.splice(sel.i, 1);
+    else if (sel.kind === "light") plan.lights.splice(sel.i, 1);
+    else if (sel.kind === "vtx") { if (roomPts().length <= 3) return; ensureCustom(); plan.pts.splice(sel.i, 1); }
+    ed.sel = null; commit();
+  }
+  function rotateSel() {
+    if (!ed.sel || ed.sel.kind !== "obj") return;
+    snapshot(); const o = plan.objs[ed.sel.i]; o.rot = ((o.rot || 0) + 90) % 360; commit();
+  }
+
+  function finishRoom() {
+    if (!ed.draft || ed.draft.length < 3) return;
+    const pts = ed.draft.slice();
+    if (Math.abs(polyArea(pts)) < 0.05) { ed.draft = null; renderEditor(); return; }
+    snapshot();
+    plan.pts = pts.map((p) => [p[0], p[1]]); plan.custom = true;
+    ed.draft = null; ed.sel = null;
+    setTool("select"); commit();
+  }
+
+  function initEditor() {
+    const svg = $("edSvg");
+    svg.addEventListener("pointerdown", (e) => {
+      if (e.button === 2) return;
+      svg.setPointerCapture(e.pointerId);
+      const raw = edWorld(e), p = snapPt(raw);
+      const t = ed.tool;
+      if (t === "room") {
+        if (!ed.draft) ed.draft = [p];
+        else {
+          const first = ed.draft[0], lastPt = ed.draft[ed.draft.length - 1];
+          if (ed.draft.length >= 3 && Math.hypot(first[0] - raw[0], first[1] - raw[1]) * ed.s < 12) return finishRoom();
+          const q = orthoSnap(p, lastPt);
+          if (Math.hypot(q[0] - lastPt[0], q[1] - lastPt[1]) > 1e-6) ed.draft.push(q);
+        }
+        return renderEditor();
+      }
+      if (t === "wall") {
+        if (!ed.draft) ed.draft = [p];
+        else {
+          const a = ed.draft[0], b = orthoSnap(p, a);
+          if (Math.hypot(b[0] - a[0], b[1] - a[1]) >= 0.05) {
+            snapshot(); plan.walls.push({ a: [a[0], a[1]], b: [b[0], b[1]], t: 0.1, h: null });
+            ed.draft = [b]; commit(false);
+          }
+        }
+        return renderEditor();
+      }
+      if (t === "light") {
+        snapshot();
+        if (!plan.lights.length && last && last.fixtures) plan.lights = last.fixtures.map((f) => ({ x: r2(f[0]), y: r2(f[1]) }));
+        plan.lights.push({ x: p[0], y: p[1] });
+        ed.sel = { kind: "light", i: plan.lights.length - 1 };
+        return commit(false);
+      }
+      if (t.startsWith("place:")) {
+        const type = t.slice(6), d = OBJ_TYPES[type];
+        snapshot();
+        plan.objs.push({ type, x: p[0], y: p[1], rot: 0, w: d.w, d: d.d, h: d.h });
+        ed.sel = { kind: "obj", i: plan.objs.length - 1 };
+        setTool("select"); return commit(false);
+      }
+      // Select tool
+      const hit = e.target.closest("[data-kind]");
+      const kind = hit && hit.dataset.kind, i = hit ? +hit.dataset.i : -1;
+      if (kind === "obj" || kind === "wall" || kind === "light" || kind === "vtx" || kind === "wend") {
+        ed.sel = { kind: kind === "wend" ? "wall" : kind, i };
+        let orig;
+        if (kind === "obj") orig = { x: plan.objs[i].x, y: plan.objs[i].y };
+        else if (kind === "wall") orig = { a: plan.walls[i].a.slice(), b: plan.walls[i].b.slice() };
+        else if (kind === "light") orig = { x: plan.lights[i].x, y: plan.lights[i].y };
+        ed.drag = { kind, i, e: hit.dataset.e, start: raw, orig, moved: false, snap: JSON.stringify(plan) };
+      } else {
+        ed.sel = null;
+        ed.drag = { kind: "pan", sx: e.clientX, sy: e.clientY, ox: ed.ox, oy: ed.oy };
+      }
+      renderEditor(); renderProps();
+    });
+    svg.addEventListener("pointermove", (e) => {
+      const raw = edWorld(e);
+      ed.cursor = snapPt(raw);
+      const d = ed.drag;
+      if (!d) { if (ed.tool !== "select") renderEditor(); return; }
+      if (d.kind === "pan") { ed.ox = d.ox + e.clientX - d.sx; ed.oy = d.oy + e.clientY - d.sy; return renderEditor(); }
+      const dx = raw[0] - d.start[0], dy = raw[1] - d.start[1];
+      if (!d.moved && Math.hypot(dx, dy) * ed.s < 3) return;
+      if (!d.moved) { hist.past.push(d.snap); hist.future = []; d.moved = true; }
+      const g = (v) => (ed.snap ? Math.round(v / 0.05) * 0.05 : v);
+      if (d.kind === "obj") { const o = plan.objs[d.i]; o.x = r2(d.orig.x + g(dx)); o.y = r2(d.orig.y + g(dy)); }
+      else if (d.kind === "light") { const l = plan.lights[d.i]; const q = snapPt([d.orig.x + dx, d.orig.y + dy]); l.x = q[0]; l.y = q[1]; }
+      else if (d.kind === "wall") { const w = plan.walls[d.i]; w.a = [r2(d.orig.a[0] + g(dx)), r2(d.orig.a[1] + g(dy))]; w.b = [r2(d.orig.b[0] + g(dx)), r2(d.orig.b[1] + g(dy))]; }
+      else if (d.kind === "wend") { const w = plan.walls[d.i], other = d.e === "a" ? w.b : w.a; w[d.e] = orthoSnap(snapPt(raw, { wall: d.i }), other); }
+      else if (d.kind === "vtx") {
+        ensureCustom();
+        const n = plan.pts.length, prev = plan.pts[(d.i - 1 + n) % n];
+        const q = snapPt(raw);
+        plan.pts[d.i] = orthoSnap(q, prev);
+      }
+      renderEditor(); scheduleCalc();
+    });
+    const end = () => {
+      const d = ed.drag; ed.drag = null;
+      if (d && d.moved) commit(); else renderProps();
+    };
+    svg.addEventListener("pointerup", end);
+    svg.addEventListener("pointercancel", end);
+    svg.addEventListener("pointerleave", () => { if (!ed.drag) { ed.cursor = null; renderEditor(); } });
+    svg.addEventListener("dblclick", (e) => {
+      if (ed.tool === "room") return finishRoom();
+      if (ed.tool === "wall") { ed.draft = null; return renderEditor(); }
+      const hit = e.target.closest('[data-kind="edge"]');
+      if (ed.tool === "select" && hit) {
+        snapshot(); ensureCustom();
+        const i = +hit.dataset.i, p = snapPt(edWorld(e));
+        plan.pts.splice(i + 1, 0, p);
+        ed.sel = { kind: "vtx", i: i + 1 }; commit();
+      }
+    });
+    svg.addEventListener("contextmenu", (e) => { if (ed.draft) { e.preventDefault(); if (ed.tool === "room") finishRoom(); else { ed.draft = null; renderEditor(); } } });
+    svg.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const r = svg.getBoundingClientRect();
+      zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    new ResizeObserver(() => renderEditor()).observe(svg);
+
+    const barClick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.tool) return setTool(b.dataset.tool);
+      const act = b.dataset.act, svgEl = $("edSvg");
+      if (act === "undo") undo();
+      else if (act === "redo") redo();
+      else if (act === "fit") { fitEditor(); renderEditor(); }
+      else if (act === "zin") zoomAt(1.25, svgEl.clientWidth / 2, svgEl.clientHeight / 2);
+      else if (act === "zout") zoomAt(0.8, svgEl.clientWidth / 2, svgEl.clientHeight / 2);
+      else if (act === "snap") { ed.snap = !ed.snap; b.setAttribute("aria-pressed", ed.snap); }
+      else if (act === "rect") {
+        if (!isCustom()) return;
+        snapshot();
+        const pts = roomPts();
+        $("len").value = +Math.max(...pts.map((p) => p[0])).toFixed(2); $("wid").value = +Math.max(...pts.map((p) => p[1])).toFixed(2);
+        plan.custom = false; plan.pts = null; ed.sel = null; commit();
+      }
+      else if (act === "autolights") { if (!plan.lights.length) return; snapshot(); plan.lights = []; ed.sel = null; commit(false); }
+      else if (act === "clear") {
+        if (!plan.walls.length && !plan.objs.length && !plan.lights.length && !isCustom()) return;
+        snapshot(); plan = { custom: false, pts: null, walls: [], objs: [], lights: [] }; ed.sel = null; commit(); fitEditor(); renderEditor();
+      }
+      else if (act === "save") savePlanFile();
+      else if (act === "open") $("edFile").click();
+    };
+    $("edBar").addEventListener("click", barClick);
+    $("edBar2").addEventListener("click", barClick);
+    $("edLib").addEventListener("click", (e) => { const b = e.target.closest("button[data-obj]"); if (b) setTool("place:" + b.dataset.obj); });
+    $("edProps").addEventListener("change", (e) => {
+      const inp = e.target.closest("input[data-prop]"); if (!inp || !ed.sel) return;
+      snapshot(); applyProp(inp.dataset.prop, inp.value); commit();
+    });
+    $("edProps").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-act]"); if (!b) return;
+      if (b.dataset.act === "del") deleteSel();
+      else if (b.dataset.act === "rot90") rotateSel();
+      else if (b.dataset.act === "dup" && ed.sel && ed.sel.kind === "obj") {
+        snapshot(); const o = { ...plan.objs[ed.sel.i] }; o.x = r2(o.x + 0.3); o.y = r2(o.y + 0.3);
+        plan.objs.push(o); ed.sel = { kind: "obj", i: plan.objs.length - 1 }; commit(false);
+      }
+    });
+    $("edFile").addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0]; e.target.value = "";
+      if (!f) return;
+      try {
+        const p = validPlan(JSON.parse(await f.text()));
+        if (!p) throw new Error("bad");
+        snapshot(); plan = p; ed.sel = null; commit(); fitEditor(); renderEditor();
+        $("edHint").textContent = "เปิดแบบแล้ว: " + f.name;
+      } catch (err) { $("edHint").textContent = "เปิดไฟล์แบบไม่สำเร็จ (ต้องเป็นไฟล์ .json ที่บันทึกจากแอปนี้)"; }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (view !== "edit" || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+      else if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); }
+      else if (k === "delete" || k === "backspace") { if (ed.sel) { e.preventDefault(); deleteSel(); } }
+      else if (k === "escape") { if (ed.draft || ed.tool !== "select") setTool("select"); else { ed.sel = null; renderEditor(); renderProps(); } }
+      else if (k === "enter" && ed.tool === "room") finishRoom();
+      else if (k === "r" && !e.ctrlKey && !e.metaKey) rotateSel();
+      else if (k === "v") setTool("select");
+      else if (k === "p") setTool("room");
+      else if (k === "w") setTool("wall");
+    });
+    setTool("select");
+  }
+
+  async function savePlanFile() {
+    const name = ($("projName").value.trim() || "lighting-plan").replace(/[\\/:*?"<>|]+/g, "-") + ".json";
+    const data = JSON.stringify({ app: "lighting-calculator", version: 1, ...plan }, null, 1);
+    const dl = window.claude && typeof window.claude.use === "function" ? await window.claude.use("downloads") : null;
+    if (dl) {
+      try { await dl.save({ filename: name, data }); $("edHint").textContent = "บันทึกแบบแล้ว"; }
+      catch (e) { $("edHint").textContent = e && e.code === "declined" ? "ยกเลิกการบันทึก" : "บันทึกไฟล์ไม่สำเร็จ"; }
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   }
 
   // ---------- Illuminance distribution ----------
@@ -864,39 +1578,52 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   // Point-by-point: direct illuminance from each luminaire (IES candela table, or Lambertian),
   // plus a uniform inter-reflected part so the mean equals the lumen-method average
-  function distribution(L, W, Hm, g, sx, sy, avgTarget, fixLm, MF, ies, rot) {
-    const nx = 72, nz = Math.max(8, Math.min(144, Math.round(72 * W / L)));
-    const vals = new Float32Array(nx * nz);
-    const h2 = Hm * Hm, I0 = fixLm / Math.PI, rad = 180 / Math.PI;
-    let sum = 0;
+  function distribution(pts, L, W, Hm, wp, H, fixtures, avgTarget, fixLm, MF, ies, rot, occ) {
+    // Resolution adapts to the work (cells × luminaires × occluders) so dragging stays responsive
+    const work = Math.max(1, fixtures.length * (1 + occ.length));
+    const nx = Math.round(Math.min(72, Math.max(30, Math.sqrt((5e6 / work) * (L / W)))));
+    const nz = Math.max(8, Math.min(144, Math.round(nx * W / L)));
+    const vals = new Float32Array(nx * nz), inside = new Uint8Array(nx * nz);
+    const h2 = Hm * Hm, I0 = fixLm / Math.PI, rad = 180 / Math.PI, rise = H - wp;
+    let sum = 0, cnt = 0;
     for (let j = 0; j < nz; j++) {
       const z = (j + 0.5) / nz * W;
       for (let i = 0; i < nx; i++) {
-        const x = (i + 0.5) / nx * L;
+        const x = (i + 0.5) / nx * L, ins = inPoly(pts, x, z);
         let e = 0;
-        for (let r = 0; r < g.rows; r++) {
-          const dz = z - (r + 0.5) * sy;
-          for (let c = 0; c < g.cols; c++) {
-            const dx = x - (c + 0.5) * sx;
-            const d2 = dx * dx + dz * dz + h2;
-            if (ies) {
-              const d = Math.sqrt(d2), gam = Math.acos(Hm / d) * rad;
-              const cang = Math.atan2(dz, dx) * rad - (rot ? 90 : 0);
-              e += lookupI(ies, gam, cang) * (Hm / d) / d2; // E = I(γ,C)·cosγ / d²
-            } else {
-              e += I0 * h2 / (d2 * d2); // Lambertian: I0·cos²γ/d²
+        for (let f = 0; f < fixtures.length; f++) {
+          const fx = fixtures[f][0], fz = fixtures[f][1];
+          if (ins && occ.length) {
+            let blocked = false;
+            for (let k = 0; k < occ.length; k++) {
+              const o = occ[k], t = segT(x, z, fx, fz, o[0], o[1], o[2], o[3]);
+              if (t >= 0 && o[4] > wp + t * rise) { blocked = true; break; }
             }
+            if (blocked) continue;
+          }
+          const dx = x - fx, dz = z - fz, d2 = dx * dx + dz * dz + h2;
+          if (ies) {
+            const d = Math.sqrt(d2), gam = Math.acos(Hm / d) * rad;
+            const cang = Math.atan2(dz, dx) * rad - (rot ? 90 : 0);
+            e += lookupI(ies, gam, cang) * (Hm / d) / d2; // E = I(γ,C)·cosγ / d²
+          } else {
+            e += I0 * h2 / (d2 * d2); // Lambertian: I0·cos²γ/d²
           }
         }
-        vals[j * nx + i] = e; sum += e;
+        const n = j * nx + i;
+        vals[n] = e; inside[n] = ins ? 1 : 0;
+        if (ins) { sum += e; cnt++; }
       }
     }
-    const meanDirect = sum / vals.length * MF;
+    const meanDirect = cnt ? (sum / cnt) * MF : 0;
     const k = meanDirect > avgTarget && meanDirect > 0 ? avgTarget / meanDirect : 1;
     const indirect = Math.max(avgTarget - meanDirect * k, 0);
     let min = Infinity, max = 0;
-    for (let n = 0; n < vals.length; n++) { vals[n] = vals[n] * MF * k + indirect; if (vals[n] < min) min = vals[n]; if (vals[n] > max) max = vals[n]; }
-    return { nx, nz, vals, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget, directShare: avgTarget ? 1 - indirect / avgTarget : 1 };
+    for (let n = 0; n < vals.length; n++) {
+      vals[n] = vals[n] * MF * k + indirect;
+      if (inside[n]) { if (vals[n] < min) min = vals[n]; if (vals[n] > max) max = vals[n]; }
+    }
+    return { nx, nz, vals, inside, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget, directShare: avgTarget ? 1 - indirect / avgTarget : 1 };
   }
 
   const RAMP = [[0, [44, 30, 90]], [0.25, [59, 79, 156]], [0.5, [31, 158, 137]], [0.75, [181, 222, 43]], [1, [253, 231, 37]]];
@@ -926,7 +1653,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const nx = Math.max(1, Math.floor(L / step)), nz = Math.max(1, Math.floor(W / step));
     const x0 = (L - nx * step) / 2 + step / 2, z0 = (W - nz * step) / 2 + step / 2;
     const pts = [];
-    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) pts.push([x0 + i * step, z0 + j * step]);
+    const room = last && last.pts;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+      const x = x0 + i * step, z = z0 + j * step;
+      if (!room || inPoly(room, x, z)) pts.push([x, z]);
+    }
     return { step, pts };
   }
 
@@ -936,6 +1667,12 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const cv = document.createElement("canvas");
     cv.width = cw; cv.height = ch;
     const ctx = cv.getContext("2d");
+    const room = last && last.pts;
+    if (room) {
+      ctx.save(); ctx.beginPath();
+      room.forEach((q, i) => (i ? ctx.lineTo(q[0] * pxPerM, q[1] * pxPerM) : ctx.moveTo(q[0] * pxPerM, q[1] * pxPerM)));
+      ctx.closePath(); ctx.clip();
+    }
     if (heat) {
       const lo = document.createElement("canvas");
       lo.width = dist.nx; lo.height = dist.nz;
@@ -968,6 +1705,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         ctx.fillText(t, px, ty);
       });
     }
+    if (room) ctx.restore();
     return cv;
   }
 
@@ -1029,7 +1767,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       // Up to two labels per line, kept clear of the edges and of each other
       const minGap = fs * 4, edge = fs * 1.2;
       const cands = segs.map(([p, q]) => [(p[0] + q[0]) / 2 * pxPerM, (p[1] + q[1]) / 2 * pxPerM])
-        .filter(([x, y]) => x > edge * 1.5 && y > edge && x < L * pxPerM - edge * 1.5 && y < W * pxPerM - edge);
+        .filter(([x, y]) => x > edge * 1.5 && y > edge && x < L * pxPerM - edge * 1.5 && y < W * pxPerM - edge && (!last || inPoly(last.pts, x / pxPerM, y / pxPerM)));
       let count = 0;
       for (let k = 0; k < cands.length && count < 2; k += Math.max(1, Math.floor(cands.length / 7))) {
         const [x, y] = cands[k];
@@ -1109,33 +1847,110 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   function update3D() {
     if (!last || !init3D()) return;
-    const { L, W, H, wp, g, sx, sy, E, dist, refl, lamp, perFix } = last;
+    const { L, W, H, wp, sx, sy, E, dist, refl, lamp, perFix, pts, fixtures } = last;
     const { group, camera, controls } = three;
     clearGroup(group);
     const ox = -L / 2, oz = -W / 2;
 
-    // Room shell: back-face walls hide themselves when they face the camera; ceiling removed
-    const wallMat = new THREE.MeshLambertMaterial({ color: WALL[refl], emissive: WALL[refl], emissiveIntensity: 0.3, side: THREE.BackSide });
-    const floorMat = new THREE.MeshLambertMaterial({ color: 0xc8b59a, emissive: 0xc8b59a, emissiveIntensity: 0.2, side: THREE.BackSide });
-    const none = new THREE.MeshBasicMaterial({ visible: false });
-    const room = new THREE.Mesh(new THREE.BoxGeometry(L, H, W), [wallMat, wallMat, none, floorMat, wallMat, wallMat]);
-    room.position.y = H / 2;
-    group.add(room);
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L, H, W)),
-      new THREE.LineBasicMaterial({ color: 0x9a948a, transparent: true, opacity: 0.35 }));
-    edges.position.y = H / 2;
-    group.add(edges);
+    // Room shell from the (possibly freeform) outline. Each wall is a one-sided plane facing into the room,
+    // so walls between the camera and the room are culled automatically; no ceiling.
+    const wallCol = WALL[refl];
+    const wallMat = new THREE.MeshLambertMaterial({ color: wallCol, emissive: wallCol, emissiveIntensity: 0.3, side: THREE.FrontSide });
+    const floorMat = new THREE.MeshLambertMaterial({ color: 0xc8b59a, emissive: 0xc8b59a, emissiveIntensity: 0.2, side: THREE.DoubleSide });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x3a3833, transparent: true, opacity: 0.55 });
+    const polyGeo = (poly, y, uv) => {
+      const tris = THREE.ShapeUtils.triangulateShape(poly.map((q) => new THREE.Vector2(q[0], q[1])), []);
+      const pos = [], uvs = [];
+      tris.forEach((t) => t.forEach((k) => { const q = poly[k]; pos.push(q[0] + ox, y, q[1] + oz); uvs.push(q[0] / L, 1 - q[1] / W); }));
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      if (uv) geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+      geo.computeVertexNormals();
+      return geo;
+    };
+    group.add(new THREE.Mesh(polyGeo(pts, 0, false), floorMat));
+    pts.forEach((a, i) => {
+      const b = pts[(i + 1) % pts.length], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+      if (len < 1e-6) return;
+      let nx = -dy / len, ny = dx / len;
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      if (!inPoly(pts, mx + nx * 0.02, my + ny * 0.02)) { nx = -nx; ny = -ny; }
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(len, H), wallMat);
+      wall.position.set(mx + ox, H / 2, my + oz);
+      wall.rotation.y = Math.atan2(nx, ny);
+      group.add(wall);
+    });
+    const loop = (y) => {
+      const g = new THREE.BufferGeometry().setFromPoints(pts.map((q) => new THREE.Vector3(q[0] + ox, y, q[1] + oz)));
+      return new THREE.LineLoop(g, edgeMat);
+    };
+    group.add(loop(0.002), loop(H));
+    pts.forEach((q) => {
+      const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(q[0] + ox, 0, q[1] + oz), new THREE.Vector3(q[0] + ox, H, q[1] + oz)]);
+      group.add(new THREE.Line(g, edgeMat));
+    });
 
-    // Work-plane heatmap
+    // Interior walls and furniture (with SketchUp-style dark edges)
+    const mats = new Map();
+    const mat = (c) => { if (!mats.has(c)) mats.set(c, new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.18 })); return mats.get(c); };
+    const box = (parent, w, h, d, x, y, z, c) => {
+      if (w <= 0 || h <= 0 || d <= 0) return;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c));
+      m.position.set(x, y, z); parent.add(m);
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeMat);
+      e.position.copy(m.position); parent.add(e);
+    };
+    plan.walls.forEach((w) => {
+      const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], len = Math.hypot(dx, dy), h = wallH(w, H);
+      if (len < 0.01) return;
+      const g = new THREE.Group();
+      g.position.set((w.a[0] + w.b[0]) / 2 + ox, 0, (w.a[1] + w.b[1]) / 2 + oz);
+      g.rotation.y = -Math.atan2(dy, dx);
+      box(g, len, h, w.t || 0.1, 0, h / 2, 0, h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7);
+      group.add(g);
+    });
+    plan.objs.forEach((o) => {
+      const t = OBJ_TYPES[o.type]; if (!t) return;
+      const g = new THREE.Group(), w = o.w, d = o.d, h = objH(o, H), c = t.color;
+      g.position.set(o.x + ox, 0, o.y + oz);
+      g.rotation.y = -(o.rot || 0) * Math.PI / 180;
+      const legs = (inset, legH) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => box(g, 0.05, legH, 0.05, a * (w / 2 - inset), legH / 2, b * (d / 2 - inset), 0x5b5e66));
+      if (o.type === "desk" || o.type === "table") { box(g, w, 0.04, d, 0, h - 0.02, 0, c); legs(o.type === "desk" ? 0.05 : 0.15, h - 0.04); }
+      else if (o.type === "chair") {
+        const seat = Math.min(0.45, h * 0.5);
+        box(g, w * 0.9, 0.06, d * 0.9, 0, seat, 0, c); legs(0.06, seat - 0.03);
+        box(g, w * 0.9, h - seat - 0.03, 0.05, 0, seat + (h - seat) / 2, -d / 2 + 0.05, c);
+      } else if (o.type === "sofa") {
+        const base = Math.min(0.42, h * 0.55);
+        box(g, w, base, d, 0, base / 2, 0, c);
+        box(g, w, h - base, Math.min(0.22, d * 0.3), 0, base + (h - base) / 2, -d / 2 + Math.min(0.11, d * 0.15), c);
+        box(g, 0.18, 0.2, d, -w / 2 + 0.09, base + 0.1, 0, c); box(g, 0.18, 0.2, d, w / 2 - 0.09, base + 0.1, 0, c);
+      } else if (o.type === "bed") {
+        const base = Math.min(0.3, h * 0.6);
+        box(g, w, base, d, 0, base / 2, 0, c);
+        box(g, w - 0.04, h - base, d - 0.05, 0, base + (h - base) / 2, 0.02, 0xf1ede6);
+        box(g, w, Math.max(h + 0.5, 0.9), 0.06, 0, Math.max(h + 0.5, 0.9) / 2, -d / 2 + 0.03, c);
+        box(g, w / 2 - 0.14, 0.1, 0.3, -w / 4, h + 0.05, -d / 2 + 0.25, 0xffffff); box(g, w / 2 - 0.14, 0.1, 0.3, w / 4, h + 0.05, -d / 2 + 0.25, 0xffffff);
+      } else if (o.type === "shelf") {
+        box(g, 0.03, h, d, -w / 2 + 0.015, h / 2, 0, c); box(g, 0.03, h, d, w / 2 - 0.015, h / 2, 0, c);
+        const n = Math.max(2, Math.round(h / 0.4));
+        for (let k = 0; k <= n; k++) box(g, w - 0.06, 0.025, d, 0, Math.min(k * h / n + 0.0125, h - 0.0125), 0, c);
+      } else if (o.type === "counter") { box(g, w, h - 0.04, d, 0, (h - 0.04) / 2, 0, c); box(g, w + 0.02, 0.04, d + 0.02, 0, h - 0.02, 0, 0x8f8a80); }
+      else if (o.type === "stairs") {
+        const n = Math.max(2, Math.round(h / 0.175)), rise = h / n, run = d / n;
+        for (let k = 0; k < n; k++) box(g, w, (k + 1) * rise, run, 0, (k + 1) * rise / 2, -d / 2 + (k + 0.5) * run, c);
+      } else box(g, w, h, d, 0, h / 2, 0, c);
+      group.add(g);
+    });
+
+    // Work-plane map, cut to the room outline
     if ($("showHeat").checked || $("showNums").checked || $("showIso").checked) {
       const cv = workPlaneCanvas(L, W, dist, last.scaleMax, 2048 / Math.max(L, W), $("showHeat").checked, $("showNums").checked, 80, $("showIso").checked);
       const tex = new THREE.CanvasTexture(cv);
       tex.anisotropy = three.renderer.capabilities.getMaxAnisotropy();
       tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(L, W),
+      const plane = new THREE.Mesh(polyGeo(pts, Math.max(wp, 0.005), true),
         new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: $("showHeat").checked ? 0.92 : 1, side: THREE.DoubleSide, depthWrite: false }));
-      plane.rotation.x = -Math.PI / 2;
-      plane.position.y = Math.max(wp, 0.005);
       group.add(plane);
     }
 
@@ -1152,13 +1967,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const shape = (lamp && lamp.shape) || "downlight";
     const beamH = Math.max(H - wp, 0.2);
     const beamR = Math.min(Math.max(Math.max(sx, sy) * 0.6, beamH * 0.55), beamH * 1.2);
-    for (let r = 0; r < g.rows; r++) {
-      for (let c = 0; c < g.cols; c++) {
-        const x = ox + (c + 0.5) * sx, z = oz + (r + 0.5) * sy;
+    {
+      for (const [fx0, fz0] of fixtures) {
+        const x = ox + fx0, z = oz + fz0;
         const fx = new THREE.Group();
         fx.position.set(x, H, z);
         if (shape === "tube") {
-          const len = Math.min(lamp.len || 1.2, sx * 0.9);
+          const len = Math.min(lamp.len || 1.2, (sx || 1.3) * 0.9);
           const gap = 0.09;
           const housing = new THREE.Mesh(new THREE.BoxGeometry(len + 0.06, 0.03, perFix * gap + 0.04), body);
           housing.position.y = -0.015; fx.add(housing);
@@ -1221,7 +2036,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     }
 
     // Fit camera only when room geometry changes, so the user's orbit is kept otherwise
-    const key = [L, W, H].join("|");
+    const key = [L, W, H, JSON.stringify(pts)].join("|");
     if (three.fitKey !== key) {
       three.fitKey = key;
       const span = Math.max(L, W, H);
@@ -1239,54 +2054,60 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     view = v;
     $("btn3d").setAttribute("aria-pressed", v === "3d");
     $("btn2d").setAttribute("aria-pressed", v === "2d");
+    $("btnEdit").setAttribute("aria-pressed", v === "edit");
     $("pane3d").classList.toggle("hidden", v !== "3d");
     $("pane2d").classList.toggle("hidden", v !== "2d");
+    $("paneEdit").classList.toggle("hidden", v !== "edit");
+    $("viewTools").classList.toggle("hidden", v === "edit");
+    $("legend").classList.toggle("hidden", v === "edit");
     $("orbitHint").classList.toggle("hidden", v !== "3d");
     $("beamsWrap").classList.toggle("hidden", v !== "3d");
     if (v === "3d") { resize3D(); update3D(); }
+    if (v === "edit") { if (!ed.fitted) { fitEditor(); ed.fitted = true; } renderEditor(); renderProps(); }
   }
 
-  function drawPlan(L, W, g, sx, sy) {
+  function drawPlan() {
+    const d = last; if (!d) return;
+    const { L, W, sx, sy, pts, fixtures, H } = d;
     const svg = $("plan");
     const pad = 36;
     const maxW = 640, maxH = 380;
     const scale = Math.min((maxW - pad * 2) / L, (maxH - pad * 2) / W);
     const rw = L * scale, rh = W * scale;
     const vw = rw + pad * 2, vh = rh + pad * 2;
+    const X = (x) => pad + x * scale, Y = (y) => pad + y * scale;
     svg.setAttribute("viewBox", `0 0 ${vw} ${vh}`);
-    const glowR = Math.max(Math.min(sx, sy) * scale * 0.75, 10);
+    const sp = Math.min(sx || 1.5, sy || 1.5);
+    const glowR = Math.max(sp * scale * 0.75, 10);
     const heat = $("showHeat").checked, nums = $("showNums").checked, iso = $("showIso").checked;
     const bg = heat || nums || iso
-      ? `<image href="${workPlaneCanvas(L, W, last.dist, last.scaleMax, scale * 2, heat, nums, 34, iso).toDataURL()}" x="${pad}" y="${pad}" width="${rw}" height="${rh}" preserveAspectRatio="none"/>`
+      ? `<image href="${workPlaneCanvas(L, W, d.dist, d.scaleMax, scale * 2, heat, nums, 34, iso).toDataURL()}" x="${pad}" y="${pad}" width="${rw}" height="${rh}" preserveAspectRatio="none"/>`
       : "";
-    const dot = Math.max(Math.min(6, Math.min(sx, sy) * scale * 0.18), 3);
-    let fixtures = "";
-    for (let r = 0; r < g.rows; r++) {
-      for (let c = 0; c < g.cols; c++) {
-        const x = pad + (c + 0.5) * sx * scale;
-        const y = pad + (r + 0.5) * sy * scale;
-        if (!heat) fixtures += `<circle cx="${x}" cy="${y}" r="${glowR}" fill="url(#glow)"/>`;
-        fixtures += `<circle cx="${x}" cy="${y}" r="${dot}" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`;
-      }
-    }
-    // spacing dimension for first gap
-    let dims = "";
-    if (g.cols >= 1) {
-      const y = pad + rh + 18;
-      dims += `<text x="${pad + rw / 2}" y="${y}" text-anchor="middle" font-size="12" fill="var(--muted)">${fmt(L, 1)} ม.</text>`;
-    }
+    const dot = Math.max(Math.min(6, sp * scale * 0.18), 3);
+    let fx = "", glow = "";
+    fixtures.forEach(([x, y]) => {
+      if (!heat) glow += `<circle cx="${X(x)}" cy="${Y(y)}" r="${glowR}" fill="url(#glow)"/>`;
+      fx += `<circle cx="${X(x)}" cy="${Y(y)}" r="${dot}" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`;
+    });
+    const poly = pts.map((q) => `${X(q[0])},${Y(q[1])}`).join(" ");
     const x0 = pad - 14;
-    dims += `<text x="${x0}" y="${pad + rh / 2}" text-anchor="middle" font-size="12" fill="var(--muted)" transform="rotate(-90 ${x0} ${pad + rh / 2})">${fmt(W, 1)} ม.</text>`;
+    const dims = `<text x="${pad + rw / 2}" y="${pad + rh + 18}" text-anchor="middle" font-size="12" fill="var(--muted)">${fmt(L, 1)} ม.</text>
+      <text x="${x0}" y="${pad + rh / 2}" text-anchor="middle" font-size="12" fill="var(--muted)" transform="rotate(-90 ${x0} ${pad + rh / 2})">${fmt(W, 1)} ม.</text>`;
     svg.innerHTML = `
       <defs>
         <radialGradient id="glow"><stop offset="0" stop-color="var(--glow)"/><stop offset="1" stop-color="var(--glow)" stop-opacity="0"/></radialGradient>
-        <clipPath id="roomClip"><rect x="${pad}" y="${pad}" width="${rw}" height="${rh}" rx="4"/></clipPath>
+        <clipPath id="roomClip"><polygon points="${poly}"/></clipPath>
       </defs>
-      <rect x="${pad}" y="${pad}" width="${rw}" height="${rh}" rx="4" fill="var(--room)" stroke="var(--border)" stroke-width="2"/>
-      <g clip-path="url(#roomClip)">${bg}${fixtures}</g>
-      ${dims}`;
+      <polygon points="${poly}" fill="var(--room)"/>
+      <g clip-path="url(#roomClip)">${bg}${glow}</g>
+      <g opacity="${heat ? 0.8 : 1}">${primsSVG(allPlanPrims(H), X, Y)}</g>
+      <polygon points="${poly}" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linejoin="round"/>
+      ${fx}${dims}`;
+    const spacing = d.lay.kind === "grid"
+      ? `<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`
+      : `<span>${d.lay.kind === "manual" ? "โคมวางเอง" : "จัดโคมตามรูปทรงห้อง"} ${fmt(fixtures.length)} ดวง${fixtures.length > 1 ? ` · ระยะห่างเฉลี่ย ${fmt(d.nn.mean, 2)} ม.` : ""}</span>`;
     $("legend").innerHTML =
-      `<span>● ตำแหน่งโคม</span>${iso && isoLevels(last.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(last.dist).step)} lux</span>` : ""}${$("showNums").checked ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`;
+      `<span>● ตำแหน่งโคม</span>${iso && isoLevels(d.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(d.dist).step)} lux</span>` : ""}${nums ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}${spacing}${plan.walls.length || plan.objs.length ? "<span>คิดเงาจากผนังและเฟอร์นิเจอร์ที่สูงกว่าระนาบใช้งาน</span>" : ""}`;
   }
 
   // ---------- PDF report (DIALux-style) ----------
@@ -1323,15 +2144,23 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const d = last, px = 1300 / Math.max(d.L, d.W);
     const cv = workPlaneCanvas(d.L, d.W, d.dist, d.scaleMax, px, heat, nums, 30, iso);
     const ctx = cv.getContext("2d");
-    ctx.strokeStyle = "#555"; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, cv.width - 3, cv.height - 3);
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = heat ? 0.85 : 1;
+    primsCanvas(ctx, allPlanPrims(d.H), px, 2);
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    d.pts.forEach((q, i) => (i ? ctx.lineTo(q[0] * px, q[1] * px) : ctx.moveTo(q[0] * px, q[1] * px)));
+    ctx.closePath(); ctx.strokeStyle = "#2b2924"; ctx.lineWidth = 5; ctx.lineJoin = "round"; ctx.stroke();
     if (withFixtures) {
-      for (let r = 0; r < d.g.rows; r++) for (let c = 0; c < d.g.cols; c++) {
-        const x = (c + 0.5) * d.sx * px, y = (r + 0.5) * d.sy * px;
+      d.fixtures.forEach(([fx0, fy0], k) => {
+        const x = fx0 * px, y = fy0 * px;
         ctx.fillStyle = "#d98a00"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.fillStyle = "#1d1c19"; ctx.font = "600 22px 'IBM Plex Sans Thai', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-        ctx.fillText(String(r * d.g.cols + c + 1), x + 15, y - 14);
-      }
+        ctx.fillText(String(k + 1), x + 15, y - 14);
+      });
     }
     return cv.toDataURL("image/png");
   }
@@ -1374,9 +2203,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       </div>`;
 
     const img3d = capture3D();
-    const fixList = [];
-    for (let r = 0; r < d.g.rows; r++) for (let c = 0; c < d.g.cols; c++)
-      fixList.push([r * d.g.cols + c + 1, (c + 0.5) * d.sx, (r + 0.5) * d.sy, d.H]);
+    const fixList = d.fixtures.map(([x, y], k) => [k + 1, x, y, d.H]);
 
     // Value grid
     const { step, pts } = calcGrid(d.L, d.W);
@@ -1386,7 +2213,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const xsShow = xs.length > maxCols ? xs.filter((_, i) => i % Math.ceil(xs.length / maxCols) === 0) : xs;
     const zsShow = zs.length > 22 ? zs.filter((_, i) => i % Math.ceil(zs.length / 22) === 0) : zs;
     const vgrid = `<table class="vg"><tr><th>Y \\ X (ม.)</th>${xsShow.map((x) => `<th>${fmt(x, 2)}</th>`).join("")}</tr>${
-      zsShow.map((z) => `<tr><th>${fmt(z, 2)}</th>${xsShow.map((x) => `<td>${Math.round(sampleE(d.dist, d.L, d.W, x, z))}</td>`).join("")}</tr>`).join("")}</table>`;
+      zsShow.map((z) => `<tr><th>${fmt(z, 2)}</th>${xsShow.map((x) => `<td>${inPoly(d.pts, x, z) ? Math.round(sampleE(d.dist, d.L, d.W, x, z)) : "–"}</td>`).join("")}</tr>`).join("")}</table>`;
 
     const pages = [];
     pages.push(`
@@ -1399,7 +2226,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
           <table class="kv" style="margin-top:24px;width:60%">
             <tr><td>วันที่</td><td>${esc(date)}</td></tr>
             ${who ? `<tr><td>ผู้ออกแบบ</td><td>${esc(who)}</td></tr>` : ""}
-            <tr><td>ขนาดห้อง</td><td>${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.</td></tr>
+            <tr><td>ขนาดห้อง</td><td>${d.custom ? `${fmt(d.A, 2)} ตร.ม. · สูง ${fmt(d.H, 2)} ม.` : `${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.`}</td></tr>
             <tr><td>ความสว่างเฉลี่ย / เป้าหมาย</td><td>${fmt(eavg)} / ${fmt(d.E)} lux</td></tr>
           </table>
         </div>
@@ -1417,7 +2244,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         (${fmt(d.E)} lux สำหรับ${esc(d.space.name)})</p>
       <h3>ข้อมูลห้อง</h3>
       <table class="kv">
-        <tr><td>ขนาด (ยาว × กว้าง × สูง)</td><td>${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.</td></tr>
+        <tr><td>${d.custom ? "รูปทรงห้อง" : "ขนาด (ยาว × กว้าง × สูง)"}</td><td>${d.custom ? `วาดเอง ${d.pts.length} มุม · กรอบ ${fmt(d.L, 2)} × ${fmt(d.W, 2)} ม. · สูง ${fmt(d.H, 2)} ม.` : `${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.`}</td></tr>
+        ${d.custom ? `<tr><td>เส้นรอบรูป</td><td>${fmt(d.P, 2)} ม.</td></tr>` : ""}
+        ${plan.walls.length || plan.objs.length ? `<tr><td>ผนังภายใน / เฟอร์นิเจอร์</td><td>${plan.walls.length} / ${plan.objs.length} รายการ</td></tr>` : ""}
         <tr><td>พื้นที่</td><td>${fmt(d.A, 2)} ตร.ม.</td></tr>
         <tr><td>ความสูงระนาบใช้งาน</td><td>${fmt(d.wp, 2)} ม.</td></tr>
         <tr><td>ค่าสะท้อนแสง</td><td>${REFL_TXT[d.refl]}</td></tr>
@@ -1428,7 +2257,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         <tr><td>ความสูงติดตั้งเหนือระนาบใช้งาน (Hm)</td><td>${fmt(d.Hm, 2)} ม.</td></tr>
         <tr><td>ดัชนีห้อง (RI)</td><td>${fmt(d.RI, 2)}</td></tr>
         <tr><td>สัมประสิทธิ์การใช้ประโยชน์ (UF)</td><td>${fmt(d.UF, 2)}</td></tr>
-        <tr><td>จำนวนโคมตามสูตร → ที่ติดตั้ง</td><td>${fmt(d.exact, 2)} → ${fmt(d.N)} โคม (${d.g.cols} × ${d.g.rows})</td></tr>
+        <tr><td>จำนวนโคมตามสูตร → ที่ติดตั้ง</td><td>${fmt(d.exact, 2)} → ${fmt(d.N)} โคม (${d.lay.kind === "grid" ? `${d.lay.cols} × ${d.lay.rows}` : d.lay.kind === "manual" ? "วางเอง" : "จัดตามรูปทรงห้อง"})</td></tr>
         <tr><td>E<sub>min</sub> / E<sub>max</sub></td><td>${fmt(g1, 2)}</td></tr>
         <tr><td>อัตราส่วนระยะห่างต่อความสูง (S/Hm)</td><td>${fmt(d.shr, 2)}</td></tr>
         <tr><td>อุณหภูมิสีของแสง</td><td>${fmt(d.cct)} K</td></tr>
@@ -1457,15 +2286,18 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       <h3>สูตรที่ใช้</h3>
       <p style="font-family:ui-monospace,Menlo,monospace;background:#f6f4ee;padding:10px 12px;border-radius:6px">
         N = (E × A) ÷ (Φ × n × UF × MF) = (${fmt(d.E)} × ${fmt(d.A, 2)}) ÷ (${fmt(d.lm)} × ${d.perFix} × ${fmt(d.UF, 2)} × ${fmt(d.MF, 2)}) = ${fmt(d.exact, 2)}</p>
-      <p style="color:#6b675e">RI = (L × W) ÷ (Hm × (L + W)) = (${fmt(d.L, 2)} × ${fmt(d.W, 2)}) ÷ (${fmt(d.Hm, 2)} × ${fmt(d.L + d.W, 2)}) = ${fmt(d.RI, 2)}</p>
+      <p style="color:#6b675e">${d.custom ? `RI = 2A ÷ (Hm × P) = (2 × ${fmt(d.A, 2)}) ÷ (${fmt(d.Hm, 2)} × ${fmt(d.P, 2)}) = ${fmt(d.RI, 2)}` : `RI = (L × W) ÷ (Hm × (L + W)) = (${fmt(d.L, 2)} × ${fmt(d.W, 2)}) ÷ (${fmt(d.Hm, 2)} × ${fmt(d.L + d.W, 2)}) = ${fmt(d.RI, 2)}`}</p>
       ${iesBlock}`));
 
-    const fixRows = fixList.slice(0, 40).map(([n, x, y, z]) => `<tr><td>${n}</td><td class="r">${fmt(x, 2)}</td><td class="r">${fmt(y, 2)}</td><td class="r">${fmt(z, 2)}</td></tr>`).join("");
+    const fixShown = fixList.slice(0, 48), chunk = 12;
+    const fixTables = [];
+    for (let k = 0; k < fixShown.length; k += chunk) fixTables.push(`<table style="flex:1;min-width:0"><tr><th>ลำดับ</th><th class="r">X (ม.)</th><th class="r">Y (ม.)</th><th class="r">Z (ม.)</th></tr>${
+      fixShown.slice(k, k + chunk).map(([n, x, y, z]) => `<tr><td>${n}</td><td class="r">${fmt(x, 2)}</td><td class="r">${fmt(y, 2)}</td><td class="r">${fmt(z, 2)}</td></tr>`).join("")}</table>`);
     pages.push(page(4, "ผังการติดตั้งโคมไฟ", `
-      <img class="img" style="max-height:430px" src="${planImage(false, false, false, true)}">
-      <p style="color:#6b675e;margin:6px 0 0">ระยะห่างโคม ${fmt(d.sx, 2)} × ${fmt(d.sy, 2)} ม. · ระยะจากผนัง ${fmt(d.sx / 2, 2)} / ${fmt(d.sy / 2, 2)} ม. · จุดอ้างอิง (0,0) มุมซ้ายบน</p>
-      <h3>ตำแหน่งโคม${fixList.length > 40 ? ` (แสดง 40 จาก ${fixList.length})` : ""}</h3>
-      <table style="width:60%"><tr><th>ลำดับ</th><th class="r">X (ม.)</th><th class="r">Y (ม.)</th><th class="r">Z (ม.)</th></tr>${fixRows}</table>`));
+      <img class="img" style="max-height:400px" src="${planImage(false, false, false, true)}">
+      <p style="color:#6b675e;margin:6px 0 0">${d.lay.kind === "grid" ? `ระยะห่างโคม ${fmt(d.sx, 2)} × ${fmt(d.sy, 2)} ม. · ระยะจากผนัง ${fmt(d.sx / 2, 2)} / ${fmt(d.sy / 2, 2)} ม.` : `${d.lay.kind === "manual" ? "โคมวางเอง" : "จัดโคมตามรูปทรงห้อง"} · ระยะห่างเฉลี่ย ${fmt(d.nn.mean, 2)} ม.`} · จุดอ้างอิง (0,0) มุมซ้ายบนของกรอบห้อง</p>
+      <h3>ตำแหน่งโคม${fixList.length > 48 ? ` (แสดง 48 จาก ${fixList.length})` : ""}</h3>
+      <div style="display:flex;gap:14px;align-items:flex-start">${fixTables.join("")}</div>`));
 
     pages.push(page(5, "ระนาบใช้งาน: เส้น isolux และสีเทียม", `
       <h3 style="margin-top:0">เส้น isolux (ทุก ${fmt(isoStep)} lux) ที่ความสูง ${fmt(d.wp, 2)} ม.</h3>
@@ -1568,8 +2400,12 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   $("pdfBtn").addEventListener("click", exportPDF);
   $("btn3d").addEventListener("click", () => setView("3d"));
   $("btn2d").addEventListener("click", () => setView("2d"));
-  ["showBeams", "showHeat", "showNums", "showIso"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(last.L, last.W, last.g, last.sx, last.sy); update3D(); }));
+  $("btnEdit").addEventListener("click", () => setView("edit"));
+  ["showBeams", "showHeat", "showNums", "showIso"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(); update3D(); }));
+  ["len", "wid", "hgt"].forEach((id) => $(id).addEventListener("input", () => { if (view === "edit") renderProps(); }));
 
+  loadPlan();
+  initEditor();
   syncLamp();
   updateLuxHint();
   calc();
