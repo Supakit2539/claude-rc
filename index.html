@@ -160,6 +160,15 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .ed-svg .ed-item.sel polygon { stroke: var(--accent); stroke-width: 2.2; }
 .ed-svg .ed-open.sel polygon, .ed-svg .ed-open.sel polyline { stroke-width: inherit; }
 .ed-svg .ed-hit { fill: transparent; stroke: none; }
+.ed-svg .ed-edge.sel { stroke: color-mix(in srgb, var(--accent) 45%, transparent); stroke-width: 9; fill: none; }
+.ed-svg polyline.ed-edge { fill: none; }
+.ed-svg .ed-bend { fill: var(--accent); stroke: var(--surface); stroke-width: 2; cursor: grab; }
+.ed-svg .ed-measure { stroke: #3b6fd1; stroke-width: 1.5; stroke-dasharray: 5 3; pointer-events: none; }
+.ed-svg polygon.ed-draft, .ed-svg circle.ed-draft { fill: color-mix(in srgb, var(--accent) 12%, transparent); }
+.ed-f input[type=color] { height: 32px; padding: 2px 4px; }
+.ed-f select { padding: 5px 8px; font-size: 13px; }
+.ed-chk { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 13px; padding-top: 6px; }
+.ed-chk input { width: auto; accent-color: var(--accent); }
 .ed-svg .ed-selbox { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 3; pointer-events: none; }
 .ed-svg .ed-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; cursor: move; }
 .ed-svg .ed-h.sel { fill: var(--accent); }
@@ -434,7 +443,17 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
               <button type="button" data-tool="select" title="เลือก/ย้าย (V)">↖ เลือก</button>
               <button type="button" data-tool="room" title="วาดผังห้อง (P)">⬠ ผังห้อง</button>
               <button type="button" data-tool="wall" title="วาดผนัง (W)">▮ ผนัง</button>
+              <button type="button" data-tool="arcwall" title="วาดผนังโค้ง">◜ ผนังโค้ง</button>
               <button type="button" data-tool="light" title="วางโคมเอง">💡 โคม</button>
+            </div>
+            <div class="ed-grp">
+              <button type="button" data-tool="rect" title="วาดกล่อง แล้วกำหนดความสูง">▭ กล่อง</button>
+              <button type="button" data-tool="circle" title="วาดทรงกระบอก / เสากลม (C)">◯ ทรงกระบอก</button>
+              <button type="button" data-tool="sphere" title="วาดทรงกลม">● ทรงกลม</button>
+              <button type="button" data-tool="poly" title="วาดรูปทรงอิสระแล้วยกความสูง">⬡ รูปทรงอิสระ</button>
+              <button type="button" data-tool="measure" title="วัดระยะ (M)">📏 วัดระยะ</button>
+              <button type="button" data-act="import3d" title="นำเข้าไฟล์ 3D (.glb .gltf .obj .stl .dae .fbx .ply)">⤓ นำเข้า 3D</button>
+              <input type="file" id="edModel" accept=".glb,.gltf,.obj,.stl,.dae,.fbx,.ply,.skp" hidden>
             </div>
             <div class="ed-grp">
               <button type="button" data-act="undo" title="ย้อนกลับ (Ctrl+Z)">↶</button>
@@ -457,6 +476,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             <button type="button" data-tool="place:counter" data-obj="counter">เคาน์เตอร์</button>
             <button type="button" data-tool="place:stairs" data-obj="stairs">บันได</button>
             <button type="button" data-tool="place:column" data-obj="column">เสา</button>
+            <button type="button" data-tool="place:rcol" data-obj="rcol">เสากลม</button>
             <button type="button" data-tool="place:door" data-obj="door">🚪 ประตู</button>
             <button type="button" data-tool="place:window" data-obj="window">🪟 หน้าต่าง</button>
           </div>
@@ -641,7 +661,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const W = Math.max(Math.max(...pts.map((p) => p[1])), 0.1);
     if (custom) { $("len").value = +L.toFixed(2); $("wid").value = +W.toFixed(2); }
     $("len").disabled = $("wid").disabled = custom;
-    $("shapeHint").textContent = custom ? `รูปทรงห้องมาจากแบบที่วาด (${pts.length} มุม) — แก้ไขได้ที่แท็บ "แก้ไขแบบ"` : "";
+    const nCorners = roomCorners().length;
+    $("shapeHint").textContent = custom ? `รูปทรงห้องมาจากแบบที่วาด (${nCorners} มุม) — แก้ไขได้ที่แท็บ "แก้ไขแบบ"` : "";
     $("shapeHint").classList.toggle("hidden", !custom);
     const H = num("hgt", 2.7);
     const wp = Math.max(num("work", 0.75), 0);
@@ -693,7 +714,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const lpdLimit = E >= 500 ? 12 : E >= 300 ? 10 : 8;
     const lpdBadge = wpm2 <= lpdLimit ? `<span class="badge ok">ประหยัด</span>` : `<span class="badge warn">สูง</span>`;
     const rows = [
-      [`พื้นที่ห้อง (A)${custom ? ` <span class="hint">รูปทรงอิสระ ${pts.length} มุม · เส้นรอบรูป ${fmt(P, 2)} ม.</span>` : ""}`, `${fmt(A, 2)} ตร.ม.`],
+      [`พื้นที่ห้อง (A)${custom ? ` <span class="hint">รูปทรงอิสระ ${nCorners} มุม · เส้นรอบรูป ${fmt(P, 2)} ม.</span>` : ""}`, `${fmt(A, 2)} ตร.ม.`],
       ["ความสูงติดตั้งเหนือระนาบใช้งาน (Hm)", `${fmt(Hm, 2)} ม.`],
       ["ดัชนีห้อง (RI)", fmt(RI, 2)],
       ["สัมประสิทธิ์การใช้ประโยชน์ (UF)", fmt(UF, 2)],
@@ -766,7 +787,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
     last = { L, W, H, wp, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix, scaleMax, cct,
       A, P, Hm, RI, UF, MF, N, nMin, lm, watt, fixLm, exact, achieved, totalW, wpm2, kwhMonth, cost, rate, hours, shr, efficacy, u0, space,
-      pts, custom, fixtures, lay, nn, occ, ro, dday, dsum, dayScale, sumScale, daySave, dayReach, tau, Eext };
+      pts, corners: nCorners, custom, fixtures, lay, nn, occ, ro, dday, dsum, dayScale, sumScale, daySave, dayReach, tau, Eext };
     drawPlan();
     if (view === "3d") update3D();
     if (view === "edit") renderEditor();
@@ -784,19 +805,21 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     counter: { name: "เคาน์เตอร์", w: 2.0, d: 0.6, h: 0.9, color: 0xd8d2c6, fill: "#cfc8ba" },
     stairs:  { name: "บันได", w: 1.0, d: 3.0, h: null, color: 0xcfc6b8, fill: "#e8e1d4" },
     column:  { name: "เสา", w: 0.4, d: 0.4, h: null, color: 0xbdb6aa, fill: "#a39c90" },
+    rcol:    { name: "เสากลม", w: 0.4, d: 0.4, h: null, color: 0xbdb6aa, fill: "#a39c90", generic: true },
+    box:     { name: "กล่อง / บล็อก", w: 1, d: 1, h: 1, color: 0xcfc8ba, fill: "#d9d3c7", generic: true },
+    cyl:     { name: "ทรงกระบอก", w: 0.6, d: 0.6, h: 1, color: 0xbdb6aa, fill: "#cfc9be", generic: true },
+    sphere:  { name: "ทรงกลม", w: 0.8, d: 0.8, h: 0.8, color: 0xc9b8a3, fill: "#e1d6c6", generic: true },
+    prism:   { name: "รูปทรงอิสระ", w: 1, d: 1, h: 1, color: 0xcfc8ba, fill: "#d9d3c7", generic: true },
+    model:   { name: "โมเดล 3D", w: 1, d: 1, h: 1, color: 0xc0c8d0, fill: "#c9d3dc" },
   };
   const OPEN_TYPES = {
     door:   { name: "ประตู", w: 0.9, h: 2.0, sill: 0 },
     window: { name: "หน้าต่าง", w: 1.2, h: 1.2, sill: 0.9 },
   };
-  let plan = { custom: false, pts: null, walls: [], objs: [], lights: [], openings: [] };
+  let plan = { custom: false, pts: null, bulge: [], walls: [], objs: [], lights: [], openings: [] };
 
   const isCustom = () => !!(plan.custom && plan.pts && plan.pts.length >= 3);
-  function roomPts() {
-    if (isCustom()) return plan.pts;
-    const L = Math.max(num("len", 0), 0.1), W = Math.max(num("wid", 0), 0.1);
-    return [[0, 0], [L, 0], [L, W], [0, W]];
-  }
+  function roomPts() { return roomDense().pts; }
   const roomH = () => num("hgt", 2.7);
   const objH = (o, H) => (o.h == null ? H : o.h);
   const wallH = (w, H) => (w.h == null ? H : w.h);
@@ -824,7 +847,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   // ---------- Doors & windows: openings that snap to a room edge or an interior wall ----------
   function hostList(H) {
-    const pts = roomPts(), out = [];
+    const rd = roomDense(), pts = rd.pts, out = [];
     pts.forEach((a, i) => {
       const b = pts[(i + 1) % pts.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (len < 1e-6) return;
@@ -832,13 +855,16 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       let n = [-d[1], d[0]];
       const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
       if (!inPoly(pts, mx + n[0] * 0.02, my + n[1] * 0.02)) n = [-n[0], -n[1]];
-      out.push({ key: "e" + i, a, b, len, d, n, t: 0.15, h: H, outline: true });
+      out.push({ key: "e" + i, a, b, len, d, n, t: 0.15, h: H, outline: true, arc: rd.arc[i] });
     });
     plan.walls.forEach((w, i) => {
-      const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
-      if (len < 1e-6) return;
-      const d = [(w.b[0] - w.a[0]) / len, (w.b[1] - w.a[1]) / len];
-      out.push({ key: "w" + i, a: w.a, b: w.b, len, d, n: [-d[1], d[0]], t: w.t || 0.1, h: wallH(w, H), outline: false });
+      const path = wallPath(w), curved = path.length > 2;
+      for (let k = 0; k < path.length - 1; k++) {
+        const a = path[k], b = path[k + 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (len < 1e-6) continue;
+        const d = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+        out.push({ key: `w${i}_${k}`, a, b, len, d, n: [-d[1], d[0]], t: w.t || 0.1, h: wallH(w, H), outline: false, arc: curved });
+      }
     });
     return out;
   }
@@ -846,6 +872,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   function nearestHost(p, hs, tol, width) {
     let best = null;
     hs.forEach((h) => {
+      if (h.arc) return; // openings go on straight walls only
       const u = ((p[0] - h.a[0]) * h.d[0] + (p[1] - h.a[1]) * h.d[1]) / h.len;
       const uc = Math.max(0, Math.min(1, u));
       const q = [h.a[0] + h.d[0] * uc * h.len, h.a[1] + h.d[1] * uc * h.len];
@@ -908,17 +935,104 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const nx = -dy / len * t, ny = dx / len * t;
     return [[w.a[0] + nx, w.a[1] + ny], [w.b[0] + nx, w.b[1] + ny], [w.b[0] - nx, w.b[1] - ny], [w.a[0] - nx, w.a[1] - ny]];
   }
+  // ---------- Curves: room edges and walls can bend into circular arcs (bulge = sagitta in metres) ----------
+  function arcInfo(a, b, s) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], c = Math.hypot(dx, dy);
+    if (!s || Math.abs(s) < 1e-4 || c < 1e-6) return null;
+    s = Math.max(-c, Math.min(c, s));
+    const as = Math.abs(s), R = (c * c / 4 + s * s) / (2 * as), nl = [-dy / c, dx / c], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const sg = Math.sign(s), ctr = [m[0] + nl[0] * sg * (as - R), m[1] + nl[1] * sg * (as - R)];
+    const apex = [m[0] + nl[0] * s, m[1] + nl[1] * s];
+    const a0 = Math.atan2(a[1] - ctr[1], a[0] - ctr[0]), phi = 4 * Math.atan(2 * as / c);
+    let dir = 1;
+    const tp = [ctr[0] + R * Math.cos(a0 + phi / 2), ctr[1] + R * Math.sin(a0 + phi / 2)];
+    if (Math.hypot(tp[0] - apex[0], tp[1] - apex[1]) > as * 0.5 + 1e-6) dir = -1;
+    return { R, ctr, a0, phi, dir, apex, len: R * phi };
+  }
+  function arcPts(a, b, s) {
+    const A = arcInfo(a, b, s);
+    if (!A) return [];
+    const n = Math.max(6, Math.min(64, Math.ceil(A.len / 0.25))), out = [];
+    for (let k = 1; k < n; k++) { const t = A.a0 + A.dir * A.phi * k / n; out.push([A.ctr[0] + A.R * Math.cos(t), A.ctr[1] + A.R * Math.sin(t)]); }
+    return out;
+  }
+  const bulgeOf = (i) => (plan.bulge && plan.bulge[i]) || 0;
+  function roomCorners() {
+    if (isCustom()) return plan.pts;
+    const L = Math.max(num("len", 0), 0.1), W = Math.max(num("wid", 0), 0.1);
+    return [[0, 0], [L, 0], [L, W], [0, W]];
+  }
+  // Room outline with arcs expanded; arc[i] tells whether segment i belongs to a curved edge
+  function roomDense() {
+    const c = roomCorners();
+    if (!isCustom()) return { pts: c, arc: c.map(() => false) };
+    const pts = [], arc = [];
+    c.forEach((a, i) => {
+      const extra = arcPts(a, c[(i + 1) % c.length], bulgeOf(i));
+      pts.push(a); arc.push(extra.length > 0);
+      extra.forEach((q) => { pts.push(q); arc.push(true); });
+    });
+    return { pts, arc };
+  }
+  const wallPath = (w) => [w.a, ...arcPts(w.a, w.b, w.bulge || 0), w.b];
+  function edgeLen(a, b, s) { const A = arcInfo(a, b, s); return A ? A.len : Math.hypot(b[0] - a[0], b[1] - a[1]); }
+  // Thick polyline outline (for drawing walls that may be curved)
+  function offsetPath(path, half) {
+    const n = path.length, nr = [];
+    for (let i = 0; i < n; i++) {
+      const p0 = path[Math.max(0, i - 1)], p1 = path[Math.min(n - 1, i + 1)];
+      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], l = Math.hypot(dx, dy) || 1;
+      nr.push([-dy / l, dx / l]);
+    }
+    const left = path.map((p, i) => [p[0] + nr[i][0] * half, p[1] + nr[i][1] * half]);
+    const right = path.map((p, i) => [p[0] - nr[i][0] * half, p[1] - nr[i][1] * half]).reverse();
+    return left.concat(right);
+  }
+
+  // ---------- Free shapes & imported models ----------
+  const isRound = (o) => o.type === "cyl" || o.type === "rcol" || o.type === "sphere";
+  function objFootprint(o) {
+    if (isRound(o)) {
+      const out = [];
+      for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; out.push(toWorldOf(o, Math.cos(a) * o.w / 2, Math.sin(a) * o.d / 2)); }
+      return out;
+    }
+    if (o.type === "prism" && o.poly && o.poly.length >= 3) return o.poly.map((q) => toWorldOf(o, q[0] * o.w, q[1] * o.d));
+    if (o.type === "model" && o.hull && o.hull.length >= 3) return o.hull.map((q) => toWorldOf(o, q[0] * o.w, q[1] * o.d));
+    return objCorners(o);
+  }
+  const objTop = (o, H) => (o.z || 0) + objH(o, H);
+  function hexNum(c, fallback) { return typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? parseInt(c.slice(1), 16) : fallback; }
+  function lighten(hex, f = 0.45) {
+    const n = hexNum(hex, 0xcccccc), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const m = (v) => Math.round(v + (255 - v) * f).toString(16).padStart(2, "0");
+    return "#" + m(r) + m(g) + m(b);
+  }
+  // 2D convex hull (monotone chain)
+  function convexHull(points) {
+    const p = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    if (p.length < 3) return p;
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    up.pop(); lo.pop();
+    return lo.concat(up);
+  }
 
   function occluders(pts, custom, H, wp, ro) {
     const occ = [], gaps = {};
     (ro || []).forEach((r) => { if (r.ok) (gaps[r.host.key] = gaps[r.host.key] || []).push([r.u0, r.u1, r.z0, r.z1]); });
     if (custom) pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length]; occ.push([a[0], a[1], b[0], b[1], H, gaps["e" + i] || null]); });
-    plan.walls.forEach((w, i) => occ.push([w.a[0], w.a[1], w.b[0], w.b[1], wallH(w, H), gaps["w" + i] || null]));
+    plan.walls.forEach((w, i) => {
+      const path = wallPath(w);
+      for (let k = 0; k < path.length - 1; k++) occ.push([path[k][0], path[k][1], path[k + 1][0], path[k + 1][1], wallH(w, H), gaps[`w${i}_${k}`] || null]);
+    });
     plan.objs.forEach((o) => {
-      const t = OBJ_TYPES[o.type], h = objH(o, H);
-      if (!t || t.occl === false || h <= wp + 0.05) return;
-      const c = objCorners(o);
-      for (let k = 0; k < 4; k++) occ.push([c[k][0], c[k][1], c[(k + 1) % 4][0], c[(k + 1) % 4][1], h]);
+      const t = OBJ_TYPES[o.type], top = objTop(o, H), base = o.z || 0;
+      if (!t || t.occl === false || top <= wp + 0.05) return;
+      const c = objFootprint(o);
+      for (let k = 0; k < c.length; k++) occ.push([c[k][0], c[k][1], c[(k + 1) % c.length][0], c[(k + 1) % c.length][1], top, null, base]);
     });
     return occ;
   }
@@ -932,9 +1046,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2));
       return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy);
     };
-    const cols = plan.objs.filter((o) => o.type === "column");
-    const blocked = (x, y) => plan.walls.some((w) => distSeg(x, y, w.a, w.b) < (w.t || 0.1) / 2 + 0.2) ||
-      cols.some((o) => { const c = objCorners(o); return inPoly(c, x, y) || c.some((q, k) => distSeg(x, y, q, c[(k + 1) % 4]) < 0.2); });
+    const cols = plan.objs.filter((o) => o.type === "column" || o.type === "rcol" || ((o.z || 0) + objH(o, roomH()) >= roomH() - 0.05));
+    const blocked = (x, y) => plan.walls.some((w) => { const pth = wallPath(w); for (let k = 0; k < pth.length - 1; k++) if (distSeg(x, y, pth[k], pth[k + 1]) < (w.t || 0.1) / 2 + 0.2) return true; return false; }) ||
+      cols.some((o) => { const c = objFootprint(o); return inPoly(c, x, y) || c.some((q, k) => distSeg(x, y, q, c[(k + 1) % c.length]) < 0.2); });
     if (!custom && !plan.walls.length && !cols.length) {
       const g = layout(n, L, W), sx = L / g.cols, sy = W / g.rows, pos = [];
       for (let r = 0; r < g.rows; r++) for (let c = 0; c < g.cols; c++) pos.push([(c + 0.5) * sx, (r + 0.5) * sy]);
@@ -976,6 +1090,14 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   // Plan symbols as simple primitives in metres, drawn by both the SVG editor/plan and the PDF canvas
   function objPrims(o, H) {
     const t = OBJ_TYPES[o.type] || OBJ_TYPES.cabinet, hw = o.w / 2, hd = o.d / 2, out = [];
+    if (t.generic || o.type === "model") {
+      const fill = o.color ? lighten(o.color) : t.fill, fp = objFootprint(o);
+      out.push({ pts: fp, fill, closed: true, stroke: o.type === "model" ? "#5a6b7b" : "#57534b", dash: (o.z || 0) > 0.05 });
+      if (o.type === "rcol") out.push({ pts: [toWorldOf(o, -hw * 0.7, -hd * 0.7), toWorldOf(o, hw * 0.7, hd * 0.7)] }, { pts: [toWorldOf(o, hw * 0.7, -hd * 0.7), toWorldOf(o, -hw * 0.7, hd * 0.7)] });
+      if (o.type === "sphere") { const inner = []; for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; inner.push(toWorldOf(o, -hw * 0.18 + Math.cos(a) * hw * 0.45, -hd * 0.18 + Math.sin(a) * hd * 0.45)); } out.push({ pts: inner, closed: true, fill: "rgba(255,255,255,.35)", stroke: "none" }); }
+      if (o.type === "model") out.push({ pts: [toWorldOf(o, -hw * 0.25, 0), toWorldOf(o, hw * 0.25, 0)], stroke: "#5a6b7b" }, { pts: [toWorldOf(o, 0, -hd * 0.25), toWorldOf(o, 0, hd * 0.25)], stroke: "#5a6b7b" });
+      return out;
+    }
     const R = (x0, y0, x1, y1, fill, extra = {}) => out.push({ pts: rectLocal(o, x0, y0, x1, y1), fill, closed: true, ...extra });
     const Ln = (x0, y0, x1, y1, extra = {}) => out.push({ pts: [toWorldOf(o, x0, y0), toWorldOf(o, x1, y1)], ...extra });
     R(-hw, -hd, hw, hd, t.fill);
@@ -1000,7 +1122,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
   function wallPrims(w, H) {
     const full = wallH(w, H) >= H - 1e-6;
-    return [{ pts: wallCorners(w), fill: full ? "#5b5850" : "#9a958b", closed: true, stroke: "#3a3833" }];
+    return [{ pts: offsetPath(wallPath(w), (w.t || 0.1) / 2), fill: full ? "#5b5850" : "#9a958b", closed: true, stroke: "#3a3833" }];
   }
   function primsSVG(prims, X, Y) {
     return prims.map((p) => {
@@ -1033,18 +1155,31 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const fin = (v) => typeof v === "number" && Number.isFinite(v);
     const pt = (q) => Array.isArray(q) && q.length === 2 && fin(q[0]) && fin(q[1]);
     if (!p || typeof p !== "object") return null;
-    const out = { custom: !!p.custom, pts: null, walls: [], objs: [], lights: [], openings: [] };
-    if (Array.isArray(p.pts) && p.pts.length >= 3 && p.pts.length <= 200 && p.pts.every(pt)) out.pts = p.pts.map((q) => [q[0], q[1]]);
-    else out.custom = false;
+    const out = { custom: !!p.custom, pts: null, bulge: [], walls: [], objs: [], lights: [], openings: [] };
+    if (Array.isArray(p.pts) && p.pts.length >= 3 && p.pts.length <= 200 && p.pts.every(pt)) {
+      out.pts = p.pts.map((q) => [q[0], q[1]]);
+      out.bulge = out.pts.map((_, i) => (Array.isArray(p.bulge) && fin(p.bulge[i]) ? p.bulge[i] : 0));
+    } else out.custom = false;
     (Array.isArray(p.walls) ? p.walls : []).slice(0, 500).forEach((w) => {
-      if (w && pt(w.a) && pt(w.b)) out.walls.push({ a: [w.a[0], w.a[1]], b: [w.b[0], w.b[1]], t: fin(w.t) && w.t > 0 ? Math.min(w.t, 2) : 0.1, h: fin(w.h) && w.h > 0 ? w.h : null });
+      if (w && pt(w.a) && pt(w.b)) out.walls.push({ a: [w.a[0], w.a[1]], b: [w.b[0], w.b[1]], t: fin(w.t) && w.t > 0 ? Math.min(w.t, 2) : 0.1, h: fin(w.h) && w.h > 0 ? w.h : null, bulge: fin(w.bulge) ? w.bulge : 0 });
     });
     (Array.isArray(p.objs) ? p.objs : []).slice(0, 500).forEach((o) => {
-      if (o && OBJ_TYPES[o.type] && fin(o.x) && fin(o.y)) out.objs.push({
-        type: o.type, x: o.x, y: o.y, rot: fin(o.rot) ? o.rot : 0,
+      if (!(o && OBJ_TYPES[o.type] && fin(o.x) && fin(o.y))) return;
+      const q = {
+        type: o.type, x: o.x, y: o.y, rot: fin(o.rot) ? o.rot : 0, z: fin(o.z) && o.z > 0 ? o.z : 0,
         w: fin(o.w) && o.w > 0 ? o.w : OBJ_TYPES[o.type].w, d: fin(o.d) && o.d > 0 ? o.d : OBJ_TYPES[o.type].d,
         h: fin(o.h) && o.h > 0 ? o.h : OBJ_TYPES[o.type].h,
-      });
+      };
+      if (typeof o.color === "string" && /^#[0-9a-f]{6}$/i.test(o.color)) q.color = o.color;
+      const polyOk = (a) => Array.isArray(a) && a.length >= 3 && a.length <= 400 && a.every(pt);
+      if (o.type === "prism") { if (!polyOk(o.poly)) return; q.poly = o.poly.map((v) => [v[0], v[1]]); }
+      if (o.type === "model") {
+        if (typeof o.modelId !== "string" || !/^[a-z0-9_-]{1,40}$/i.test(o.modelId)) return;
+        q.modelId = o.modelId; q.name = typeof o.name === "string" ? o.name.slice(0, 120) : "model";
+        q.unit = fin(o.unit) && o.unit > 0 ? o.unit : 1; q.scale = fin(o.scale) && o.scale > 0 ? o.scale : 1; q.zup = !!o.zup;
+        if (polyOk(o.hull)) q.hull = o.hull.map((v) => [v[0], v[1]]);
+      }
+      out.objs.push(q);
     });
     (Array.isArray(p.lights) ? p.lights : []).slice(0, 2000).forEach((l) => { if (l && fin(l.x) && fin(l.y)) out.lights.push({ x: l.x, y: l.y }); });
     (Array.isArray(p.openings) ? p.openings : []).slice(0, 500).forEach((o) => {
@@ -1058,6 +1193,136 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
   function savePlan() { try { localStorage.setItem("lightPlan", JSON.stringify(plan)); } catch (e) {} }
   function loadPlan() { try { const p = validPlan(JSON.parse(localStorage.getItem("lightPlan") || "null")); if (p) plan = p; } catch (e) {} }
+  // ---------- Imported 3D models (glTF/GLB, OBJ, STL, DAE, FBX, PLY) ----------
+  const MODEL_BASE = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/";
+  const MODEL_LIBS = {
+    glb: ["loaders/GLTFLoader.js"], gltf: ["loaders/GLTFLoader.js"], obj: ["loaders/OBJLoader.js"], stl: ["loaders/STLLoader.js"],
+    dae: ["loaders/TGALoader.js", "loaders/ColladaLoader.js"], ply: ["loaders/PLYLoader.js"],
+    fbx: ["libs/fflate.min.js", "curves/NURBSUtils.js", "curves/NURBSCurve.js", "loaders/FBXLoader.js"],
+  };
+  const UNITS = [[1, "เมตร"], [0.01, "เซนติเมตร"], [0.001, "มิลลิเมตร"], [0.0254, "นิ้ว"], [0.3048, "ฟุต"]];
+  const modelStore = new Map(); // id → { name, format, buf, raw, status, metas }
+
+  function idb() {
+    return new Promise((res, rej) => {
+      try {
+        const rq = indexedDB.open("lightingModels", 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore("models", { keyPath: "id" });
+        rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+      } catch (e) { rej(e); }
+    });
+  }
+  async function idbPut(rec) { try { const db = await idb(); await new Promise((r, j) => { const tx = db.transaction("models", "readwrite"); tx.objectStore("models").put(rec); tx.oncomplete = r; tx.onerror = () => j(tx.error); }); } catch (e) {} }
+  async function idbGet(id) { try { const db = await idb(); return await new Promise((r, j) => { const q = db.transaction("models").objectStore("models").get(id); q.onsuccess = () => r(q.result); q.onerror = () => j(q.error); }); } catch (e) { return null; } }
+
+  async function parseModel(format, buf) {
+    if (!window.THREE) throw new Error("ต้องโหลดตัวแสดงผล 3D ได้ก่อน (ต่ออินเทอร์เน็ต)");
+    for (const f of MODEL_LIBS[format] || []) await loadScript(MODEL_BASE + f);
+    const text = () => new TextDecoder().decode(buf);
+    const grey = (geo) => new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0xb8c0c8, vertexColors: !!geo.attributes.color }));
+    if (format === "glb" || format === "gltf") {
+      return await new Promise((res, rej) => new THREE.GLTFLoader().parse(format === "glb" ? buf : text(), "", (g) => res(g.scene), (e) => rej(new Error("อ่านไฟล์ glTF ไม่ได้ (ไฟล์ .gltf ที่อ้างไฟล์ภายนอกให้ใช้ .glb แทน)"))));
+    }
+    if (format === "obj") return new THREE.OBJLoader().parse(text());
+    if (format === "stl") { const g = new THREE.STLLoader().parse(buf); if (!g.attributes.normal) g.computeVertexNormals(); return grey(g); }
+    if (format === "ply") { const g = new THREE.PLYLoader().parse(buf); if (!g.attributes.normal) g.computeVertexNormals(); return grey(g); }
+    if (format === "dae") { const c = new THREE.ColladaLoader().parse(text(), ""); if (!c || !c.scene) throw new Error("อ่านไฟล์ DAE ไม่ได้"); return c.scene; }
+    if (format === "fbx") return new THREE.FBXLoader().parse(buf, "");
+    throw new Error("ไม่รองรับไฟล์ชนิดนี้");
+  }
+
+  // Centre the model on its footprint, base at y = 0 (file units), optionally converting Z-up to Y-up
+  function modelMeta(id, zup) {
+    const st = modelStore.get(id);
+    if (!st || !st.raw) return null;
+    const key = zup ? "z" : "y";
+    if (st.metas[key]) return st.metas[key];
+    const raw = st.raw.clone(true);
+    const inner = new THREE.Group(); inner.add(raw);
+    if (zup) inner.rotation.x = -Math.PI / 2;
+    const wrap = new THREE.Group(); wrap.add(inner);
+    wrap.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(wrap);
+    if (box.isEmpty()) return null;
+    const size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+    inner.position.set(-ctr.x, -box.min.y, -ctr.z);
+    wrap.updateMatrixWorld(true);
+    // Footprint hull from (sampled) vertices
+    let total = 0;
+    wrap.traverse((m) => { if (m.isMesh && m.geometry && m.geometry.attributes.position) total += m.geometry.attributes.position.count; });
+    const step = Math.max(1, Math.floor(total / 60000)), pts = [], v = new THREE.Vector3();
+    wrap.traverse((m) => {
+      if (!m.isMesh || !m.geometry || !m.geometry.attributes.position) return;
+      const pos = m.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i += step) { v.fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld); pts.push([v.x, v.z]); }
+    });
+    const sx = Math.max(size.x, 1e-6), sz = Math.max(size.z, 1e-6);
+    let hull = convexHull(pts).map((q) => [q[0] / sx, q[1] / sz]);
+    if (hull.length > 64) hull = hull.filter((_, i) => i % Math.ceil(hull.length / 64) === 0);
+    wrap.traverse((o) => { o.userData.shared = true; if (o.isMesh) { o.castShadow = false; } });
+    const meta = { proto: wrap, size: [size.x, size.y, size.z], hull };
+    st.metas[key] = meta;
+    return meta;
+  }
+  function guessUnit(size) {
+    const m = Math.max(...size);
+    return m >= 200 ? 0.001 : m >= 20 ? 0.01 : 1;
+  }
+  async function loadModelRecord(rec) {
+    let st = modelStore.get(rec.id);
+    if (st && (st.status === "ok" || st.status === "loading")) return st;
+    st = { name: rec.name, format: rec.format, buf: rec.buf, raw: null, status: "loading", metas: {} };
+    modelStore.set(rec.id, st);
+    try { st.raw = await parseModel(rec.format, rec.buf); st.status = "ok"; }
+    catch (e) { st.status = "error"; st.error = e && e.message ? e.message : "อ่านไฟล์ไม่ได้"; }
+    return st;
+  }
+  // Bring in models referenced by the plan (from IndexedDB) and refresh views when ready
+  async function restoreModels() {
+    const ids = [...new Set(plan.objs.filter((o) => o.type === "model" && o.modelId).map((o) => o.modelId))];
+    for (const id of ids) {
+      if (modelStore.has(id)) continue;
+      const rec = await idbGet(id);
+      if (!rec) { modelStore.set(id, { status: "missing", metas: {} }); continue; }
+      await loadModelRecord(rec);
+    }
+    if (ids.length) { calc(); renderEditor(); renderProps(); }
+  }
+  async function importModelFile(f) {
+    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    if (ext === "skp") throw new Error("ไฟล์ .skp ของ SketchUp เปิดในเบราว์เซอร์ไม่ได้ — ใน SketchUp ให้ Export เป็น .dae, .obj, .stl หรือ .glb แล้วนำเข้าไฟล์นั้น");
+    if (!MODEL_LIBS[ext]) throw new Error("รองรับ .glb .gltf .obj .stl .dae .fbx .ply");
+    if (f.size > 60e6) throw new Error("ไฟล์ใหญ่เกิน 60 MB");
+    const buf = await f.arrayBuffer();
+    const id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const rec = { id, name: f.name, format: ext, buf };
+    const st = await loadModelRecord(rec);
+    if (st.status !== "ok") { modelStore.delete(id); throw new Error(st.error); }
+    idbPut(rec);
+    const zup = ext === "stl" || ext === "ply";
+    const meta = modelMeta(id, zup);
+    if (!meta) { modelStore.delete(id); throw new Error("ไม่พบรูปทรงในไฟล์"); }
+    const unit = guessUnit(meta.size);
+    const pts = roomPts(), cx = pts.reduce((s, q) => s + q[0], 0) / pts.length, cy = pts.reduce((s, q) => s + q[1], 0) / pts.length;
+    snapshot();
+    plan.objs.push({ type: "model", modelId: id, name: f.name, x: r2(cx), y: r2(cy), z: 0, rot: 0, unit, scale: 1, zup,
+      w: meta.size[0] * unit, d: meta.size[2] * unit, h: meta.size[1] * unit, hull: meta.hull });
+    ed.sel = { kind: "obj", i: plan.objs.length - 1 };
+    commit(false);
+    return { name: f.name, unit };
+  }
+  function refreshModelDims(o) {
+    const meta = modelMeta(o.modelId, o.zup);
+    if (!meta) return;
+    const k = o.unit * o.scale;
+    o.w = meta.size[0] * k; o.d = meta.size[2] * k; o.h = meta.size[1] * k; o.hull = meta.hull;
+  }
+  function abToB64(buf) {
+    const u = new Uint8Array(buf); let s = "";
+    for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+  function b64ToAb(b64) { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; }
 
   // ---------- Plan editor (SketchUp-like drawing on a 2D grid) ----------
   const ed = { tool: "select", s: 60, ox: 40, oy: 40, sel: null, drag: null, draft: null, cursor: null, snap: true, fitted: false };
@@ -1073,7 +1338,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   // Keep the room outline's bounding box at (0,0) so all other code can use 0..L × 0..W
   function normalizePlan() {
     if (!isCustom()) return;
-    const mx = Math.min(...plan.pts.map((p) => p[0])), my = Math.min(...plan.pts.map((p) => p[1]));
+    const dense = roomPts(), mx = Math.min(...dense.map((p) => p[0])), my = Math.min(...dense.map((p) => p[1]));
     if (Math.abs(mx) < 1e-9 && Math.abs(my) < 1e-9) return;
     const sh = (q) => { q[0] -= mx; q[1] -= my; };
     plan.pts.forEach(sh);
@@ -1083,12 +1348,15 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     plan.openings.forEach((o) => { o.x -= mx; o.y -= my; });
     ed.ox += mx * ed.s; ed.oy += my * ed.s;
   }
-  function ensureCustom() { if (!isCustom()) { plan.pts = roomPts().map((p) => [p[0], p[1]]); plan.custom = true; } }
+  function ensureCustom() {
+    if (!isCustom()) { plan.pts = roomCorners().map((p) => [p[0], p[1]]); plan.custom = true; plan.bulge = plan.pts.map(() => 0); }
+    if (!Array.isArray(plan.bulge) || plan.bulge.length !== plan.pts.length) plan.bulge = plan.pts.map((_, i) => (plan.bulge && plan.bulge[i]) || 0);
+  }
 
   const r2 = (v) => Math.round(v * 100) / 100;
   function snapPt(p, exclude) {
     const tol = 10 / ed.s;
-    const cands = roomPts().slice();
+    const cands = roomCorners().slice();
     plan.walls.forEach((w, i) => { if (!(exclude && exclude.wall === i)) cands.push(w.a, w.b); });
     let best = null, bd = tol;
     cands.forEach((q) => { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < bd) { bd = d; best = q; } });
@@ -1133,6 +1401,12 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     room: "คลิกวางมุมห้องทีละจุด (ล็อกแนว 0°/45°/90° อัตโนมัติ) · คลิกจุดแรก กด Enter หรือดับเบิลคลิกเพื่อปิดรูป · Esc ยกเลิก",
     wall: "คลิกจุดเริ่มและจุดปลายของผนัง วาดต่อเนื่องได้ · ดับเบิลคลิกหรือ Esc เพื่อจบ · ความสูงผนังปรับได้ในแผงด้านล่าง",
     light: "คลิกเพื่อวางโคมเอง — ครั้งแรกจะคัดลอกตำแหน่งโคมอัตโนมัติมาให้ปรับต่อ",
+    arcwall: "ผนังโค้ง: คลิกจุดเริ่ม → คลิกจุดปลาย → เลื่อนเมาส์กำหนดความโค้งแล้วคลิก · Esc ยกเลิก",
+    rect: "กล่อง: คลิกมุมแรก แล้วคลิกมุมตรงข้าม · ปรับความสูง/ยกจากพื้น/สีได้ในแผงด้านล่าง (เหมือน Push/Pull)",
+    circle: "ทรงกระบอก/เสากลม: คลิกจุดศูนย์กลาง แล้วคลิกกำหนดรัศมี · ปรับความสูงได้ในแผงด้านล่าง",
+    sphere: "ทรงกลม: คลิกจุดศูนย์กลาง แล้วคลิกกำหนดรัศมี",
+    poly: "รูปทรงอิสระ: คลิกวางมุมทีละจุด คลิกจุดแรก/Enter/ดับเบิลคลิกเพื่อปิดรูป แล้วกำหนดความสูงในแผงด้านล่าง",
+    measure: "วัดระยะ: คลิกจุดแรกและจุดที่สอง · Esc ล้างเส้นวัด",
   };
   function setTool(t) {
     ed.tool = t; ed.draft = null;
@@ -1161,26 +1435,34 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     // Room outline
     const pts = roomPts();
     out += `<polygon class="ed-room" points="${pts.map((p) => `${X(p[0])},${Y(p[1])}`).join(" ")}"/>`;
-    pts.forEach((a, i) => {
-      const b = pts[(i + 1) % pts.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      out += `<line data-kind="edge" data-i="${i}" class="ed-edge" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/>`;
+    const corners = roomCorners();
+    corners.forEach((a, i) => {
+      const b = corners[(i + 1) % corners.length], sg = isCustom() ? bulgeOf(i) : 0, path = [a, ...arcPts(a, b, sg), b];
+      const len = edgeLen(a, b, sg), chord = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, A = arcInfo(a, b, sg);
+      const selE = ed.sel && ed.sel.kind === "edge" && ed.sel.i === i;
+      out += `<polyline data-kind="edge" data-i="${i}" class="ed-edge${selE ? " sel" : ""}" points="${path.map((q) => `${X(q[0])},${Y(q[1])}`).join(" ")}"/>`;
+      const mx = A ? A.apex[0] : (a[0] + b[0]) / 2, my = A ? A.apex[1] : (a[1] + b[1]) / 2;
       if (len * s > 40) {
-        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, cx = (b[0] - a[0]) / len, cy = (b[1] - a[1]) / len;
-        let nx = -cy, ny = cx; if (inPoly(pts, mx + nx * 0.05, my + ny * 0.05)) { nx = -nx; ny = -ny; }
-        out += `<text class="ed-lbl" x="${X(mx) + nx * 14}" y="${Y(my) + ny * 14 + 4}" text-anchor="middle">${fmt(len, 2)} ม.</text>`;
+        let nx = -(b[1] - a[1]) / chord, ny = (b[0] - a[0]) / chord; if (inPoly(pts, mx + nx * 0.05, my + ny * 0.05)) { nx = -nx; ny = -ny; }
+        out += `<text class="ed-lbl" x="${X(mx) + nx * 14}" y="${Y(my) + ny * 14 + 4}" text-anchor="middle">${fmt(len, 2)} ม.${A ? ` · R ${fmt(A.R, 2)}` : ""}</text>`;
       }
+      if (ed.tool === "select" && selE) out += `<circle data-kind="ebend" data-i="${i}" class="ed-bend" cx="${X(mx)}" cy="${Y(my)}" r="7"><title>ลากเพื่อทำให้ขอบโค้ง</title></circle>`;
     });
     // Objects
     plan.objs.forEach((o, i) => {
       const sel = ed.sel && ed.sel.kind === "obj" && ed.sel.i === i;
       out += `<g data-kind="obj" data-i="${i}" class="ed-item${sel ? " sel" : ""}">${primsSVG(objPrims(o, H), X, Y)}</g>`;
-      if (Math.min(o.w, o.d) * s > 34) out += `<text class="ed-name" x="${X(o.x)}" y="${Y(o.y) + 4}" text-anchor="middle">${OBJ_TYPES[o.type].name}</text>`;
+      if (Math.min(o.w, o.d) * s > 34) out += `<text class="ed-name" x="${X(o.x)}" y="${Y(o.y) + 4}" text-anchor="middle">${esc(o.type === "model" ? (o.name || "โมเดล").slice(0, 18) : OBJ_TYPES[o.type].name)}</text>`;
     });
     // Walls
     plan.walls.forEach((wl, i) => {
       const sel = ed.sel && ed.sel.kind === "wall" && ed.sel.i === i;
       out += `<g data-kind="wall" data-i="${i}" class="ed-item${sel ? " sel" : ""}">${primsSVG(wallPrims(wl, H), X, Y)}</g>`;
-      if (sel) ["a", "b"].forEach((e) => { out += `<circle data-kind="wend" data-i="${i}" data-e="${e}" class="ed-h" cx="${X(wl[e][0])}" cy="${Y(wl[e][1])}" r="6"/>`; });
+      if (sel) {
+        ["a", "b"].forEach((e) => { out += `<circle data-kind="wend" data-i="${i}" data-e="${e}" class="ed-h" cx="${X(wl[e][0])}" cy="${Y(wl[e][1])}" r="6"/>`; });
+        const A = arcInfo(wl.a, wl.b, wl.bulge || 0), m = A ? A.apex : [(wl.a[0] + wl.b[0]) / 2, (wl.a[1] + wl.b[1]) / 2];
+        out += `<circle data-kind="wbend" data-i="${i}" class="ed-bend" cx="${X(m[0])}" cy="${Y(m[1])}" r="7"><title>ลากเพื่อดัดผนังให้โค้ง</title></circle>`;
+      }
     });
     // Doors & windows (drawn over walls so they can be picked)
     const ro = resolveOpenings(H);
@@ -1203,7 +1485,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       last.fixtures.forEach((f) => { out += `<circle class="ed-auto" cx="${X(f[0])}" cy="${Y(f[1])}" r="6"/>`; });
     }
     // Room corner handles
-    if (ed.tool === "select") pts.forEach((p, i) => {
+    if (ed.tool === "select") corners.forEach((p, i) => {
       const sel = ed.sel && ed.sel.kind === "vtx" && ed.sel.i === i;
       out += `<rect data-kind="vtx" data-i="${i}" class="ed-h${sel ? " sel" : ""}" x="${X(p[0]) - 5}" y="${Y(p[1]) - 5}" width="10" height="10"/>`;
     });
@@ -1212,12 +1494,38 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const c = objCorners(plan.objs[ed.sel.i]);
       out += `<polygon class="ed-selbox" points="${c.map((q) => `${X(q[0])},${Y(q[1])}`).join(" ")}"/>`;
     }
+    // Measurement
+    const dim = (a, b, cls = "") => {
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      return `<line class="ed-measure" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}"/><circle class="ed-dpt" cx="${X(a[0])}" cy="${Y(a[1])}" r="3"/><circle class="ed-dpt" cx="${X(b[0])}" cy="${Y(b[1])}" r="3"/>
+        <text class="ed-lbl strong ${cls}" x="${X((a[0] + b[0]) / 2)}" y="${Y((a[1] + b[1]) / 2) - 8}" text-anchor="middle">${fmt(len, 2)} ม.</text>`;
+    };
+    if (ed.measure) out += dim(ed.measure[0], ed.measure[1]);
     // Drafting preview
-    if (ed.draft && ed.cursor) {
+    const T = ed.tool;
+    if (ed.draft && ed.cursor && (T === "rect" || T === "circle" || T === "sphere" || T === "arcwall" || T === "measure")) {
+      const a = ed.draft[0], c = ed.cursor;
+      if (T === "rect") {
+        out += `<polygon class="ed-draft" points="${X(a[0])},${Y(a[1])} ${X(c[0])},${Y(a[1])} ${X(c[0])},${Y(c[1])} ${X(a[0])},${Y(c[1])}"/>`;
+        out += `<text class="ed-lbl strong" x="${X((a[0] + c[0]) / 2)}" y="${Y(Math.min(a[1], c[1])) - 8}" text-anchor="middle">${fmt(Math.abs(c[0] - a[0]), 2)} × ${fmt(Math.abs(c[1] - a[1]), 2)} ม.</text>`;
+      } else if (T === "circle" || T === "sphere") {
+        const r = Math.hypot(c[0] - a[0], c[1] - a[1]);
+        out += `<circle class="ed-draft" cx="${X(a[0])}" cy="${Y(a[1])}" r="${r * s}"/><line class="ed-measure" x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(c[0])}" y2="${Y(c[1])}"/>`;
+        out += `<text class="ed-lbl strong" x="${X(a[0])}" y="${Y(a[1]) - r * s - 8}" text-anchor="middle">R ${fmt(r, 2)} ม. · Ø ${fmt(2 * r, 2)} ม.</text>`;
+      } else if (T === "arcwall") {
+        if (ed.draft.length === 1) { const b = orthoSnap(c, a); out += dim(a, b); }
+        else {
+          const b = ed.draft[1], sg = bulgeFrom(a, b, ed.cursorRaw || c), path = [a, ...arcPts(a, b, sg), b];
+          out += `<polyline class="ed-draft" points="${path.map((q) => `${X(q[0])},${Y(q[1])}`).join(" ")}"/>`;
+          const A = arcInfo(a, b, sg);
+          out += `<text class="ed-lbl strong" x="${X((a[0] + b[0]) / 2)}" y="${Y((a[1] + b[1]) / 2) - 8}" text-anchor="middle">ความโค้ง ${fmt(sg, 2)} ม.${A ? ` · R ${fmt(A.R, 2)} ม.` : ""}</text>`;
+        }
+      } else if (T === "measure") out += dim(a, c);
+    } else if (ed.draft && ed.cursor) {
       const prev = ed.draft[ed.draft.length - 1], cur = orthoSnap(ed.cursor, prev);
       const chain = ed.draft.concat([cur]);
       out += `<polyline class="ed-draft" points="${chain.map((p) => `${X(p[0])},${Y(p[1])}`).join(" ")}"/>`;
-      if (ed.tool === "room" && ed.draft.length >= 3) out += `<circle class="ed-close" cx="${X(ed.draft[0][0])}" cy="${Y(ed.draft[0][1])}" r="9"/>`;
+      if ((ed.tool === "room" || ed.tool === "poly") && ed.draft.length >= 3) out += `<circle class="ed-close" cx="${X(ed.draft[0][0])}" cy="${Y(ed.draft[0][1])}" r="9"/>`;
       ed.draft.forEach((p) => { out += `<circle class="ed-dpt" cx="${X(p[0])}" cy="${Y(p[1])}" r="3.5"/>`; });
       const len = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]);
       out += `<text class="ed-lbl strong" x="${X((cur[0] + prev[0]) / 2)}" y="${Y((cur[1] + prev[1]) / 2) - 8}" text-anchor="middle">${fmt(len, 2)} ม.</text>`;
@@ -1234,21 +1542,35 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     if (!sel) {
       const pts = roomPts();
       box.innerHTML = `<div class="ed-ptitle">ภาพรวมแบบ</div>
-        <div class="ed-sum">พื้นที่ ${fmt(Math.abs(polyArea(pts)), 2)} ตร.ม. · ${pts.length} มุม · ผนัง ${plan.walls.length} · ประตู ${plan.openings.filter((o) => o.type === "door").length} · หน้าต่าง ${plan.openings.filter((o) => o.type === "window").length} · วัตถุ ${plan.objs.length} · โคม${plan.lights.length ? `วางเอง ${plan.lights.length}` : "อัตโนมัติ"}</div>`;
+        <div class="ed-sum">พื้นที่ ${fmt(Math.abs(polyArea(pts)), 2)} ตร.ม. · ${roomCorners().length} มุม · ผนัง ${plan.walls.length} · ประตู ${plan.openings.filter((o) => o.type === "door").length} · หน้าต่าง ${plan.openings.filter((o) => o.type === "window").length} · วัตถุ ${plan.objs.length} · โคม${plan.lights.length ? `วางเอง ${plan.lights.length}` : "อัตโนมัติ"}</div>`;
       return;
     }
     let html = "";
     if (sel.kind === "obj") {
-      const o = plan.objs[sel.i], t = OBJ_TYPES[o.type];
-      html = `<div class="ed-ptitle">${t.name}</div><div class="ed-fields">
-        ${numField("w", "กว้าง (ม.)", o.w)}${numField("d", "ลึก (ม.)", o.d)}${numField("h", "สูง (ม.)", objH(o, H))}
-        ${numField("rot", "หมุน (°)", o.rot)}${numField("x", "X (ม.)", o.x)}${numField("y", "Y (ม.)", o.y)}</div>
+      const o = plan.objs[sel.i], t = OBJ_TYPES[o.type], round = isRound(o), model = o.type === "model";
+      const st = model ? modelStore.get(o.modelId) : null;
+      const badge = model && (!st || st.status !== "ok")
+        ? ` <span class="badge ${!st || st.status === "loading" ? "warn" : "bad"}">${!st || st.status === "loading" ? "กำลังโหลดโมเดล…" : st.status === "missing" ? "ไม่พบไฟล์โมเดลในเบราว์เซอร์นี้ — เปิดจากไฟล์ .json ที่บันทึกไว้" : esc(st.error || "อ่านไฟล์ไม่ได้")}</span>` : "";
+      html = `<div class="ed-ptitle">${model ? esc(o.name || t.name) : t.name}${badge}</div><div class="ed-fields">
+        ${numField("w", round ? "Ø แนว X (ม.)" : "กว้าง (ม.)", o.w)}${numField("d", round ? "Ø แนว Y (ม.)" : "ลึก (ม.)", o.d)}${numField("h", "สูง (ม.)", objH(o, H))}
+        ${numField("z", "ยกจากพื้น (ม.)", o.z || 0)}${numField("rot", "หมุน (°)", o.rot)}${numField("x", "X (ม.)", o.x)}${numField("y", "Y (ม.)", o.y)}
+        ${t.generic ? `<label class="ed-f"><span>สี</span><input type="color" data-prop="color" value="${o.color || "#" + t.color.toString(16).padStart(6, "0")}"></label>` : ""}
+        ${model ? `<label class="ed-f"><span>หน่วยในไฟล์</span><select data-prop="unit">${UNITS.map(([v, l]) => `<option value="${v}" ${Math.abs(v - o.unit) < 1e-9 ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+          ${numField("scale", "สเกล (เท่า)", o.scale)}
+          <label class="ed-f"><span>แกนตั้งของไฟล์</span><span class="ed-chk"><input type="checkbox" data-prop="zup" ${o.zup ? "checked" : ""}> Z-up</span></label>` : ""}</div>
         <div class="ed-acts"><button type="button" data-act="rot90">↻ หมุน 90°</button><button type="button" data-act="dup">⧉ ทำสำเนา</button><button type="button" data-act="del" class="danger">ลบ</button></div>`;
     } else if (sel.kind === "wall") {
       const w = plan.walls[sel.i], len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
       html = `<div class="ed-ptitle">ผนัง</div><div class="ed-fields">
-        ${numField("len", "ความยาว (ม.)", len)}${numField("t", "ความหนา (ม.)", w.t)}${numField("h", "ความสูง (ม.)", w.h == null ? "" : w.h, `placeholder="เต็มความสูง ${fmt(H, 2)}"`)}</div>
-        <div class="ed-acts"><button type="button" data-act="del" class="danger">ลบผนัง</button></div>`;
+        ${numField("len", "ระยะปลายถึงปลาย (ม.)", len)}${numField("t", "ความหนา (ม.)", w.t)}${numField("h", "ความสูง (ม.)", w.h == null ? "" : w.h, `placeholder="เต็มความสูง ${fmt(H, 2)}"`)}
+        ${numField("bulge", "ความโค้ง (ม.)", w.bulge || 0)}</div>
+        <div class="ed-acts">${w.bulge ? `<button type="button" data-act="straight">ทำให้ตรง</button>` : ""}<button type="button" data-act="del" class="danger">ลบผนัง</button></div>`;
+    } else if (sel.kind === "edge") {
+      const c = roomCorners(), a = c[sel.i], b = c[(sel.i + 1) % c.length], sg = isCustom() ? bulgeOf(sel.i) : 0, A = arcInfo(a, b, sg);
+      html = `<div class="ed-ptitle">ขอบห้องด้านที่ ${sel.i + 1}</div>
+        <div class="ed-sum" style="margin-bottom:6px">ยาว ${fmt(edgeLen(a, b, sg), 2)} ม.${A ? ` · รัศมี ${fmt(A.R, 2)} ม.` : ""} · ลากจุดกลางขอบเพื่อดัดให้โค้ง</div>
+        <div class="ed-fields">${numField("bulge", "ความโค้ง (ม.)", sg)}</div>
+        <div class="ed-acts">${sg ? `<button type="button" data-act="straight">ทำให้ตรง</button>` : ""}</div>`;
     } else if (sel.kind === "open") {
       const o = plan.openings[sel.i], t = OPEN_TYPES[o.type], r = (last && last.ro && last.ro[sel.i]) || {};
       html = `<div class="ed-ptitle">${t.name}${r.ok === false ? ' <span class="badge bad">ไม่ได้อยู่บนผนัง</span>' : ""}</div><div class="ed-fields">
@@ -1259,9 +1581,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       html = `<div class="ed-ptitle">โคมไฟ (วางเอง)</div><div class="ed-fields">${numField("x", "X (ม.)", l.x)}${numField("y", "Y (ม.)", l.y)}</div>
         <div class="ed-acts"><button type="button" data-act="del" class="danger">ลบโคม</button></div>`;
     } else if (sel.kind === "vtx") {
-      const p = roomPts()[sel.i];
+      const p = roomCorners()[sel.i];
       html = `<div class="ed-ptitle">มุมห้องที่ ${sel.i + 1}</div><div class="ed-fields">${numField("x", "X (ม.)", p[0])}${numField("y", "Y (ม.)", p[1])}</div>
-        <div class="ed-acts"><button type="button" data-act="del" class="danger" ${roomPts().length <= 3 ? "disabled" : ""}>ลบมุมนี้</button></div>`;
+        <div class="ed-acts"><button type="button" data-act="del" class="danger" ${roomCorners().length <= 3 ? "disabled" : ""}>ลบมุมนี้</button></div>`;
     }
     box.innerHTML = html;
   }
@@ -1269,8 +1591,14 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   function applyProp(key, raw) {
     const sel = ed.sel, v = parseFloat(raw), ok = Number.isFinite(v);
     if (sel.kind === "obj") {
-      const o = plan.objs[sel.i];
-      if (key === "h") o.h = ok && v > 0 ? v : OBJ_TYPES[o.type].h;
+      const o = plan.objs[sel.i], scaleBy = (f) => { o.w *= f; o.d *= f; o.h *= f; };
+      if (key === "color") { if (/^#[0-9a-f]{6}$/i.test(raw)) o.color = raw; }
+      else if (o.type === "model" && (key === "w" || key === "d" || key === "h")) { if (ok && v > 0) { const f = v / (o[key] || 1); o.scale *= f; scaleBy(f); } }
+      else if (o.type === "model" && key === "unit") { if (ok && v > 0) { scaleBy(v / o.unit); o.unit = v; } }
+      else if (o.type === "model" && key === "scale") { if (ok && v > 0) { scaleBy(v / o.scale); o.scale = v; } }
+      else if (o.type === "model" && key === "zup") { o.zup = raw === true; refreshModelDims(o); }
+      else if (key === "z") o.z = ok ? Math.max(0, v) : 0;
+      else if (key === "h") o.h = ok && v > 0 ? v : OBJ_TYPES[o.type].h;
       else if ((key === "w" || key === "d") && ok) o[key] = Math.max(0.05, v);
       else if (ok) o[key] = key === "rot" ? ((v % 360) + 360) % 360 : v;
     } else if (sel.kind === "wall") {
@@ -1280,6 +1608,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         w.b = [r2(w.a[0] + dx / l * v), r2(w.a[1] + dy / l * v)];
       } else if (key === "t" && ok) w.t = Math.min(Math.max(v, 0.02), 2);
       else if (key === "h") w.h = ok && v > 0 ? v : null;
+      else if (key === "bulge") w.bulge = ok ? v : 0;
+    } else if (sel.kind === "edge") {
+      if (key === "bulge") { ensureCustom(); plan.bulge[sel.i] = ok ? v : 0; }
     } else if (sel.kind === "open" && ok) {
       const o = plan.openings[sel.i];
       if (key === "w" || key === "h") o[key] = Math.max(0.2, v); else if (key === "sill") o.sill = Math.max(0, v);
@@ -1294,7 +1625,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     else if (sel.kind === "wall") plan.walls.splice(sel.i, 1);
     else if (sel.kind === "light") plan.lights.splice(sel.i, 1);
     else if (sel.kind === "open") plan.openings.splice(sel.i, 1);
-    else if (sel.kind === "vtx") { if (roomPts().length <= 3) return; ensureCustom(); plan.pts.splice(sel.i, 1); }
+    else if (sel.kind === "vtx") {
+      if (roomCorners().length <= 3) return;
+      ensureCustom(); const n = plan.pts.length;
+      plan.pts.splice(sel.i, 1); plan.bulge.splice(sel.i, 1); plan.bulge[(sel.i - 1 + n - 1) % (n - 1)] = 0;
+    } else if (sel.kind === "edge") { ensureCustom(); plan.bulge[sel.i] = 0; }
     ed.sel = null; commit();
   }
   function rotateSel() {
@@ -1302,12 +1637,30 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     snapshot(); const o = plan.objs[ed.sel.i]; o.rot = ((o.rot || 0) + 90) % 360; commit();
   }
 
+  function bulgeFrom(a, b, c) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    let sg = (c[0] - (a[0] + b[0]) / 2) * (-dy / l) + (c[1] - (a[1] + b[1]) / 2) * (dx / l);
+    if (ed.snap) sg = Math.round(sg / 0.05) * 0.05;
+    if (Math.abs(sg) < 0.03) sg = 0;
+    return r2(Math.max(-l, Math.min(l, sg)));
+  }
+  function finishPoly() {
+    if (!ed.draft || ed.draft.length < 3) return;
+    const pts = ed.draft.slice();
+    if (Math.abs(polyArea(pts)) < 0.01) { ed.draft = null; renderEditor(); return; }
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), w = x1 - x0, d = y1 - y0, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    snapshot();
+    plan.objs.push({ type: "prism", x: r2(cx), y: r2(cy), z: 0, rot: 0, w: r2(w), d: r2(d), h: 1, poly: pts.map((q) => [(q[0] - cx) / w, (q[1] - cy) / d]) });
+    ed.draft = null; ed.sel = { kind: "obj", i: plan.objs.length - 1 };
+    setTool("select"); commit(false);
+  }
   function finishRoom() {
     if (!ed.draft || ed.draft.length < 3) return;
     const pts = ed.draft.slice();
     if (Math.abs(polyArea(pts)) < 0.05) { ed.draft = null; renderEditor(); return; }
     snapshot();
-    plan.pts = pts.map((p) => [p[0], p[1]]); plan.custom = true;
+    plan.pts = pts.map((p) => [p[0], p[1]]); plan.custom = true; plan.bulge = plan.pts.map(() => 0);
     ed.draft = null; ed.sel = null;
     setTool("select"); commit();
   }
@@ -1319,11 +1672,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       svg.setPointerCapture(e.pointerId);
       const raw = edWorld(e), p = snapPt(raw);
       const t = ed.tool;
-      if (t === "room") {
+      if (t === "room" || t === "poly") {
         if (!ed.draft) ed.draft = [p];
         else {
           const first = ed.draft[0], lastPt = ed.draft[ed.draft.length - 1];
-          if (ed.draft.length >= 3 && Math.hypot(first[0] - raw[0], first[1] - raw[1]) * ed.s < 12) return finishRoom();
+          if (ed.draft.length >= 3 && Math.hypot(first[0] - raw[0], first[1] - raw[1]) * ed.s < 12) return t === "room" ? finishRoom() : finishPoly();
           const q = orthoSnap(p, lastPt);
           if (Math.hypot(q[0] - lastPt[0], q[1] - lastPt[1]) > 1e-6) ed.draft.push(q);
         }
@@ -1338,6 +1691,34 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             ed.draft = [b]; commit(false);
           }
         }
+        return renderEditor();
+      }
+      if (t === "rect") {
+        if (!ed.draft) { ed.draft = [p]; return renderEditor(); }
+        const a = ed.draft[0], w = Math.abs(p[0] - a[0]), d = Math.abs(p[1] - a[1]);
+        if (w < 0.05 || d < 0.05) return;
+        snapshot(); plan.objs.push({ type: "box", x: r2((a[0] + p[0]) / 2), y: r2((a[1] + p[1]) / 2), z: 0, rot: 0, w: r2(w), d: r2(d), h: 1 });
+        ed.draft = null; ed.sel = { kind: "obj", i: plan.objs.length - 1 }; setTool("select"); return commit(false);
+      }
+      if (t === "circle" || t === "sphere") {
+        if (!ed.draft) { ed.draft = [p]; return renderEditor(); }
+        const a = ed.draft[0], dia = r2(2 * Math.hypot(p[0] - a[0], p[1] - a[1]));
+        if (dia < 0.05) return;
+        snapshot(); plan.objs.push({ type: t === "circle" ? "cyl" : "sphere", x: a[0], y: a[1], z: 0, rot: 0, w: dia, d: dia, h: t === "circle" ? 1 : dia });
+        ed.draft = null; ed.sel = { kind: "obj", i: plan.objs.length - 1 }; setTool("select"); return commit(false);
+      }
+      if (t === "arcwall") {
+        if (!ed.draft) ed.draft = [p];
+        else if (ed.draft.length === 1) { const b = orthoSnap(p, ed.draft[0]); if (Math.hypot(b[0] - ed.draft[0][0], b[1] - ed.draft[0][1]) >= 0.1) ed.draft.push(b); }
+        else {
+          const [a, b] = ed.draft; snapshot();
+          plan.walls.push({ a: [a[0], a[1]], b: [b[0], b[1]], t: 0.1, h: null, bulge: bulgeFrom(a, b, raw) });
+          ed.draft = null; ed.sel = { kind: "wall", i: plan.walls.length - 1 }; commit(false);
+        }
+        return renderEditor();
+      }
+      if (t === "measure") {
+        if (!ed.draft) { ed.draft = [p]; ed.measure = null; } else { ed.measure = [ed.draft[0], p]; ed.draft = null; }
         return renderEditor();
       }
       if (t === "light") {
@@ -1367,8 +1748,13 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       // Select tool
       const hit = e.target.closest("[data-kind]");
       const kind = hit && hit.dataset.kind, i = hit ? +hit.dataset.i : -1;
-      if (kind === "obj" || kind === "wall" || kind === "light" || kind === "vtx" || kind === "wend" || kind === "open") {
-        ed.sel = { kind: kind === "wend" ? "wall" : kind, i };
+      if (kind === "edge") {
+        ed.sel = { kind: "edge", i };
+        ed.drag = { kind: "pan", sx: e.clientX, sy: e.clientY, ox: ed.ox, oy: ed.oy };
+        renderEditor(); renderProps(); return;
+      }
+      if (kind === "obj" || kind === "wall" || kind === "light" || kind === "vtx" || kind === "wend" || kind === "open" || kind === "wbend" || kind === "ebend") {
+        ed.sel = { kind: kind === "wend" || kind === "wbend" ? "wall" : kind === "ebend" ? "edge" : kind, i };
         let orig;
         if (kind === "obj") orig = { x: plan.objs[i].x, y: plan.objs[i].y };
         else if (kind === "wall") orig = { a: plan.walls[i].a.slice(), b: plan.walls[i].b.slice() };
@@ -1383,7 +1769,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     });
     svg.addEventListener("pointermove", (e) => {
       const raw = edWorld(e);
-      ed.cursor = snapPt(raw);
+      ed.cursor = snapPt(raw); ed.cursorRaw = raw;
       const d = ed.drag;
       if (!d) { if (ed.tool !== "select") renderEditor(); return; }
       if (d.kind === "pan") { ed.ox = d.ox + e.clientX - d.sx; ed.oy = d.oy + e.clientY - d.sy; return renderEditor(); }
@@ -1400,6 +1786,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       }
       else if (d.kind === "wall") { const w = plan.walls[d.i]; w.a = [r2(d.orig.a[0] + g(dx)), r2(d.orig.a[1] + g(dy))]; w.b = [r2(d.orig.b[0] + g(dx)), r2(d.orig.b[1] + g(dy))]; }
       else if (d.kind === "wend") { const w = plan.walls[d.i], other = d.e === "a" ? w.b : w.a; w[d.e] = orthoSnap(snapPt(raw, { wall: d.i }), other); }
+      else if (d.kind === "wbend") { const w = plan.walls[d.i]; w.bulge = bulgeFrom(w.a, w.b, raw); }
+      else if (d.kind === "ebend") { ensureCustom(); const c = plan.pts; plan.bulge[d.i] = bulgeFrom(c[d.i], c[(d.i + 1) % c.length], raw); }
       else if (d.kind === "vtx") {
         ensureCustom();
         const n = plan.pts.length, prev = plan.pts[(d.i - 1 + n) % n];
@@ -1417,16 +1805,17 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     svg.addEventListener("pointerleave", () => { if (!ed.drag) { ed.cursor = null; renderEditor(); } });
     svg.addEventListener("dblclick", (e) => {
       if (ed.tool === "room") return finishRoom();
+      if (ed.tool === "poly") return finishPoly();
       if (ed.tool === "wall") { ed.draft = null; return renderEditor(); }
       const hit = e.target.closest('[data-kind="edge"]');
       if (ed.tool === "select" && hit) {
         snapshot(); ensureCustom();
         const i = +hit.dataset.i, p = snapPt(edWorld(e));
-        plan.pts.splice(i + 1, 0, p);
+        plan.pts.splice(i + 1, 0, p); plan.bulge[i] = 0; plan.bulge.splice(i + 1, 0, 0);
         ed.sel = { kind: "vtx", i: i + 1 }; commit();
       }
     });
-    svg.addEventListener("contextmenu", (e) => { if (ed.draft) { e.preventDefault(); if (ed.tool === "room") finishRoom(); else { ed.draft = null; renderEditor(); } } });
+    svg.addEventListener("contextmenu", (e) => { if (ed.draft) { e.preventDefault(); if (ed.tool === "room") finishRoom(); else if (ed.tool === "poly") finishPoly(); else { ed.draft = null; renderEditor(); } } });
     svg.addEventListener("wheel", (e) => {
       e.preventDefault();
       const r = svg.getBoundingClientRect();
@@ -1449,32 +1838,48 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         snapshot();
         const pts = roomPts();
         $("len").value = +Math.max(...pts.map((p) => p[0])).toFixed(2); $("wid").value = +Math.max(...pts.map((p) => p[1])).toFixed(2);
-        plan.custom = false; plan.pts = null; ed.sel = null; commit();
+        plan.custom = false; plan.pts = null; plan.bulge = []; ed.sel = null; commit();
       }
       else if (act === "autolights") { if (!plan.lights.length) return; snapshot(); plan.lights = []; ed.sel = null; commit(false); }
       else if (act === "clear") {
         if (!plan.walls.length && !plan.objs.length && !plan.lights.length && !plan.openings.length && !isCustom()) return;
-        snapshot(); plan = { custom: false, pts: null, walls: [], objs: [], lights: [], openings: [] }; ed.sel = null; commit(); fitEditor(); renderEditor();
+        snapshot(); plan = { custom: false, pts: null, bulge: [], walls: [], objs: [], lights: [], openings: [] }; ed.sel = null; commit(); fitEditor(); renderEditor();
       }
       else if (act === "save") savePlanFile();
       else if (act === "open") $("edFile").click();
+      else if (act === "import3d") $("edModel").click();
     };
     $("edBar").addEventListener("click", barClick);
     $("edBar2").addEventListener("click", barClick);
     $("edLib").addEventListener("click", (e) => { const b = e.target.closest("button[data-obj]"); if (b) setTool("place:" + b.dataset.obj); });
     $("edProps").addEventListener("change", (e) => {
-      const inp = e.target.closest("input[data-prop]"); if (!inp || !ed.sel) return;
-      snapshot(); applyProp(inp.dataset.prop, inp.value); commit();
+      const inp = e.target.closest("[data-prop]"); if (!inp || !ed.sel) return;
+      snapshot(); applyProp(inp.dataset.prop, inp.type === "checkbox" ? inp.checked : inp.value); commit();
+    });
+    $("edModel").addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0]; e.target.value = "";
+      if (!f) return;
+      $("edHint").textContent = `กำลังนำเข้า ${f.name}…`;
+      try {
+        const r = await importModelFile(f);
+        const u = UNITS.find((q) => Math.abs(q[0] - r.unit) < 1e-9);
+        $("edHint").textContent = `นำเข้า ${r.name} แล้ว · ตีความหน่วยในไฟล์เป็น${u ? u[1] : "เมตร"} (แก้ได้ในแผงด้านล่าง ถ้าขนาดไม่ถูก)`;
+      } catch (err) { $("edHint").textContent = "นำเข้าไม่สำเร็จ: " + (err && err.message ? err.message : "อ่านไฟล์ไม่ได้"); }
     });
     $("edProps").addEventListener("click", (e) => {
       const b = e.target.closest("button[data-act]"); if (!b) return;
       if (b.dataset.act === "del") deleteSel();
       else if (b.dataset.act === "rot90") rotateSel();
+      else if (b.dataset.act === "straight" && ed.sel) {
+        snapshot();
+        if (ed.sel.kind === "wall") plan.walls[ed.sel.i].bulge = 0; else if (ed.sel.kind === "edge") { ensureCustom(); plan.bulge[ed.sel.i] = 0; }
+        commit();
+      }
       else if ((b.dataset.act === "flip" || b.dataset.act === "hinge") && ed.sel && ed.sel.kind === "open") {
         snapshot(); const o = plan.openings[ed.sel.i]; o[b.dataset.act] = !o[b.dataset.act]; commit(false);
       }
       else if (b.dataset.act === "dup" && ed.sel && ed.sel.kind === "obj") {
-        snapshot(); const o = { ...plan.objs[ed.sel.i] }; o.x = r2(o.x + 0.3); o.y = r2(o.y + 0.3);
+        snapshot(); const o = JSON.parse(JSON.stringify(plan.objs[ed.sel.i])); o.x = r2(o.x + 0.3); o.y = r2(o.y + 0.3);
         plan.objs.push(o); ed.sel = { kind: "obj", i: plan.objs.length - 1 }; commit(false);
       }
     });
@@ -1482,9 +1887,14 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const f = e.target.files && e.target.files[0]; e.target.value = "";
       if (!f) return;
       try {
-        const p = validPlan(JSON.parse(await f.text()));
+        const rawPlan = JSON.parse(await f.text()), p = validPlan(rawPlan);
         if (!p) throw new Error("bad");
-        snapshot(); plan = p; ed.sel = null; commit(); fitEditor(); renderEditor();
+        for (const m of Array.isArray(rawPlan.models) ? rawPlan.models : []) {
+          if (!m || typeof m.id !== "string" || !/^[a-z0-9_-]{1,40}$/i.test(m.id) || !MODEL_LIBS[m.format] || typeof m.b64 !== "string") continue;
+          const rec = { id: m.id, name: String(m.name || "model").slice(0, 120), format: m.format, buf: b64ToAb(m.b64) };
+          idbPut(rec); modelStore.delete(m.id); await loadModelRecord(rec);
+        }
+        snapshot(); plan = p; ed.sel = null; commit(); fitEditor(); renderEditor(); restoreModels();
         $("edHint").textContent = "เปิดแบบแล้ว: " + f.name;
       } catch (err) { $("edHint").textContent = "เปิดไฟล์แบบไม่สำเร็จ (ต้องเป็นไฟล์ .json ที่บันทึกจากแอปนี้)"; }
     });
@@ -1494,8 +1904,11 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
       else if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); }
       else if (k === "delete" || k === "backspace") { if (ed.sel) { e.preventDefault(); deleteSel(); } }
-      else if (k === "escape") { if (ed.draft || ed.tool !== "select") setTool("select"); else { ed.sel = null; renderEditor(); renderProps(); } }
+      else if (k === "escape") { ed.measure = null; if (ed.draft || ed.tool !== "select") setTool("select"); else { ed.sel = null; renderEditor(); renderProps(); } }
       else if (k === "enter" && ed.tool === "room") finishRoom();
+      else if (k === "enter" && ed.tool === "poly") finishPoly();
+      else if (k === "c" && !e.ctrlKey && !e.metaKey) setTool("circle");
+      else if (k === "m") setTool("measure");
       else if (k === "r" && !e.ctrlKey && !e.metaKey) rotateSel();
       else if (k === "v") setTool("select");
       else if (k === "p") setTool("room");
@@ -1506,7 +1919,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   async function savePlanFile() {
     const name = ($("projName").value.trim() || "lighting-plan").replace(/[\\/:*?"<>|]+/g, "-") + ".json";
-    const data = JSON.stringify({ app: "lighting-calculator", version: 1, ...plan }, null, 1);
+    const ids = [...new Set(plan.objs.filter((o) => o.type === "model").map((o) => o.modelId))];
+    const models = ids.map((id) => { const st = modelStore.get(id); return st && st.buf ? { id, name: st.name, format: st.format, b64: abToB64(st.buf) } : null; }).filter(Boolean);
+    const data = JSON.stringify({ app: "lighting-calculator", version: 2, ...plan, models });
     const dl = window.claude && typeof window.claude.use === "function" ? await window.claude.use("downloads") : null;
     if (dl) {
       try { await dl.save({ filename: name, data }); $("edHint").textContent = "บันทึกแบบแล้ว"; }
@@ -1561,7 +1976,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
             const o = occ[k], t = segT(x, y, qx, qy, o[0], o[1], o[2], o[3]);
             if (t < 0) continue;
             const zh = wp + t * vz;
-            if (o[4] <= zh) continue;
+            if (o[4] <= zh || (o[6] && zh < o[6])) continue;
             if (o[5]) { const u = segU; if (o[5].some((g) => u >= g[0] && u <= g[1] && zh >= g[2] && zh <= g[3])) continue; }
             blocked = true; break;
           }
@@ -1903,7 +2318,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
               const o = occ[k], t = segT(x, z, fx, fz, o[0], o[1], o[2], o[3]);
               if (t < 0) continue;
               const zh = wp + t * rise;
-              if (o[4] <= zh) continue;
+              if (o[4] <= zh || (o[6] && zh < o[6])) continue;
               if (o[5]) { const u = segU; if (o[5].some((g) => u >= g[0] && u <= g[1] && zh >= g[2] && zh <= g[3])) continue; }
               blocked = true; break;
             }
@@ -2145,6 +2560,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   function clearGroup(group) {
     group.traverse((o) => {
+      if (o.userData && o.userData.shared) return; // geometry owned by an imported model, reused across redraws
       if (o.geometry) o.geometry.dispose();
       if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
     });
@@ -2210,7 +2626,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       return new THREE.LineLoop(g, edgeMat);
     };
     group.add(loop(0.002), loop(H));
-    pts.forEach((q) => {
+    roomCorners().forEach((q) => {
       const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(q[0] + ox, 0, q[1] + oz), new THREE.Vector3(q[0] + ox, H, q[1] + oz)]);
       group.add(new THREE.Line(g, edgeMat));
     });
@@ -2225,22 +2641,29 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeMat);
       e.position.copy(m.position); parent.add(e);
     };
-    plan.walls.forEach((w) => {
-      const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1], len = Math.hypot(dx, dy), h = wallH(w, H);
-      if (len < 0.01) return;
-      const g = new THREE.Group();
-      g.position.set((w.a[0] + w.b[0]) / 2 + ox, 0, (w.a[1] + w.b[1]) / 2 + oz);
-      g.rotation.y = -Math.atan2(dy, dx);
-      const wi = plan.walls.indexOf(w), holes = holesOn("w" + wi, len, 1), th = w.t || 0.1;
-      if (!holes.length) box(g, len, h, th, 0, h / 2, 0, h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7);
-      else {
-        const geo = new THREE.ExtrudeGeometry(wallShape(len, h, holes), { depth: th, bevelEnabled: false });
-        geo.translate(0, 0, -th / 2);
-        const m = new THREE.Mesh(geo, mat(h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7));
-        g.add(m);
-        g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat));
+    plan.walls.forEach((w, wi) => {
+      const path = wallPath(w), h = wallH(w, H), th = w.t || 0.1, col = h >= H - 1e-6 ? 0xe9e5dd : 0xd9d3c7, curved = path.length > 2;
+      for (let k = 0; k < path.length - 1; k++) {
+        const a = path[k], b = path[k + 1], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+        if (len < 0.005) continue;
+        const g = new THREE.Group();
+        g.position.set((a[0] + b[0]) / 2 + ox, 0, (a[1] + b[1]) / 2 + oz);
+        g.rotation.y = -Math.atan2(dy, dx);
+        const holes = holesOn(`w${wi}_${k}`, len, 1);
+        if (!holes.length) {
+          if (curved) { const m = new THREE.Mesh(new THREE.BoxGeometry(len + th * 0.5, h, th), mat(col)); m.position.y = h / 2; g.add(m); }
+          else box(g, len, h, th, 0, h / 2, 0, col);
+        } else {
+          const geo = new THREE.ExtrudeGeometry(wallShape(len, h, holes), { depth: th, bevelEnabled: false });
+          geo.translate(0, 0, -th / 2);
+          g.add(new THREE.Mesh(geo, mat(col)));
+          g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat));
+        }
+        group.add(g);
       }
-      group.add(g);
+      if (curved) { // top and bottom edge lines along the curve
+        [0.002, h].forEach((yy) => group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(offsetPath(path, th / 2).concat([offsetPath(path, th / 2)[0]]).map((q) => new THREE.Vector3(q[0] + ox, yy, q[1] + oz))), edgeMat)));
+      }
     });
     // Door leaves (ajar) and window glazing
     const glass = new THREE.MeshLambertMaterial({ color: 0x9fc7dd, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
@@ -2272,11 +2695,26 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     });
     plan.objs.forEach((o) => {
       const t = OBJ_TYPES[o.type]; if (!t) return;
-      const g = new THREE.Group(), w = o.w, d = o.d, h = objH(o, H), c = t.color;
-      g.position.set(o.x + ox, 0, o.y + oz);
+      const g = new THREE.Group(), w = o.w, d = o.d, h = objH(o, H), c = t.color, cc = hexNum(o.color, t.color);
+      g.position.set(o.x + ox, o.z || 0, o.y + oz);
       g.rotation.y = -(o.rot || 0) * Math.PI / 180;
       const legs = (inset, legH) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => box(g, 0.05, legH, 0.05, a * (w / 2 - inset), legH / 2, b * (d / 2 - inset), 0x5b5e66));
-      if (o.type === "desk" || o.type === "table") { box(g, w, 0.04, d, 0, h - 0.02, 0, c); legs(o.type === "desk" ? 0.05 : 0.15, h - 0.04); }
+      if (o.type === "box") box(g, w, h, d, 0, h / 2, 0, cc);
+      else if (o.type === "cyl" || o.type === "rcol" || o.type === "sphere") {
+        const geo = o.type === "sphere" ? new THREE.SphereGeometry(0.5, 40, 24) : new THREE.CylinderGeometry(0.5, 0.5, 1, 40);
+        const m = new THREE.Mesh(geo, mat(cc)); m.scale.set(w, h, d); m.position.y = h / 2; g.add(m);
+        if (o.type !== "sphere") m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 40), edgeMat));
+      } else if (o.type === "prism" && o.poly) {
+        const sh = new THREE.Shape(o.poly.map((q) => new THREE.Vector2(q[0] * w, -q[1] * d)));
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false });
+        const m = new THREE.Mesh(geo, mat(cc)); m.rotation.x = -Math.PI / 2; g.add(m);
+        m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat));
+      } else if (o.type === "model") {
+        const meta = modelMeta(o.modelId, o.zup);
+        if (meta) { const inst = meta.proto.clone(true); inst.scale.setScalar(o.unit * o.scale); inst.traverse((q) => { q.userData.shared = true; }); g.add(inst); }
+        else box(g, w, h, d, 0, h / 2, 0, 0xc0c8d0);
+      }
+      else if (o.type === "desk" || o.type === "table") { box(g, w, 0.04, d, 0, h - 0.02, 0, c); legs(o.type === "desk" ? 0.05 : 0.15, h - 0.04); }
       else if (o.type === "chair") {
         const seat = Math.min(0.45, h * 0.5);
         box(g, w * 0.9, 0.06, d * 0.9, 0, seat, 0, c); legs(0.06, seat - 0.03);
@@ -2609,7 +3047,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         (${fmt(d.E)} lux สำหรับ${esc(d.space.name)})</p>
       <h3>ข้อมูลห้อง</h3>
       <table class="kv">
-        <tr><td>${d.custom ? "รูปทรงห้อง" : "ขนาด (ยาว × กว้าง × สูง)"}</td><td>${d.custom ? `วาดเอง ${d.pts.length} มุม · กรอบ ${fmt(d.L, 2)} × ${fmt(d.W, 2)} ม. · สูง ${fmt(d.H, 2)} ม.` : `${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.`}</td></tr>
+        <tr><td>${d.custom ? "รูปทรงห้อง" : "ขนาด (ยาว × กว้าง × สูง)"}</td><td>${d.custom ? `วาดเอง ${d.corners} มุม · กรอบ ${fmt(d.L, 2)} × ${fmt(d.W, 2)} ม. · สูง ${fmt(d.H, 2)} ม.` : `${fmt(d.L, 2)} × ${fmt(d.W, 2)} × ${fmt(d.H, 2)} ม.`}</td></tr>
         ${d.custom ? `<tr><td>เส้นรอบรูป</td><td>${fmt(d.P, 2)} ม.</td></tr>` : ""}
         ${plan.walls.length || plan.objs.length ? `<tr><td>ผนังภายใน / เฟอร์นิเจอร์</td><td>${plan.walls.length} / ${plan.objs.length} รายการ</td></tr>` : ""}
         ${plan.openings.length ? `<tr><td>ประตู / หน้าต่าง</td><td>${plan.openings.filter((o) => o.type === "door").length} / ${plan.openings.filter((o) => o.type === "window").length} บาน</td></tr>` : ""}
@@ -2801,6 +3239,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   syncLamp();
   updateLuxHint();
   calc();
+  restoreModels();
   setView(window.THREE ? "3d" : "2d");
   if (!window.THREE) $("btn3d").disabled = true;
 })();
