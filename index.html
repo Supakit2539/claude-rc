@@ -119,6 +119,26 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .stat .v small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 4px; }
 .stat .d { font-size: 12px; color: var(--muted); }
 
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+.seg button {
+  font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--muted);
+  padding: 5px 14px; border-radius: 7px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: var(--shadow); }
+.view3d {
+  position: relative; height: 440px; border-radius: 10px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 30%, var(--surface-2), var(--room)); touch-action: none; cursor: grab;
+}
+.view3d:active { cursor: grabbing; }
+.view3d canvas { display: block; }
+@media (max-width: 520px) { .view3d { height: 320px; } }
+.tools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.tools label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+.tools input[type=checkbox] { width: auto; accent-color: var(--accent); }
+.scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.scale .bar { width: 140px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #2c1e5a, #3b4f9c, #1f9e89, #b5de2b, #fde725); }
 .plan-wrap { display: flex; justify-content: center; }
 #plan { width: 100%; height: auto; max-height: 420px; display: block; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; justify-content: center; }
@@ -237,8 +257,25 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       </div>
 
       <section class="card">
-        <h2>ผังการติดตั้งโดยประมาณ</h2>
-        <div class="plan-wrap"><svg id="plan" role="img" aria-label="ผังตำแหน่งโคมไฟ"></svg></div>
+        <div class="card-head">
+          <h2>ผังการติดตั้งโดยประมาณ</h2>
+          <div class="seg" role="group" aria-label="มุมมอง">
+            <button type="button" id="btn3d" aria-pressed="true">3D</button>
+            <button type="button" id="btn2d" aria-pressed="false">2D</button>
+          </div>
+        </div>
+        <div id="pane3d">
+          <div class="view3d" id="view3d" aria-label="มุมมองห้อง 3 มิติ"></div>
+          <div class="tools">
+            <span>ลากเพื่อหมุน · เลื่อนล้อ/บีบเพื่อซูม · คลิกขวา/สองนิ้วเพื่อเลื่อน</span>
+            <label><input type="checkbox" id="showBeams" checked>ลำแสง</label>
+            <label><input type="checkbox" id="showHeat" checked>แผนที่ความสว่าง</label>
+            <div class="scale"><span>0</span><span class="bar"></span><span id="scaleMax">–</span><span>lux</span></div>
+          </div>
+        </div>
+        <div id="pane2d" class="hidden">
+          <div class="plan-wrap"><svg id="plan" role="img" aria-label="ผังตำแหน่งโคมไฟ"></svg></div>
+        </div>
         <div class="legend" id="legend"></div>
       </section>
 
@@ -263,6 +300,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   <footer>ผลลัพธ์เป็นการประมาณเพื่อการวางแผนเบื้องต้น</footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 (() => {
   // Recommended illuminance (lux)
@@ -290,17 +329,17 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   // Lamp presets: lumens per lamp, watts per lamp
   const LAMPS = [
-    { id: "led9", name: "LED Bulb 9W (E27)", lm: 806, w: 9 },
-    { id: "led12", name: "LED Bulb 12W (E27)", lm: 1100, w: 12 },
-    { id: "dl12", name: "LED Downlight 12W", lm: 1000, w: 12 },
-    { id: "t8led9", name: "LED Tube T8 9W (60 ซม.)", lm: 900, w: 9 },
-    { id: "t8led18", name: "LED Tube T8 18W (120 ซม.)", lm: 1800, w: 18 },
-    { id: "panel36", name: "LED Panel 60×60 36W", lm: 3600, w: 36 },
-    { id: "hb100", name: "LED High Bay 100W", lm: 13000, w: 100 },
-    { id: "t8fl36", name: "หลอดฟลูออเรสเซนต์ T8 36W", lm: 2850, w: 36 },
-    { id: "cfl20", name: "หลอดตะเกียบ CFL 20W", lm: 1200, w: 20 },
-    { id: "inc60", name: "หลอดไส้ 60W", lm: 710, w: 60 },
-    { id: "custom", name: "กำหนดเอง", lm: null, w: null },
+    { id: "led9", name: "LED Bulb 9W (E27)", lm: 806, w: 9, shape: "bulb" },
+    { id: "led12", name: "LED Bulb 12W (E27)", lm: 1100, w: 12, shape: "bulb" },
+    { id: "dl12", name: "LED Downlight 12W", lm: 1000, w: 12, shape: "downlight" },
+    { id: "t8led9", name: "LED Tube T8 9W (60 ซม.)", lm: 900, w: 9, shape: "tube", len: 0.6 },
+    { id: "t8led18", name: "LED Tube T8 18W (120 ซม.)", lm: 1800, w: 18, shape: "tube", len: 1.2 },
+    { id: "panel36", name: "LED Panel 60×60 36W", lm: 3600, w: 36, shape: "panel" },
+    { id: "hb100", name: "LED High Bay 100W", lm: 13000, w: 100, shape: "highbay" },
+    { id: "t8fl36", name: "หลอดฟลูออเรสเซนต์ T8 36W", lm: 2850, w: 36, shape: "tube", len: 1.2 },
+    { id: "cfl20", name: "หลอดตะเกียบ CFL 20W", lm: 1200, w: 20, shape: "bulb" },
+    { id: "inc60", name: "หลอดไส้ 60W", lm: 710, w: 60, shape: "bulb" },
+    { id: "custom", name: "กำหนดเอง", lm: null, w: null, shape: "downlight" },
   ];
 
   // Simplified utilisation-factor table vs room index
@@ -442,9 +481,234 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       [`ความหนาแน่นกำลังไฟ <span class="hint">ประสิทธิภาพหลอด ${fmt(efficacy)} lm/W</span>`, `${fmt(wpm2, 1)} W/ตร.ม. ${lpdBadge}`],
       ["ค่าไฟต่อปี", `${fmt(cost * 12)} ฿`],
     ];
+    // Illuminance distribution on the work plane (point-source model scaled to the lumen-method average)
+    const dist = distribution(L, W, Hm, g, sx, sy, achieved);
+    const u0 = dist.avg ? dist.min / dist.avg : 0;
+    const u0Badge = u0 >= 0.6 ? `<span class="badge ok">สม่ำเสมอ</span>` : u0 >= 0.4 ? `<span class="badge warn">พอใช้</span>` : `<span class="badge bad">ไม่สม่ำเสมอ</span>`;
+    rows.splice(rows.length - 1, 0, [
+      `ความสม่ำเสมอของแสง (U₀ = Emin/Eavg) <span class="hint">ต่ำสุด ${fmt(dist.min)} · สูงสุด ${fmt(dist.max)} lux</span>`,
+      `${fmt(u0, 2)} ${u0Badge}`,
+    ]);
     $("details").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
 
     drawPlan(L, W, g, sx, sy);
+    last = { L, W, H, wp, g, sx, sy, E, dist, refl, lamp: LAMPS.find((x) => x.id === lampSel.value), perFix };
+    if (view === "3d") update3D();
+  }
+
+  // ---------- Illuminance distribution ----------
+  function distribution(L, W, Hm, g, sx, sy, avgTarget) {
+    const nx = 72, nz = Math.max(8, Math.min(144, Math.round(72 * W / L)));
+    const vals = new Float32Array(nx * nz);
+    const h2 = Hm * Hm;
+    let sum = 0;
+    for (let j = 0; j < nz; j++) {
+      const z = (j + 0.5) / nz * W;
+      for (let i = 0; i < nx; i++) {
+        const x = (i + 0.5) / nx * L;
+        let e = 0;
+        for (let r = 0; r < g.rows; r++) {
+          const dz = z - (r + 0.5) * sy;
+          for (let c = 0; c < g.cols; c++) {
+            const dx = x - (c + 0.5) * sx;
+            const d2 = dx * dx + dz * dz + h2;
+            e += h2 / (d2 * d2); // Lambertian: I0·cos²θ/d²  ∝  h²/d⁴
+          }
+        }
+        vals[j * nx + i] = e; sum += e;
+      }
+    }
+    const k = sum ? avgTarget / (sum / vals.length) : 0;
+    let min = Infinity, max = 0;
+    for (let n = 0; n < vals.length; n++) { vals[n] *= k; if (vals[n] < min) min = vals[n]; if (vals[n] > max) max = vals[n]; }
+    return { nx, nz, vals, min: Number.isFinite(min) ? min : 0, max, avg: avgTarget };
+  }
+
+  const RAMP = [[0, [44, 30, 90]], [0.25, [59, 79, 156]], [0.5, [31, 158, 137]], [0.75, [181, 222, 43]], [1, [253, 231, 37]]];
+  function ramp(t) {
+    t = Math.min(Math.max(t, 0), 1);
+    for (let i = 0; i < RAMP.length - 1; i++) {
+      const [a, ca] = RAMP[i], [b, cb] = RAMP[i + 1];
+      if (t <= b) { const f = (t - a) / (b - a); return ca.map((v, k) => Math.round(v + f * (cb[k] - v))); }
+    }
+    return RAMP[RAMP.length - 1][1];
+  }
+
+  // ---------- 3D view ----------
+  let view = "3d", last = null, three = null;
+
+  function init3D() {
+    if (three) return true;
+    if (!window.THREE || !THREE.OrbitControls) return false;
+    try {
+      const el = $("view3d");
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.localClippingEnabled = true;
+      el.appendChild(renderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 1000);
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.maxPolarAngle = Math.PI * 0.49;
+      controls.addEventListener("change", render3D);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8478, 0.85));
+      const dl = new THREE.DirectionalLight(0xffffff, 0.35); dl.position.set(4, 10, 6); scene.add(dl);
+      const group = new THREE.Group(); scene.add(group);
+      three = { el, renderer, scene, camera, controls, group, fitKey: "" };
+      new ResizeObserver(() => { resize3D(); render3D(); }).observe(el);
+      resize3D();
+      return true;
+    } catch (e) {
+      three = null;
+      return false;
+    }
+  }
+
+  function resize3D() {
+    const { el, renderer, camera } = three;
+    const w = el.clientWidth || 1, h = el.clientHeight || 1;
+    renderer.setSize(w, h, false);
+    renderer.domElement.style.width = "100%"; renderer.domElement.style.height = "100%";
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+
+  function render3D() { if (three) three.renderer.render(three.scene, three.camera); }
+
+  function clearGroup(group) {
+    group.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
+    });
+    while (group.children.length) group.remove(group.children[0]);
+  }
+
+  const WALL = { light: 0xf3f0e8, medium: 0xd2cbbb, dark: 0x6f6a61 };
+
+  function update3D() {
+    if (!last || !init3D()) return;
+    const { L, W, H, wp, g, sx, sy, E, dist, refl, lamp, perFix } = last;
+    const { group, camera, controls } = three;
+    clearGroup(group);
+    const ox = -L / 2, oz = -W / 2;
+
+    // Room shell: back-face walls hide themselves when they face the camera; ceiling removed
+    const wallMat = new THREE.MeshLambertMaterial({ color: WALL[refl], emissive: WALL[refl], emissiveIntensity: 0.3, side: THREE.BackSide });
+    const floorMat = new THREE.MeshLambertMaterial({ color: 0xc8b59a, emissive: 0xc8b59a, emissiveIntensity: 0.2, side: THREE.BackSide });
+    const none = new THREE.MeshBasicMaterial({ visible: false });
+    const room = new THREE.Mesh(new THREE.BoxGeometry(L, H, W), [wallMat, wallMat, none, floorMat, wallMat, wallMat]);
+    room.position.y = H / 2;
+    group.add(room);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L, H, W)),
+      new THREE.LineBasicMaterial({ color: 0x9a948a, transparent: true, opacity: 0.35 }));
+    edges.position.y = H / 2;
+    group.add(edges);
+
+    // Work-plane heatmap
+    const scaleMax = Math.max(E * 1.5, dist.max, 1);
+    $("scaleMax").textContent = fmt(scaleMax);
+    if ($("showHeat").checked) {
+      const cv = document.createElement("canvas");
+      cv.width = dist.nx; cv.height = dist.nz;
+      const ctx = cv.getContext("2d");
+      const img = ctx.createImageData(dist.nx, dist.nz);
+      for (let n = 0; n < dist.vals.length; n++) {
+        const [r, gg, b] = ramp(dist.vals[n] / scaleMax);
+        img.data[n * 4] = r; img.data[n * 4 + 1] = gg; img.data[n * 4 + 2] = b; img.data[n * 4 + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(L, W),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false }));
+      plane.rotation.x = -Math.PI / 2;
+      plane.position.y = Math.max(wp, 0.005);
+      group.add(plane);
+    }
+
+    // Fixtures
+    const glow = new THREE.MeshBasicMaterial({ color: 0xfff4d0 });
+    const body = new THREE.MeshLambertMaterial({ color: 0xdedad2 });
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+      clippingPlanes: [
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), L / 2), new THREE.Plane(new THREE.Vector3(-1, 0, 0), L / 2),
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), W / 2), new THREE.Plane(new THREE.Vector3(0, 0, -1), W / 2),
+      ] });
+    const shape = (lamp && lamp.shape) || "downlight";
+    const beamH = Math.max(H - wp, 0.2);
+    const beamR = Math.min(Math.max(Math.max(sx, sy) * 0.6, beamH * 0.55), beamH * 1.2);
+    for (let r = 0; r < g.rows; r++) {
+      for (let c = 0; c < g.cols; c++) {
+        const x = ox + (c + 0.5) * sx, z = oz + (r + 0.5) * sy;
+        const fx = new THREE.Group();
+        fx.position.set(x, H, z);
+        if (shape === "tube") {
+          const len = Math.min(lamp.len || 1.2, sx * 0.9);
+          const gap = 0.09;
+          const housing = new THREE.Mesh(new THREE.BoxGeometry(len + 0.06, 0.03, perFix * gap + 0.04), body);
+          housing.position.y = -0.015; fx.add(housing);
+          for (let t = 0; t < perFix; t++) {
+            const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, len, 10), glow);
+            tube.rotation.z = Math.PI / 2;
+            tube.position.set(0, -0.045, (t - (perFix - 1) / 2) * gap);
+            fx.add(tube);
+          }
+        } else if (shape === "panel") {
+          const p = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.02, 0.6), glow);
+          p.position.y = -0.012; fx.add(p);
+        } else if (shape === "highbay") {
+          const hang = Math.min(0.6, H * 0.12);
+          const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, hang, 6), body);
+          cord.position.y = -hang / 2; fx.add(cord);
+          const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.24, 0.18, 24, 1, true), new THREE.MeshLambertMaterial({ color: 0x8c8c8c, side: THREE.DoubleSide }));
+          shade.position.y = -hang - 0.09; fx.add(shade);
+          const lens = new THREE.Mesh(new THREE.CircleGeometry(0.23, 24), glow);
+          lens.rotation.x = Math.PI / 2; lens.position.y = -hang - 0.17; fx.add(lens);
+        } else if (shape === "bulb") {
+          const hang = Math.min(0.35, (H - wp) * 0.2);
+          const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, hang, 6), body);
+          cord.position.y = -hang / 2; fx.add(cord);
+          for (let t = 0; t < perFix; t++) {
+            const b = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), glow);
+            b.position.set((t - (perFix - 1) / 2) * 0.14, -hang - 0.05, 0);
+            fx.add(b);
+          }
+        } else {
+          const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.02, 24), body);
+          ring.position.y = -0.01; fx.add(ring);
+          const lens = new THREE.Mesh(new THREE.CircleGeometry(0.08, 24), glow);
+          lens.rotation.x = Math.PI / 2; lens.position.y = -0.021; fx.add(lens);
+        }
+        group.add(fx);
+        if ($("showBeams").checked) {
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(beamR, beamH, 32, 1, true), beamMat);
+          cone.position.set(x, wp + beamH / 2, z);
+          group.add(cone);
+        }
+      }
+    }
+
+    // Fit camera only when room geometry changes, so the user's orbit is kept otherwise
+    const key = [L, W, H].join("|");
+    if (three.fitKey !== key) {
+      three.fitKey = key;
+      const span = Math.max(L, W, H);
+      camera.position.set(L * 0.55 + span * 0.35, H + span * 0.85, W * 0.6 + span * 0.95);
+      controls.target.set(0, H * 0.3, 0);
+      controls.minDistance = span * 0.3;
+      controls.maxDistance = span * 5;
+      controls.update();
+    }
+    render3D();
+  }
+
+  function setView(v) {
+    if (v === "3d" && !init3D()) v = "2d";
+    view = v;
+    $("btn3d").setAttribute("aria-pressed", v === "3d");
+    $("btn2d").setAttribute("aria-pressed", v === "2d");
+    $("pane3d").classList.toggle("hidden", v !== "3d");
+    $("pane2d").classList.toggle("hidden", v !== "2d");
+    if (v === "3d") { resize3D(); update3D(); }
   }
 
   function drawPlan(L, W, g, sx, sy) {
@@ -505,9 +769,15 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
   });
 
+  $("btn3d").addEventListener("click", () => setView("3d"));
+  $("btn2d").addEventListener("click", () => setView("2d"));
+  ["showBeams", "showHeat"].forEach((id) => $(id).addEventListener("change", update3D));
+
   syncLamp();
   updateLuxHint();
   calc();
+  setView(window.THREE ? "3d" : "2d");
+  if (!window.THREE) $("btn3d").disabled = true;
 })();
 </script>
 </body>
