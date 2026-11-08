@@ -285,7 +285,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
         </div>
         <div class="tools">
           <span id="orbitHint">ลากเพื่อหมุน · เลื่อนล้อ/บีบเพื่อซูม · คลิกขวา/สองนิ้วเพื่อเลื่อน</span>
-          <label><input type="checkbox" id="showNums" checked>ค่า lux รายจุด</label>
+          <label><input type="checkbox" id="showIso" checked>เส้น isolux</label>
+          <label><input type="checkbox" id="showNums">ค่า lux รายจุด</label>
           <label><input type="checkbox" id="showHeat" checked>แผนที่ความสว่าง</label>
           <label id="beamsWrap"><input type="checkbox" id="showBeams" checked>ลำแสง</label>
           <div class="scale"><span>0</span><span class="bar"></span><span id="scaleMax">–</span><span>lux</span></div>
@@ -583,7 +584,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
   }
 
   // Work-plane image: false-colour map and/or lux value at each grid point
-  function workPlaneCanvas(L, W, dist, scaleMax, pxPerM, heat, nums, fsMax = 34) {
+  function workPlaneCanvas(L, W, dist, scaleMax, pxPerM, heat, nums, fsMax = 34, iso = false) {
     const cw = Math.round(L * pxPerM), ch = Math.round(W * pxPerM);
     const cv = document.createElement("canvas");
     cv.width = cw; cv.height = ch;
@@ -602,6 +603,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     } else {
       ctx.fillStyle = "#f4f1ea"; ctx.fillRect(0, 0, cw, ch);
     }
+    if (iso) drawIsolux(ctx, L, W, dist, pxPerM, heat, scaleMax, fsMax);
     if (nums) {
       const { step, pts } = calcGrid(L, W);
       const fs = Math.max(9, Math.min(step * pxPerM * 0.3, fsMax));
@@ -620,6 +622,82 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       });
     }
     return cv;
+  }
+
+  // Isolux levels: a "nice" step giving roughly 4–8 lines between Emin and Emax
+  function isoLevels(dist) {
+    const range = dist.max - dist.min;
+    if (!(range > 0)) return { step: 0, levels: [] };
+    const nice = [1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000];
+    const step = nice.find((n) => range / n <= 7) || 5000;
+    const levels = [];
+    for (let v = Math.ceil((dist.min + step * 0.15) / step) * step; v < dist.max - step * 0.1; v += step) levels.push(v);
+    return { step, levels };
+  }
+
+  // Marching squares over the illuminance grid → line segments (in metres) per level
+  function contour(dist, L, W, level) {
+    const { nx, nz, vals } = dist, segs = [];
+    const X = (i) => (i + 0.5) / nx * L, Z = (j) => (j + 0.5) / nz * W;
+    for (let j = 0; j < nz - 1; j++) {
+      for (let i = 0; i < nx - 1; i++) {
+        const a = vals[j * nx + i], b = vals[j * nx + i + 1], c = vals[(j + 1) * nx + i + 1], d = vals[(j + 1) * nx + i];
+        const idx = (a >= level ? 8 : 0) | (b >= level ? 4 : 0) | (c >= level ? 2 : 0) | (d >= level ? 1 : 0);
+        if (idx === 0 || idx === 15) continue;
+        const t = (p, q) => (level - p) / (q - p);
+        const top = [X(i) + t(a, b) * (X(i + 1) - X(i)), Z(j)];
+        const right = [X(i + 1), Z(j) + t(b, c) * (Z(j + 1) - Z(j))];
+        const bottom = [X(i) + t(d, c) * (X(i + 1) - X(i)), Z(j + 1)];
+        const left = [X(i), Z(j) + t(a, d) * (Z(j + 1) - Z(j))];
+        const add = (p, q) => segs.push([p, q]);
+        switch (idx) {
+          case 1: case 14: add(left, bottom); break;
+          case 2: case 13: add(bottom, right); break;
+          case 3: case 12: add(left, right); break;
+          case 4: case 11: add(top, right); break;
+          case 6: case 9: add(top, bottom); break;
+          case 7: case 8: add(left, top); break;
+          case 5: add(left, top); add(bottom, right); break;
+          case 10: add(top, right); add(left, bottom); break;
+        }
+      }
+    }
+    return segs;
+  }
+
+  function drawIsolux(ctx, L, W, dist, pxPerM, heat, scaleMax, fsMax) {
+    const { levels } = isoLevels(dist);
+    const fs = Math.max(10, Math.min(fsMax * 0.8, Math.min(L, W) * pxPerM / 14));
+    const placed = [];
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    levels.forEach((lv) => {
+      const segs = contour(dist, L, W, lv);
+      if (!segs.length) return;
+      const [r, g, b] = ramp(lv / scaleMax);
+      const col = heat ? "rgba(25,20,45,.8)" : `rgb(${Math.round(r * 0.75)},${Math.round(g * 0.75)},${Math.round(b * 0.75)})`;
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.2, fs * 0.12);
+      ctx.beginPath();
+      segs.forEach(([p, q]) => { ctx.moveTo(p[0] * pxPerM, p[1] * pxPerM); ctx.lineTo(q[0] * pxPerM, q[1] * pxPerM); });
+      ctx.stroke();
+      // Up to two labels per line, kept clear of the edges and of each other
+      const minGap = fs * 4, edge = fs * 1.2;
+      const cands = segs.map(([p, q]) => [(p[0] + q[0]) / 2 * pxPerM, (p[1] + q[1]) / 2 * pxPerM])
+        .filter(([x, y]) => x > edge * 1.5 && y > edge && x < L * pxPerM - edge * 1.5 && y < W * pxPerM - edge);
+      let count = 0;
+      for (let k = 0; k < cands.length && count < 2; k += Math.max(1, Math.floor(cands.length / 7))) {
+        const [x, y] = cands[k];
+        if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < minGap)) continue;
+        placed.push([x, y]); count++;
+        const t = fmt(lv);
+        ctx.font = `600 ${fs}px "IBM Plex Sans Thai", system-ui, sans-serif`;
+        const w = ctx.measureText(t).width + fs * 0.6, h = fs * 1.25;
+        ctx.fillStyle = "rgba(255,255,255,.92)";
+        ctx.beginPath(); ctx.rect(x - w / 2, y - h / 2, w, h); ctx.fill();
+        ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, fs * 0.06); ctx.stroke();
+        ctx.fillStyle = "#1d1c19"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(t, x, y + fs * 0.04);
+      }
+    });
   }
 
   // Approximate sRGB colour of a black-body light source (Tanner Helland fit)
@@ -702,8 +780,8 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     group.add(edges);
 
     // Work-plane heatmap
-    if ($("showHeat").checked || $("showNums").checked) {
-      const cv = workPlaneCanvas(L, W, dist, last.scaleMax, 1536 / Math.max(L, W), $("showHeat").checked, $("showNums").checked, 72);
+    if ($("showHeat").checked || $("showNums").checked || $("showIso").checked) {
+      const cv = workPlaneCanvas(L, W, dist, last.scaleMax, 2048 / Math.max(L, W), $("showHeat").checked, $("showNums").checked, 80, $("showIso").checked);
       const tex = new THREE.CanvasTexture(cv);
       tex.anisotropy = three.renderer.capabilities.getMaxAnisotropy();
       tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
@@ -813,9 +891,9 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
     const vw = rw + pad * 2, vh = rh + pad * 2;
     svg.setAttribute("viewBox", `0 0 ${vw} ${vh}`);
     const glowR = Math.max(Math.min(sx, sy) * scale * 0.75, 10);
-    const heat = $("showHeat").checked, nums = $("showNums").checked;
-    const bg = heat || nums
-      ? `<image href="${workPlaneCanvas(L, W, last.dist, last.scaleMax, scale * 2, heat, nums).toDataURL()}" x="${pad}" y="${pad}" width="${rw}" height="${rh}" preserveAspectRatio="none"/>`
+    const heat = $("showHeat").checked, nums = $("showNums").checked, iso = $("showIso").checked;
+    const bg = heat || nums || iso
+      ? `<image href="${workPlaneCanvas(L, W, last.dist, last.scaleMax, scale * 2, heat, nums, 34, iso).toDataURL()}" x="${pad}" y="${pad}" width="${rw}" height="${rh}" preserveAspectRatio="none"/>`
       : "";
     const dot = Math.max(Math.min(6, Math.min(sx, sy) * scale * 0.18), 3);
     let fixtures = "";
@@ -844,7 +922,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
       <g clip-path="url(#roomClip)">${bg}${fixtures}</g>
       ${dims}`;
     $("legend").innerHTML =
-      `<span>● ตำแหน่งโคม</span>${$("showNums").checked ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`;
+      `<span>● ตำแหน่งโคม</span>${iso && isoLevels(last.dist).step ? `<span>เส้น isolux ทุก ${fmt(isoLevels(last.dist).step)} lux</span>` : ""}${$("showNums").checked ? `<span>ตัวเลข = ความสว่าง (lux) บนระนาบใช้งาน ระยะจุดคำนวณ ${fmt(calcGrid(L, W).step, 2)} ม.</span>` : ""}<span>ระยะห่างแนวยาว ${fmt(sx, 2)} ม. · แนวกว้าง ${fmt(sy, 2)} ม.</span><span>ระยะจากผนัง ${fmt(sx / 2, 2)} / ${fmt(sy / 2, 2)} ม.</span>`;
   }
 
   // Events
@@ -868,7 +946,7 @@ footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: cen
 
   $("btn3d").addEventListener("click", () => setView("3d"));
   $("btn2d").addEventListener("click", () => setView("2d"));
-  ["showBeams", "showHeat", "showNums"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(last.L, last.W, last.g, last.sx, last.sy); update3D(); }));
+  ["showBeams", "showHeat", "showNums", "showIso"].forEach((id) => $(id).addEventListener("change", () => { drawPlan(last.L, last.W, last.g, last.sx, last.sy); update3D(); }));
 
   syncLamp();
   updateLuxHint();
