@@ -51,7 +51,22 @@ const path = require('path');
     s.load('pico'); s.run(0.5);
     o.picoRed = !!s.find('D1')._on; o.picoRedI = I('D1');
     s.run(3.2); o.picoGreen = !!s.find('D3')._on && !s.find('D1')._on;
-    o.mcuErr = ['arduino','esp32','pico'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
+    s.load('ardsense'); s.run(1.1);
+    o.senseLine = s.find('U1')._vm.serial.split('\n')[0];
+    s.find('US1').dist = 10; s.find('PIR1')._t = 3; s.poke(); s.run(1.0);
+    o.senseBz = !!s.find('BZ1')._snd; o.sensePir = /PIR=1/.test(s.find('U1')._vm.serial);
+
+    s.load('espgarden'); s.run(1.5); o.servoDry = s.find('SV1')._ang;
+    s.find('SM1').moist = 70; s.poke(); s.run(1.5); o.servoWet = s.find('SV1')._ang;
+
+    s.load('plcsense'); s.run(0.3);
+    const pl = s.find('PLC1');
+    o.ai0 = pl._img.AI[0]; o.q0off = pl._img.Q[0];
+    s.find('PX1').det = true; s.poke(); s.run(0.1); o.q0on = pl._img.Q[0];
+    s.find('SQ1').act = true; s.poke(); s.run(0.1); o.q0lim = pl._img.Q[0];
+    s.find('TT1').pct = 90; s.poke(); s.run(0.1); o.q2 = pl._img.Q[2];
+
+    o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
 
@@ -74,7 +89,12 @@ const path = require('path');
   checks.push(['arduino: LED หรี่ลงเมื่อหมุน pot ลง', r.ardLed > 0.008 && r.ardLedDim > 0 && r.ardLedDim < r.ardLed, r.ardLed.toFixed(4) + ' → ' + r.ardLedDim.toFixed(4)]);
   checks.push(['esp32: กดปุ่ม 1 ครั้ง → LED ติด, นับ 1 ครั้ง', r.espLed && (r.espSerial.match(/กดครั้งที่/g) || []).length === 1, JSON.stringify(r.espSerial)]);
   checks.push(['pico: ไฟแดงติดก่อน (≈3.5 mA) แล้วเปลี่ยนเป็นเขียว', r.picoRed && Math.abs(r.picoRedI - 0.0035) < 0.0003 && r.picoGreen, r.picoRedI]);
-  checks.push(['โค้ดตัวอย่างบอร์ดทั้ง 3 คอมไพล์และรันได้', r.mcuErr.length === 0, r.mcuErr.join(' | ')]);
+  checks.push(['โค้ดตัวอย่างไมโครคอนโทรลเลอร์ทั้งหมดคอมไพล์และรันได้', r.mcuErr.length === 0, r.mcuErr.join(' | ')]);
+  checks.push(['ardsense: อ่าน DHT22 / LDR / อัลตราโซนิก', r.senseLine === 'T=25C H=60% แสง=936 ระยะ=100cm PIR=0', r.senseLine]);
+  checks.push(['ardsense: วัตถุใกล้ → บัซเซอร์ดัง, PIR ตรวจพบ', r.senseBz && r.sensePir, r.senseBz + ' ' + r.sensePir]);
+  checks.push(['espgarden: ดินแห้ง → เซอร์โว 90°, ดินชื้น → 0°', Math.abs(r.servoDry - 90) < 1 && Math.abs(r.servoWet) < 1, r.servoDry + ' → ' + r.servoWet]);
+  near('plcsense: ทรานสมิตเตอร์ 40% → AI0 ≈ 40', r.ai0, 40, 0.5);
+  checks.push(['plcsense: พร็อกซิมิตี้ → Q0, ลิมิตสวิตช์ตัด, AI0 > 75 → Q2', r.q0off === 0 && r.q0on === 1 && r.q0lim === 0 && r.q2 === 1, [r.q0off, r.q0on, r.q0lim, r.q2].join(',')]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
