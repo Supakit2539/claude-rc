@@ -66,7 +66,25 @@ const path = require('path');
     s.find('SQ1').act = true; s.poke(); s.run(0.1); o.q0lim = pl._img.Q[0];
     s.find('TT1').pct = 90; s.poke(); s.run(0.1); o.q2 = pl._img.Q[2];
 
-    o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
+    const RC = n => s.RES.comp[s.find(n).id];
+    s.load('semi'); s.run(0.1);
+    o.reg = RC('U1').vout; o.vz = RC('V1').Vr; o.ledOff = RC('D1').Ir;
+    s.find('S1').on = true; s.poke(); s.run(0.1);
+    o.ledOn = RC('D1').Ir; o.qState = s.find('Q1')._bj;
+
+    s.load('timer555'); s.run(0.2);
+    let tr = 0, lq = s.find('U1')._q;
+    for (let t = 0; t < 4; t += 0.05){ s.step(0.05); if (s.find('U1')._q !== lq){ tr++; lq = s.find('U1')._q; } }
+    o.t555 = tr;
+
+    s.load('counter'); s.run(1.5);
+    o.seg = 'abcdefg'.split('').filter((_, k) => s.find('DS1')._js[k]).join('');
+
+    s.load('motor'); s.run(0.3); o.motorOff = RC('M1').Ir;
+    const mb = s.find('S1'); mb._pr = true; s.poke(); s.run(0.2); mb._pr = false; s.poke(); s.run(0.5);
+    o.motorOn = RC('M1').Ir;
+
+    o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
 
@@ -95,6 +113,12 @@ const path = require('path');
   checks.push(['espgarden: ดินแห้ง → เซอร์โว 90°, ดินชื้น → 0°', Math.abs(r.servoDry - 90) < 1 && Math.abs(r.servoWet) < 1, r.servoDry + ' → ' + r.servoWet]);
   near('plcsense: ทรานสมิตเตอร์ 40% → AI0 ≈ 40', r.ai0, 40, 0.5);
   checks.push(['plcsense: พร็อกซิมิตี้ → Q0, ลิมิตสวิตช์ตัด, AI0 > 75 → Q2', r.q0off === 0 && r.q0on === 1 && r.q0lim === 0 && r.q2 === 1, [r.q0off, r.q0on, r.q0lim, r.q2].join(',')]);
+  near('semi: 7805 จ่าย 5.00 V', r.reg, 5, 0.01);
+  near('semi: ซีเนอร์คุม ≈ 5.11 V', r.vz, 5.11, 0.02);
+  checks.push(['semi: S1 เปิด → NPN อิ่มตัว, LED ≈ 8.5 mA; S1 ปิด → LED ดับ', r.ledOff < 1e-6 && Math.abs(r.ledOn - 0.00846) < 0.0002 && r.qState === 'sat', r.ledOff + ' / ' + r.ledOn + ' / ' + r.qState]);
+  checks.push(['timer555: สลับสถานะ ≈ 1 Hz (8 ครั้งใน 4 s)', r.t555 >= 7 && r.t555 <= 9, r.t555]);
+  checks.push(['counter: ผ่านไป 1.5 s แสดงเลข 1 (ส่วน b, c)', r.seg === 'bc', r.seg]);
+  checks.push(['motor: กดปุ่ม → MOSFET นำ มอเตอร์ ≈ 0.75 A', r.motorOff < 1e-6 && Math.abs(r.motorOn - 0.746) < 0.01, r.motorOff + ' → ' + r.motorOn]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
