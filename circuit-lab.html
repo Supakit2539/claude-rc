@@ -15,7 +15,7 @@
   --l1:#8b5a2b; --l2:#111827; --l3:#8a93a3; --nwire:#2f6fd6; --dcp:#dc2626; --dcn:#1f2937;
   --flow:#f59e0b; --ok:#15803d; --okbg:#dcfce7; --warn:#b45309; --warnbg:#fef3c7; --bad:#b91c1c; --badbg:#fee2e2;
   --lamp:#fbbf24; --water:#3b82f6; --waterbg:#dbeafe; --screen:#0f172a; --screentext:#e2e8f0;
-  --ladon:#16a34a; --ladoff:#94a3b8;
+  --ladon:#16a34a; --ladoff:#94a3b8; --sky1:#b9cde4; --sky2:#e9eef4;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -25,7 +25,7 @@
     --l1:#c08850; --l2:#d1d5db; --l3:#7d8696; --nwire:#5b9bff; --dcp:#f87171; --dcn:#cbd5e1;
     --flow:#fbbf24; --ok:#4ade80; --okbg:#14321f; --warn:#fbbf24; --warnbg:#3a2c0b; --bad:#f87171; --badbg:#3b1414;
     --lamp:#fcd34d; --water:#60a5fa; --waterbg:#172a46; --screen:#05080e; --screentext:#e2e8f0;
-    --ladon:#4ade80; --ladoff:#64748b;
+    --ladon:#4ade80; --ladoff:#64748b; --sky1:#080b11; --sky2:#1a202b;
   }
 }
 :root[data-theme="dark"]{
@@ -35,7 +35,7 @@
   --l1:#c08850; --l2:#d1d5db; --l3:#7d8696; --nwire:#5b9bff; --dcp:#f87171; --dcn:#cbd5e1;
   --flow:#fbbf24; --ok:#4ade80; --okbg:#14321f; --warn:#fbbf24; --warnbg:#3a2c0b; --bad:#f87171; --badbg:#3b1414;
   --lamp:#fcd34d; --water:#60a5fa; --waterbg:#172a46; --screen:#05080e; --screentext:#e2e8f0;
-  --ladon:#4ade80; --ladoff:#64748b;
+  --ladon:#4ade80; --ladoff:#64748b; --sky1:#080b11; --sky2:#1a202b;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -73,7 +73,7 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 #center{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column}
 #views{flex:1;display:flex;min-height:0;min-width:0}
 #cv{flex:1 1 0;display:block;min-width:0;min-height:0;height:100%;touch-action:none;background:var(--board);cursor:default}
-#fwrap{display:none;position:relative;flex:1 1 0;min-width:0;min-height:0;border-left:1px solid var(--line);overflow:hidden;background:var(--board)}
+#fwrap{display:none;position:relative;flex:1 1 0;min-width:0;min-height:0;border-left:1px solid var(--line);overflow:hidden;background:linear-gradient(var(--sky1),var(--sky2) 62%)}
 #views.split #fwrap,#views.full #fwrap{display:block}
 #views.full #cv{display:none}
 #views.full + #hint{display:none}
@@ -1692,7 +1692,7 @@ const EX = {
       W([x,7],[x,8]); W([x,14],[x,17]);
     }
   })},
-  dol: {nm:'สตาร์ทมอเตอร์ 3 เฟส (DOL)', f:() => build((C,W) => {
+  dol: {nm:'สตาร์ทมอเตอร์ 3 เฟส (DOL) (มีฉาก 3D)', f:() => Object.assign(build((C,W) => {
     C('src3', 2, 1, {n:'การไฟฟ้า'});
     C('mcb', 1, 4, {r:1, n:'F1', In:6}); C('mcb', 2, 4, {r:1, n:'F2', In:6}); C('mcb', 3, 4, {r:1, n:'F3', In:6});
     W([1,2],[1,3]); W([2,2],[2,3]); W([3,2],[3,3]);
@@ -1708,7 +1708,7 @@ const EX = {
     W([4,2],[4,3],[16,3],[16,6]);
     C('no', 10, 10, {ref:'K1'}); C('lamp', 13, 10, {n:'H1', V:230, P:5});
     W([8,6],[8,10],[9,10]); W([11,10],[12,10]); W([14,10],[16,10],[16,6]);
-  })},
+  }), {fac:facPreset('fan')})},
   plcpump: {nm:'PLC ควบคุมปั๊มน้ำ + HMI (มีฉาก 3D)', f:() => Object.assign(build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า'});
     C('mcb', 2, 4, {r:1, n:'Q1', In:10});
@@ -1814,7 +1814,7 @@ void loop() {
     W([15,-1],[16,-1],[16,8],[3,8],[3,6]);
     C('pot', 11, 11, {n:'RV1'}); W([11,10],[11,6]); W([10,10],[10,8]); W([12,10],[12,9],[1,9],[1,1],[3,1],[3,2]);
   })},
-  pico: {nm:'Raspberry Pi Pico: ไฟจราจร', f:() => build((C,W) => {
+  pico: {nm:'Raspberry Pi Pico: ไฟจราจร (มีฉาก 3D)', f:() => Object.assign(build((C,W) => {
     C('pico', 8, 4, {n:'U1', code:`// ไฟจราจร 3 ดวง: แดง GP2, เหลือง GP4, เขียว GP6
 const int RED = 2, YELLOW = 4, GREEN = 6;
 
@@ -1849,7 +1849,7 @@ void loop() {
       C('res', x, 0, {r:1, n:'R' + (i+1), R:330}); W([x,1],[x,2]); W([x,-2],[x,-1]);
       C('led', x, -3, {r:3, n, col}); W([x,-4],[x,-5]);
     });
-  })},
+  }), {fac:facPreset('traffic')})},
   ardsense: {nm:'Arduino: สถานีเซนเซอร์ (DHT22, อัลตราโซนิก, PIR, LDR)', f:() => build((C,W) => {
     C('uno', 8, 4, {n:'U1', code:`#include <DHT.h>
 #define DHTPIN 2
@@ -2047,7 +2047,7 @@ void loop() {
     C('diode', 10, -5, {r:3, n:'D1'}); W([10,-6],[12,-6]); W([10,-4],[12,-4]);
     C('bat', 14, -6, {r:1, n:'B1', V:9}); W([12,-6],[12,-8],[14,-8],[14,-7]); W([14,-5],[14,0]);
   })},
-  stardelta: {nm:'สตาร์ท สตาร์-เดลต้า + โอเวอร์โหลด + E-Stop', f:() => build((C,W) => {
+  stardelta: {nm:'สตาร์ท สตาร์-เดลต้า + โอเวอร์โหลด + E-Stop (มีฉาก 3D)', f:() => Object.assign(build((C,W) => {
     C('src3', 2, 1, {n:'การไฟฟ้า', model:'th400'});
     for (let k = 1; k <= 3; k++){ C('mcb', k, 4, {r:1, n:'F' + k, In:32, curve:'C', model:'c32'}); W([k,2],[k,3]); W([k,5],[k,7]); W([k,9],[k,11]); W([k,13],[k,17]); W([k,19],[k,26]); }
     C('k3', 2, 8, {ref:'K1', In:18, model:'k18'});
@@ -2068,7 +2068,7 @@ void loop() {
     C('tmr', 24, 12, {n:'KT1', td:5, model:'sd'}); W([18,12],[23,12]); W([25,12],[26,12]);
     C('nc', 20, 14, {ref:'KT1'}); C('nc', 22, 14, {ref:'K3'}); C('coil', 24, 14, {n:'K2'}); W([18,14],[19,14]); W([25,14],[26,14]);
     C('no', 20, 16, {ref:'KT1'}); C('nc', 22, 16, {ref:'K2'}); C('coil', 24, 16, {n:'K3'}); W([18,16],[19,16]); W([25,16],[26,16]);
-  })},
+  }), {fac:(p => (p.items.find(i => i.k === 'station').b3 = 'S0', p))(facPreset('fan'))})},
   rcdtest: {nm:'เครื่องตัดไฟรั่ว (RCD) กับไฟดูด', f:() => build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'});
     C('rcd', 3, 5, {n:'RCD1', model:'rccb40'}); W([2,2],[2,4]); W([3,2],[3,3],[4,3],[4,4]);
@@ -2190,6 +2190,40 @@ Q2 := M0
     W([14,12],[15,12]); C('pb', 16, 12, {n:'CLOSE', model:'y22', col:'yellow'}); C('no', 16, 14, {ref:'K2'}); W([15,12],[15,14]); W([17,12],[17,14]); W([17,12],[18,12]);
     C('limit', 19, 12, {n:'SQ2', mode:'NC'}); W([20,12],[21,12]); C('nc', 22, 12, {ref:'K1'}); W([23,12],[24,12]); C('coil', 25, 12, {n:'K2'}); W([26,12],[28,12]);
   }), {fac:facPreset('gate')})},
+  pickplace: {nm:'โรงงาน 3D: แขนหยิบวางปลายสายพาน', f:() => Object.assign(build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:10, curve:'C', model:'c10'});
+    W([2,2],[2,3]); W([2,5],[2,14],[5,14]); W([2,7],[6,7]); W([3,2],[3,26]); W([3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[24,11]); W([8,9],[8,10],[24,10]);
+    const plc = C('plc', 18, 15, {n:'PLC1'});
+    W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
+    C('pb', 16, 12, {r:1, n:'START', model:'g22'}); C('pbnc', 17, 12, {r:1, n:'STOP', model:'r22'});
+    C('photo', 19, 8, {n:'PE1'}); W([18,9],[18,11]); W([19,9],[19,13]); W([20,9],[20,10]);
+    C('prox', 22, 8, {n:'RB1'}); W([21,9],[21,11]); W([22,9],[22,13]); W([23,9],[23,10]);       // สัญญาณ "แขนพร้อม" จากตัวควบคุมแขน
+    W([13,17],[13,19],[11,19],[11,11]);
+    C('coil', 14, 19, {r:1, n:'K1', V:24, S:3, dc:true, model:'k24dc'}); W([14,17],[14,18]); W([14,20],[14,24]);
+    C('coil', 15, 22, {r:1, n:'Y1', V:24, S:0.9, dc:true, model:'r24'}); W([15,17],[15,21]); W([15,23],[15,24]);
+    C('lamp', 16, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([16,17],[16,18]); W([16,20],[16,24]);
+    C('lamp', 17, 22, {r:1, n:'H2', V:24, P:1.2, model:'pil24'}); W([17,17],[17,21]); W([17,23],[17,24],[9,24],[9,10]);
+    C('no', 6, 14, {ref:'K1'}); C('motor1', 8, 16, {r:1, n:'M1'}); W([7,14],[8,14],[8,15]); W([8,17],[8,26],[3,26]);
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    plc.prog = {mode:'lad', txt:`// ระบบทำงาน
+M0 := (I0 OR M0) AND I1
+// สายพานหยุดรอเมื่อมีกล่องที่จุดหยิบ (PE1)
+Q0 := M0 AND NOT I3
+// สั่งแขนเริ่มรอบเมื่อมีกล่องและแขนพร้อม (RB1)
+Q1 := M0 AND I3 AND I6
+Q2 := M0
+// ไฟแดง: แขนกำลังทำงาน
+Q3 := M0 AND NOT I6
+`, lad:[
+      {cmt:'ระบบทำงาน: START ค้างสถานะ, STOP (NC) หยุด', rows:[row([nc('NO','I0'), nc('NO','I1')], {k:'OUT', a:'M0'}), row([nc('NO','M0')], null)], links:[[false,true,false,false,false,false,false,false]]},
+      one('สายพานวิ่งจนกล่องถึงจุดหยิบ (PE1) แล้วหยุดรอ', [nc('NO','M0'), nc('NC','I3')], {k:'OUT', a:'Q0'}),
+      one('มีกล่องและแขนพร้อม (RB1) → สั่งแขนเริ่มรอบหยิบวาง', [nc('NO','M0'), nc('NO','I3'), nc('NO','I6')], {k:'OUT', a:'Q1'}),
+      one('ไฟเขียว: ระบบทำงาน', [nc('NO','M0')], {k:'OUT', a:'Q2'}),
+      one('ไฟแดง: แขนกำลังทำงาน', [nc('NO','M0'), nc('NC','I6')], {k:'OUT', a:'Q3'}),
+    ]};
+  }), {fac:facPreset('pick')})},
   blank: {nm:'แผงว่าง', f:() => build(() => {})},
 };
 
@@ -2204,7 +2238,7 @@ const LEDC = {red:'#ef4444', green:'#22c55e', blue:'#3b82f6', yellow:'#eab308', 
 
 function readColors(){
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['bg','panel','panel2','text','muted','accent','board','grid','comp','compfill','wire','sel','l1','l2','l3','nwire','dcp','dcn','flow','ok','warn','bad','lamp','water','waterbg','screen','screentext','ladon','ladoff','line'])
+  for (const k of ['bg','panel','panel2','text','muted','accent','board','grid','comp','compfill','wire','sel','l1','l2','l3','nwire','dcp','dcn','flow','ok','warn','bad','lamp','water','waterbg','screen','screentext','ladon','ladoff','line','sky2'])
     K[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize(){
@@ -3400,58 +3434,82 @@ function ladMon(force){
 
 /* ============================================================
    11. โรงงาน 3D — ฉากประกอบจากชิ้นเครื่องจักรที่ผู้ใช้จัดวางเอง (S.fac.items)
-       แต่ละชิ้นผูกกับอุปกรณ์บนแผงด้วย "ชื่อ": มอเตอร์ → สายพาน/ประตู/ปั๊ม, คอยล์ → กระบอกลม,
-       กล่องในฉาก → det ของเซนเซอร์, ตำแหน่งประตู → act ของลิมิตสวิตช์, หลอด → ไฟสัญญาณ
-       วาดด้วย WebGL โดยตรง (ไม่มีไลบรารี) · หน่วยเป็นเมตร · หมุนได้ทีละ 90° (r = 0–3)
+       แต่ละชิ้นผูกกับอุปกรณ์บนแผงด้วย "ชื่อ": มอเตอร์ → สายพาน/ประตู/ปั๊ม/พัดลม, คอยล์ → กระบอกลม/ตัวกั้น/แขนหยิบวาง,
+       กล่องในฉาก → det ของเซนเซอร์, ตำแหน่งประตู → act ของลิมิตสวิตช์, หลอด/LED → ไฟสัญญาณ, ปุ่มในฉาก → ปุ่มกดบนแผง
+       วาดด้วย WebGL โดยตรง (ไม่มีไลบรารี): แสงต่อพิกเซล + เงาตกพื้น (stencil) · หน่วยเมตร · หมุนทีละ 90° (r = 0–3)
    ============================================================ */
 const FAC = {H:0.8, bs:0.3};
 const FDIR = [[1,0],[0,1],[-1,0],[0,-1]];
 // ชนิดเครื่องจักร: nm ชื่อ, d ค่าเริ่มต้น, fp ขอบเขตในพิกัดท้องถิ่น [a0,a1,b0,b1] (a = ตามทิศ, b = ด้านข้าง)
 const FKIND = {
-  conv:  {nm:'สายพานลำเลียง',  d:{len:4, spd:0.5, m:'M1'}, fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
-  roller:{nm:'โต๊ะลูกกลิ้ง',    d:{len:1.1},                fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
-  emit:  {nm:'ตัวปล่อยกล่อง',   d:{every:3, metal:50},      fp:() => [-0.3, 0.3, -0.45, 0.45]},
-  push:  {nm:'กระบอกลมดัน',     d:{y:'Y1'},                 fp:() => [-0.9, 0.15, -0.3, 0.3]},
-  photo: {nm:'เซนเซอร์แสง',     d:{s:'PE1'},                fp:() => [-0.1, 1.0, -0.12, 0.12]},
-  prox:  {nm:'พร็อกซิมิตี้',     d:{s:'PX1'},                fp:() => [-0.45, 0.15, -0.55, 0.15]},
-  bin:   {nm:'ถังรับชิ้นงาน',   d:{want:'any'},             fp:() => [-0.5, 0.5, -0.5, 0.5]},
-  light: {nm:'ไฟสัญญาณ',       d:{lg:'H1', lr:'H2'},       fp:() => [-0.15, 0.15, -0.15, 0.15]},
-  tank:  {nm:'ถังน้ำ',          d:{tk:'TK1'},               fp:() => [-0.8, 0.8, -0.8, 0.8]},
-  pump:  {nm:'ปั๊มน้ำ',         d:{m:'M1'},                 fp:() => [-0.4, 1.2, -0.3, 0.3]},
-  gate:  {nm:'ประตูเลื่อน',     d:{m:'M1', lo:'SQ1', lc:'SQ2'}, fp:() => [-0.3, 6.3, -0.4, 0.3]},
-  cab:   {nm:'ตู้ควบคุม',       d:{},                       fp:() => [-0.35, 0.35, -0.2, 0.2]},
+  conv:   {nm:'สายพานลำเลียง',     d:{len:4, spd:0.5, m:'M1'}, fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  roller: {nm:'โต๊ะลูกกลิ้ง',       d:{len:1.1},                fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  emit:   {nm:'ตัวปล่อยกล่อง',      d:{every:3, metal:50},      fp:() => [-0.3, 0.3, -0.45, 0.45]},
+  push:   {nm:'กระบอกลมดัน',        d:{y:'Y1'},                 fp:() => [-0.9, 0.15, -0.3, 0.3]},
+  stop:   {nm:'ตัวกั้นชิ้นงาน',      d:{y:'Y2'},                 fp:() => [-0.15, 0.15, -0.4, 0.4]},
+  robot:  {nm:'แขนหยิบวาง (แกนทรี)', d:{y:'Y1', s:'RB1'},        fp:() => [-0.9, 2.45, -0.3, 0.3]},
+  photo:  {nm:'เซนเซอร์แสง',        d:{s:'PE1'},                fp:() => [-0.1, 1.0, -0.12, 0.12]},
+  prox:   {nm:'พร็อกซิมิตี้',        d:{s:'PX1'},                fp:() => [-0.45, 0.15, -0.55, 0.15]},
+  bin:    {nm:'ถังรับชิ้นงาน',      d:{want:'any'},             fp:() => [-0.5, 0.5, -0.5, 0.5]},
+  station:{nm:'แท่นปุ่มกด',         d:{b1:'START', b2:'STOP', b3:''}, fp:() => [-0.25, 0.25, -0.2, 0.2]},
+  light:  {nm:'ไฟสัญญาณ (ทาวเวอร์)', d:{lg:'H1', lr:'H2'},       fp:() => [-0.15, 0.15, -0.15, 0.15]},
+  beacon: {nm:'ไฟหมุนเตือน',        d:{lg:'M1'},                fp:() => [-0.15, 0.15, -0.15, 0.15]},
+  traffic:{nm:'ไฟจราจร',           d:{lr:'D1', ly:'D2', lg:'D3'}, fp:() => [-0.2, 0.2, -0.2, 0.2]},
+  fan:    {nm:'พัดลมอุตสาหกรรม',    d:{m:'M1'},                 fp:() => [-0.5, 0.6, -0.7, 0.7]},
+  tank:   {nm:'ถังน้ำ',             d:{tk:'TK1', ag:''},        fp:() => [-0.85, 0.85, -0.85, 0.85]},
+  pump:   {nm:'ปั๊มน้ำ',            d:{m:'M1'},                 fp:() => [-0.45, 1.25, -0.3, 0.3]},
+  gate:   {nm:'ประตูเลื่อน',        d:{m:'M1', lo:'SQ1', lc:'SQ2'}, fp:() => [-0.3, 6.3, -0.4, 0.3]},
+  fence:  {nm:'รั้วนิรภัย',          d:{len:3},                  fp:i => [-i.len/2, i.len/2, -0.08, 0.08]},
+  cab:    {nm:'ตู้ควบคุม',          d:{},                       fp:() => [-0.38, 0.38, -0.22, 0.22]},
 };
 const FFLD = {len:['ความยาว (m)','num'], spd:['ความเร็ว (m/s)','num'], every:['ปล่อยทุก (s)','num'], metal:['สัดส่วนโลหะ (%)','num'],
   want:['รับชิ้นงาน','sel',{any:'ทุกชนิด', metal:'โลหะ', other:'ไม่ใช่โลหะ'}], m:['มอเตอร์บนแผง','bind'], y:['คอยล์/โซลินอยด์บนแผง','bind'],
-  s:['เซนเซอร์บนแผง','bind'], lg:['หลอดไฟเขียวบนแผง','bind'], lr:['หลอดไฟแดงบนแผง','bind'], tk:['ถังน้ำบนแผง','bind'],
-  lo:['ลิมิตสวิตช์เปิดสุด','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind']};
+  s:['เซนเซอร์บนแผง','bind'], lg:['หลอด/อุปกรณ์ (เขียว)','bind'], ly:['หลอด/อุปกรณ์ (เหลือง)','bind'], lr:['หลอด/อุปกรณ์ (แดง)','bind'], tk:['ถังน้ำบนแผง','bind'],
+  ag:['มอเตอร์ใบกวน (ถ้ามี)','bind'], lo:['ลิมิตสวิตช์เปิดสุด','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind'], b1:['ปุ่มที่ 1 บนแผง','bind'], b2:['ปุ่มที่ 2 บนแผง','bind'], b3:['ปุ่มที่ 3 บนแผง','bind']};
 const FXS = {boxes:[], rt:{}, auto:true, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}};
 function facItem(k, x, z, r, p){ return Object.assign({k, x, z, r:r || 0}, clone(FKIND[k].d), p || {}); }
 function facPreset(name){
   const I = facItem;
   const P = {
     sort: {btn:['START','STOP'], items:[I('conv',3,0,0,{len:6,m:'M1'}), I('emit',0.3,0,0), I('photo',1.0,-0.45,1,{s:'PE1'}), I('prox',3.6,0,0,{s:'PX1'}), I('push',3.6,-0.45,1,{y:'Y1'}),
-      I('roller',3.6,0.9,1,{len:1.1}), I('bin',3.6,2.0,0,{want:'metal'}), I('bin',6.55,0,0,{want:'other'}), I('cab',-1.0,1.9,0), I('light',-1.0,1.9,0,{lg:'H1',lr:'H2'})]},
+      I('roller',3.6,0.9,1,{len:1.1}), I('bin',3.6,2.0,0,{want:'metal'}), I('bin',6.55,0,0,{want:'other'}), I('cab',-1.0,1.9,0), I('light',-1.0,2.35,0,{lg:'H1',lr:'H2'}),
+      I('station',-0.4,-1.3,0), I('fence',3,-1.9,0,{len:7})]},
     seq: {btn:['START','STOP'], items:[I('conv',2,0,0,{len:4,m:'M1'}), I('conv',4.3,1.7,1,{len:4,m:'M2'}), I('emit',0.3,0,0,{every:2.5}), I('bin',4.3,4.25,0,{want:'any'}),
-      I('cab',-1.0,1.9,0), I('light',-1.0,1.9,0,{lg:'H1',lr:''})]},
-    tank: {btn:['START','STOP'], items:[I('tank',3,0.5,0,{tk:'TK1'}), I('pump',0.8,0.5,0,{m:'M1'}), I('cab',-1.0,1.9,0)]},
-    gate: {btn:['OPEN','CLOSE','STOP'], items:[I('gate',0,0,0,{m:'M1',lo:'SQ1',lc:'SQ2'}), I('cab',-1.2,-1.4,0)]},
+      I('cab',-1.0,1.9,0), I('light',-1.0,2.35,0,{lg:'H1',lr:''}), I('station',-0.4,-1.3,0)]},
+    pick: {btn:['START','STOP'], items:[I('conv',2,0,0,{len:4,m:'M1'}), I('emit',0.3,0,0,{every:3.5,metal:30}), I('photo',3.7,-0.45,1,{s:'PE1'}), I('robot',3.7,0,1,{y:'Y1',s:'RB1'}),
+      I('bin',3.7,1.6,0,{want:'any'}), I('cab',-1.0,1.9,0), I('light',-1.0,2.35,0,{lg:'H1',lr:'H2'}), I('station',-0.4,-1.3,0), I('fence',4.9,0.8,1,{len:3})]},
+    tank: {btn:['START','STOP'], items:[I('tank',3,0.5,0,{tk:'TK1'}), I('pump',0.8,0.5,0,{m:'M1'}), I('cab',-1.0,1.9,0), I('station',-0.4,-0.9,0)]},
+    gate: {btn:['OPEN','CLOSE','STOP'], items:[I('gate',0,0,0,{m:'M1',lo:'SQ1',lc:'SQ2'}), I('cab',-1.2,-1.4,0), I('station',-1.2,-0.7,0,{b1:'OPEN',b2:'CLOSE',b3:'STOP'}), I('beacon',3.5,-0.75,0,{lg:'M1'})]},
+    fan: {btn:['START','STOP'], items:[I('fan',2,0,0,{m:'M1'}), I('cab',0,-1.6,0), I('station',0.8,-1.5,0), I('beacon',0,-1.1,0,{lg:'M1'})]},
+    traffic: {btn:[], items:[I('traffic',2,0,2,{lr:'D1',ly:'D2',lg:'D3'})]},
     empty: {btn:['START','STOP'], items:[]},
   }[name] || {btn:[], items:[]};
   P.items.forEach((it, n) => { it.id = n + 1; });
   return P;
 }
-const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', empty:'ฉากว่าง'};
+const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', pick:'แขนหยิบวางปลายสายพาน', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', fan:'มอเตอร์ขับพัดลม', traffic:'ไฟจราจร', empty:'ฉากว่าง'};
 function facReset(){ Object.assign(FXS, {boxes:[], rt:{}, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}}); }
 function facRnd(){ FXS.seed = (FXS.seed*1103515245 + 12345) & 0x7fffffff; return FXS.seed/0x7fffffff; }
 const fcomp = n => n ? S.comps.find(c => c.n === n) : null;
-const frt = i => FXS.rt[i.id] || (FXS.rt[i.id] = {p:0, o:0, t:2.4, metal:0, other:0, list:[]});
-// พิกัดท้องถิ่น ↔ โลก
+// อุปกรณ์บนแผง "ทำงานอยู่" หรือไม่: หลอด, LED, คอยล์, มอเตอร์ ฯลฯ
+function flit(n){
+  const c = fcomp(n); if (!c) return false; const R = RES.comp[c.id] || {};
+  switch (c.t){
+    case 'lamp': return R.P > 0.05*c.P;
+    case 'led': return !!c._on && !c._blown;
+    case 'coil': case 'tmr': return !!c._on;
+    case 'motor1': case 'motor3': case 'motor6': case 'pump': return !!c._run;
+    case 'dcm': return (c._sp || 0) > 0.05;
+    case 'fluo': return (c._glow || 0) > 0.5;
+  }
+  return (R.Ir || 0) > 1e-3;
+}
+const frt = i => FXS.rt[i.id] || (FXS.rt[i.id] = {p:0, o:0, t:2.4, v:0, ang:0, ph:0, ca:0, gy:1.55, metal:0, other:0, list:[]});
 const fLoc = (i, x, z) => { const d = FDIR[i.r & 3], dx = x - i.x, dz = z - i.z; return [dx*d[0] + dz*d[1], -dx*d[1] + dz*d[0]]; };
 const fWorld = (i, a, b) => { const d = FDIR[i.r & 3]; return [i.x + a*d[0] - b*d[1], i.z + a*d[1] + b*d[0]]; };
 function facSpawn(metal, em){
   em = em || (S.fac && S.fac.items.find(i => i.k === 'emit')); if (!em) return;
-  FXS.boxes.push({x:em.x, y:FAC.H + FAC.bs/2, z:em.z, metal:!!metal, vx:0, vz:0, vy:0, fall:false});
+  FXS.boxes.push({x:em.x, y:FAC.H + FAC.bs/2, z:em.z, metal:!!metal, vx:0, vz:0, vy:0, fall:false, yaw:(facRnd() - 0.5)*0.2, tilt:0, w:0});
 }
 function facCarrier(b){
   for (const i of S.fac.items) if (i.k === 'conv' || i.k === 'roller'){
@@ -3460,33 +3518,58 @@ function facCarrier(b){
   }
   return null;
 }
-function facSpeed(i){
-  if (i.k === 'roller') return 0.7;
-  const m = fcomp(i.m); return m ? (i.spd || 0.5)*(m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
-}
+const facSpeed = i => i.k === 'roller' ? 0.7 : frt(i).v;
+const ROBOT = [0, 0.35, 0.15, 0.35, 0.7, 0.35, 0.15, 0.35, 0.7];     // เวลาแต่ละจังหวะ: ลง จับ ขึ้น เคลื่อน ลง ปล่อย ขึ้น กลับ
 function facStep(dt){
   const f = S.fac; if (!f || dt <= 0) return;
   const st = FXS, h = FAC.bs/2;
   for (const i of f.items){
     const rt = frt(i);
-    if (i.k === 'conv') rt.o += facSpeed(i)*dt;
-    else if (i.k === 'push'){ const c = fcomp(i.y), tg = c && c._on ? 1 : 0, d = tg - rt.p; rt.p += Math.sign(d)*Math.min(Math.abs(d), dt/0.35); }
+    if (i.k === 'conv'){
+      // เกียร์มอเตอร์สายพาน: เร่งตามมอเตอร์ แต่หยุดเร็ว (≈ 0.25 s) เมื่อตัดไฟ
+      const m = fcomp(i.m), tg = m && m._run ? (i.spd || 0.5)*(m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
+      rt.v = tg !== 0 ? tg : rt.v - Math.sign(rt.v)*Math.min(Math.abs(rt.v), (i.spd || 0.5)*dt/0.25);
+      rt.o += rt.v*dt;
+    }
+    else if (i.k === 'push' || i.k === 'stop'){ const c = fcomp(i.y), tg = c && c._on ? 1 : 0, d = tg - rt.p; rt.p += Math.sign(d)*Math.min(Math.abs(d), dt/(i.k === 'push' ? 0.35 : 0.2)); }
+    else if (i.k === 'fan'){ const m = fcomp(i.m); rt.ang += (m ? (m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0)*dt*22; }
+    else if (i.k === 'tank'){ const m = fcomp(i.ag); rt.ang += (m ? (m._sp || 0) : 0)*dt*6; }
+    else if (i.k === 'beacon'){ if (flit(i.lg)) rt.ang += dt*7; }
     else if (i.k === 'emit' && st.auto){
-      const probe = {x:i.x, z:i.z}, car = facCarrier(probe);
+      const car = facCarrier({x:i.x, z:i.z});
       if (car && Math.abs(facSpeed(car)) > 0.05){ rt.t += dt;
         if (rt.t >= i.every && !st.boxes.some(b => !b.fall && Math.hypot(b.x - i.x, b.z - i.z) < 0.45)){ rt.t = 0; facSpawn(facRnd()*100 < i.metal, i); } }
     } else if (i.k === 'gate'){
-      // ประตูเลื่อน: เคลื่อนที่เฉพาะตอนมอเตอร์มีไฟ; ตำแหน่งสุดทางกดลิมิตสวิตช์บนแผง
       const m = fcomp(i.m), v = m && m._run ? (m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
       rt.over = (v > 0.2 && rt.p >= 1) || (v < -0.2 && rt.p <= 0);
       rt.p = Math.max(0, Math.min(1, rt.p + v*dt/4));
       const lim = (n, on) => { const c = fcomp(n); if (c && 'act' in c && !!c.act !== on){ c.act = on; needSolve = true; } };
       lim(i.lo, rt.p >= 0.995); lim(i.lc, rt.p <= 0.005);
+    } else if (i.k === 'robot'){
+      // แขนหยิบวาง: เริ่มรอบเมื่อคอยล์เปลี่ยนจาก OFF → ON ขณะว่างและมีกล่องที่จุดหยิบ
+      const c = fcomp(i.y), on = !!(c && c._on), up = 1.55, dn = FAC.H + FAC.bs + 0.02;
+      if (rt.ph === 0 && on && !rt.last){
+        const b = st.boxes.find(b2 => !b2.fall && !b2.held && Math.hypot(b2.x - i.x, b2.z - i.z) < 0.3);
+        if (b){ rt.ph = 1; rt.t = 0; rt.box = b; }
+      }
+      rt.last = on;
+      if (rt.ph){ rt.t += dt; const T2 = ROBOT[rt.ph], u = Math.min(1, rt.t/T2), e = u*u*(3 - 2*u);
+        if (rt.ph === 1 || rt.ph === 5) rt.gy = up + (dn - up)*e; else if (rt.ph === 3 || rt.ph === 7) rt.gy = dn + (up - dn)*e;
+        else if (rt.ph === 4) rt.ca = 1.6*e; else if (rt.ph === 8) rt.ca = 1.6*(1 - e);
+        if (rt.ph === 2 && rt.box) rt.box.held = true;
+        if (rt.ph === 6 && rt.box){ rt.box.held = false; rt.box.vx = rt.box.vz = 0; rt.box = null; }
+        if (rt.box && rt.box.held){ const w = fWorld(i, rt.ca, 0); rt.box.x = w[0]; rt.box.z = w[1]; rt.box.y = rt.gy - FAC.bs/2 - 0.02; rt.box.yaw = 0; }
+        if (u >= 1){ rt.ph = rt.ph === 8 ? 0 : rt.ph + 1; rt.t = 0; }
+      }
+      const sc = fcomp(i.s), rdy = rt.ph === 0; if (sc && 'det' in sc && !!sc.det !== rdy){ sc.det = rdy; needSolve = true; }
     }
   }
+  // ตัวกั้นที่ยื่นอยู่ = สิ่งกีดขวาง
+  const obs = f.items.filter(i => i.k === 'stop' && frt(i).p < 0.5).map(i => ({x:i.x, z:i.z, hx:(i.r & 1) ? 0.32 : 0.03, hz:(i.r & 1) ? 0.03 : 0.32}));
   for (const b of st.boxes){
+    if (b.held) continue;
     if (b.fall){
-      b.vy += 9.8*dt; b.y -= b.vy*dt; b.x += b.vx*dt; b.z += b.vz*dt;
+      b.vy += 9.8*dt; b.y -= b.vy*dt; b.x += b.vx*dt; b.z += b.vz*dt; b.tilt += b.w*dt;
       if (b.y < 0.3){ b.done = true;
         const bin = f.items.find(i => i.k === 'bin' && Math.abs(b.x - i.x) < 0.62 && Math.abs(b.z - i.z) < 0.62);
         if (!bin){ st.cnt.floor++; continue; }
@@ -3497,29 +3580,27 @@ function facStep(dt){
       continue;
     }
     const car = facCarrier(b);
-    if (!car){ b.fall = true; b.vx *= 0.8; b.vz *= 0.8; continue; }
+    if (!car){ b.fall = true; b.w = Math.hypot(b.vx, b.vz)*5; b.vx *= 0.8; b.vz *= 0.8; continue; }
     const d = FDIR[car.r & 3], v = facSpeed(car); b.vx = d[0]*v; b.vz = d[1]*v;
-    const nx = b.x + b.vx*dt, nz = b.z + b.vz*dt;
-    // กล่องไม่ทับกัน: ถ้าข้างหน้ามีกล่องขวางอยู่ให้หยุดรอ (สายพานไถลใต้กล่อง)
-    const blocked = st.boxes.some(o => o !== b && !o.fall && Math.abs(nx - o.x) < 0.3 && Math.abs(nz - o.z) < 0.3 && (o.x - b.x)*b.vx + (o.z - b.z)*b.vz > 0);
+    const nx = b.x + b.vx*dt, nz = b.z + b.vz*dt, toward = o => (o.x - b.x)*b.vx + (o.z - b.z)*b.vz > 0;
+    const blocked = st.boxes.some(o => o !== b && !o.fall && !o.held && Math.abs(nx - o.x) < 0.3 && Math.abs(nz - o.z) < 0.3 && toward(o))
+      || obs.some(o => Math.abs(nx - o.x) < h + o.hx && Math.abs(nz - o.z) < h + o.hz && toward(o));
     if (!blocked){ b.x = nx; b.z = nz; }
   }
-  // กระบอกลมผลักกล่อง
   for (const i of f.items) if (i.k === 'push'){ const hd = 0.8*frt(i).p;
-    for (const b of st.boxes){ if (b.fall) continue; const [a, c] = fLoc(i, b.x, b.z);
+    for (const b of st.boxes){ if (b.fall || b.held) continue; const [a, c] = fLoc(i, b.x, b.z);
       if (Math.abs(c) < 0.25 + h && a > -0.1 && a < hd + h){ const w = fWorld(i, hd + h, c); b.x = w[0]; b.z = w[1]; } } }
   st.boxes = st.boxes.filter(b => !b.done);
-  // เซนเซอร์ในฉาก → det ของอุปกรณ์บนแผง
   for (const i of f.items) if (i.k === 'photo' || i.k === 'prox'){
     const c = fcomp(i.s); if (!c || !('det' in c)) continue;
-    const on = st.boxes.some(b => { if (b.fall) return false; const [a, lat] = fLoc(i, b.x, b.z);
+    const on = st.boxes.some(b => { if (b.fall || b.held) return false; const [a, lat] = fLoc(i, b.x, b.z);
       return i.k === 'photo' ? (a > -h && a < 0.9 + h && Math.abs(lat) < h) : (b.metal && Math.hypot(a, lat) < 0.13); });
     if (!!c.det !== on){ c.det = on; needSolve = true; }
   }
 }
 
 /* ---------- ตัววาด WebGL ---------- */
-const fx = {gl:null, prog:null, buf:null, yaw:-0.75, pitch:0.5, dist:9.5, tgt:[3.1, 0.7, 0.35], drag:null, mode:'off', M:null, edit:false, sel:null, hv:0, over:false};
+const fx = {gl:null, prog:null, buf:null, yaw:-0.75, pitch:0.5, dist:9.5, tgt:[3.1, 0.7, 0.35], drag:null, mode:'off', M:null, edit:false, sel:null, hv:0, over:false, btns:[]};
 function m4mul(a, b){ const o = new Float32Array(16);
   for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++){ let s2 = 0; for (let k = 0; k < 4; k++) s2 += a[k*4 + r]*b[c*4 + k]; o[c*4 + r] = s2; }
   return o; }
@@ -3535,7 +3616,6 @@ function fxCam(){
 function m4look(c){ const {e, x, y, z} = c;
   return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
     -(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]), -(y[0]*e[0]+y[1]*e[1]+y[2]*e[2]), -(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]), 1]); }
-// จุดบนระนาบ y = py ใต้ตำแหน่งเมาส์
 function fxRay(ev, py){
   const r = $('#fx').getBoundingClientRect(), c = fxCam(), t = Math.tan(0.75/2);
   const nx = ((ev.clientX - r.left)/r.width*2 - 1)*t*r.width/r.height, ny = (1 - (ev.clientY - r.top)/r.height*2)*t;
@@ -3552,129 +3632,250 @@ function fxPick(ev){
     if (best) return best; }
   return null;
 }
+function fxProj(x, y, z, r){ const m = fx.M, cw = m[3]*x + m[7]*y + m[11]*z + m[15]; if (!m || cw <= 0.1) return null;
+  return [((m[0]*x + m[4]*y + m[8]*z + m[12])/cw*0.5 + 0.5)*r.width, (0.5 - (m[1]*x + m[5]*y + m[9]*z + m[13])/cw*0.5)*r.height]; }
 function fxInit(){
-  const cvs = $('#fx'), gl = cvs.getContext('webgl', {antialias:true}) || cvs.getContext('experimental-webgl');
+  const cvs = $('#fx'), o = {antialias:true, stencil:true, alpha:true}, gl = cvs.getContext('webgl', o) || cvs.getContext('experimental-webgl', o);
   if (!gl){ fx.gl = false; return; }
   const sh = (t, src) => { const s2 = gl.createShader(t); gl.shaderSource(s2, src); gl.compileShader(s2); return s2; };
   const pr = gl.createProgram();
-  gl.attachShader(pr, sh(gl.VERTEX_SHADER, `attribute vec3 p,n,c; uniform mat4 m; varying vec3 vc; varying float vd;
-    void main(){ float d = length(n) < 0.1 ? 1.0 : 0.42 + 0.58*max(dot(n, normalize(vec3(0.45,1.0,0.6))), 0.0) + 0.1*max(dot(n, vec3(-0.6,0.0,-0.8)), 0.0);
-      vc = c*d; gl_Position = m*vec4(p,1.0); vd = gl_Position.w; }`));
-  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `precision mediump float; varying vec3 vc; varying float vd; uniform vec3 fog;
-    void main(){ float f = clamp((vd - 18.0)/28.0, 0.0, 1.0); gl_FragColor = vec4(mix(vc, fog, f), 1.0); }`));
-  gl.linkProgram(pr); gl.useProgram(pr);
+  gl.attachShader(pr, sh(gl.VERTEX_SHADER, `attribute vec3 p,n,c; attribute float s; uniform mat4 m; uniform mediump float sh; varying mediump vec3 vn,vc,vp; varying mediump float vs,vd;
+    void main(){ vec3 q = p; if (sh > 0.5){ vec3 L = normalize(vec3(0.45,1.0,0.6)); q = p - L*((p.y - 0.004)/L.y); }
+      vn = n; vc = c; vp = q; vs = s; gl_Position = m*vec4(q,1.0); vd = gl_Position.w; }`));
+  gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `precision mediump float; varying vec3 vn,vc,vp; varying float vs,vd; uniform vec3 fog,eye; uniform float sh,dk;
+    void main(){ if (sh > 0.5){ gl_FragColor = vec4(0.0,0.0,0.0,0.34); return; }
+      vec3 col = vc;
+      if (dot(vn,vn) > 0.01){ vec3 n = normalize(vn), V = normalize(eye - vp), L = normalize(vec3(0.45,1.0,0.6));
+        if (dot(n,V) < 0.0) n = -n;
+        vec3 amb = mix(vec3(0.27,0.28,0.31), vec3(0.50,0.53,0.58), n.y*0.5 + 0.5)*dk;
+        col = vc*(amb + 0.66*dk*max(dot(n,L),0.0)) + vec3(pow(max(dot(n,normalize(L + V)),0.0), 42.0)*vs); }
+      float f = clamp((vd - 20.0)/34.0, 0.0, 1.0); gl_FragColor = vec4(mix(col, fog, f), 1.0); }`));
+  gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)){ console.error('โรงงาน 3D: shader', gl.getProgramInfoLog(pr), gl.getShaderInfoLog(gl.getAttachedShaders(pr)[0]), gl.getShaderInfoLog(gl.getAttachedShaders(pr)[1])); fx.gl = false; return; }
+  gl.useProgram(pr);
   fx.gl = gl; fx.prog = pr; fx.buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, fx.buf);
-  ['p','n','c'].forEach((a, i) => { const l = gl.getAttribLocation(pr, a); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 3, gl.FLOAT, false, 36, i*12); });
-  gl.enable(gl.DEPTH_TEST);
+  [['p',3,0],['n',3,12],['c',3,24],['s',1,36]].forEach(([a, n, off]) => { const l = gl.getAttribLocation(pr, a); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, n, gl.FLOAT, false, 40, off); });
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
 }
-const FXN = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
-const FXQ = [[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1]], [[-1,-1,1],[-1,1,1],[-1,1,-1],[-1,-1,-1]], [[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]],
-             [[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]], [[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]], [[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]];
+// บัฟเฟอร์จุดยอด: ตำแหน่ง 3 + นอร์มัล 3 + สี 3 + ความมันวาว 1
+let VB = new Float32Array(1 << 19), VN = 0;
+function vput(p, n, c, s){ if (VN + 10 > VB.length){ const nb = new Float32Array(VB.length*2); nb.set(VB); VB = nb; }
+  VB[VN++] = p[0]; VB[VN++] = p[1]; VB[VN++] = p[2]; VB[VN++] = n[0]; VB[VN++] = n[1]; VB[VN++] = n[2]; VB[VN++] = c[0]; VB[VN++] = c[1]; VB[VN++] = c[2]; VB[VN++] = s; }
+const Z3 = [0,0,0];
+// กล่องเอียงได้: c จุดกึ่งกลาง, ax/ay/az เวกเตอร์ครึ่งความยาวแต่ละแกน
+function obox(c, ax, ay, az, col, s, em){
+  const F = [[ax,ay,az],[[-ax[0],-ax[1],-ax[2]],az,ay],[ay,az,ax],[[-ay[0],-ay[1],-ay[2]],ax,az],[az,ax,ay],[[-az[0],-az[1],-az[2]],ay,ax]];
+  for (const [n, u, v] of F){ const l = Math.hypot(n[0], n[1], n[2]) || 1, nn = em ? Z3 : [n[0]/l, n[1]/l, n[2]/l];
+    const P = (su, sv) => [c[0] + n[0] + su*u[0] + sv*v[0], c[1] + n[1] + su*u[1] + sv*v[1], c[2] + n[2] + su*u[2] + sv*v[2]];
+    const a = P(-1,-1), b = P(1,-1), d = P(1,1), e = P(-1,1);
+    vput(a,nn,col,s); vput(b,nn,col,s); vput(d,nn,col,s); vput(a,nn,col,s); vput(d,nn,col,s); vput(e,nn,col,s); }
+}
+const fbox = (x, y, z, w, h, d, col, em, s) => obox([x,y,z], [w/2,0,0], [0,h/2,0], [0,0,d/2], col, s || 0, em);
+// ทรงกระบอก: c จุดกึ่งกลาง, ax เวกเตอร์ครึ่งแกน, r รัศมี; o = {seg, a0, a1 (ช่วงมุม), cap, em}
+function fcyl(c, ax, r, col, s, o){
+  o = o || {}; const seg = o.seg || 14, a0 = o.a0 || 0, a1 = o.a1 === undefined ? Math.PI*2 : o.a1;
+  const l = Math.hypot(ax[0], ax[1], ax[2]) || 1, n = [ax[0]/l, ax[1]/l, ax[2]/l], t = Math.abs(n[1]) < 0.9 ? [0,1,0] : [1,0,0];
+  let u = [n[1]*t[2]-n[2]*t[1], n[2]*t[0]-n[0]*t[2], n[0]*t[1]-n[1]*t[0]]; const ul = Math.hypot(u[0], u[1], u[2]); u = [u[0]/ul, u[1]/ul, u[2]/ul];
+  const v = [n[1]*u[2]-n[2]*u[1], n[2]*u[0]-n[0]*u[2], n[0]*u[1]-n[1]*u[0]];
+  const dir = k => { const a = a0 + (a1 - a0)*k/seg, cs = Math.cos(a), sn = Math.sin(a); return [u[0]*cs + v[0]*sn, u[1]*cs + v[1]*sn, u[2]*cs + v[2]*sn]; };
+  const pt = (dd, sg) => [c[0] + sg*ax[0] + dd[0]*r, c[1] + sg*ax[1] + dd[1]*r, c[2] + sg*ax[2] + dd[2]*r];
+  for (let k = 0; k < seg; k++){ const d0 = dir(k), d1 = dir(k + 1), n0 = o.em ? Z3 : d0, n1 = o.em ? Z3 : d1;
+    const p0 = pt(d0,-1), p1 = pt(d1,-1), p2 = pt(d1,1), p3 = pt(d0,1);
+    vput(p0,n0,col,s); vput(p1,n1,col,s); vput(p2,n1,col,s); vput(p0,n0,col,s); vput(p2,n1,col,s); vput(p3,n0,col,s);
+    if (o.cap !== false){ for (const sg of [-1, 1]){ const cc = [c[0] + sg*ax[0], c[1] + sg*ax[1], c[2] + sg*ax[2]], nn = o.em ? Z3 : [sg*n[0], sg*n[1], sg*n[2]];
+      vput(cc,nn,col,s); vput(pt(d0,sg),nn,col,s); vput(pt(d1,sg),nn,col,s); } }
+  }
+}
 function facScene(labs){
-  const V = [], st = FXS, dark = fx.dark, H = FAC.H;
-  // กล่องแกนโลก: จุดกึ่งกลาง + ขนาด + สี; em = เรืองแสง
-  const B = (x, y, z, w, h, d, col, em) => {
-    for (let f = 0; f < 6; f++){ const q = FXQ[f], n = em ? [0,0,0] : FXN[f];
-      for (const i of [0,1,2,0,2,3]) V.push(x + q[i][0]*w/2, y + q[i][1]*h/2, z + q[i][2]*d/2, n[0], n[1], n[2], col[0], col[1], col[2]); } };
-  const steel = [0.62,0.66,0.72], dk = [0.16,0.17,0.2], yel = [0.95,0.74,0.1], blu = [0.16,0.38,0.8], grn = [0.1,0.6,0.3];
-  const floor = dark ? [0.2,0.22,0.26] : [0.8,0.82,0.85], line = dark ? [0.26,0.28,0.33] : [0.72,0.74,0.78];
-  B(3, -0.05, 0.4, 20, 0.1, 14, floor);
-  for (let i = -7; i <= 13; i++) B(i, 0.001, 0.4, 0.02, 0.002, 14, line);
-  for (let k = -6; k <= 7; k++) B(3, 0.001, k, 20, 0.002, 0.02, line);
-  const lit = n => { const c = fcomp(n), R = c && RES.comp[c.id]; return !!(R && c.P && R.P > 0.05*c.P); };
+  VN = 0; fx.btns = [];
+  const st = FXS, dark = fx.dark, H = FAC.H, B = fbox;
+  const alu = [0.72,0.75,0.8], steel = [0.5,0.54,0.6], dk = [0.13,0.14,0.16], yel = [0.96,0.75,0.1], blu = [0.13,0.3,0.62], grey = [0.42,0.45,0.5], chrome = [0.85,0.87,0.9], red = [0.8,0.15,0.12];
+  const floor = dark ? [0.25,0.27,0.31] : [0.66,0.68,0.71], line = dark ? [0.2,0.22,0.26] : [0.58,0.6,0.64];
+  B(3, -0.05, 0.4, 90, 0.1, 90, floor, false, 0.06);
+  for (let i = -9; i <= 15; i++) B(i, 0.001, 0.4, 0.015, 0.002, 18, line);
+  for (let k = -8; k <= 9; k++) B(3, 0.001, k, 24, 0.002, 0.015, line);
+  fx.nFloor = VN;
   for (const i of (S.fac ? S.fac.items : [])){
-    const rt = frt(i), odd = i.r & 1;
-    // กล่องในพิกัดท้องถิ่นของเครื่องจักร (a ตามทิศ, b ด้านข้าง)
-    const L = (a, y, b, sa, sy, sb, col, em) => { const w = fWorld(i, a, b); B(w[0], y, w[1], odd ? sb : sa, sy, odd ? sa : sb, col, em); };
-    const lab = (t, a, y, b) => { const w = fWorld(i, a, b); labs.push([t, w[0], y, w[1]]); };
+    const rt = frt(i), odd = i.r & 1, d = FDIR[i.r & 3];
+    const P = (a, y, b) => [i.x + a*d[0] - b*d[1], y, i.z + a*d[1] + b*d[0]];
+    const L = (a, y, b, sa, sy, sb, col, em, s) => { const w = P(a, y, b); B(w[0], y, w[2], odd ? sb : sa, sy, odd ? sa : sb, col, em, s); };
+    const AX = {a:l => [d[0]*l/2, 0, d[1]*l/2], b:l => [-d[1]*l/2, 0, d[0]*l/2], y:l => [0, l/2, 0]};
+    const C = (a, y, b, axis, r, len, col, s, o) => fcyl(P(a, y, b), AX[axis](len), r, col, s || 0, o);
+    const lab = (t, a, y, b) => { const w = P(a, y, b); labs.push([t, w[0], y, w[2]]); };
+    const gearmotor = (a, y, b, run, ang) => {      // มอเตอร์เกียร์: ตัวมอเตอร์ทรงกระบอก + ครีบ + ฝาครอบพัดลม
+      L(a, y, b + 0.12, 0.17, 0.17, 0.14, grey, false, 0.2); C(a, y, b - 0.1, 'b', 0.085, 0.3, blu, 0.35); C(a, y, b - 0.27, 'b', 0.09, 0.05, dk, 0.1);
+      for (let k = -2; k <= 2; k++) L(a, y + 0.088, b - 0.1 + k*0.05, 0.1, 0.012, 0.012, [0.1,0.24,0.5]);
+      const w = P(a + 0.055*Math.cos(ang), y + 0.055*Math.sin(ang), b - 0.297); B(w[0], w[1], w[2], 0.03, 0.03, 0.03, run ? [0.5,1,0.6] : [0.7,0.7,0.72], run);
+      L(a, y + 0.11, b + 0.12, 0.07, 0.05, 0.07, dk);
+    };
     switch (i.k){
       case 'conv': case 'roller': {
-        const n = i.len, cv2 = i.k === 'conv', m = cv2 && fcomp(i.m), run = m && (m._sp || 0) > 0.05;
-        L(0, H - 0.1, 0, n + (cv2 ? 0.2 : 0), cv2 ? 0.12 : 0.06, 0.72, steel);
-        if (cv2){ L(0, H - 0.02, 0, n, 0.04, 0.56, dk);
-          for (let k = 0; k < Math.floor(n/0.5); k++) L((((k*0.5 + rt.o) % n) + n) % n - n/2, H + 0.001, 0, 0.05, 0.004, 0.56, [0.3,0.32,0.36]);
-          L(0, H + 0.006, 0.31, n, 0.014, 0.05, yel); L(0, H + 0.006, -0.31, n, 0.014, 0.05, yel);
-          L(n/2 + 0.05, H - 0.2, -0.55, 0.36, 0.3, 0.3, run ? grn : blu); L(n/2 + 0.05, H - 0.2, -0.36, 0.12, 0.12, 0.1, steel);
-          lab(i.m || '—', n/2 + 0.05, H + 0.15, -0.55);
-        } else for (let a = -n/2 + 0.07; a < n/2; a += 0.14) L(a, H - 0.045, 0, 0.06, 0.05, 0.6, [0.75,0.78,0.82]);
+        const n = i.len, cv2 = i.k === 'conv', m = cv2 && fcomp(i.m);
+        for (const b of [-0.33, 0.33]) L(0, H - 0.09, b, n, 0.15, 0.035, alu, false, 0.4);
+        if (cv2){
+          L(0, H - 0.012, 0, n - 0.14, 0.024, 0.58, dk, false, 0.08); L(0, H - 0.13, 0, n - 0.14, 0.02, 0.58, dk);
+          for (const a of [-(n/2 - 0.07), n/2 - 0.07]) C(a, H - 0.072, 0, 'b', 0.06, 0.58, [0.2,0.21,0.24], 0.15);
+          const span = n - 0.3; for (let k = 0; k < Math.floor(span/0.4); k++) L((((k*0.4 + rt.o) % span) + span) % span - span/2, H + 0.0015, 0, 0.03, 0.003, 0.56, [0.24,0.25,0.29]);
+          gearmotor(n/2 - 0.07, H - 0.072, -0.47, m && m._run, rt.o*8);
+          lab(i.m || '—', n/2 - 0.07, H + 0.28, -0.6);
+        } else for (let a = -n/2 + 0.07; a < n/2; a += 0.11) C(a, H - 0.038, 0, 'b', 0.036, 0.6, chrome, 0.6, {seg:10});
         const legs = n > 3 ? [-n/2 + 0.3, 0, n/2 - 0.3] : [-n/2 + 0.2, n/2 - 0.2];
-        for (const a of legs) for (const b of [-0.3, 0.3]) L(a, (H - 0.16)/2, b, 0.07, H - 0.16, 0.07, steel);
+        for (const a of legs){ for (const b of [-0.31, 0.31]){ L(a, (H - 0.16)/2, b, 0.05, H - 0.16, 0.05, alu, false, 0.3); L(a, 0.012, b, 0.13, 0.024, 0.13, dk); }
+          L(a, 0.22, 0, 0.04, 0.04, 0.62, alu); }
       } break;
-      case 'emit': for (const a of [-0.25, 0.25]) for (const b of [-0.4, 0.4]) L(a, 0.9, b, 0.04, 1.8, 0.04, steel); L(0, 1.8, 0, 0.6, 0.06, 0.9, yel); break;
+      case 'emit': for (const a of [-0.25, 0.25]) for (const b of [-0.4, 0.4]) L(a, 0.9, b, 0.04, 1.8, 0.04, alu, false, 0.3);
+        L(0, 1.8, 0, 0.6, 0.05, 0.9, yel); L(0, 1.5, 0.42, 0.56, 0.6, 0.02, [0.3,0.32,0.36]); L(0, 1.5, -0.42, 0.56, 0.6, 0.02, [0.3,0.32,0.36]); L(-0.27, 1.5, 0, 0.02, 0.6, 0.86, [0.3,0.32,0.36]);
+        break;
       case 'push': { const c = fcomp(i.y), hd = 0.8*rt.p, py = H + 0.16;
-        L(-0.55, py, 0, 0.62, 0.22, 0.22, c && c._on ? grn : blu); L((hd - 0.24)/2, py, 0, hd + 0.24, 0.05, 0.05, [0.85,0.87,0.9]);
-        L(hd - 0.02, py, 0, 0.04, 0.26, 0.5, [0.9,0.35,0.15]); L(-0.55, (py - 0.11)/2, 0, 0.1, py - 0.11, 0.1, steel); lab(i.y || '—', -0.55, H + 0.5, 0);
+        C(-0.55, py, 0, 'a', 0.07, 0.6, alu, 0.6); L(-0.86, py, 0, 0.04, 0.18, 0.18, grey); L(-0.24, py, 0, 0.04, 0.18, 0.18, grey);
+        C((hd - 0.24)/2, py, 0, 'a', 0.02, hd + 0.24, chrome, 0.9, {seg:8}); L(hd - 0.02, py, 0, 0.04, 0.26, 0.5, [0.85,0.3,0.12], false, 0.1);
+        L(-0.55, (py - 0.07)/2, 0, 0.1, py - 0.07, 0.1, alu); L(-0.55, 0.012, 0, 0.22, 0.024, 0.22, dk);
+        L(-0.7, py + 0.085, 0, 0.05, 0.04, 0.05, c && c._on ? [0.3,1,0.45] : dk, c && c._on); lab(i.y || '—', -0.55, H + 0.55, 0);
+      } break;
+      case 'stop': { const c = fcomp(i.y), up = 1 - rt.p;
+        C(0, H - 0.42, 0, 'y', 0.05, 0.3, alu, 0.6); C(0, H - 0.2 - 0.08*rt.p, 0, 'y', 0.018, 0.2, chrome, 0.9, {seg:8});
+        L(0, H - 0.1 + 0.2*up, 0, 0.04, 0.2, 0.56, red, false, 0.1); L(0, 0.15, 0, 0.05, 0.3, 0.05, alu); L(0, 0.012, 0, 0.2, 0.024, 0.2, dk);
+        lab((i.y || '—') + (c && c._on ? ' (เปิดทาง)' : ''), 0, H + 0.42, 0);
+      } break;
+      case 'robot': { const c = fcomp(i.y), gy = rt.gy, ca = rt.ca, top = 2.05;
+        for (const a of [-0.75, 2.3]){ L(a, top/2, 0, 0.1, top, 0.1, alu, false, 0.3); L(a, 0.015, 0, 0.3, 0.03, 0.3, dk); }
+        L(0.775, top, 0, 3.15, 0.12, 0.12, alu, false, 0.4); L(0.775, top + 0.07, 0, 3.0, 0.02, 0.05, dk);
+        L(ca, top, 0, 0.26, 0.2, 0.22, blu, false, 0.3); C(ca, (top + gy)/2 + 0.1, 0, 'y', 0.035, top - gy + 0.2, chrome, 0.8, {seg:10});
+        L(ca, gy + 0.03, 0, 0.36, 0.05, 0.12, grey); const op = rt.ph >= 2 && rt.ph <= 5 ? 0.155 : 0.2;
+        for (const sg of [-1, 1]) L(ca + sg*op, gy - 0.1, 0, 0.02, 0.24, 0.1, dk);
+        L(ca, top + 0.13, 0, 0.06, 0.06, 0.06, rt.ph ? [1,0.75,0.15] : [0.3,1,0.45], true);
+        lab((i.y || '—') + (rt.ph ? ' ทำงาน' : ' พร้อม'), 0.775, top + 0.35, 0);
       } break;
       case 'photo': { const c = fcomp(i.s);
-        L(0, 0.55, 0, 0.04, 1.1, 0.04, steel); L(0, H + 0.2, 0, 0.12, 0.09, 0.09, [0.95,0.5,0.1]); L(0.9, 0.55, 0, 0.04, 1.1, 0.04, steel); L(0.9, H + 0.2, 0, 0.03, 0.1, 0.07, [0.9,0.9,0.95]);
-        if (c && c._pw && !c.det) L(0.45, H + 0.2, 0, 0.84, 0.012, 0.012, [1,0.15,0.15], true);
-        lab((i.s || '—') + (c && c.det ? ' ●' : ''), 0, H + 0.5, 0);
+        C(0, 0.55, 0, 'y', 0.02, 1.1, alu, 0.4, {seg:8}); L(0, H + 0.2, 0, 0.12, 0.09, 0.07, [0.95,0.5,0.1], false, 0.2); C(0.065, H + 0.2, 0, 'a', 0.02, 0.02, dk);
+        C(0.9, 0.55, 0, 'y', 0.02, 1.1, alu, 0.4, {seg:8}); L(0.9, H + 0.2, 0, 0.02, 0.1, 0.08, [0.95,0.95,1], false, 0.8);
+        if (c && c._pw && !c.det) L(0.45, H + 0.2, 0, 0.84, 0.01, 0.01, [1,0.15,0.15], true);
+        L(0, H + 0.26, 0, 0.03, 0.02, 0.03, c && c.det ? [1,0.6,0.1] : [0.2,0.6,0.25], true);
+        lab((i.s || '—') + (c && c.det ? ' ●' : ''), 0, H + 0.52, 0);
       } break;
       case 'prox': { const c = fcomp(i.s), on = c && c._pw && c.det;
-        L(-0.36, 0.85, -0.45, 0.05, 1.7, 0.05, steel); L(-0.18, 1.68, -0.45, 0.4, 0.05, 0.05, steel); L(0, 1.68, -0.22, 0.05, 0.05, 0.5, steel);
-        L(0, 1.5, 0, 0.07, 0.32, 0.07, [0.15,0.3,0.7]); L(0, 1.33, 0, 0.075, 0.03, 0.075, on ? [1,0.6,0.1] : [0.3,0.3,0.35], on);
+        C(-0.36, 0.85, -0.45, 'y', 0.025, 1.7, alu, 0.4, {seg:8}); L(-0.36, 0.012, -0.45, 0.18, 0.024, 0.18, dk);
+        L(-0.18, 1.68, -0.45, 0.4, 0.04, 0.04, alu); L(0, 1.68, -0.22, 0.04, 0.04, 0.5, alu);
+        C(0, 1.48, 0, 'y', 0.035, 0.34, [0.75,0.6,0.25], 0.7, {seg:10}); C(0, 1.3, 0, 'y', 0.036, 0.03, on ? [1,0.6,0.1] : [0.2,0.35,0.75], 0.2, {em:on});
         lab((i.s || '—') + (c && c.det ? ' ●' : ''), 0, 1.95, 0);
       } break;
-      case 'bin': { const col = i.want === 'metal' ? [0.2,0.45,0.75] : i.want === 'other' ? [0.3,0.6,0.35] : [0.5,0.52,0.56];
-        L(0, 0.02, 0, 0.95, 0.04, 0.95, col); L(-0.47, 0.25, 0, 0.03, 0.5, 0.95, col); L(0.47, 0.25, 0, 0.03, 0.5, 0.95, col); L(0, 0.25, -0.47, 0.95, 0.5, 0.03, col); L(0, 0.25, 0.47, 0.95, 0.5, 0.03, col);
-        rt.list.forEach((mt, k) => L(-0.27 + (k % 3)*0.27, 0.16 + Math.floor(k/9)*0.2, -0.27 + (Math.floor(k/3) % 3)*0.27, 0.24, 0.2, 0.24, mt ? [0.72,0.76,0.82] : [0.74,0.54,0.32]));
-        lab((i.want === 'metal' ? 'โลหะ ' : i.want === 'other' ? 'ชิ้นงานอื่น ' : 'ชิ้นงาน ') + (rt.metal + rt.other), 0, 0.75, 0);
+      case 'bin': { const col = i.want === 'metal' ? [0.14,0.36,0.66] : i.want === 'other' ? [0.2,0.5,0.28] : [0.4,0.42,0.46];
+        L(0, 0.02, 0, 0.95, 0.04, 0.95, col, false, 0.2);
+        for (const sg of [-1, 1]){ L(sg*0.47, 0.25, 0, 0.03, 0.5, 0.95, col, false, 0.25); L(0, 0.25, sg*0.47, 0.95, 0.5, 0.03, col, false, 0.25);
+          L(sg*0.485, 0.49, 0, 0.06, 0.04, 1.02, col, false, 0.3); L(0, 0.49, sg*0.485, 1.02, 0.04, 0.06, col, false, 0.3); }
+        rt.list.forEach((mt, k) => L(-0.27 + (k % 3)*0.27, 0.16 + Math.floor(k/9)*0.2, -0.27 + (Math.floor(k/3) % 3)*0.27, 0.24, 0.2, 0.24, mt ? [0.6,0.64,0.7] : [0.7,0.52,0.32], false, mt ? 0.5 : 0));
+        lab((i.want === 'metal' ? 'โลหะ ' : i.want === 'other' ? 'ชิ้นงานอื่น ' : 'ชิ้นงาน ') + (rt.metal + rt.other), 0, 0.8, 0);
       } break;
-      case 'light': L(0, 0.93, 0, 0.05, 1.86, 0.05, steel);
-        L(0, 2.05, 0, 0.13, 0.13, 0.13, lit(i.lr) ? [1,0.2,0.15] : [0.4,0.12,0.1], lit(i.lr)); L(0, 1.9, 0, 0.13, 0.13, 0.13, lit(i.lg) ? [0.2,1,0.35] : [0.1,0.35,0.15], lit(i.lg)); break;
-      case 'cab': L(0, 0.75, 0, 0.7, 1.5, 0.4, [0.55,0.58,0.63]); L(0, 1.0, -0.21, 0.5, 0.6, 0.02, [0.42,0.45,0.5]); break;
-      case 'tank': { const tk = fcomp(i.tk), lv = tk && tk.t === 'tank' ? tk.lvl : 0, hh = 1.8*lv/100;
-        L(0, 0.05, 0, 1.6, 0.1, 1.6, steel);
-        for (const a of [-0.76, 0.76]) for (const b of [-0.76, 0.76]) L(a, 1.05, b, 0.07, 1.9, 0.07, steel);
-        L(0, 1.05, 0.78, 1.5, 1.9, 0.03, [0.7,0.74,0.8]); L(0.78, 1.05, 0, 0.03, 1.9, 1.5, [0.7,0.74,0.8]);
-        if (hh > 0.01) L(0, 0.1 + hh/2, 0, 1.48, hh, 1.48, [0.2,0.5,0.92]);
-        for (const fl of S.comps) if (fl.t === 'float' && tk && fl.ref === tk.n){ const y = 0.1 + 1.8*fl.lvl/100;
-          L(-0.72, y, -0.72, 0.16, 0.05, 0.16, fl._on ? [0.2,1,0.35] : [1,0.6,0.1], true); lab(fl.n + (fl._on ? ' ●' : ''), -0.72, y + 0.18, -0.72); }
-        L(-0.9, 1.9, 0, 0.5, 0.1, 0.1, steel); L(-0.68, 1.75, 0, 0.1, 0.3, 0.1, steel);
-        lab((i.tk || '—') + ' ' + lv.toFixed(0) + '%', 0, 2.25, 0);
+      case 'station': {
+        C(0, 0.5, 0, 'y', 0.035, 1.0, alu, 0.4, {seg:10}); C(0, 0.012, 0, 'y', 0.14, 0.024, dk); L(0, 1.07, 0, 0.44, 0.14, 0.2, [0.86,0.74,0.12], false, 0.25);
+        [i.b1, i.b2, i.b3].forEach((n, k) => { const c = fcomp(n); if (!c) return;
+          const es = c.t === 'estop', dn = es ? c.act : (c.t === 'sw' ? c.on : c._pr);
+          const col = es ? [0.85,0.1,0.08] : ({green:[0.1,0.65,0.25], red:[0.85,0.12,0.1], yellow:[0.92,0.75,0.1], blue:[0.15,0.4,0.85], black:[0.12,0.12,0.14], white:[0.92,0.92,0.94]}[c.col] || [0.5,0.5,0.55]);
+          const a = -0.14 + k*0.14, y = 1.14 + (dn ? 0.005 : 0.02);
+          C(a, 1.142, 0, 'y', es ? 0.05 : 0.04, 0.006, es ? yel : chrome, 0.6); C(a, y, 0, 'y', es ? 0.045 : 0.03, es ? 0.05 : 0.03, col, 0.35, {seg:12});
+          const w = P(a, 1.18, 0); fx.btns.push({c, x:w[0], y:w[1], z:w[2]}); lab(n, a, 1.3 + (k % 2)*0.1, 0); });
       } break;
-      case 'pump': { const m = fcomp(i.m), run = m && (m._sp || 0) > 0.05;
-        L(0, 0.06, 0, 0.8, 0.12, 0.5, steel); L(-0.12, 0.34, 0, 0.44, 0.34, 0.34, run ? grn : blu); L(0.2, 0.34, 0, 0.2, 0.44, 0.44, [0.4,0.44,0.5]);
-        L(0.75, 0.34, 0, 0.9, 0.1, 0.1, steel); L(1.2, 1.1, 0, 0.1, 1.62, 0.1, steel);
-        if (run) L(0.2, 0.34 + 0.24*Math.sin(performance.now()/90), 0, 0.22, 0.04, 0.46, [1,0.85,0.2], true);
-        lab((i.m || '—') + (run ? ' ●' : ''), 0, 0.85, 0);
+      case 'light': { C(0, 0.9, 0, 'y', 0.022, 1.8, alu, 0.5, {seg:8}); C(0, 0.012, 0, 'y', 0.09, 0.024, dk);
+        const r2 = flit(i.lr), g2 = flit(i.lg); C(0, 2.01, 0, 'y', 0.06, 0.12, r2 ? [1,0.22,0.16] : [0.42,0.1,0.08], 0.5, {em:r2}); C(0, 1.88, 0, 'y', 0.06, 0.12, g2 ? [0.25,1,0.4] : [0.08,0.33,0.14], 0.5, {em:g2}); C(0, 2.09, 0, 'y', 0.062, 0.03, dk);
       } break;
-      case 'gate': { const p = rt.p, m = fcomp(i.m);
-        L(3, 0.03, 0, 6.4, 0.06, 0.14, steel); L(-0.1, 0.8, -0.2, 0.2, 1.6, 0.2, [0.5,0.52,0.56]); L(3.1, 0.8, -0.2, 0.2, 1.6, 0.2, [0.5,0.52,0.56]);
-        const c0 = 1.5 + 3*p; L(c0, 0.2, 0, 3, 0.1, 0.06, dk); L(c0, 1.4, 0, 3, 0.1, 0.06, dk);
-        for (let k = 0; k <= 10; k++) L(c0 - 1.5 + k*0.3, 0.8, 0, 0.05, 1.2, 0.05, [0.25,0.3,0.4]);
-        L(3.5, 0.3, -0.35, 0.4, 0.5, 0.3, m && m._run ? grn : blu);
-        if (rt.over) lab('⚠ มอเตอร์ดันสุดทาง — ลิมิตสวิตช์ไม่ตัด', 3, 2.0, 0);
-        lab('ประตู ' + (p <= 0.005 ? 'ปิดสนิท' : p >= 0.995 ? 'เปิดสุด' : Math.round(p*100) + '%'), 1.5, 1.75, 0);
+      case 'beacon': { const on = flit(i.lg); C(0, 0.95, 0, 'y', 0.022, 1.9, alu, 0.5, {seg:8}); C(0, 0.012, 0, 'y', 0.09, 0.024, dk); C(0, 1.93, 0, 'y', 0.075, 0.05, dk);
+        C(0, 2.03, 0, 'y', 0.065, 0.15, on ? [1,0.6,0.08] : [0.55,0.3,0.05], 0.6, {em:on && Math.sin(rt.ang) > -0.3});
+        if (on) obox(P(0, 2.03, 0), [0.2*Math.cos(rt.ang), 0, 0.2*Math.sin(rt.ang)], [0, 0.03, 0], [-0.012*Math.sin(rt.ang), 0, 0.012*Math.cos(rt.ang)], [1,0.85,0.35], 0, true);
+      } break;
+      case 'traffic': { C(0, 1.1, 0, 'y', 0.04, 2.2, grey, 0.3, {seg:10}); C(0, 0.02, 0, 'y', 0.16, 0.04, dk); L(0.04, 2.55, 0, 0.2, 0.86, 0.3, dk, false, 0.15);
+        [[i.lr, [1,0.15,0.1], [0.3,0.06,0.05], 2.82], [i.ly, [1,0.8,0.1], [0.32,0.25,0.04], 2.55], [i.lg, [0.15,1,0.35], [0.05,0.3,0.1], 2.28]].forEach(([n, on, off, y]) => { const l = flit(n);
+          C(0.15, y, 0, 'a', 0.095, 0.03, l ? on : off, 0.3, {em:l, seg:16}); L(0.19, y + 0.1, 0, 0.1, 0.015, 0.22, dk); });
+      } break;
+      case 'cab': L(0, 0.8, 0, 0.72, 1.5, 0.42, [0.74,0.76,0.79], false, 0.25); L(0, 0.025, 0, 0.74, 0.05, 0.44, dk); L(0, 0.82, -0.215, 0.6, 1.3, 0.012, [0.8,0.82,0.85], false, 0.3);
+        L(0.24, 0.85, -0.225, 0.03, 0.14, 0.02, dk, false, 0.6); L(-0.15, 1.3, -0.225, 0.2, 0.12, 0.01, [0.1,0.14,0.2], false, 0.6);
+        L(0.1, 1.32, -0.225, 0.035, 0.035, 0.012, [0.2,0.9,0.35], true); L(0.17, 1.32, -0.225, 0.035, 0.035, 0.012, [0.5,0.12,0.1]);
+        break;
+      case 'fence': { const n = i.len; for (let a = -n/2; a <= n/2 + 0.01; a += Math.max(0.5, n/Math.round(n))) { C(a, 0.6, 0, 'y', 0.025, 1.2, yel, 0.3, {seg:8}); C(a, 0.012, 0, 'y', 0.07, 0.024, dk); }
+        for (const y of [0.25, 0.7, 1.15]) L(0, y, 0, n, 0.03, 0.02, yel); for (let a = -n/2 + 0.125; a < n/2; a += 0.125) L(a, 0.7, 0, 0.008, 0.9, 0.008, [0.25,0.26,0.3]);
+      } break;
+      case 'fan': { const m = fcomp(i.m), cy = 0.95, a0 = rt.ang;
+        L(0.1, 0.03, 0, 0.9, 0.06, 1.0, dk); for (const b of [-0.4, 0.4]) L(0.1, 0.3, b, 0.08, 0.5, 0.06, grey);
+        C(0.25, cy, 0, 'a', 0.62, 0.36, [0.78,0.8,0.83], 0.5, {seg:28, cap:false}); C(-0.28, cy, 0, 'a', 0.17, 0.55, blu, 0.35, {seg:16});
+        for (let k = -3; k <= 3; k++) L(-0.28, cy + 0.172, k*0.04, 0.4, 0.012, 0.012, [0.1,0.24,0.5]);
+        L(-0.28, 0.42, 0, 0.3, 0.72, 0.24, grey); C(0.22, cy, 0, 'a', 0.09, 0.14, dk, 0.4, {seg:12});
+        for (let k = 0; k < 5; k++){ const an = a0 + k*Math.PI*2/5, u = [0, Math.cos(an), Math.sin(an)], v = [0, -Math.sin(an), Math.cos(an)];
+          const R3 = w => i.r === 0 ? w : [w[0]*d[0] - w[2]*d[1], w[1], w[0]*d[1] + w[2]*d[0]];
+          const ctr = P(0.25, cy, 0), uu = R3(u), vv = R3(v), ax2 = R3([1,0,0]);
+          obox([ctr[0] + uu[0]*0.33, ctr[1] + uu[1]*0.33, ctr[2] + uu[2]*0.33], [uu[0]*0.25, uu[1]*0.25, uu[2]*0.25],
+            [vv[0]*0.08 + ax2[0]*0.035, vv[1]*0.08 + ax2[1]*0.035, vv[2]*0.08 + ax2[2]*0.035], [ax2[0]*0.006 - vv[0]*0.003, ax2[1]*0.006 - vv[1]*0.003, ax2[2]*0.006 - vv[2]*0.003], [0.2,0.22,0.26], 0.4); }
+        L(0.435, cy, 0, 0.008, 0.012, 1.22, [0.3,0.32,0.36]); L(0.435, cy, 0, 0.008, 1.22, 0.012, [0.3,0.32,0.36]);
+        C(0.435, cy, 0, 'a', 0.3, 0.008, [0.3,0.32,0.36], 0, {cap:false, seg:20}); C(0.435, cy, 0, 'a', 0.45, 0.008, [0.3,0.32,0.36], 0, {cap:false, seg:24});
+        lab((i.m || '—') + (m ? ' ' + Math.round((m._sp || 0)*100) + '%' + (m._dir < 0 ? ' ↺' : '') : ''), 0, 1.85, 0);
+      } break;
+      case 'tank': { const tk = fcomp(i.tk), lv = tk && tk.t === 'tank' ? tk.lvl : 0, hh = 1.7*lv/100, R2 = 0.78, cut = (i.r & 3)*Math.PI/2;
+        C(0, 0.06, 0, 'y', R2 + 0.03, 0.12, grey, 0.2, {seg:28});
+        C(0, 1.05, 0, 'y', R2, 1.86, [0.76,0.79,0.84], 0.7, {seg:28, cap:false, a0:Math.PI + 0.75 - cut, a1:Math.PI*3 - 0.75 - cut});
+        C(0, 1.99, 0, 'y', R2 + 0.02, 0.03, alu, 0.6, {seg:28, cap:false}); C(0, 0.14, 0, 'y', R2 - 0.02, 0.03, [0.6,0.63,0.68], 0.3, {seg:28});
+        if (hh > 0.01){ C(0, 0.15 + hh/2, 0, 'y', R2 - 0.03, hh, [0.12,0.4,0.8], 0.5, {seg:28, cap:false}); C(0, 0.15 + hh, 0, 'y', R2 - 0.03, 0.004, [0.25,0.55,0.95], 0.9, {seg:28}); }
+        for (const fl of S.comps) if (fl.t === 'float' && tk && fl.ref === tk.n){ const y = 0.15 + 1.7*fl.lvl/100;
+          C(-0.5, y, -0.5, 'y', 0.05, 0.07, fl._on ? [0.3,1,0.45] : [1,0.6,0.1], 0.3, {em:true, seg:10}); L(-0.63, y, -0.63, 0.25, 0.015, 0.015, dk); lab(fl.n + (fl._on ? ' ●' : ''), -0.66, y + 0.16, -0.66); }
+        C(-1.0, 2.1, 0, 'a', 0.05, 0.6, alu, 0.6, {seg:10}); C(-0.72, 1.95, 0, 'y', 0.05, 0.3, alu, 0.6, {seg:10});
+        if (i.ag){ const mg = fcomp(i.ag); L(0, 2.03, 0, 1.7, 0.06, 0.1, alu); C(0, 2.22, 0, 'y', 0.1, 0.32, blu, 0.35, {seg:14}); C(0, 1.15, 0, 'y', 0.02, 1.8, chrome, 0.9, {seg:8});
+          for (let k = 0; k < 3; k++){ const an = rt.ang + k*2.094; obox(P(0, 0.35, 0).map((q, k2) => k2 === 0 ? q + 0.2*Math.cos(an) : k2 === 2 ? q + 0.2*Math.sin(an) : q), [0.2*Math.cos(an), 0, 0.2*Math.sin(an)], [0, 0.06, 0.02], [-0.004*Math.sin(an), 0, 0.004*Math.cos(an)], chrome, 0.8); }
+          lab((i.ag) + (mg && mg._run ? ' ●' : ''), 0, 2.55, 0); }
+        lab((i.tk || '—') + ' ' + lv.toFixed(0) + '%', 0.4, 2.3, 0.4);
+      } break;
+      case 'pump': { const m = fcomp(i.m), run = m && (m._sp || 0) > 0.05, t2 = performance.now()/1000*(run ? 1 : 0);
+        L(0.05, 0.05, 0, 1.0, 0.1, 0.5, grey, false, 0.2); C(-0.18, 0.36, 0, 'a', 0.15, 0.42, blu, 0.35, {seg:16}); C(-0.42, 0.36, 0, 'a', 0.16, 0.06, dk, 0.1, {seg:16});
+        for (let k = -3; k <= 3; k++) L(-0.18, 0.512, k*0.035, 0.36, 0.012, 0.012, [0.1,0.24,0.5]);
+        L(-0.18, 0.2, 0, 0.26, 0.2, 0.22, grey); C(0.1, 0.36, 0, 'a', 0.05, 0.14, chrome, 0.8, {seg:10}); L(0.1, 0.44, 0, 0.16, 0.02, 0.14, yel);
+        C(0.3, 0.36, 0, 'a', 0.24, 0.16, [0.2,0.42,0.3], 0.4, {seg:20}); L(0.3, 0.16, 0, 0.14, 0.14, 0.3, grey);
+        C(0.62, 0.36, 0, 'a', 0.06, 0.5, alu, 0.6, {seg:10}); C(0.3, 0.95, 0, 'y', 0.06, 0.8, alu, 0.6, {seg:10}); C(0.75, 1.33, 0, 'a', 0.06, 0.96, alu, 0.6, {seg:10}); C(1.2, 0.72, 0, 'y', 0.06, 1.28, alu, 0.6, {seg:10});
+        for (const [a, y, ax3] of [[0.39, 0.36, 'a'], [0.3, 0.57, 'y']]) C(a, y, 0, ax3, 0.09, 0.03, grey, 0.4, {seg:12});
+        { const q = P(-0.455, 0.36 + 0.09*Math.sin(t2*20), 0.09*Math.cos(t2*20)); B(q[0], q[1], q[2], 0.03, 0.03, 0.03, run ? [0.5,1,0.6] : [0.7,0.7,0.72], run); }
+        lab((i.m || '—') + (run ? ' ●' : ''), 0, 0.95, 0);
+      } break;
+      case 'gate': { const p = rt.p, m = fcomp(i.m), c0 = 1.5 + 3*p, frame = [0.16,0.2,0.3];
+        L(3, 0.02, 0, 6.5, 0.04, 0.1, steel, false, 0.5); for (const a of [-0.12, 3.12]){ L(a, 0.9, -0.2, 0.22, 1.8, 0.22, [0.62,0.62,0.6], false, 0.05); L(a, 1.83, -0.2, 0.28, 0.06, 0.28, [0.5,0.5,0.48]); }
+        L(c0, 0.2, 0, 3.05, 0.09, 0.05, frame, false, 0.3); L(c0, 1.42, 0, 3.05, 0.09, 0.05, frame, false, 0.3); L(c0 - 1.5, 0.81, 0, 0.07, 1.3, 0.05, frame); L(c0 + 1.5, 0.81, 0, 0.07, 1.3, 0.05, frame);
+        for (let k = 1; k < 12; k++) L(c0 - 1.5 + k*0.25, 0.81, 0, 0.03, 1.14, 0.03, [0.22,0.27,0.4], false, 0.2);
+        for (const a of [-1.2, 1.2]) C(c0 + a, 0.09, 0, 'b', 0.07, 0.04, dk, 0.2, {seg:12});
+        L(c0, 0.32, -0.05, 3.0, 0.03, 0.02, steel, false, 0.4);
+        L(3.55, 0.3, -0.4, 0.42, 0.56, 0.32, [0.25,0.3,0.36], false, 0.25); L(3.55, 0.6, -0.4, 0.46, 0.04, 0.36, dk); C(3.4, 0.32, -0.2, 'b', 0.06, 0.08, chrome, 0.7, {seg:12});
+        if (rt.over) lab('⚠ มอเตอร์ดันสุดทาง — ลิมิตสวิตช์ไม่ตัด', 3, 2.2, 0);
+        lab('ประตู ' + (p <= 0.005 ? 'ปิดสนิท' : p >= 0.995 ? 'เปิดสุด' : Math.round(p*100) + '%'), 1.5, 1.8, 0);
       } break;
     }
     if (fx.edit && fx.sel === i.id){ const q = FKIND[i.k].fp(i), ca = (q[0] + q[1])/2, cb = (q[2] + q[3])/2, sa = q[1] - q[0] + 0.16, sb = q[3] - q[2] + 0.16, c = [0.55,0.3,0.95];
       L(ca, 0.012, cb - sb/2, sa, 0.02, 0.04, c, true); L(ca, 0.012, cb + sb/2, sa, 0.02, 0.04, c, true); L(ca - sa/2, 0.012, cb, 0.04, 0.02, sb, c, true); L(ca + sa/2, 0.012, cb, 0.04, 0.02, sb, c, true);
       L(q[1] + 0.25, 0.012, cb, 0.3, 0.02, 0.08, c, true); }
   }
-  for (const b of st.boxes){ const s2 = FAC.bs;
-    B(b.x, b.y, b.z, s2, s2, s2, b.metal ? [0.74,0.78,0.84] : [0.76,0.56,0.33]);
-    if (b.metal) B(b.x, b.y + s2/2 + 0.002, b.z, s2*0.7, 0.004, s2*0.7, [0.88,0.9,0.94]); else B(b.x, b.y + s2/2 + 0.002, b.z, s2, 0.004, 0.05, [0.9,0.82,0.6]); }
-  return new Float32Array(V);
+  // กล่องชิ้นงาน: หันเอียงเล็กน้อย และหมุนคว้างตอนตก
+  for (const b of st.boxes){ const h = FAC.bs/2, cy = Math.cos(b.yaw), sy = Math.sin(b.yaw), ct = Math.cos(b.tilt), s3 = Math.sin(b.tilt);
+    const ax = [cy*h, 0, -sy*h], ay = [sy*s3*h, ct*h, cy*s3*h], az = [sy*ct*h, -s3*h, cy*ct*h], c = [b.x, b.y, b.z];
+    const sc = (v, k) => [v[0]*k, v[1]*k, v[2]*k], add = (...vs) => vs.reduce((p, v) => [p[0] + v[0], p[1] + v[1], p[2] + v[2]]);
+    if (b.metal){ obox(c, ax, ay, az, [0.62,0.66,0.72], 0.75); obox(c, sc(ax, 1.02), sc(ay, 0.12), sc(az, 1.02), [0.42,0.45,0.5], 0.5); obox(add(c, sc(ay, 1.005)), sc(ax, 0.6), sc(ay, 0.01), sc(az, 0.6), [0.8,0.83,0.88], 0.9); }
+    else { obox(c, ax, ay, az, [0.72,0.53,0.32], 0.02); obox(add(c, sc(ay, 1.004)), sc(ax, 1.0), sc(ay, 0.006), sc(az, 0.16), [0.86,0.76,0.56], 0.2);
+      obox(add(c, sc(az, 1.004), sc(ax, 0.3), sc(ay, 0.2)), sc(ax, 0.45), sc(ay, 0.35), sc(az, 0.006), [0.95,0.95,0.93], 0); }
+  }
 }
 function fxDraw(){
   if (fx.mode === 'off' || fx.gl === false) return;
   if (!fx.gl) fxInit(); const gl = fx.gl; if (!gl) return;
   const cvs = $('#fx'), r = cvs.getBoundingClientRect(), w = Math.max(1, Math.round(r.width*dpr)), h = Math.max(1, Math.round(r.height*dpr));
   if (cvs.width !== w || cvs.height !== h){ cvs.width = w; cvs.height = h; }
-  const bg = K.board.match(/[0-9a-f]{2}/gi) || ['fa','fb','fc'], fog = bg.slice(0, 3).map(x => parseInt(x, 16)/255);
+  const hex = c => (c.match(/[0-9a-f]{2}/gi) || ['e8','ec','f1']).slice(0, 3).map(x => parseInt(x, 16)/255), fog = hex(K.sky2 || K.board);
   fx.dark = fog[0] + fog[1] + fog[2] < 1.2;
-  gl.viewport(0, 0, w, h); gl.clearColor(fog[0], fog[1], fog[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  fx.M = m4mul(m4persp(0.75, w/h, 0.1, 90), m4look(fxCam()));
-  gl.uniformMatrix4fv(gl.getUniformLocation(fx.prog, 'm'), false, fx.M);
-  gl.uniform3fv(gl.getUniformLocation(fx.prog, 'fog'), fog);
-  const labs = [], data = facScene(labs);
-  gl.bindBuffer(gl.ARRAY_BUFFER, fx.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
-  gl.drawArrays(gl.TRIANGLES, 0, data.length/9);
-  $('#flab').innerHTML = labs.map(([t, x, y, z]) => { const m = fx.M, cw = m[3]*x + m[7]*y + m[11]*z + m[15]; if (cw <= 0.1) return '';
-    const sx = ((m[0]*x + m[4]*y + m[8]*z + m[12])/cw*0.5 + 0.5)*r.width, sy = (0.5 - (m[1]*x + m[5]*y + m[9]*z + m[13])/cw*0.5)*r.height;
-    return `<span style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${esc(t)}</span>`; }).join('');
+  gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clearStencil(0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+  const cam = fxCam(); fx.M = m4mul(m4persp(0.75, w/h, 0.1, 120), m4look(cam));
+  const U = n => gl.getUniformLocation(fx.prog, n);
+  gl.uniformMatrix4fv(U('m'), false, fx.M); gl.uniform3fv(U('fog'), fog); gl.uniform3fv(U('eye'), cam.e); gl.uniform1f(U('dk'), fx.dark ? 0.82 : 1);
+  const labs = []; facScene(labs);
+  gl.bindBuffer(gl.ARRAY_BUFFER, fx.buf); gl.bufferData(gl.ARRAY_BUFFER, VB.subarray(0, VN), gl.DYNAMIC_DRAW);
+  gl.uniform1f(U('sh'), 0); gl.disable(gl.BLEND); gl.depthMask(true); gl.disable(gl.STENCIL_TEST);
+  gl.drawArrays(gl.TRIANGLES, 0, VN/10);
+  // เงาตกพื้น: ฉายทุกชิ้น (ยกเว้นพื้น) ลงระนาบพื้นตามทิศแสง, stencil กันเงาซ้อนเข้มเกิน
+  gl.uniform1f(U('sh'), 1); gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); gl.depthMask(false);
+  gl.enable(gl.STENCIL_TEST); gl.stencilFunc(gl.NOTEQUAL, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+  gl.drawArrays(gl.TRIANGLES, fx.nFloor/10, (VN - fx.nFloor)/10);
+  gl.depthMask(true); gl.disable(gl.STENCIL_TEST); gl.disable(gl.BLEND);
+  $('#flab').innerHTML = labs.map(([t, x, y, z]) => { const p = fxProj(x, y, z, r); return p ? `<span style="left:${p[0].toFixed(0)}px;top:${p[1].toFixed(0)}px">${esc(t)}</span>` : ''; }).join('');
 }
 const fxSel = () => S.fac && S.fac.items.find(i => i.id === fx.sel);
 function fxMissing(){
@@ -3709,21 +3910,21 @@ function fxHud(force){
       }
       h += `<datalist id="fnames">${S.comps.filter(x => x.n).map(x => `<option value="${esc(x.n)}">${esc(T[x.t].nm)}</option>`).join('')}</datalist>
         <div class="sub">คลิกเครื่องจักรเพื่อเลือก · ลากเพื่อย้าย · <kbd>R</kbd> หมุน · <kbd>Delete</kbd> ลบ · ลากพื้นว่างเพื่อหมุนกล้อง</div>`;
-    } else h += `<div class="sub">ลากเพื่อหมุนกล้อง · ล้อเมาส์ซูม · คลิกขวาลากเพื่อเลื่อน</div>`;
+    } else h += `<div class="sub">ลากเพื่อหมุนกล้อง · ล้อเมาส์ซูม · คลิกขวาลากเพื่อเลื่อน · คลิกปุ่มบนแท่นปุ่มกดในฉากได้</div>`;
     el.innerHTML = h + `<div id="fcnt" class="mono"></div></div>`;
   }
-  const run = S.fac.items.filter(i => i.k === 'conv').map(i => fcomp(i.m)).filter(m => m && (m._sp || 0) > 0.05).length, nc2 = S.fac.items.filter(i => i.k === 'conv').length;
-  $('#fstat').textContent = nc2 ? `สายพานวิ่ง ${run}/${nc2}` : '';
+  const cv3 = S.fac.items.filter(i => i.k === 'conv'), run = cv3.filter(i => Math.abs(frt(i).v) > 0.02).length;
+  $('#fstat').textContent = cv3.length ? `สายพานวิ่ง ${run}/${cv3.length}` : '';
   $('#fcnt').textContent = hasEmit ? `ลงถังถูก: โลหะ ${c.metal} · อื่น ๆ ${c.other} · โลหะหลุด ${c.miss} · คัดผิด ${c.wrong} · ตกพื้น ${c.floor}` : '';
 }
 function facEdited(){ fx.hv++; commit(); fxHud(true); }
-// เล็งกล้องไปกลางฉาก
 function fxFrame(){
   const it = S.fac && S.fac.items; if (!it || !it.length) return;
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const i of it){ const q = FKIND[i.k].fp(i); for (const a of [q[0], q[1]]) for (const b of [q[2], q[3]]){ const w = fWorld(i, a, b);
     x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); z0 = Math.min(z0, w[1]); z1 = Math.max(z1, w[1]); } }
-  fx.tgt = [(x0 + x1)/2, 0.7, (z0 + z1)/2]; fx.dist = Math.max(6, Math.min(20, Math.max(x1 - x0, z1 - z0)*1.25 + 2));
+  const hm = Math.max(1.2, ...it.map(i => ({traffic:3.1, robot:2.3, tank:2.5, light:2.2, beacon:2.2, fan:1.7, gate:1.9, emit:1.9, prox:1.8})[i.k] || 1.2));
+  fx.tgt = [(x0 + x1)/2, hm*0.42, (z0 + z1)/2]; fx.dist = Math.max(5, hm*2.7, Math.min(20, Math.max(x1 - x0, z1 - z0)*1.2 + 2.5));
 }
 function facSetScene(name){ const p = facPreset(name); S.fac = {items:p.items, btn:p.btn}; fx.sel = null; facReset(); fxFrame(); facEdited(); }
 function setView(m){
@@ -3731,12 +3932,24 @@ function setView(m){
   $('#b3d').textContent = m === 'off' ? 'โรงงาน 3D' : m === 'split' ? '3D: แบ่งจอ' : '3D: เต็มจอ';
   $('#fhud').dataset.k = ''; setTimeout(() => { resize(); fit(); }, 30);
 }
+// กดปุ่มบนแท่นปุ่มกดในฉาก → กดปุ่มกดบนแผง
+function fxPress(c){
+  if (c.t === 'estop'){ c.act = !c.act; commit(); return; }
+  if (c.t === 'sw'){ c.on = !c.on; commit(); return; }
+  c._pr = true; needSolve = true;
+  const up = () => { c._pr = false; needSolve = true; window.removeEventListener('pointerup', up); }; window.addEventListener('pointerup', up);
+}
 (function fxEvents(){
   const cvs = $('#fx'), wrap = $('#fwrap'), hud = $('#fhud');
   wrap.addEventListener('pointerenter', () => { fx.over = true; }); wrap.addEventListener('pointerleave', () => { fx.over = false; });
   cvs.addEventListener('contextmenu', e => e.preventDefault());
   cvs.addEventListener('pointerdown', e => {
     cvs.setPointerCapture(e.pointerId);
+    if (e.button === 0 && !e.shiftKey && !fx.edit){
+      const r = cvs.getBoundingClientRect(); let best = null, bd = 26;
+      for (const b of fx.btns){ const p = fxProj(b.x, b.y, b.z, r); if (!p) continue; const dd = Math.hypot(p[0] - (e.clientX - r.left), p[1] - (e.clientY - r.top)); if (dd < bd){ bd = dd; best = b; } }
+      if (best){ fxPress(best.c); return; }
+    }
     if (fx.edit && e.button === 0 && !e.shiftKey){
       const it = fxPick(e), p = fxRay(e, 0);
       if ((it ? it.id : null) !== fx.sel){ fx.sel = it ? it.id : null; fxHud(true); }
@@ -3755,9 +3968,7 @@ function setView(m){
   const end = () => { const d = fx.drag; fx.drag = null; if (d && d.move && d.moved) facEdited(); };
   cvs.addEventListener('pointerup', end); cvs.addEventListener('pointercancel', end);
   cvs.addEventListener('wheel', e => { e.preventDefault(); fx.dist = Math.max(2.5, Math.min(28, fx.dist*Math.exp(e.deltaY*0.0012))); }, {passive:false});
-  hud.addEventListener('pointerdown', e => { const b = e.target.closest('[data-press]'); if (!b) return;
-    const c = fcomp(b.dataset.press); if (!c) return; c._pr = true; needSolve = true;
-    const up = () => { c._pr = false; needSolve = true; window.removeEventListener('pointerup', up); }; window.addEventListener('pointerup', up); });
+  hud.addEventListener('pointerdown', e => { const b = e.target.closest('[data-press]'); if (!b) return; const c = fcomp(b.dataset.press); if (c) fxPress(c); });
   const act = f => { const it = fxSel();
     if (f === 'auto'){ FXS.auto = !FXS.auto; fxHud(true); } else if (f === 'm') facSpawn(true); else if (f === 'o') facSpawn(false);
     else if (f === 'reset'){ facReset(); fxHud(true); } else if (f === 'ex') loadEx('factory');
@@ -4016,7 +4227,7 @@ function frame(now){
 }
 
 window.__sim = {
-  get S(){ return S; }, get RES(){ return RES; }, EX, FXS, setView,
+  get S(){ return S; }, get RES(){ return RES; }, EX, FXS, setView, flit,
   load: x => (typeof x === 'string' && EX[x]) ? loadEx(x) : (load(x), cur = ser(), refreshUI()),
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },

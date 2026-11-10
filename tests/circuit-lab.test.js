@@ -130,6 +130,15 @@ const path = require('path');
       {id:1, k:'conv', x:1.5, z:0, r:0, len:3, spd:0.5, m:'M1'}, {id:2, k:'emit', x:0.3, z:0, r:0, every:2, metal:0}, {id:3, k:'bin', x:3.55, z:0, r:0, want:'any'}]};
     s.FXS.boxes.length = 0; s.run(0.3); press('START'); s.run(30); o.custom = Object.assign({}, s.FXS.cnt); o.customSaved = JSON.parse(JSON.stringify(s.S.fac.items.length));
 
+    s.load('pickplace'); s.run(0.5); press('START'); s.run(60); o.pick = Object.assign({}, s.FXS.cnt);
+    // ตัวกั้นชิ้นงาน: คอยล์ Y1 ไม่มีไฟ → กั้น, มีไฟ → เปิดทาง
+    s.load('factory'); s.S.fac = {btn:['START','STOP'], items:[
+      {id:1, k:'conv', x:2, z:0, r:0, len:4, spd:0.5, m:'M1'}, {id:2, k:'emit', x:0.3, z:0, r:0, every:2, metal:0}, {id:3, k:'stop', x:3, z:0, r:0, y:'K1'}, {id:4, k:'bin', x:4.55, z:0, r:0, want:'any'}]};
+    s.S.fac.items[2].y = 'Y1'; s.run(0.3); press('START'); s.run(20); o.stopHeld = [s.FXS.cnt.other, s.FXS.boxes.length];
+    s.S.fac.items[2].y = 'K1'; s.run(15); o.stopOpen = s.FXS.cnt.other;
+    s.load('dol'); o.dolScene = s.S.fac.items.map(i => i.k).join(); press('START'); s.run(4); o.fanTurns = s.FXS.rt[1].ang > 10;
+    s.load('pico'); s.run(1); o.traffic = [s.flit('D1'), s.flit('D3')]; s.run(3.2); o.traffic2 = [s.flit('D1'), s.flit('D3')];
+
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
@@ -182,8 +191,12 @@ const path = require('path');
   checks.push(['gate: กด OPEN → เปิดสุด ลิมิต SQ1 ตัด K1', r.gate0[0] === 0 && r.gate0[1] === true && r.gate1[0] >= 0.995 && !r.gate1[1] && r.gate1[2] === true, JSON.stringify(r.gate1)]);
   checks.push(['gate: กด STOP กลางทาง → ประตูหยุดนิ่ง', r.gate2[0] > 0.1 && r.gate2[0] < 0.9 && Math.abs(r.gate2[0] - r.gate2[1]) < 0.01 && !r.gate2[2], JSON.stringify(r.gate2)]);
   checks.push(['gate: กด CLOSE → ปิดสนิท ลิมิต SQ2 ตัด K2', r.gate3[0] <= 0.005 && !r.gate3[1] && r.gate3[2] === true, JSON.stringify(r.gate3)]);
-  checks.push(['plcpump: มีฉากสถานีสูบน้ำ 3D', r.tankScene === 'tank,pump,cab', r.tankScene]);
+  checks.push(['plcpump: มีฉากสถานีสูบน้ำ 3D', r.tankScene === 'tank,pump,cab,station', r.tankScene]);
   checks.push(['จัดวางฉากเอง (สายพาน + ตัวปล่อย + ถัง) ทำงานกับมอเตอร์บนแผง', r.custom.other >= 8 && r.custom.floor === 0, JSON.stringify(r.custom)]);
+  checks.push(['pickplace: แขนหยิบวางย้ายกล่องลงถังครบ ไม่ตกพื้น (60 s)', r.pick.metal + r.pick.other >= 10 && r.pick.floor === 0, JSON.stringify(r.pick)]);
+  checks.push(['ตัวกั้นชิ้นงาน: ไม่มีไฟ → กล่องต่อคิวรอ, มีไฟ → กล่องไหลลงถัง', r.stopHeld[0] === 0 && r.stopHeld[1] >= 4 && r.stopOpen >= 5, JSON.stringify([r.stopHeld, r.stopOpen])]);
+  checks.push(['dol: ฉากพัดลมหมุนตามมอเตอร์บนแผง', r.dolScene === 'fan,cab,station,beacon' && r.fanTurns, r.dolScene]);
+  checks.push(['pico: ไฟจราจร 3D ตาม LED บนแผง (แดง → เขียว)', JSON.stringify([r.traffic, r.traffic2]) === '[[true,false],[false,true]]', JSON.stringify([r.traffic, r.traffic2])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
