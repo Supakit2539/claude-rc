@@ -82,6 +82,10 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 .fcard{background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
 .fcard .row{margin:6px 0 4px}
 .fcard .e{color:var(--bad);font-size:12px}
+.fcard select{max-width:190px}
+.fprop{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px;display:grid;gap:3px;max-width:330px}
+.fprop label{display:grid;grid-template-columns:1fr 130px;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.fprop input,.fprop select{width:100%}
 .fcard .sub{color:var(--muted);font-size:11.5px;margin-top:2px}
 #flab{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 #flab span{position:absolute;transform:translate(-50%,-50%);font:600 11px 'IBM Plex Mono',monospace;color:var(--text);background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:4px;padding:0 5px;white-space:nowrap}
@@ -1616,7 +1620,7 @@ function mkComp(t, x, y, p){
 }
 function load(o){
   if (typeof o === 'string') o = JSON.parse(o);
-  S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? clone(o.fac) : null};
+  S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? (o.fac.items ? clone(o.fac) : facPreset('sort')) : null};
   facReset();
   for (const c of o.comps||[]){ if (!T[c.t]) continue; const k = mkComp(c.t, c.x, c.y, c); S.comps.push(k); S.nid = Math.max(S.nid, k.id + 1); }
   normalize();
@@ -1705,7 +1709,7 @@ const EX = {
     C('no', 10, 10, {ref:'K1'}); C('lamp', 13, 10, {n:'H1', V:230, P:5});
     W([8,6],[8,10],[9,10]); W([11,10],[12,10]); W([14,10],[16,10],[16,6]);
   })},
-  plcpump: {nm:'PLC ควบคุมปั๊มน้ำ + HMI', f:() => build((C,W) => {
+  plcpump: {nm:'PLC ควบคุมปั๊มน้ำ + HMI (มีฉาก 3D)', f:() => Object.assign(build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า'});
     C('mcb', 2, 4, {r:1, n:'Q1', In:10});
     W([2,2],[2,3]); W([2,5],[2,21]); W([3,2],[3,23]);
@@ -1743,7 +1747,7 @@ const EX = {
           {cells:[null, nc('NO','Q0'), null, null, null, null, null], out:null}],
           links:[[false,true,true,false,false,false,false,false]]},
       ]};
-  })},
+  }), {fac:facPreset('tank')})},
   arduino: {nm:'Arduino Uno: กะพริบ + หรี่ไฟด้วย pot', f:() => build((C,W) => {
     C('uno', 8, 4, {n:'U1', code:`// อ่านโพเทนชิโอมิเตอร์ที่ A0 แล้วหรี่ LED ที่ขา 9 ด้วย PWM
 // พร้อมกะพริบ LED บนบอร์ด (ขา 13)
@@ -2133,7 +2137,59 @@ RST M1 := T0
       {cmt:'ดันค้าง 0.8 วินาที', rows:[row([nc('NO','M1')], {k:'TON', a:'T0', p:0.8})], links:[]},
       {cmt:'ครบเวลา → ดึงกระบอกลมกลับ', rows:[row([nc('NO','T0')], {k:'RST', a:'M1'})], links:[]},
     ]};
-  }), {fac:facDefault()})},
+  }), {fac:facPreset('sort')})},
+  seqconv: {nm:'โรงงาน 3D: สายพาน 2 ช่วง สตาร์ทตามลำดับ', f:() => Object.assign(build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:16, curve:'C', model:'c16'});
+    W([2,2],[2,3]); W([2,5],[2,14],[5,14]); W([2,14],[2,18],[5,18]); W([2,7],[6,7]); W([3,2],[3,26]); W([3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[24,11]); W([8,9],[8,10],[24,10]);
+    const plc = C('plc', 18, 15, {n:'PLC1'});
+    W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
+    C('pb', 16, 12, {r:1, n:'START', model:'g22'}); C('pbnc', 17, 12, {r:1, n:'STOP', model:'r22'});
+    W([13,17],[13,19],[11,19],[11,11]);
+    C('coil', 14, 19, {r:1, n:'K1', V:24, S:3, dc:true, model:'k24dc'}); W([14,17],[14,18]); W([14,20],[14,24]);
+    C('coil', 15, 22, {r:1, n:'K2', V:24, S:3, dc:true, model:'k24dc'}); W([15,17],[15,21]); W([15,23],[15,24]);
+    C('lamp', 16, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([16,17],[16,18]); W([16,20],[16,24],[9,24],[9,10]);
+    C('no', 6, 14, {ref:'K1'}); C('motor1', 8, 16, {r:1, n:'M1'}); W([7,14],[8,14],[8,15]); W([8,17],[10,17],[10,26],[3,26]);
+    C('no', 6, 18, {ref:'K2'}); C('motor1', 8, 20, {r:1, n:'M2'}); W([7,18],[8,18],[8,19]); W([8,21],[8,26]);
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    plc.prog = {mode:'lad', txt:`// ระบบทำงาน
+M0 := (I0 OR M0) AND I1
+// สายพานปลายทาง (M2) เริ่มก่อน และหยุดทีหลัง 4 วินาที เพื่อไล่ชิ้นงานให้หมด
+SET M5 := M0
+Q1 := M5
+T1 := TON(NOT M0 AND M5, 4)
+RST M5 := T1
+// สายพานต้นทาง (M1) เริ่มหลัง 3 วินาที และหยุดทันที
+T0 := TON(M0, 3)
+Q0 := T0
+Q2 := M0
+`, lad:[
+      {cmt:'ระบบทำงาน: START ค้างสถานะ, STOP (NC) หยุด', rows:[row([nc('NO','I0'), nc('NO','I1')], {k:'OUT', a:'M0'}), row([nc('NO','M0')], null)], links:[[false,true,false,false,false,false,false,false]]},
+      one('จำว่าสายพานปลายทางต้องวิ่ง', [nc('NO','M0')], {k:'SET', a:'M5'}),
+      one('สายพานปลายทาง M2 (เริ่มก่อน)', [nc('NO','M5')], {k:'OUT', a:'Q1'}),
+      one('หน่วง 3 วินาทีก่อนเริ่มสายพานต้นทาง', [nc('NO','M0')], {k:'TON', a:'T0', p:3}),
+      one('สายพานต้นทาง M1 (หยุดทันทีเมื่อกด STOP)', [nc('NO','T0')], {k:'OUT', a:'Q0'}),
+      one('หลังกด STOP ให้ปลายทางวิ่งต่ออีก 4 วินาที', [nc('NC','M0'), nc('NO','M5')], {k:'TON', a:'T1', p:4}),
+      one('ครบเวลา → หยุดสายพานปลายทาง', [nc('NO','T1')], {k:'RST', a:'M5'}),
+      one('ไฟเขียว: ระบบทำงาน', [nc('NO','M0')], {k:'OUT', a:'Q2'}),
+    ]};
+  }), {fac:facPreset('seq')})},
+  gate: {nm:'โรงงาน 3D: ประตูเลื่อน (กลับทางหมุนมอเตอร์ + ลิมิตสวิตช์)', f:() => Object.assign(build((C,W) => {
+    C('src3', 2, 1, {n:'การไฟฟ้า', model:'th400'});
+    for (let k = 1; k <= 3; k++){ C('mcb', k, 4, {r:1, n:'F' + k, In:6, curve:'C'}); W([k,2],[k,3]); W([k,5],[k,9]); W([k,11],[k,15]); }
+    C('k3', 2, 10, {ref:'K1', model:'k9'}); C('k3', 7, 10, {ref:'K2', model:'k9'});
+    W([1,6],[6,6],[6,9]); W([2,7],[7,7],[7,9]); W([3,8],[8,8],[8,9]);
+    C('motor3', 2, 16, {n:'M1'});
+    W([6,11],[6,12],[3,12]); W([7,11],[7,13],[2,13]); W([8,11],[8,14],[1,14]);       // K2 สลับ L1 กับ L3 → หมุนกลับทาง
+    // วงจรควบคุม 230 V: STOP → [OPEN ∥ K1] → SQ1 (NC) → K2 (NC อินเตอร์ล็อก) → K1
+    W([4,2],[4,3],[28,3],[28,12]); W([6,6],[12,6]);
+    C('pbnc', 13, 6, {n:'STOP', model:'r22'}); W([14,6],[14,12]); W([14,6],[15,6]);
+    C('pb', 16, 6, {n:'OPEN', model:'g22'}); C('no', 16, 8, {ref:'K1'}); W([15,6],[15,8]); W([17,6],[17,8]); W([17,6],[18,6]);
+    C('limit', 19, 6, {n:'SQ1', mode:'NC'}); W([20,6],[21,6]); C('nc', 22, 6, {ref:'K2'}); W([23,6],[24,6]); C('coil', 25, 6, {n:'K1'}); W([26,6],[28,6]);
+    W([14,12],[15,12]); C('pb', 16, 12, {n:'CLOSE', model:'y22', col:'yellow'}); C('no', 16, 14, {ref:'K2'}); W([15,12],[15,14]); W([17,12],[17,14]); W([17,12],[18,12]);
+    C('limit', 19, 12, {n:'SQ2', mode:'NC'}); W([20,12],[21,12]); C('nc', 22, 12, {ref:'K1'}); W([23,12],[24,12]); C('coil', 25, 12, {n:'K2'}); W([26,12],[28,12]);
+  }), {fac:facPreset('gate')})},
   blank: {nm:'แผงว่าง', f:() => build(() => {})},
 };
 
@@ -3343,69 +3399,158 @@ function ladMon(force){
    ============================================================ */
 
 /* ============================================================
-   11. โรงงาน 3D — ฉากสายพานคัดแยกชิ้นงาน เชื่อมกับอุปกรณ์บนแผงด้วยชื่อ (S.fac.map)
-       มอเตอร์ → สายพาน, คอยล์/โซลินอยด์ → กระบอกลม, กล่องในฉาก → det ของเซนเซอร์, หลอด → ไฟสัญญาณ
-       วาดด้วย WebGL โดยตรง (ไม่มีไลบรารี)
+   11. โรงงาน 3D — ฉากประกอบจากชิ้นเครื่องจักรที่ผู้ใช้จัดวางเอง (S.fac.items)
+       แต่ละชิ้นผูกกับอุปกรณ์บนแผงด้วย "ชื่อ": มอเตอร์ → สายพาน/ประตู/ปั๊ม, คอยล์ → กระบอกลม,
+       กล่องในฉาก → det ของเซนเซอร์, ตำแหน่งประตู → act ของลิมิตสวิตช์, หลอด → ไฟสัญญาณ
+       วาดด้วย WebGL โดยตรง (ไม่มีไลบรารี) · หน่วยเป็นเมตร · หมุนได้ทีละ 90° (r = 0–3)
    ============================================================ */
-const FAC = {L:6, W:0.6, H:0.8, v:0.5, xIn:1.0, xP:3.6, bs:0.3};
-const FXS = {boxes:[], bins:[], belt:0, push:0, em:2.4, auto:true, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0}};
-function facDefault(){ return {map:{conv:'M1', push:'Y1', sIn:'PE1', sMetal:'PX1', lampG:'H1', lampR:'H2', start:'START', stop:'STOP'}}; }
-function facReset(){ Object.assign(FXS, {boxes:[], bins:[], belt:0, push:0, em:2.4, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0}}); }
+const FAC = {H:0.8, bs:0.3};
+const FDIR = [[1,0],[0,1],[-1,0],[0,-1]];
+// ชนิดเครื่องจักร: nm ชื่อ, d ค่าเริ่มต้น, fp ขอบเขตในพิกัดท้องถิ่น [a0,a1,b0,b1] (a = ตามทิศ, b = ด้านข้าง)
+const FKIND = {
+  conv:  {nm:'สายพานลำเลียง',  d:{len:4, spd:0.5, m:'M1'}, fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  roller:{nm:'โต๊ะลูกกลิ้ง',    d:{len:1.1},                fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  emit:  {nm:'ตัวปล่อยกล่อง',   d:{every:3, metal:50},      fp:() => [-0.3, 0.3, -0.45, 0.45]},
+  push:  {nm:'กระบอกลมดัน',     d:{y:'Y1'},                 fp:() => [-0.9, 0.15, -0.3, 0.3]},
+  photo: {nm:'เซนเซอร์แสง',     d:{s:'PE1'},                fp:() => [-0.1, 1.0, -0.12, 0.12]},
+  prox:  {nm:'พร็อกซิมิตี้',     d:{s:'PX1'},                fp:() => [-0.45, 0.15, -0.55, 0.15]},
+  bin:   {nm:'ถังรับชิ้นงาน',   d:{want:'any'},             fp:() => [-0.5, 0.5, -0.5, 0.5]},
+  light: {nm:'ไฟสัญญาณ',       d:{lg:'H1', lr:'H2'},       fp:() => [-0.15, 0.15, -0.15, 0.15]},
+  tank:  {nm:'ถังน้ำ',          d:{tk:'TK1'},               fp:() => [-0.8, 0.8, -0.8, 0.8]},
+  pump:  {nm:'ปั๊มน้ำ',         d:{m:'M1'},                 fp:() => [-0.4, 1.2, -0.3, 0.3]},
+  gate:  {nm:'ประตูเลื่อน',     d:{m:'M1', lo:'SQ1', lc:'SQ2'}, fp:() => [-0.3, 6.3, -0.4, 0.3]},
+  cab:   {nm:'ตู้ควบคุม',       d:{},                       fp:() => [-0.35, 0.35, -0.2, 0.2]},
+};
+const FFLD = {len:['ความยาว (m)','num'], spd:['ความเร็ว (m/s)','num'], every:['ปล่อยทุก (s)','num'], metal:['สัดส่วนโลหะ (%)','num'],
+  want:['รับชิ้นงาน','sel',{any:'ทุกชนิด', metal:'โลหะ', other:'ไม่ใช่โลหะ'}], m:['มอเตอร์บนแผง','bind'], y:['คอยล์/โซลินอยด์บนแผง','bind'],
+  s:['เซนเซอร์บนแผง','bind'], lg:['หลอดไฟเขียวบนแผง','bind'], lr:['หลอดไฟแดงบนแผง','bind'], tk:['ถังน้ำบนแผง','bind'],
+  lo:['ลิมิตสวิตช์เปิดสุด','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind']};
+const FXS = {boxes:[], rt:{}, auto:true, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}};
+function facItem(k, x, z, r, p){ return Object.assign({k, x, z, r:r || 0}, clone(FKIND[k].d), p || {}); }
+function facPreset(name){
+  const I = facItem;
+  const P = {
+    sort: {btn:['START','STOP'], items:[I('conv',3,0,0,{len:6,m:'M1'}), I('emit',0.3,0,0), I('photo',1.0,-0.45,1,{s:'PE1'}), I('prox',3.6,0,0,{s:'PX1'}), I('push',3.6,-0.45,1,{y:'Y1'}),
+      I('roller',3.6,0.9,1,{len:1.1}), I('bin',3.6,2.0,0,{want:'metal'}), I('bin',6.55,0,0,{want:'other'}), I('cab',-1.0,1.9,0), I('light',-1.0,1.9,0,{lg:'H1',lr:'H2'})]},
+    seq: {btn:['START','STOP'], items:[I('conv',2,0,0,{len:4,m:'M1'}), I('conv',4.3,1.7,1,{len:4,m:'M2'}), I('emit',0.3,0,0,{every:2.5}), I('bin',4.3,4.25,0,{want:'any'}),
+      I('cab',-1.0,1.9,0), I('light',-1.0,1.9,0,{lg:'H1',lr:''})]},
+    tank: {btn:['START','STOP'], items:[I('tank',3,0.5,0,{tk:'TK1'}), I('pump',0.8,0.5,0,{m:'M1'}), I('cab',-1.0,1.9,0)]},
+    gate: {btn:['OPEN','CLOSE','STOP'], items:[I('gate',0,0,0,{m:'M1',lo:'SQ1',lc:'SQ2'}), I('cab',-1.2,-1.4,0)]},
+    empty: {btn:['START','STOP'], items:[]},
+  }[name] || {btn:[], items:[]};
+  P.items.forEach((it, n) => { it.id = n + 1; });
+  return P;
+}
+const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', empty:'ฉากว่าง'};
+function facReset(){ Object.assign(FXS, {boxes:[], rt:{}, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}}); }
 function facRnd(){ FXS.seed = (FXS.seed*1103515245 + 12345) & 0x7fffffff; return FXS.seed/0x7fffffff; }
-function facSpawn(metal){ FXS.boxes.push({x:0.3, y:FAC.H + FAC.bs/2, z:0, s:'belt', metal:!!metal, vy:0}); }
-const facComp = k => S.fac && S.comps.find(c => c.n === S.fac.map[k]);
-const facHeadZ = () => -0.45 + 0.8*FXS.push;
+const fcomp = n => n ? S.comps.find(c => c.n === n) : null;
+const frt = i => FXS.rt[i.id] || (FXS.rt[i.id] = {p:0, o:0, t:2.4, metal:0, other:0, list:[]});
+// พิกัดท้องถิ่น ↔ โลก
+const fLoc = (i, x, z) => { const d = FDIR[i.r & 3], dx = x - i.x, dz = z - i.z; return [dx*d[0] + dz*d[1], -dx*d[1] + dz*d[0]]; };
+const fWorld = (i, a, b) => { const d = FDIR[i.r & 3]; return [i.x + a*d[0] - b*d[1], i.z + a*d[1] + b*d[0]]; };
+function facSpawn(metal, em){
+  em = em || (S.fac && S.fac.items.find(i => i.k === 'emit')); if (!em) return;
+  FXS.boxes.push({x:em.x, y:FAC.H + FAC.bs/2, z:em.z, metal:!!metal, vx:0, vz:0, vy:0, fall:false});
+}
+function facCarrier(b){
+  for (const i of S.fac.items) if (i.k === 'conv' || i.k === 'roller'){
+    const [a, c] = fLoc(i, b.x, b.z);
+    if (Math.abs(a) <= i.len/2 + 0.05 && Math.abs(c) <= 0.32) return i;
+  }
+  return null;
+}
+function facSpeed(i){
+  if (i.k === 'roller') return 0.7;
+  const m = fcomp(i.m); return m ? (i.spd || 0.5)*(m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
+}
 function facStep(dt){
-  if (!S.fac || dt <= 0) return;
-  const st = FXS, mot = facComp('conv'), sp = mot ? (mot._sp || 0) : 0;
-  const v = FAC.v*sp*((mot && mot._dir < 0) ? -1 : 1);
-  st.belt += v*dt;
-  // ตัวปล่อยกล่อง: ทุก 3 s ขณะสายพานวิ่ง
-  if (st.auto && sp > 0.5){ st.em += dt;
-    if (st.em >= 3 && !st.boxes.some(b => b.s === 'belt' && b.x < 0.8)){ st.em = 0; facSpawn(facRnd() < 0.5); } }
-  // กระบอกลม: ยืดเมื่อคอยล์/โซลินอยด์ได้ไฟ (0.35 s เต็มระยะ)
-  const sol = facComp('push'), tg = sol && sol._on ? 1 : 0, d = tg - st.push;
-  st.push += Math.sign(d)*Math.min(Math.abs(d), dt/0.35);
-  const hz = facHeadZ(), h = FAC.bs/2;
-  for (const b of st.boxes){
-    if (b.s === 'belt'){
-      b.x += v*dt;
-      if (Math.abs(b.x - FAC.xP) < 0.25 + h && hz + h > b.z) b.z = hz + h;      // หัวดันผลักกล่อง
-      if (b.z > FAC.W/2 + 0.02) b.s = 'side';
-      else if (b.x > FAC.L + h){ b.s = 'fall'; b.dest = 'end'; }
-      else if (b.x < -h){ b.s = 'fall'; b.dest = 'back'; }
-    } else if (b.s === 'side'){
-      b.z += 0.7*dt; if (b.z > 1.45){ b.s = 'fall'; b.dest = 'side'; }
-    } else if (b.s === 'fall'){
-      b.vy += 9.8*dt; b.y -= b.vy*dt;
-      if (b.dest === 'end') b.x += 0.4*dt; else if (b.dest === 'side') b.z += 0.4*dt;
-      if (b.y < 0.3){ b.s = 'done';
-        if (b.dest === 'side') b.metal ? st.cnt.metal++ : st.cnt.wrong++;
-        else if (b.dest === 'end') b.metal ? st.cnt.miss++ : st.cnt.other++;
-        if (b.dest !== 'back'){ st.bins.push({dest:b.dest, metal:b.metal}); if (st.bins.length > 40) st.bins.shift(); }
-      }
+  const f = S.fac; if (!f || dt <= 0) return;
+  const st = FXS, h = FAC.bs/2;
+  for (const i of f.items){
+    const rt = frt(i);
+    if (i.k === 'conv') rt.o += facSpeed(i)*dt;
+    else if (i.k === 'push'){ const c = fcomp(i.y), tg = c && c._on ? 1 : 0, d = tg - rt.p; rt.p += Math.sign(d)*Math.min(Math.abs(d), dt/0.35); }
+    else if (i.k === 'emit' && st.auto){
+      const probe = {x:i.x, z:i.z}, car = facCarrier(probe);
+      if (car && Math.abs(facSpeed(car)) > 0.05){ rt.t += dt;
+        if (rt.t >= i.every && !st.boxes.some(b => !b.fall && Math.hypot(b.x - i.x, b.z - i.z) < 0.45)){ rt.t = 0; facSpawn(facRnd()*100 < i.metal, i); } }
+    } else if (i.k === 'gate'){
+      // ประตูเลื่อน: เคลื่อนที่เฉพาะตอนมอเตอร์มีไฟ; ตำแหน่งสุดทางกดลิมิตสวิตช์บนแผง
+      const m = fcomp(i.m), v = m && m._run ? (m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
+      rt.over = (v > 0.2 && rt.p >= 1) || (v < -0.2 && rt.p <= 0);
+      rt.p = Math.max(0, Math.min(1, rt.p + v*dt/4));
+      const lim = (n, on) => { const c = fcomp(n); if (c && 'act' in c && !!c.act !== on){ c.act = on; needSolve = true; } };
+      lim(i.lo, rt.p >= 0.995); lim(i.lc, rt.p <= 0.005);
     }
   }
-  st.boxes = st.boxes.filter(b => b.s !== 'done');
-  // เซนเซอร์ในฉาก → อุปกรณ์บนแผง
-  const set = (k, v2) => { const c = facComp(k); if (c && 'det' in c && !!c.det !== v2){ c.det = v2; needSolve = true; } };
-  set('sIn', st.boxes.some(b => b.s === 'belt' && Math.abs(b.x - FAC.xIn) < h));
-  set('sMetal', st.boxes.some(b => b.s === 'belt' && b.metal && Math.abs(b.x - FAC.xP) < 0.12 && Math.abs(b.z) < 0.2));
+  for (const b of st.boxes){
+    if (b.fall){
+      b.vy += 9.8*dt; b.y -= b.vy*dt; b.x += b.vx*dt; b.z += b.vz*dt;
+      if (b.y < 0.3){ b.done = true;
+        const bin = f.items.find(i => i.k === 'bin' && Math.abs(b.x - i.x) < 0.62 && Math.abs(b.z - i.z) < 0.62);
+        if (!bin){ st.cnt.floor++; continue; }
+        const rt = frt(bin); b.metal ? rt.metal++ : rt.other++; rt.list.push(b.metal); if (rt.list.length > 18) rt.list.shift();
+        if (bin.want === 'other' && b.metal) st.cnt.miss++; else if (bin.want === 'metal' && !b.metal) st.cnt.wrong++;
+        else b.metal ? st.cnt.metal++ : st.cnt.other++;
+      }
+      continue;
+    }
+    const car = facCarrier(b);
+    if (!car){ b.fall = true; b.vx *= 0.8; b.vz *= 0.8; continue; }
+    const d = FDIR[car.r & 3], v = facSpeed(car); b.vx = d[0]*v; b.vz = d[1]*v;
+    const nx = b.x + b.vx*dt, nz = b.z + b.vz*dt;
+    // กล่องไม่ทับกัน: ถ้าข้างหน้ามีกล่องขวางอยู่ให้หยุดรอ (สายพานไถลใต้กล่อง)
+    const blocked = st.boxes.some(o => o !== b && !o.fall && Math.abs(nx - o.x) < 0.3 && Math.abs(nz - o.z) < 0.3 && (o.x - b.x)*b.vx + (o.z - b.z)*b.vz > 0);
+    if (!blocked){ b.x = nx; b.z = nz; }
+  }
+  // กระบอกลมผลักกล่อง
+  for (const i of f.items) if (i.k === 'push'){ const hd = 0.8*frt(i).p;
+    for (const b of st.boxes){ if (b.fall) continue; const [a, c] = fLoc(i, b.x, b.z);
+      if (Math.abs(c) < 0.25 + h && a > -0.1 && a < hd + h){ const w = fWorld(i, hd + h, c); b.x = w[0]; b.z = w[1]; } } }
+  st.boxes = st.boxes.filter(b => !b.done);
+  // เซนเซอร์ในฉาก → det ของอุปกรณ์บนแผง
+  for (const i of f.items) if (i.k === 'photo' || i.k === 'prox'){
+    const c = fcomp(i.s); if (!c || !('det' in c)) continue;
+    const on = st.boxes.some(b => { if (b.fall) return false; const [a, lat] = fLoc(i, b.x, b.z);
+      return i.k === 'photo' ? (a > -h && a < 0.9 + h && Math.abs(lat) < h) : (b.metal && Math.hypot(a, lat) < 0.13); });
+    if (!!c.det !== on){ c.det = on; needSolve = true; }
+  }
 }
 
 /* ---------- ตัววาด WebGL ---------- */
-const fx = {gl:null, prog:null, buf:null, yaw:-0.75, pitch:0.5, dist:9.5, tgt:[3.1, 0.7, 0.35], drag:null, mode:'off', M:null};
+const fx = {gl:null, prog:null, buf:null, yaw:-0.75, pitch:0.5, dist:9.5, tgt:[3.1, 0.7, 0.35], drag:null, mode:'off', M:null, edit:false, sel:null, hv:0, over:false};
 function m4mul(a, b){ const o = new Float32Array(16);
   for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++){ let s2 = 0; for (let k = 0; k < 4; k++) s2 += a[k*4 + r]*b[c*4 + k]; o[c*4 + r] = s2; }
   return o; }
 function m4persp(fov, asp, n, f){ const t = 1/Math.tan(fov/2), o = new Float32Array(16);
   o[0] = t/asp; o[5] = t; o[10] = (f + n)/(n - f); o[11] = -1; o[14] = 2*f*n/(n - f); return o; }
-function m4look(e, t, up){
-  const z = [e[0]-t[0], e[1]-t[1], e[2]-t[2]], zl = Math.hypot(...z); z[0] /= zl; z[1] /= zl; z[2] /= zl;
-  const x = [up[1]*z[2]-up[2]*z[1], up[2]*z[0]-up[0]*z[2], up[0]*z[1]-up[1]*z[0]], xl = Math.hypot(...x); x[0] /= xl; x[1] /= xl; x[2] /= xl;
+function fxCam(){
+  const cp = Math.cos(fx.pitch), e = [fx.tgt[0] + fx.dist*cp*Math.sin(fx.yaw), fx.tgt[1] + fx.dist*Math.sin(fx.pitch), fx.tgt[2] + fx.dist*cp*Math.cos(fx.yaw)];
+  const z = [e[0]-fx.tgt[0], e[1]-fx.tgt[1], e[2]-fx.tgt[2]], zl = Math.hypot(...z); z[0] /= zl; z[1] /= zl; z[2] /= zl;
+  const x = [z[2], 0, -z[0]], xl = Math.hypot(...x); x[0] /= xl; x[2] /= xl;
   const y = [z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0]];
+  return {e, x, y, z};
+}
+function m4look(c){ const {e, x, y, z} = c;
   return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
-    -(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]), -(y[0]*e[0]+y[1]*e[1]+y[2]*e[2]), -(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]), 1]);
+    -(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]), -(y[0]*e[0]+y[1]*e[1]+y[2]*e[2]), -(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]), 1]); }
+// จุดบนระนาบ y = py ใต้ตำแหน่งเมาส์
+function fxRay(ev, py){
+  const r = $('#fx').getBoundingClientRect(), c = fxCam(), t = Math.tan(0.75/2);
+  const nx = ((ev.clientX - r.left)/r.width*2 - 1)*t*r.width/r.height, ny = (1 - (ev.clientY - r.top)/r.height*2)*t;
+  const d = [0,1,2].map(k => -c.z[k] + c.x[k]*nx + c.y[k]*ny);
+  if (d[1] >= -1e-4) return null;
+  const s2 = (py - c.e[1])/d[1]; return [c.e[0] + d[0]*s2, c.e[2] + d[2]*s2];
+}
+function fxPick(ev){
+  if (!S.fac) return null;
+  for (const py of [FAC.H, 0]){ const p = fxRay(ev, py); if (!p) continue;
+    let best = null, ba = 1e9;
+    for (const i of S.fac.items){ const [a, b] = fLoc(i, p[0], p[1]), q = FKIND[i.k].fp(i), ar = (q[1]-q[0])*(q[3]-q[2]);
+      if (a >= q[0] - 0.1 && a <= q[1] + 0.1 && b >= q[2] - 0.1 && b <= q[3] + 0.1 && ar < ba){ best = i; ba = ar; } }
+    if (best) return best; }
+  return null;
 }
 function fxInit(){
   const cvs = $('#fx'), gl = cvs.getContext('webgl', {antialias:true}) || cvs.getContext('experimental-webgl');
@@ -3416,7 +3561,7 @@ function fxInit(){
     void main(){ float d = length(n) < 0.1 ? 1.0 : 0.42 + 0.58*max(dot(n, normalize(vec3(0.45,1.0,0.6))), 0.0) + 0.1*max(dot(n, vec3(-0.6,0.0,-0.8)), 0.0);
       vc = c*d; gl_Position = m*vec4(p,1.0); vd = gl_Position.w; }`));
   gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, `precision mediump float; varying vec3 vc; varying float vd; uniform vec3 fog;
-    void main(){ float f = clamp((vd - 16.0)/26.0, 0.0, 1.0); gl_FragColor = vec4(mix(vc, fog, f), 1.0); }`));
+    void main(){ float f = clamp((vd - 18.0)/28.0, 0.0, 1.0); gl_FragColor = vec4(mix(vc, fog, f), 1.0); }`));
   gl.linkProgram(pr); gl.useProgram(pr);
   fx.gl = gl; fx.prog = pr; fx.buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, fx.buf);
@@ -3426,59 +3571,91 @@ function fxInit(){
 const FXN = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
 const FXQ = [[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1]], [[-1,-1,1],[-1,1,1],[-1,1,-1],[-1,-1,-1]], [[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]],
              [[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]], [[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]], [[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]];
-function facScene(){
-  const V = [], st = FXS, dark = fx.dark;
-  // กล่อง: จุดกึ่งกลาง + ขนาด + สี; em = เรืองแสง (ไม่คิดแสงเงา)
+function facScene(labs){
+  const V = [], st = FXS, dark = fx.dark, H = FAC.H;
+  // กล่องแกนโลก: จุดกึ่งกลาง + ขนาด + สี; em = เรืองแสง
   const B = (x, y, z, w, h, d, col, em) => {
     for (let f = 0; f < 6; f++){ const q = FXQ[f], n = em ? [0,0,0] : FXN[f];
       for (const i of [0,1,2,0,2,3]) V.push(x + q[i][0]*w/2, y + q[i][1]*h/2, z + q[i][2]*d/2, n[0], n[1], n[2], col[0], col[1], col[2]); } };
-  const steel = [0.62,0.66,0.72], dk = [0.16,0.17,0.2], yel = [0.95,0.74,0.1], blu = [0.16,0.38,0.8], H = FAC.H, L = FAC.L;
+  const steel = [0.62,0.66,0.72], dk = [0.16,0.17,0.2], yel = [0.95,0.74,0.1], blu = [0.16,0.38,0.8], grn = [0.1,0.6,0.3];
   const floor = dark ? [0.2,0.22,0.26] : [0.8,0.82,0.85], line = dark ? [0.26,0.28,0.33] : [0.72,0.74,0.78];
-  B(3, -0.05, 0.4, 16, 0.1, 11, floor);
-  for (let i = -5; i <= 11; i++) B(i, 0.001, 0.4, 0.02, 0.002, 11, line);
-  for (let k = -5; k <= 6; k++) B(3, 0.001, k, 16, 0.002, 0.02, line);
-  B(3, 0.004, -0.75, 7.4, 0.004, 0.08, yel); B(3, 0.004, 2.55, 7.4, 0.004, 0.08, yel);         // เส้นเขตปลอดภัย
-  // สายพาน
-  const mot = facComp('conv'), run = mot && (mot._sp || 0) > 0.05;
-  B(L/2, H - 0.1, 0, L + 0.2, 0.12, 0.72, steel); B(L/2, H - 0.02, 0, L, 0.04, 0.56, dk);
-  for (let i = 0; i < 12; i++){ const x = (((i*0.5 + st.belt) % L) + L) % L; B(x, H + 0.001, 0, 0.05, 0.004, 0.56, [0.3,0.32,0.36]); }
-  for (const x of [0.3, 2, 4, 5.7]) for (const z of [-0.3, 0.3]) B(x, (H - 0.16)/2, z, 0.07, H - 0.16, 0.07, steel);
-  B(L/2, H + 0.05, -0.33, L, 0.1, 0.03, yel, false); B(1.6, H + 0.05, 0.33, 3.2, 0.1, 0.03, yel); B(5, H + 0.05, 0.33, 2, 0.1, 0.03, yel);
-  B(L + 0.05, H - 0.2, -0.55, 0.36, 0.3, 0.3, run ? [0.1,0.6,0.3] : blu); B(L + 0.05, H - 0.2, -0.36, 0.12, 0.12, 0.1, steel);   // มอเตอร์ขับ
-  // โต๊ะลูกกลิ้งด้านข้าง + ถัง
-  B(FAC.xP, H - 0.1, 0.9, 0.72, 0.06, 1.1, steel); for (let z = 0.42; z < 1.42; z += 0.14) B(FAC.xP, H - 0.045, z, 0.6, 0.05, 0.06, [0.75,0.78,0.82]);
-  for (const z of [0.5, 1.35]) for (const dx of [-0.3, 0.3]) B(FAC.xP + dx, (H - 0.13)/2, z, 0.05, H - 0.13, 0.05, steel);
-  const bin = (x, z, col) => { B(x, 0.02, z, 0.95, 0.04, 0.95, col); B(x - 0.47, 0.25, z, 0.03, 0.5, 0.95, col); B(x + 0.47, 0.25, z, 0.03, 0.5, 0.95, col);
-    B(x, 0.25, z - 0.47, 0.95, 0.5, 0.03, col); B(x, 0.25, z + 0.47, 0.95, 0.5, 0.03, col); };
-  bin(FAC.xP, 2.0, [0.2,0.45,0.75]); bin(L + 0.75, 0, [0.3,0.6,0.35]);
-  const cnt = {side:0, end:0};
-  for (const b of st.bins){ const i = cnt[b.dest]++ % 18, x0 = b.dest === 'side' ? FAC.xP : L + 0.75, z0 = b.dest === 'side' ? 2.0 : 0;
-    B(x0 - 0.27 + (i % 3)*0.27, 0.16 + Math.floor(i/9)*0.2, z0 - 0.27 + (Math.floor(i/3) % 3)*0.27, 0.24, 0.2, 0.24, b.metal ? [0.72,0.76,0.82] : [0.74,0.54,0.32]); }
-  // กระบอกลม
-  const hz = facHeadZ(), sol = facComp('push'), py = H + 0.16;
-  B(FAC.xP, py, -1.0, 0.22, 0.22, 0.62, sol && sol._on ? [0.1,0.6,0.3] : blu); B(FAC.xP, py, (hz - 0.69)/2, 0.05, 0.05, hz + 0.69, [0.85,0.87,0.9]);
-  B(FAC.xP, py, hz - 0.02, 0.5, 0.26, 0.04, [0.9,0.35,0.15]); B(FAC.xP, (py - 0.11)/2, -1.0, 0.1, py - 0.11, 0.1, steel);
-  // เซนเซอร์แสง (ทางเข้า) + พร็อกซิมิตี้ (เหนือจุดดัน)
-  const pe = facComp('sIn'), px = facComp('sMetal');
-  B(FAC.xIn, 0.55, -0.45, 0.04, 1.1, 0.04, steel); B(FAC.xIn, H + 0.2, -0.45, 0.09, 0.09, 0.12, [0.95,0.5,0.1]);
-  B(FAC.xIn, 0.55, 0.45, 0.04, 1.1, 0.04, steel); B(FAC.xIn, H + 0.2, 0.45, 0.07, 0.1, 0.03, [0.9,0.9,0.95]);
-  if (pe && pe._pw && !pe.det) B(FAC.xIn, H + 0.2, 0, 0.012, 0.012, 0.84, [1,0.15,0.15], true);
-  B(FAC.xP - 0.36, 0.85, -0.45, 0.05, 1.7, 0.05, steel); B(FAC.xP - 0.18, 1.68, -0.45, 0.4, 0.05, 0.05, steel); B(FAC.xP, 1.68, -0.22, 0.05, 0.05, 0.5, steel);
-  B(FAC.xP, 1.5, 0, 0.07, 0.32, 0.07, [0.15,0.3,0.7]); B(FAC.xP, 1.33, 0, 0.075, 0.03, 0.075, px && px._pw && px.det ? [1,0.6,0.1] : [0.3,0.3,0.35], px && px._pw && px.det);
-  // ตัวปล่อยกล่อง, ตู้ควบคุม, ไฟสัญญาณ
-  for (const dx of [-0.25, 0.25]) for (const dz of [-0.4, 0.4]) B(0.3 + dx, 0.9, dz, 0.04, 1.8, 0.04, steel);
-  B(0.3, 1.8, 0, 0.6, 0.06, 0.9, yel);
-  B(-1.0, 0.75, 1.9, 0.7, 1.5, 0.4, [0.55,0.58,0.63]); B(-1.0, 1.0, 1.69, 0.5, 0.6, 0.02, [0.42,0.45,0.5]);
-  const lit = k => { const c = facComp(k), R = c && RES.comp[c.id]; return !!(R && c.P && R.P > 0.05*c.P); };
-  B(-1.0, 1.8, 1.9, 0.05, 0.6, 0.05, steel);
-  B(-1.0, 2.05, 1.9, 0.13, 0.13, 0.13, lit('lampR') ? [1,0.2,0.15] : [0.4,0.12,0.1], lit('lampR'));
-  B(-1.0, 1.9, 1.9, 0.13, 0.13, 0.13, lit('lampG') ? [0.2,1,0.35] : [0.1,0.35,0.15], lit('lampG'));
-  // กล่องชิ้นงาน + เงา
-  for (const b of st.boxes){
-    const col = b.metal ? [0.74,0.78,0.84] : [0.76,0.56,0.33], s2 = FAC.bs;
-    B(b.x, b.y, b.z, s2, s2, s2, col);
-    if (b.metal) B(b.x, b.y + s2/2 + 0.002, b.z, s2*0.7, 0.004, s2*0.7, [0.88,0.9,0.94]); else B(b.x, b.y + s2/2 + 0.002, b.z, s2, 0.004, 0.05, [0.9,0.82,0.6]);
+  B(3, -0.05, 0.4, 20, 0.1, 14, floor);
+  for (let i = -7; i <= 13; i++) B(i, 0.001, 0.4, 0.02, 0.002, 14, line);
+  for (let k = -6; k <= 7; k++) B(3, 0.001, k, 20, 0.002, 0.02, line);
+  const lit = n => { const c = fcomp(n), R = c && RES.comp[c.id]; return !!(R && c.P && R.P > 0.05*c.P); };
+  for (const i of (S.fac ? S.fac.items : [])){
+    const rt = frt(i), odd = i.r & 1;
+    // กล่องในพิกัดท้องถิ่นของเครื่องจักร (a ตามทิศ, b ด้านข้าง)
+    const L = (a, y, b, sa, sy, sb, col, em) => { const w = fWorld(i, a, b); B(w[0], y, w[1], odd ? sb : sa, sy, odd ? sa : sb, col, em); };
+    const lab = (t, a, y, b) => { const w = fWorld(i, a, b); labs.push([t, w[0], y, w[1]]); };
+    switch (i.k){
+      case 'conv': case 'roller': {
+        const n = i.len, cv2 = i.k === 'conv', m = cv2 && fcomp(i.m), run = m && (m._sp || 0) > 0.05;
+        L(0, H - 0.1, 0, n + (cv2 ? 0.2 : 0), cv2 ? 0.12 : 0.06, 0.72, steel);
+        if (cv2){ L(0, H - 0.02, 0, n, 0.04, 0.56, dk);
+          for (let k = 0; k < Math.floor(n/0.5); k++) L((((k*0.5 + rt.o) % n) + n) % n - n/2, H + 0.001, 0, 0.05, 0.004, 0.56, [0.3,0.32,0.36]);
+          L(0, H + 0.006, 0.31, n, 0.014, 0.05, yel); L(0, H + 0.006, -0.31, n, 0.014, 0.05, yel);
+          L(n/2 + 0.05, H - 0.2, -0.55, 0.36, 0.3, 0.3, run ? grn : blu); L(n/2 + 0.05, H - 0.2, -0.36, 0.12, 0.12, 0.1, steel);
+          lab(i.m || '—', n/2 + 0.05, H + 0.15, -0.55);
+        } else for (let a = -n/2 + 0.07; a < n/2; a += 0.14) L(a, H - 0.045, 0, 0.06, 0.05, 0.6, [0.75,0.78,0.82]);
+        const legs = n > 3 ? [-n/2 + 0.3, 0, n/2 - 0.3] : [-n/2 + 0.2, n/2 - 0.2];
+        for (const a of legs) for (const b of [-0.3, 0.3]) L(a, (H - 0.16)/2, b, 0.07, H - 0.16, 0.07, steel);
+      } break;
+      case 'emit': for (const a of [-0.25, 0.25]) for (const b of [-0.4, 0.4]) L(a, 0.9, b, 0.04, 1.8, 0.04, steel); L(0, 1.8, 0, 0.6, 0.06, 0.9, yel); break;
+      case 'push': { const c = fcomp(i.y), hd = 0.8*rt.p, py = H + 0.16;
+        L(-0.55, py, 0, 0.62, 0.22, 0.22, c && c._on ? grn : blu); L((hd - 0.24)/2, py, 0, hd + 0.24, 0.05, 0.05, [0.85,0.87,0.9]);
+        L(hd - 0.02, py, 0, 0.04, 0.26, 0.5, [0.9,0.35,0.15]); L(-0.55, (py - 0.11)/2, 0, 0.1, py - 0.11, 0.1, steel); lab(i.y || '—', -0.55, H + 0.5, 0);
+      } break;
+      case 'photo': { const c = fcomp(i.s);
+        L(0, 0.55, 0, 0.04, 1.1, 0.04, steel); L(0, H + 0.2, 0, 0.12, 0.09, 0.09, [0.95,0.5,0.1]); L(0.9, 0.55, 0, 0.04, 1.1, 0.04, steel); L(0.9, H + 0.2, 0, 0.03, 0.1, 0.07, [0.9,0.9,0.95]);
+        if (c && c._pw && !c.det) L(0.45, H + 0.2, 0, 0.84, 0.012, 0.012, [1,0.15,0.15], true);
+        lab((i.s || '—') + (c && c.det ? ' ●' : ''), 0, H + 0.5, 0);
+      } break;
+      case 'prox': { const c = fcomp(i.s), on = c && c._pw && c.det;
+        L(-0.36, 0.85, -0.45, 0.05, 1.7, 0.05, steel); L(-0.18, 1.68, -0.45, 0.4, 0.05, 0.05, steel); L(0, 1.68, -0.22, 0.05, 0.05, 0.5, steel);
+        L(0, 1.5, 0, 0.07, 0.32, 0.07, [0.15,0.3,0.7]); L(0, 1.33, 0, 0.075, 0.03, 0.075, on ? [1,0.6,0.1] : [0.3,0.3,0.35], on);
+        lab((i.s || '—') + (c && c.det ? ' ●' : ''), 0, 1.95, 0);
+      } break;
+      case 'bin': { const col = i.want === 'metal' ? [0.2,0.45,0.75] : i.want === 'other' ? [0.3,0.6,0.35] : [0.5,0.52,0.56];
+        L(0, 0.02, 0, 0.95, 0.04, 0.95, col); L(-0.47, 0.25, 0, 0.03, 0.5, 0.95, col); L(0.47, 0.25, 0, 0.03, 0.5, 0.95, col); L(0, 0.25, -0.47, 0.95, 0.5, 0.03, col); L(0, 0.25, 0.47, 0.95, 0.5, 0.03, col);
+        rt.list.forEach((mt, k) => L(-0.27 + (k % 3)*0.27, 0.16 + Math.floor(k/9)*0.2, -0.27 + (Math.floor(k/3) % 3)*0.27, 0.24, 0.2, 0.24, mt ? [0.72,0.76,0.82] : [0.74,0.54,0.32]));
+        lab((i.want === 'metal' ? 'โลหะ ' : i.want === 'other' ? 'ชิ้นงานอื่น ' : 'ชิ้นงาน ') + (rt.metal + rt.other), 0, 0.75, 0);
+      } break;
+      case 'light': L(0, 0.93, 0, 0.05, 1.86, 0.05, steel);
+        L(0, 2.05, 0, 0.13, 0.13, 0.13, lit(i.lr) ? [1,0.2,0.15] : [0.4,0.12,0.1], lit(i.lr)); L(0, 1.9, 0, 0.13, 0.13, 0.13, lit(i.lg) ? [0.2,1,0.35] : [0.1,0.35,0.15], lit(i.lg)); break;
+      case 'cab': L(0, 0.75, 0, 0.7, 1.5, 0.4, [0.55,0.58,0.63]); L(0, 1.0, -0.21, 0.5, 0.6, 0.02, [0.42,0.45,0.5]); break;
+      case 'tank': { const tk = fcomp(i.tk), lv = tk && tk.t === 'tank' ? tk.lvl : 0, hh = 1.8*lv/100;
+        L(0, 0.05, 0, 1.6, 0.1, 1.6, steel);
+        for (const a of [-0.76, 0.76]) for (const b of [-0.76, 0.76]) L(a, 1.05, b, 0.07, 1.9, 0.07, steel);
+        L(0, 1.05, 0.78, 1.5, 1.9, 0.03, [0.7,0.74,0.8]); L(0.78, 1.05, 0, 0.03, 1.9, 1.5, [0.7,0.74,0.8]);
+        if (hh > 0.01) L(0, 0.1 + hh/2, 0, 1.48, hh, 1.48, [0.2,0.5,0.92]);
+        for (const fl of S.comps) if (fl.t === 'float' && tk && fl.ref === tk.n){ const y = 0.1 + 1.8*fl.lvl/100;
+          L(-0.72, y, -0.72, 0.16, 0.05, 0.16, fl._on ? [0.2,1,0.35] : [1,0.6,0.1], true); lab(fl.n + (fl._on ? ' ●' : ''), -0.72, y + 0.18, -0.72); }
+        L(-0.9, 1.9, 0, 0.5, 0.1, 0.1, steel); L(-0.68, 1.75, 0, 0.1, 0.3, 0.1, steel);
+        lab((i.tk || '—') + ' ' + lv.toFixed(0) + '%', 0, 2.25, 0);
+      } break;
+      case 'pump': { const m = fcomp(i.m), run = m && (m._sp || 0) > 0.05;
+        L(0, 0.06, 0, 0.8, 0.12, 0.5, steel); L(-0.12, 0.34, 0, 0.44, 0.34, 0.34, run ? grn : blu); L(0.2, 0.34, 0, 0.2, 0.44, 0.44, [0.4,0.44,0.5]);
+        L(0.75, 0.34, 0, 0.9, 0.1, 0.1, steel); L(1.2, 1.1, 0, 0.1, 1.62, 0.1, steel);
+        if (run) L(0.2, 0.34 + 0.24*Math.sin(performance.now()/90), 0, 0.22, 0.04, 0.46, [1,0.85,0.2], true);
+        lab((i.m || '—') + (run ? ' ●' : ''), 0, 0.85, 0);
+      } break;
+      case 'gate': { const p = rt.p, m = fcomp(i.m);
+        L(3, 0.03, 0, 6.4, 0.06, 0.14, steel); L(-0.1, 0.8, -0.2, 0.2, 1.6, 0.2, [0.5,0.52,0.56]); L(3.1, 0.8, -0.2, 0.2, 1.6, 0.2, [0.5,0.52,0.56]);
+        const c0 = 1.5 + 3*p; L(c0, 0.2, 0, 3, 0.1, 0.06, dk); L(c0, 1.4, 0, 3, 0.1, 0.06, dk);
+        for (let k = 0; k <= 10; k++) L(c0 - 1.5 + k*0.3, 0.8, 0, 0.05, 1.2, 0.05, [0.25,0.3,0.4]);
+        L(3.5, 0.3, -0.35, 0.4, 0.5, 0.3, m && m._run ? grn : blu);
+        if (rt.over) lab('⚠ มอเตอร์ดันสุดทาง — ลิมิตสวิตช์ไม่ตัด', 3, 2.0, 0);
+        lab('ประตู ' + (p <= 0.005 ? 'ปิดสนิท' : p >= 0.995 ? 'เปิดสุด' : Math.round(p*100) + '%'), 1.5, 1.75, 0);
+      } break;
+    }
+    if (fx.edit && fx.sel === i.id){ const q = FKIND[i.k].fp(i), ca = (q[0] + q[1])/2, cb = (q[2] + q[3])/2, sa = q[1] - q[0] + 0.16, sb = q[3] - q[2] + 0.16, c = [0.55,0.3,0.95];
+      L(ca, 0.012, cb - sb/2, sa, 0.02, 0.04, c, true); L(ca, 0.012, cb + sb/2, sa, 0.02, 0.04, c, true); L(ca - sa/2, 0.012, cb, 0.04, 0.02, sb, c, true); L(ca + sa/2, 0.012, cb, 0.04, 0.02, sb, c, true);
+      L(q[1] + 0.25, 0.012, cb, 0.3, 0.02, 0.08, c, true); }
   }
+  for (const b of st.boxes){ const s2 = FAC.bs;
+    B(b.x, b.y, b.z, s2, s2, s2, b.metal ? [0.74,0.78,0.84] : [0.76,0.56,0.33]);
+    if (b.metal) B(b.x, b.y + s2/2 + 0.002, b.z, s2*0.7, 0.004, s2*0.7, [0.88,0.9,0.94]); else B(b.x, b.y + s2/2 + 0.002, b.z, s2, 0.004, 0.05, [0.9,0.82,0.6]); }
   return new Float32Array(V);
 }
 function fxDraw(){
@@ -3489,60 +3666,118 @@ function fxDraw(){
   const bg = K.board.match(/[0-9a-f]{2}/gi) || ['fa','fb','fc'], fog = bg.slice(0, 3).map(x => parseInt(x, 16)/255);
   fx.dark = fog[0] + fog[1] + fog[2] < 1.2;
   gl.viewport(0, 0, w, h); gl.clearColor(fog[0], fog[1], fog[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  const cp = Math.cos(fx.pitch), eye = [fx.tgt[0] + fx.dist*cp*Math.sin(fx.yaw), fx.tgt[1] + fx.dist*Math.sin(fx.pitch), fx.tgt[2] + fx.dist*cp*Math.cos(fx.yaw)];
-  fx.M = m4mul(m4persp(0.75, w/h, 0.1, 80), m4look(eye, fx.tgt, [0,1,0]));
+  fx.M = m4mul(m4persp(0.75, w/h, 0.1, 90), m4look(fxCam()));
   gl.uniformMatrix4fv(gl.getUniformLocation(fx.prog, 'm'), false, fx.M);
   gl.uniform3fv(gl.getUniformLocation(fx.prog, 'fog'), fog);
-  const data = facScene();
+  const labs = [], data = facScene(labs);
   gl.bindBuffer(gl.ARRAY_BUFFER, fx.buf); gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
   gl.drawArrays(gl.TRIANGLES, 0, data.length/9);
-  // ป้ายชื่อ
-  const mp = S.fac ? S.fac.map : facDefault().map, c2 = FXS.cnt, pe = facComp('sIn'), px = facComp('sMetal');
-  const labs = [[mp.sIn + (pe && pe.det ? ' ●' : ''), FAC.xIn, FAC.H + 0.5, -0.45], [mp.sMetal + (px && px.det ? ' ●' : ''), FAC.xP, 1.95, 0], [mp.push, FAC.xP, FAC.H + 0.5, -1.0],
-    [mp.conv, FAC.L + 0.05, FAC.H + 0.15, -0.55], ['โลหะ ' + c2.metal, FAC.xP, 0.75, 2.0], ['ชิ้นงานอื่น ' + c2.other, FAC.L + 0.75, 0.75, 0]];
   $('#flab').innerHTML = labs.map(([t, x, y, z]) => { const m = fx.M, cw = m[3]*x + m[7]*y + m[11]*z + m[15]; if (cw <= 0.1) return '';
     const sx = ((m[0]*x + m[4]*y + m[8]*z + m[12])/cw*0.5 + 0.5)*r.width, sy = (0.5 - (m[1]*x + m[5]*y + m[9]*z + m[13])/cw*0.5)*r.height;
     return `<span style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${esc(t)}</span>`; }).join('');
 }
-function fxHud(){
+const fxSel = () => S.fac && S.fac.items.find(i => i.id === fx.sel);
+function fxMissing(){
+  if (!S.fac) return []; const out = new Set();
+  for (const i of S.fac.items) for (const k in FFLD) if (FFLD[k][1] === 'bind' && k in i && i[k] && !fcomp(i[k])) out.add(i[k]);
+  return [...out];
+}
+function fxHud(force){
   const el = $('#fhud'); if (!el || fx.mode === 'off') return;
   if (fx.gl === false){ el.innerHTML = '<div class="fcard">เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงฉาก 3D ไม่ได้</div>'; return; }
+  const opts = Object.entries(FPRE).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   if (!S.fac){ if (el.dataset.k !== 'none'){ el.dataset.k = 'none';
-      el.innerHTML = `<div class="fcard"><b>โรงงาน 3D</b><br>วงจรนี้ยังไม่ได้เชื่อมกับฉากโรงงาน<div class="row"><button class="btn on" data-f="ex">เปิดตัวอย่างสายพานคัดแยก</button><button class="btn" data-f="link">เชื่อมวงจรนี้กับฉาก</button></div></div>`; }
+      el.innerHTML = `<div class="fcard"><b>โรงงาน 3D</b><br>วงจรนี้ยังไม่มีฉากโรงงาน เลือกฉากเพื่อเริ่ม แล้วผูกเครื่องจักรกับอุปกรณ์บนแผงด้วยชื่อ
+        <div class="row"><select data-f="newscene"><option value="">— เพิ่มฉากให้วงจรนี้ —</option>${opts}</select><button class="btn on" data-f="ex">เปิดตัวอย่างสายพานคัดแยก</button></div></div>`; }
     return; }
-  const mp = S.fac.map, c = FXS.cnt, mot = facComp('conv'), miss = ['conv','push','sIn','sMetal'].filter(k => !facComp(k)).map(k => mp[k]);
-  const k = [FXS.auto, miss.join()].join('|');
-  if (el.dataset.k !== k){ el.dataset.k = k;
-    el.innerHTML = `<div class="fcard"><b>สายพานคัดแยกชิ้นงาน</b> <span id="fstat" class="mono"></span>
-      <div class="row"><button class="btn run" data-f="start">▶ START</button><button class="btn run stopped" data-f="stop">■ STOP</button>
-      <button class="btn ${FXS.auto ? 'on' : ''}" data-f="auto" title="ปล่อยกล่องอัตโนมัติทุก 3 วินาที">ปล่อยอัตโนมัติ</button>
-      <button class="btn" data-f="m" title="ปล่อยกล่องโลหะ">+ โลหะ</button><button class="btn" data-f="o" title="ปล่อยกล่องกระดาษ">+ กระดาษ</button>
-      <button class="btn" data-f="reset">รีเซ็ตฉาก</button></div>
-      ${miss.length ? `<div class="e">ไม่พบอุปกรณ์ชื่อ ${esc(miss.join(', '))} บนแผง</div>` : ''}
-      <div id="fcnt" class="mono"></div><div class="sub">ลากเพื่อหมุนมุมกล้อง · ล้อเมาส์ซูม · คลิกขวาลากเพื่อเลื่อน</div></div>`; }
-  $('#fstat').textContent = mot && (mot._sp || 0) > 0.05 ? 'สายพานวิ่ง ' + Math.round(mot._sp*100) + '%' : 'สายพานหยุด';
-  $('#fcnt').textContent = `คัดโลหะ ${c.metal} · ผ่าน ${c.other} · โลหะหลุด ${c.miss} · คัดผิด ${c.wrong}`;
+  const miss = fxMissing(), c = FXS.cnt, it = fx.edit ? fxSel() : null, hasEmit = S.fac.items.some(i => i.k === 'emit');
+  const k = [fx.edit, fx.sel, FXS.auto, fx.hv, miss.join(), hasEmit].join('|');
+  if (force || el.dataset.k !== k){ el.dataset.k = k;
+    let h = `<div class="fcard"><b>โรงงาน 3D</b> <span id="fstat" class="mono"></span><div class="row">` +
+      (S.fac.btn || []).map(n => `<button class="btn run ${/STOP|หยุด/i.test(n) ? 'stopped' : ''}" data-press="${esc(n)}" title="กดปุ่ม ${esc(n)} บนแผง">${esc(n)}</button>`).join('') +
+      (hasEmit ? `<button class="btn ${FXS.auto ? 'on' : ''}" data-f="auto" title="ปล่อยกล่องอัตโนมัติ">ปล่อยอัตโนมัติ</button><button class="btn" data-f="m">+ โลหะ</button><button class="btn" data-f="o">+ กระดาษ</button>` : '') +
+      `<button class="btn" data-f="reset">รีเซ็ตฉาก</button><button class="btn ${fx.edit ? 'on' : ''}" data-f="edit">แก้ไขฉาก</button></div>`;
+    if (miss.length) h += `<div class="e">ไม่พบอุปกรณ์ชื่อ ${esc(miss.join(', '))} บนแผง</div>`;
+    if (fx.edit){
+      h += `<div class="row"><select data-f="scene" title="แทนที่ทั้งฉากด้วยฉากสำเร็จรูป"><option value="">ฉากสำเร็จรูป…</option>${opts}</select>
+        <select data-f="add"><option value="">+ เพิ่มเครื่องจักร…</option>${Object.entries(FKIND).map(([kk, v]) => `<option value="${kk}">${v.nm}</option>`).join('')}</select></div>`;
+      if (it){
+        h += `<div class="fprop"><b>${FKIND[it.k].nm}</b>` + Object.keys(FKIND[it.k].d).map(key => { const [lab, kind, o] = FFLD[key];
+          return `<label>${lab}${kind === 'sel' ? `<select data-p="${key}">${Object.entries(o).map(([a, b]) => `<option value="${a}" ${it[key] === a ? 'selected' : ''}>${b}</option>`).join('')}</select>`
+            : `<input data-p="${key}" ${kind === 'bind' ? 'list="fnames"' : 'inputmode="decimal"'} value="${esc(it[key])}">`}</label>`; }).join('') +
+          `<div class="row"><button class="btn" data-f="rot">หมุน 90°</button><button class="btn" data-f="dup">ทำซ้ำ</button><button class="btn" data-f="del">ลบ</button></div></div>`;
+      }
+      h += `<datalist id="fnames">${S.comps.filter(x => x.n).map(x => `<option value="${esc(x.n)}">${esc(T[x.t].nm)}</option>`).join('')}</datalist>
+        <div class="sub">คลิกเครื่องจักรเพื่อเลือก · ลากเพื่อย้าย · <kbd>R</kbd> หมุน · <kbd>Delete</kbd> ลบ · ลากพื้นว่างเพื่อหมุนกล้อง</div>`;
+    } else h += `<div class="sub">ลากเพื่อหมุนกล้อง · ล้อเมาส์ซูม · คลิกขวาลากเพื่อเลื่อน</div>`;
+    el.innerHTML = h + `<div id="fcnt" class="mono"></div></div>`;
+  }
+  const run = S.fac.items.filter(i => i.k === 'conv').map(i => fcomp(i.m)).filter(m => m && (m._sp || 0) > 0.05).length, nc2 = S.fac.items.filter(i => i.k === 'conv').length;
+  $('#fstat').textContent = nc2 ? `สายพานวิ่ง ${run}/${nc2}` : '';
+  $('#fcnt').textContent = hasEmit ? `ลงถังถูก: โลหะ ${c.metal} · อื่น ๆ ${c.other} · โลหะหลุด ${c.miss} · คัดผิด ${c.wrong} · ตกพื้น ${c.floor}` : '';
 }
+function facEdited(){ fx.hv++; commit(); fxHud(true); }
+// เล็งกล้องไปกลางฉาก
+function fxFrame(){
+  const it = S.fac && S.fac.items; if (!it || !it.length) return;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const i of it){ const q = FKIND[i.k].fp(i); for (const a of [q[0], q[1]]) for (const b of [q[2], q[3]]){ const w = fWorld(i, a, b);
+    x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); z0 = Math.min(z0, w[1]); z1 = Math.max(z1, w[1]); } }
+  fx.tgt = [(x0 + x1)/2, 0.7, (z0 + z1)/2]; fx.dist = Math.max(6, Math.min(20, Math.max(x1 - x0, z1 - z0)*1.25 + 2));
+}
+function facSetScene(name){ const p = facPreset(name); S.fac = {items:p.items, btn:p.btn}; fx.sel = null; facReset(); fxFrame(); facEdited(); }
 function setView(m){
   fx.mode = m; $('#views').className = m; $('#b3d').classList.toggle('on', m !== 'off');
   $('#b3d').textContent = m === 'off' ? 'โรงงาน 3D' : m === 'split' ? '3D: แบ่งจอ' : '3D: เต็มจอ';
   $('#fhud').dataset.k = ''; setTimeout(() => { resize(); fit(); }, 30);
 }
 (function fxEvents(){
-  const cvs = $('#fx');
+  const cvs = $('#fx'), wrap = $('#fwrap'), hud = $('#fhud');
+  wrap.addEventListener('pointerenter', () => { fx.over = true; }); wrap.addEventListener('pointerleave', () => { fx.over = false; });
   cvs.addEventListener('contextmenu', e => e.preventDefault());
-  cvs.addEventListener('pointerdown', e => { cvs.setPointerCapture(e.pointerId); fx.drag = {x:e.clientX, y:e.clientY, pan:e.button !== 0 || e.shiftKey}; });
-  cvs.addEventListener('pointermove', e => { const d = fx.drag; if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; d.x = e.clientX; d.y = e.clientY;
-    if (d.pan){ const k = fx.dist*0.0016; fx.tgt[0] -= (Math.cos(fx.yaw)*dx)*k; fx.tgt[2] += (Math.sin(fx.yaw)*dx)*k; fx.tgt[1] = Math.max(0, Math.min(3, fx.tgt[1] + dy*k)); }
+  cvs.addEventListener('pointerdown', e => {
+    cvs.setPointerCapture(e.pointerId);
+    if (fx.edit && e.button === 0 && !e.shiftKey){
+      const it = fxPick(e), p = fxRay(e, 0);
+      if ((it ? it.id : null) !== fx.sel){ fx.sel = it ? it.id : null; fxHud(true); }
+      if (it && p){ fx.drag = {move:it, p, ox:it.x, oz:it.z, moved:false}; return; }
+    }
+    fx.drag = {x:e.clientX, y:e.clientY, pan:e.button !== 0 || e.shiftKey};
+  });
+  cvs.addEventListener('pointermove', e => { const d = fx.drag; if (!d) return;
+    if (d.move){ const p = fxRay(e, 0); if (!p) return;
+      const nx = Math.round((d.ox + p[0] - d.p[0])*10)/10, nz = Math.round((d.oz + p[1] - d.p[1])*10)/10;
+      if (nx !== d.move.x || nz !== d.move.z){ d.move.x = nx; d.move.z = nz; d.moved = true; }
+      return; }
+    const dx = e.clientX - d.x, dy = e.clientY - d.y; d.x = e.clientX; d.y = e.clientY;
+    if (d.pan){ const k = fx.dist*0.0016; fx.tgt[0] -= Math.cos(fx.yaw)*dx*k; fx.tgt[2] += Math.sin(fx.yaw)*dx*k; fx.tgt[1] = Math.max(0, Math.min(3, fx.tgt[1] + dy*k)); }
     else { fx.yaw -= dx*0.006; fx.pitch = Math.max(0.08, Math.min(1.45, fx.pitch + dy*0.005)); } });
-  const end = () => { fx.drag = null; }; cvs.addEventListener('pointerup', end); cvs.addEventListener('pointercancel', end);
-  cvs.addEventListener('wheel', e => { e.preventDefault(); fx.dist = Math.max(2.5, Math.min(24, fx.dist*Math.exp(e.deltaY*0.0012))); }, {passive:false});
-  const press = (k, on) => { const c = facComp(k); if (c){ c._pr = on; needSolve = true; } };
-  $('#fhud').addEventListener('pointerdown', e => { const b = e.target.closest('[data-f]'); if (!b) return; const f = b.dataset.f;
-    if (f === 'start' || f === 'stop'){ press(f, true); const up = () => { press(f, false); window.removeEventListener('pointerup', up); }; window.addEventListener('pointerup', up); } });
-  $('#fhud').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; const f = b.dataset.f;
-    if (f === 'auto') FXS.auto = !FXS.auto; else if (f === 'm') facSpawn(true); else if (f === 'o') facSpawn(false); else if (f === 'reset') facReset();
-    else if (f === 'ex') loadEx('factory'); else if (f === 'link'){ S.fac = facDefault(); commit(); } });
+  const end = () => { const d = fx.drag; fx.drag = null; if (d && d.move && d.moved) facEdited(); };
+  cvs.addEventListener('pointerup', end); cvs.addEventListener('pointercancel', end);
+  cvs.addEventListener('wheel', e => { e.preventDefault(); fx.dist = Math.max(2.5, Math.min(28, fx.dist*Math.exp(e.deltaY*0.0012))); }, {passive:false});
+  hud.addEventListener('pointerdown', e => { const b = e.target.closest('[data-press]'); if (!b) return;
+    const c = fcomp(b.dataset.press); if (!c) return; c._pr = true; needSolve = true;
+    const up = () => { c._pr = false; needSolve = true; window.removeEventListener('pointerup', up); }; window.addEventListener('pointerup', up); });
+  const act = f => { const it = fxSel();
+    if (f === 'auto'){ FXS.auto = !FXS.auto; fxHud(true); } else if (f === 'm') facSpawn(true); else if (f === 'o') facSpawn(false);
+    else if (f === 'reset'){ facReset(); fxHud(true); } else if (f === 'ex') loadEx('factory');
+    else if (f === 'edit'){ fx.edit = !fx.edit; fx.sel = null; fxHud(true); }
+    else if (f === 'rot' && it){ it.r = ((it.r || 0) + 1) & 3; facEdited(); }
+    else if (f === 'del' && it){ S.fac.items = S.fac.items.filter(x => x !== it); fx.sel = null; facEdited(); }
+    else if (f === 'dup' && it){ const n = Object.assign(clone(it), {id:Math.max(0, ...S.fac.items.map(x => x.id || 0)) + 1, x:it.x + 0.5, z:it.z + 0.5}); S.fac.items.push(n); fx.sel = n.id; facEdited(); } };
+  hud.addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if (b) act(b.dataset.f); });
+  hud.addEventListener('change', e => { const t = e.target, f = t.dataset.f, it = fxSel();
+    if ((f === 'scene' || f === 'newscene') && t.value) facSetScene(t.value);
+    else if (f === 'add' && t.value){ const n = facItem(t.value, Math.round(fx.tgt[0]*2)/2, Math.round(fx.tgt[2]*2)/2, 0);
+      n.id = Math.max(0, ...S.fac.items.map(x => x.id || 0)) + 1; S.fac.items.push(n); fx.sel = n.id; facEdited(); }
+    else if (t.dataset.p && it){ const key = t.dataset.p, kind = FFLD[key][1];
+      if (kind === 'num'){ const v = parseFloat(t.value); if (!(v >= 0)) { fxHud(true); return; } it[key] = key === 'len' ? Math.max(0.5, Math.min(12, v)) : key === 'metal' ? Math.min(100, v) : Math.max(0.05, v); }
+      else it[key] = t.value.trim();
+      facEdited(); } });
+  window.addEventListener('keydown', e => {
+    if (!fx.edit || !fx.over || !fxSel() || e.target.matches('input,textarea,select') || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'r' || e.key === 'R'){ act('rot'); e.stopImmediatePropagation(); }
+    else if (e.key === 'Delete' || e.key === 'Backspace'){ act('del'); e.preventDefault(); e.stopImmediatePropagation(); } });
   $('#b3d').onclick = () => setView({off:'split', split:'full', full:'off'}[fx.mode]);
 })();
 
@@ -3596,7 +3831,7 @@ function setTool(t){
 }
 function select(s){ sel = s; renderInsp(); liveUI(); }
 function refreshUI(){ renderInsp(); liveUI(); if (ladOpen) ladStruct(); $('#bUndo').disabled = !hist.length; $('#bVal').classList.toggle('on', showVal); }
-function onLoaded(){ ladSel = {ri:0, row:0, col:0}; if (!S.comps.some(c => c.id === ladPid)) ladPid = null; }
+function onLoaded(){ fx.hv++; fx.sel = null; fxFrame(); ladSel = {ri:0, row:0, col:0}; if (!S.comps.some(c => c.id === ladPid)) ladPid = null; }
 function fit(){
   const r = cv.getBoundingClientRect(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   const add = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };

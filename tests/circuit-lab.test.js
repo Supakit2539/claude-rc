@@ -114,6 +114,22 @@ const path = require('path');
     const fp = s.find('STOP'); fp._pr = true; s.poke(); s.run(0.3); fp._pr = false; s.poke(); s.run(8);
     o.facStop = s.find('M1')._sp; o.facGl = !!document.querySelector('#fx').getContext('webgl');
 
+    const press = (n, t) => { const c = s.find(n); c._pr = true; s.poke(); s.run(t || 0.3); c._pr = false; s.poke(); };
+    s.load('seqconv'); s.run(0.5); press('START'); s.run(1); o.seq1 = [!!s.find('M2')._run, !!s.find('M1')._run];
+    s.run(4); o.seq2 = [!!s.find('M2')._run, !!s.find('M1')._run]; s.run(40); o.seqCnt = Object.assign({}, s.FXS.cnt);
+    press('STOP'); s.run(1); o.seq3 = [!!s.find('K2')._on, !!s.find('K1')._on]; s.run(5); o.seq4 = [!!s.find('K2')._on, !!s.find('K1')._on];
+
+    s.load('gate'); s.run(0.5); const gp = () => s.FXS.rt[1].p;
+    o.gate0 = [gp(), s.find('SQ2').act]; press('OPEN'); s.run(9); o.gate1 = [gp(), !!s.find('K1')._on, s.find('SQ1').act];
+    press('CLOSE'); s.run(2); press('STOP'); s.run(1); const mid = gp(); s.run(2); o.gate2 = [mid, gp(), !!s.find('K2')._on];
+    press('CLOSE'); s.run(9); o.gate3 = [gp(), !!s.find('K2')._on, s.find('SQ2').act];
+
+    s.load('plcpump'); o.tankScene = s.S.fac.items.map(i => i.k).join();
+    // จัดวางเอง: ฉากว่าง + สายพาน + ตัวปล่อย + ถัง ผูกกับมอเตอร์ M1 ของตัวอย่าง factory
+    s.load('factory'); s.S.fac = {btn:['START','STOP'], items:[
+      {id:1, k:'conv', x:1.5, z:0, r:0, len:3, spd:0.5, m:'M1'}, {id:2, k:'emit', x:0.3, z:0, r:0, every:2, metal:0}, {id:3, k:'bin', x:3.55, z:0, r:0, want:'any'}]};
+    s.FXS.boxes.length = 0; s.run(0.3); press('START'); s.run(30); o.custom = Object.assign({}, s.FXS.cnt); o.customSaved = JSON.parse(JSON.stringify(s.S.fac.items.length));
+
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
@@ -160,6 +176,14 @@ const path = require('path');
   checks.push(['stair: สลับสวิตช์ตัวใดก็ได้ → ไฟสลับติด/ดับ', JSON.stringify(r.stair) === '[true,false,true,false]', JSON.stringify(r.stair)]);
   checks.push(['factory: ก่อนกด START สายพานหยุด, กดแล้ววิ่ง, กด STOP แล้วหยุด', r.facIdle === 0 && r.facConv === 1 && r.facStop < 0.05, [r.facIdle, r.facConv, r.facStop].join(' → ')]);
   checks.push(['factory: PLC คัดกล่องโลหะด้วยกระบอกลมครบ ไม่มีคัดผิด/หลุด (60 s)', r.facCnt.metal >= 5 && r.facCnt.other >= 5 && r.facCnt.miss === 0 && r.facCnt.wrong === 0, JSON.stringify(r.facCnt)]);
+  checks.push(['seqconv: สายพานปลายทางเริ่มก่อน ต้นทางตามหลัง 3 s', JSON.stringify([r.seq1, r.seq2]) === '[[true,false],[true,true]]', JSON.stringify([r.seq1, r.seq2])]);
+  checks.push(['seqconv: กด STOP ต้นทางหยุดทันที ปลายทางหยุดหลัง 4 s', JSON.stringify([r.seq3, r.seq4]) === '[[true,false],[false,false]]', JSON.stringify([r.seq3, r.seq4])]);
+  checks.push(['seqconv: กล่องข้ามสายพานลงถังครบ ไม่ตกพื้น', r.seqCnt.metal + r.seqCnt.other >= 8 && r.seqCnt.floor === 0, JSON.stringify(r.seqCnt)]);
+  checks.push(['gate: กด OPEN → เปิดสุด ลิมิต SQ1 ตัด K1', r.gate0[0] === 0 && r.gate0[1] === true && r.gate1[0] >= 0.995 && !r.gate1[1] && r.gate1[2] === true, JSON.stringify(r.gate1)]);
+  checks.push(['gate: กด STOP กลางทาง → ประตูหยุดนิ่ง', r.gate2[0] > 0.1 && r.gate2[0] < 0.9 && Math.abs(r.gate2[0] - r.gate2[1]) < 0.01 && !r.gate2[2], JSON.stringify(r.gate2)]);
+  checks.push(['gate: กด CLOSE → ปิดสนิท ลิมิต SQ2 ตัด K2', r.gate3[0] <= 0.005 && !r.gate3[1] && r.gate3[2] === true, JSON.stringify(r.gate3)]);
+  checks.push(['plcpump: มีฉากสถานีสูบน้ำ 3D', r.tankScene === 'tank,pump,cab', r.tankScene]);
+  checks.push(['จัดวางฉากเอง (สายพาน + ตัวปล่อย + ถัง) ทำงานกับมอเตอร์บนแผง', r.custom.other >= 8 && r.custom.floor === 0, JSON.stringify(r.custom)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
