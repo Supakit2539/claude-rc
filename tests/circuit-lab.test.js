@@ -23,6 +23,8 @@ const path = require('path');
     const start = s.find('START'), m = s.find('M1');
     start._pr = true; s.poke(); start._pr = false; s.poke();
     o.dolCoil = s.find('K1')._on;
+    o.dolInrush = s.RES.comp[m.id].ph[0];
+    s.run(6);
     o.dolI = s.RES.comp[m.id].ph;
     s.find('F2').on = false; s.poke();
     o.dolHum = m._hum;
@@ -82,7 +84,28 @@ const path = require('path');
 
     s.load('motor'); s.run(0.3); o.motorOff = RC('M1').Ir;
     const mb = s.find('S1'); mb._pr = true; s.poke(); s.run(0.2); mb._pr = false; s.poke(); s.run(0.5);
-    o.motorOn = RC('M1').Ir;
+    o.motorOn = RC('M1').Ir; s.run(4); o.motorRun = RC('M1').Ir;
+
+    const src = () => s.RES.src[s.S.comps.find(c => c.t === 'src3' || c.t === 'src1').id];
+    s.load('stardelta'); s.run(0.5);
+    const sb = s.find('START'); sb._pr = true; s.poke(); s.run(0.3); sb._pr = false; s.poke();
+    o.sdInrush = src().I; s.run(2.5);
+    const m6 = s.find('M1'); o.sdStar = [m6._cn, s.find('K2')._on, +src().I.toFixed(2)];
+    s.run(4); o.sdDelta = [m6._cn, !!s.find('K3')._on, !!s.find('K2')._on, +src().I.toFixed(2)];
+    s.find('F2').on = false; s.poke(); o.sdHum = m6._hum; s.run(15);
+    o.sdProt = !!s.find('F4')._trip || !s.find('F1').on || !s.find('F3').on;
+    s.load('stardelta'); s.run(0.3); const sb2 = s.find('START'); sb2._pr = true; s.poke(); s.run(0.3); sb2._pr = false; s.poke(); s.run(1);
+    s.find('S0').act = true; s.poke(); s.run(0.2); o.estop = !!s.find('K1')._on;
+
+    s.load('rcdtest'); s.run(0.3); o.rcd0 = s.find('RCD1').on;
+    s.find('แตะสายไฟ').on = true; s.poke(); s.run(0.1); o.rcd1 = [s.find('RCD1').on, s.find('RCD1')._trip, RC('คน').Ir];
+
+    s.load('pfc'); s.run(3);
+    const pf = () => { const x = RC('PM1'); return [Math.abs(x.P)/Math.hypot(x.P, x.Q), x.I]; };
+    o.pf0 = pf(); s.find('S1').on = true; s.poke(); s.run(0.2); o.pf1 = pf();
+
+    s.load('stair'); s.run(0.1); const lit = () => RC('H1').Ir > 0.1; o.stair = [lit()];
+    s.find('S1').pos = 'B'; s.poke(); o.stair.push(lit()); s.find('S2').pos = 'X'; s.poke(); o.stair.push(lit()); s.find('S3').pos = 'B'; s.poke(); o.stair.push(lit());
 
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
@@ -95,7 +118,8 @@ const path = require('path');
   near('mixed 54.5 mA', r.mixed, 0.0545, 0.0005);
   near('led 21 mA', r.led, 0.021, 0.0005);
   checks.push(['dol: K1 ดูด', r.dolCoil === true, r.dolCoil]);
-  for (let k = 0; k < 3; k++) near('dol: กระแสเฟส ' + (k + 1) + ' 2.55 A', r.dolI[k], 2.55, 0.01);
+  near('dol: กระแสสตาร์ท ≈ 6 × In (15.3 A)', r.dolInrush, 15.3, 0.2);
+  for (let k = 0; k < 3; k++) near('dol: กระแสเฟส ' + (k + 1) + ' หลังเร่งเครื่อง 2.55 A', r.dolI[k], 2.55, 0.02);
   checks.push(['dol: ขาดเฟส → _hum', r.dolHum === true, r.dolHum]);
   for (const mode of ['lad', 'txt']){
     const ev = r['pump_' + mode];
@@ -118,7 +142,15 @@ const path = require('path');
   checks.push(['semi: S1 เปิด → NPN อิ่มตัว, LED ≈ 8.5 mA; S1 ปิด → LED ดับ', r.ledOff < 1e-6 && Math.abs(r.ledOn - 0.00846) < 0.0002 && r.qState === 'sat', r.ledOff + ' / ' + r.ledOn + ' / ' + r.qState]);
   checks.push(['timer555: สลับสถานะ ≈ 1 Hz (8 ครั้งใน 4 s)', r.t555 >= 7 && r.t555 <= 9, r.t555]);
   checks.push(['counter: ผ่านไป 1.5 s แสดงเลข 1 (ส่วน b, c)', r.seg === 'bc', r.seg]);
-  checks.push(['motor: กดปุ่ม → MOSFET นำ มอเตอร์ ≈ 0.75 A', r.motorOff < 1e-6 && Math.abs(r.motorOn - 0.746) < 0.01, r.motorOff + ' → ' + r.motorOn]);
+  checks.push(['motor: กดปุ่ม → MOSFET นำ, กระแสสตาร์ทสูงแล้วลดลงเมื่อหมุน (แรงเคลื่อนย้อนกลับ)', r.motorOff < 1e-6 && r.motorOn > 2*r.motorRun && r.motorRun < 0.15, r.motorOff + ' → ' + r.motorOn.toFixed(3) + ' → ' + r.motorRun.toFixed(3)]);
+  near('stardelta: กระแสสตาร์ทแบบสตาร์ ≈ 1/3 ของ DOL (≈ 34 A)', r.sdInrush, 34.4, 1);
+  checks.push(['stardelta: ช่วงแรกต่อสตาร์ (K2) กระแส ≈ 4.8 A', r.sdStar[0] === 'Y' && r.sdStar[1] && Math.abs(r.sdStar[2] - 4.81) < 0.1, JSON.stringify(r.sdStar)]);
+  checks.push(['stardelta: ครบ 5 s เปลี่ยนเป็นเดลต้า (K3) กระแส ≈ In 14.3 A', r.sdDelta[0] === 'Δ' && r.sdDelta[1] && !r.sdDelta[2] && Math.abs(r.sdDelta[3] - 14.3) < 0.2, JSON.stringify(r.sdDelta)]);
+  checks.push(['stardelta: เฟสขาด → คราง แล้วอุปกรณ์ป้องกันตัด', r.sdHum && r.sdProt, r.sdHum + ' ' + r.sdProt]);
+  checks.push(['stardelta: กด E-Stop → K1 หลุด', r.estop === false, r.estop]);
+  checks.push(['rcdtest: คนแตะสายไฟ → RCD ตัด (ไฟรั่ว) กระแสผ่านตัว ≈ 0', r.rcd0 && r.rcd1[0] === false && r.rcd1[1] === 'rcd' && r.rcd1[2] < 1e-3, JSON.stringify(r.rcd1)]);
+  checks.push(['pfc: ต่อคาปาซิเตอร์ PF 0.65 → > 0.95 กระแสลดลง', Math.abs(r.pf0[0] - 0.65) < 0.01 && r.pf1[0] > 0.95 && r.pf1[1] < r.pf0[1], r.pf0.map(x => x.toFixed(3)) + ' → ' + r.pf1.map(x => x.toFixed(3))]);
+  checks.push(['stair: สลับสวิตช์ตัวใดก็ได้ → ไฟสลับติด/ดับ', JSON.stringify(r.stair) === '[true,false,true,false]', JSON.stringify(r.stair)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
