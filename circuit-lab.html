@@ -1621,6 +1621,7 @@ function mkComp(t, x, y, p){
 function load(o){
   if (typeof o === 'string') o = JSON.parse(o);
   S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? (o.fac.items ? clone(o.fac) : facPreset('sort')) : null};
+  if (S.fac) S.fac.items = S.fac.items.filter(i => FKIND[i.k]).map(i => Object.assign(clone(FKIND[i.k].d), i));   // เติมฟิลด์ใหม่ให้ฉากที่บันทึกไว้ก่อน
   facReset();
   for (const c of o.comps||[]){ if (!T[c.t]) continue; const k = mkComp(c.t, c.x, c.y, c); S.comps.push(k); S.nid = Math.max(S.nid, k.id + 1); }
   normalize();
@@ -2224,6 +2225,49 @@ Q3 := M0 AND NOT I6
       one('ไฟแดง: แขนกำลังทำงาน', [nc('NO','M0'), nc('NC','I6')], {k:'OUT', a:'Q3'}),
     ]};
   }), {fac:facPreset('pick')})},
+  lift: {nm:'โรงงาน 3D: ลิฟต์ยกชิ้นงาน + สายพาน 2 ระดับ + ทางลาด', f:() => Object.assign(build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:16, curve:'C', model:'c16'});
+    W([2,2],[2,3]); W([2,5],[2,14],[5,14]); W([2,14],[2,18],[5,18]); W([2,7],[6,7]); W([3,2],[3,26]); W([3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[24,11]); W([8,9],[8,10],[24,10]);
+    const plc = C('plc', 18, 15, {n:'PLC1'});
+    W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
+    C('pb', 16, 12, {r:1, n:'START', model:'g22'}); C('pbnc', 17, 12, {r:1, n:'STOP', model:'r22'});
+    C('photo', 19, 8, {n:'PE1'}); W([18,9],[18,11]); W([19,9],[19,13]); W([20,9],[20,10]);        // I3: มีกล่องบนแท่นลิฟต์
+    C('limit', 21, 12, {r:1, n:'SQ1'}); C('limit', 22, 12, {r:1, n:'SQ2'});                         // I5: ชั้นล่าง, I6: ชั้นบน
+    W([13,17],[13,19],[11,19],[11,11]);
+    C('coil', 14, 19, {r:1, n:'K1', V:24, S:3, dc:true, model:'k24dc'}); W([14,17],[14,18]); W([14,20],[14,24]);
+    C('coil', 15, 22, {r:1, n:'YU', V:24, S:4.8, dc:true, model:'sol24'}); W([15,17],[15,21]); W([15,23],[15,24]);
+    C('coil', 16, 19, {r:1, n:'YD', V:24, S:4.8, dc:true, model:'sol24'}); W([16,17],[16,18]); W([16,20],[16,24]);
+    C('coil', 17, 22, {r:1, n:'K2', V:24, S:3, dc:true, model:'k24dc'}); W([17,17],[17,21]); W([17,23],[17,24],[9,24],[9,10]);
+    C('no', 6, 14, {ref:'K1'}); C('motor1', 8, 16, {r:1, n:'M1'}); W([7,14],[8,14],[8,15]); W([8,17],[10,17],[10,26],[3,26]);
+    C('no', 6, 18, {ref:'K2'}); C('motor1', 8, 20, {r:1, n:'M2'}); W([7,18],[8,18],[8,19]); W([8,21],[8,26]);
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    plc.prog = {mode:'lad', txt:`// ระบบทำงาน
+M0 := (I0 OR M0) AND I1
+// สายพานชั้นบนและทางลาด (M2) วิ่งตลอด
+Q3 := M0
+// สายพานป้อน (M1) วิ่งเมื่อลิฟต์อยู่ชั้นล่าง (I5) และแท่นว่าง (NOT I3)
+Q0 := M0 AND I5 AND NOT I3
+// มีกล่องบนแท่นที่ชั้นล่างครบ 1 วินาที → จำว่าต้องยกขึ้น
+T0 := TON(I3 AND I5, 1)
+SET M3 := T0
+RST M3 := I6
+// ขึ้นจนถึงลิมิตชั้นบน (I6)
+Q1 := M0 AND M3 AND NOT I6
+// แท่นว่างและไม่อยู่ชั้นล่าง → ลงจนถึงลิมิตชั้นล่าง (I5)
+Q2 := M0 AND NOT I3 AND NOT I5 AND NOT M3
+`, lad:[
+      {cmt:'ระบบทำงาน: START ค้างสถานะ, STOP (NC) หยุด', rows:[row([nc('NO','I0'), nc('NO','I1')], {k:'OUT', a:'M0'}), row([nc('NO','M0')], null)], links:[[false,true,false,false,false,false,false,false]]},
+      one('สายพานชั้นบนและทางลาด (K2 → M2) วิ่งตลอด', [nc('NO','M0')], {k:'OUT', a:'Q3'}),
+      one('สายพานป้อน (K1 → M1): ลิฟต์อยู่ชั้นล่างและแท่นว่าง', [nc('NO','M0'), nc('NO','I5'), nc('NC','I3')], {k:'OUT', a:'Q0'}),
+      one('มีกล่องบนแท่นที่ชั้นล่าง → รอ 1 วินาทีให้กล่องเข้ากลางแท่น', [nc('NO','I3'), nc('NO','I5')], {k:'TON', a:'T0', p:1}),
+      one('จำว่าต้องยกขึ้น', [nc('NO','T0')], {k:'SET', a:'M3'}),
+      one('ถึงชั้นบน (SQ2) → เลิกสั่งขึ้น', [nc('NO','I6')], {k:'RST', a:'M3'}),
+      one('ลิฟต์ขึ้น (YU) จนถึงลิมิตชั้นบน', [nc('NO','M0'), nc('NO','M3'), nc('NC','I6')], {k:'OUT', a:'Q1'}),
+      one('แท่นว่างและไม่อยู่ชั้นล่าง → ลิฟต์ลง (YD)', [nc('NO','M0'), nc('NC','I3'), nc('NC','I5'), nc('NC','M3')], {k:'OUT', a:'Q2'}),
+    ]};
+  }), {fac:facPreset('lift')})},
   blank: {nm:'แผงว่าง', f:() => build(() => {})},
 };
 
@@ -3442,14 +3486,15 @@ const FAC = {H:0.8, bs:0.3};
 const FDIR = [[1,0],[0,1],[-1,0],[0,-1]];
 // ชนิดเครื่องจักร: nm ชื่อ, d ค่าเริ่มต้น, fp ขอบเขตในพิกัดท้องถิ่น [a0,a1,b0,b1] (a = ตามทิศ, b = ด้านข้าง)
 const FKIND = {
-  conv:   {nm:'สายพานลำเลียง',     d:{len:4, spd:0.5, m:'M1'}, fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
-  roller: {nm:'โต๊ะลูกกลิ้ง',       d:{len:1.1},                fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
-  emit:   {nm:'ตัวปล่อยกล่อง',      d:{every:3, metal:50},      fp:() => [-0.3, 0.3, -0.45, 0.45]},
-  push:   {nm:'กระบอกลมดัน',        d:{y:'Y1'},                 fp:() => [-0.9, 0.15, -0.3, 0.3]},
-  stop:   {nm:'ตัวกั้นชิ้นงาน',      d:{y:'Y2'},                 fp:() => [-0.15, 0.15, -0.4, 0.4]},
+  conv:   {nm:'สายพานลำเลียง (ปรับลาดเอียงได้)', d:{len:4, spd:0.5, m:'M1', h:0.8, h2:0.8}, fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  roller: {nm:'โต๊ะลูกกลิ้ง',       d:{len:1.1, h:0.8},         fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  lift:   {nm:'ลิฟต์ยกชิ้นงาน',     d:{h:0.8, h2:2, yu:'YU', yd:'YD', lo:'SQ1', hi:'SQ2', s:'PE1'}, fp:() => [-0.5, 0.5, -0.62, 0.62]},
+  emit:   {nm:'ตัวปล่อยกล่อง',      d:{every:3, metal:50, h:0.8}, fp:() => [-0.3, 0.3, -0.45, 0.45]},
+  push:   {nm:'กระบอกลมดัน',        d:{y:'Y1', h:0.8},          fp:() => [-0.9, 0.15, -0.3, 0.3]},
+  stop:   {nm:'ตัวกั้นชิ้นงาน',      d:{y:'Y2', h:0.8},          fp:() => [-0.15, 0.15, -0.4, 0.4]},
   robot:  {nm:'แขนหยิบวาง (แกนทรี)', d:{y:'Y1', s:'RB1'},        fp:() => [-0.9, 2.45, -0.3, 0.3]},
-  photo:  {nm:'เซนเซอร์แสง',        d:{s:'PE1'},                fp:() => [-0.1, 1.0, -0.12, 0.12]},
-  prox:   {nm:'พร็อกซิมิตี้',        d:{s:'PX1'},                fp:() => [-0.45, 0.15, -0.55, 0.15]},
+  photo:  {nm:'เซนเซอร์แสง',        d:{s:'PE1', h:0.8},         fp:() => [-0.1, 1.0, -0.12, 0.12]},
+  prox:   {nm:'พร็อกซิมิตี้',        d:{s:'PX1', h:0.8},         fp:() => [-0.45, 0.15, -0.55, 0.15]},
   bin:    {nm:'ถังรับชิ้นงาน',      d:{want:'any'},             fp:() => [-0.5, 0.5, -0.5, 0.5]},
   station:{nm:'แท่นปุ่มกด',         d:{b1:'START', b2:'STOP', b3:''}, fp:() => [-0.25, 0.25, -0.2, 0.2]},
   light:  {nm:'ไฟสัญญาณ (ทาวเวอร์)', d:{lg:'H1', lr:'H2'},       fp:() => [-0.15, 0.15, -0.15, 0.15]},
@@ -3462,10 +3507,11 @@ const FKIND = {
   fence:  {nm:'รั้วนิรภัย',          d:{len:3},                  fp:i => [-i.len/2, i.len/2, -0.08, 0.08]},
   cab:    {nm:'ตู้ควบคุม',          d:{},                       fp:() => [-0.38, 0.38, -0.22, 0.22]},
 };
-const FFLD = {len:['ความยาว (m)','num'], spd:['ความเร็ว (m/s)','num'], every:['ปล่อยทุก (s)','num'], metal:['สัดส่วนโลหะ (%)','num'],
+const FFLD = {h:['ความสูง (m)','num'], h2:['ความสูงปลายทาง/ชั้นบน (m)','num'], yu:['คอยล์สั่งขึ้นบนแผง','bind'], yd:['คอยล์สั่งลงบนแผง','bind'], hi:['ลิมิตสวิตช์ชั้นบน','bind'],
+  len:['ความยาว (m)','num'], spd:['ความเร็ว (m/s)','num'], every:['ปล่อยทุก (s)','num'], metal:['สัดส่วนโลหะ (%)','num'],
   want:['รับชิ้นงาน','sel',{any:'ทุกชนิด', metal:'โลหะ', other:'ไม่ใช่โลหะ'}], m:['มอเตอร์บนแผง','bind'], y:['คอยล์/โซลินอยด์บนแผง','bind'],
   s:['เซนเซอร์บนแผง','bind'], lg:['หลอด/อุปกรณ์ (เขียว)','bind'], ly:['หลอด/อุปกรณ์ (เหลือง)','bind'], lr:['หลอด/อุปกรณ์ (แดง)','bind'], tk:['ถังน้ำบนแผง','bind'],
-  ag:['มอเตอร์ใบกวน (ถ้ามี)','bind'], lo:['ลิมิตสวิตช์เปิดสุด','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind'], b1:['ปุ่มที่ 1 บนแผง','bind'], b2:['ปุ่มที่ 2 บนแผง','bind'], b3:['ปุ่มที่ 3 บนแผง','bind']};
+  ag:['มอเตอร์ใบกวน (ถ้ามี)','bind'], lo:['ลิมิตสวิตช์เปิดสุด/ชั้นล่าง','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind'], b1:['ปุ่มที่ 1 บนแผง','bind'], b2:['ปุ่มที่ 2 บนแผง','bind'], b3:['ปุ่มที่ 3 บนแผง','bind']};
 const FXS = {boxes:[], rt:{}, auto:true, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}};
 function facItem(k, x, z, r, p){ return Object.assign({k, x, z, r:r || 0}, clone(FKIND[k].d), p || {}); }
 function facPreset(name){
@@ -3478,6 +3524,8 @@ function facPreset(name){
       I('cab',-1.0,1.9,0), I('light',-1.0,2.35,0,{lg:'H1',lr:''}), I('station',-0.4,-1.3,0)]},
     pick: {btn:['START','STOP'], items:[I('conv',2,0,0,{len:4,m:'M1'}), I('emit',0.3,0,0,{every:3.5,metal:30}), I('photo',3.7,-0.45,1,{s:'PE1'}), I('robot',3.7,0,1,{y:'Y1',s:'RB1'}),
       I('bin',3.7,1.6,0,{want:'any'}), I('cab',-1.0,1.9,0), I('light',-1.0,2.35,0,{lg:'H1',lr:'H2'}), I('station',-0.4,-1.3,0), I('fence',4.9,0.8,1,{len:3})]},
+    lift: {btn:['START','STOP'], items:[I('conv',1.5,0,0,{len:3,m:'M1'}), I('emit',0.3,0,0,{every:4,metal:30}), I('lift',3.45,0,0,{h:0.8,h2:2,yu:'YU',yd:'YD',lo:'SQ1',hi:'SQ2',s:'PE1'}),
+      I('conv',5.4,0,0,{len:3,m:'M2',h:2,h2:2}), I('conv',7.2,1.2,1,{len:3,m:'M2',h:2,h2:0.8}), I('bin',7.2,3.25,0,{want:'any'}), I('cab',-1.0,1.9,0), I('station',-0.4,-1.3,0)]},
     tank: {btn:['START','STOP'], items:[I('tank',3,0.5,0,{tk:'TK1'}), I('pump',0.8,0.5,0,{m:'M1'}), I('cab',-1.0,1.9,0), I('station',-0.4,-0.9,0)]},
     gate: {btn:['OPEN','CLOSE','STOP'], items:[I('gate',0,0,0,{m:'M1',lo:'SQ1',lc:'SQ2'}), I('cab',-1.2,-1.4,0), I('station',-1.2,-0.7,0,{b1:'OPEN',b2:'CLOSE',b3:'STOP'}), I('beacon',3.5,-0.75,0,{lg:'M1'})]},
     fan: {btn:['START','STOP'], items:[I('fan',2,0,0,{m:'M1'}), I('cab',0,-1.6,0), I('station',0.8,-1.5,0), I('beacon',0,-1.1,0,{lg:'M1'})]},
@@ -3487,7 +3535,7 @@ function facPreset(name){
   P.items.forEach((it, n) => { it.id = n + 1; });
   return P;
 }
-const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', pick:'แขนหยิบวางปลายสายพาน', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', fan:'มอเตอร์ขับพัดลม', traffic:'ไฟจราจร', empty:'ฉากว่าง'};
+const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', pick:'แขนหยิบวางปลายสายพาน', lift:'ลิฟต์ + สายพาน 2 ระดับ + ทางลาด', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', fan:'มอเตอร์ขับพัดลม', traffic:'ไฟจราจร', empty:'ฉากว่าง'};
 function facReset(){ Object.assign(FXS, {boxes:[], rt:{}, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}}); }
 function facRnd(){ FXS.seed = (FXS.seed*1103515245 + 12345) & 0x7fffffff; return FXS.seed/0x7fffffff; }
 const fcomp = n => n ? S.comps.find(c => c.n === n) : null;
@@ -3504,21 +3552,33 @@ function flit(n){
   }
   return (R.Ir || 0) > 1e-3;
 }
-const frt = i => FXS.rt[i.id] || (FXS.rt[i.id] = {p:0, o:0, t:2.4, v:0, ang:0, ph:0, ca:0, gy:1.55, metal:0, other:0, list:[]});
+const frt = i => FXS.rt[i.id] || (FXS.rt[i.id] = {p:0, o:0, t:2.4, v:0, dv:0, ang:0, ph:0, ca:0, gy:1.55, metal:0, other:0, list:[]});
 const fLoc = (i, x, z) => { const d = FDIR[i.r & 3], dx = x - i.x, dz = z - i.z; return [dx*d[0] + dz*d[1], -dx*d[1] + dz*d[0]]; };
 const fWorld = (i, a, b) => { const d = FDIR[i.r & 3]; return [i.x + a*d[0] - b*d[1], i.z + a*d[1] + b*d[0]]; };
 function facSpawn(metal, em){
   em = em || (S.fac && S.fac.items.find(i => i.k === 'emit')); if (!em) return;
-  FXS.boxes.push({x:em.x, y:FAC.H + FAC.bs/2, z:em.z, metal:!!metal, vx:0, vz:0, vy:0, fall:false, yaw:(facRnd() - 0.5)*0.2, tilt:0, w:0});
+  FXS.boxes.push({x:em.x, y:fH(em) + FAC.bs/2, z:em.z, metal:!!metal, vx:0, vz:0, vy:0, fall:false, yaw:(facRnd() - 0.5)*0.2, tilt:0, w:0});
 }
-function facCarrier(b){
-  for (const i of S.fac.items) if (i.k === 'conv' || i.k === 'roller'){
+const fH = i => i.h ?? FAC.H;
+const fLen = i => i.k === 'lift' ? 0.9 : i.len;
+// ความสูงผิวบนของตัวพา ณ ตำแหน่ง a ตามแนวยาว (สายพานลาดเอียง: h → h2, ลิฟต์: ตามตำแหน่งแท่น)
+function facSurf(i, a){
+  if (i.k === 'conv') return fH(i) + ((i.h2 ?? fH(i)) - fH(i))*Math.max(0, Math.min(1, a/i.len + 0.5));
+  if (i.k === 'lift') return fH(i) + ((i.h2 ?? 2) - fH(i))*frt(i).p;
+  return fH(i);
+}
+// ตัวพาที่อยู่ใต้กล่อง (ต้องอยู่ระดับเดียวกับกล่อง ยกเว้น any = ไม่สนความสูง); คืน [ตัวพา, ความสูงจุดกึ่งกลางกล่อง, a]
+function facCarrier(b, any){
+  for (const i of S.fac.items) if (i.k === 'conv' || i.k === 'roller' || i.k === 'lift'){
     const [a, c] = fLoc(i, b.x, b.z);
-    if (Math.abs(a) <= i.len/2 + 0.05 && Math.abs(c) <= 0.32) return i;
+    if (Math.abs(a) > fLen(i)/2 + 0.05 || Math.abs(c) > 0.32) continue;
+    const y = facSurf(i, a) + FAC.bs/2;
+    if (any || Math.abs(b.y - y) < 0.2) return [i, y, a];
   }
   return null;
 }
-const facSpeed = i => i.k === 'roller' ? 0.7 : frt(i).v;
+const facSpeed = i => i.k === 'roller' ? 0.7 : i.k === 'lift' ? (frt(i).dv || 0) : frt(i).v;
+const fNear = (i, b) => Math.abs(b.y - (fH(i) + FAC.bs/2)) < 0.3;
 const ROBOT = [0, 0.35, 0.15, 0.35, 0.7, 0.35, 0.15, 0.35, 0.7];     // เวลาแต่ละจังหวะ: ลง จับ ขึ้น เคลื่อน ลง ปล่อย ขึ้น กลับ
 function facStep(dt){
   const f = S.fac; if (!f || dt <= 0) return;
@@ -3536,9 +3596,18 @@ function facStep(dt){
     else if (i.k === 'tank'){ const m = fcomp(i.ag); rt.ang += (m ? (m._sp || 0) : 0)*dt*6; }
     else if (i.k === 'beacon'){ if (flit(i.lg)) rt.ang += dt*7; }
     else if (i.k === 'emit' && st.auto){
-      const car = facCarrier({x:i.x, z:i.z});
+      const cr = facCarrier({x:i.x, z:i.z, y:fH(i) + FAC.bs/2}), car = cr && cr[0];
       if (car && Math.abs(facSpeed(car)) > 0.05){ rt.t += dt;
         if (rt.t >= i.every && !st.boxes.some(b => !b.fall && Math.hypot(b.x - i.x, b.z - i.z) < 0.45)){ rt.t = 0; facSpawn(facRnd()*100 < i.metal, i); } }
+    } else if (i.k === 'lift'){
+      // ลิฟต์: คอยล์ขึ้น/ลง เลื่อนแท่น 0.5 m/s; สุดทางกดลิมิตสวิตช์; สายพานบนแท่นดึงกล่องเข้ากลาง (ชั้นล่าง) และส่งออก (ชั้นบน) เอง
+      const up = fcomp(i.yu), dn = fcomp(i.yd), v = (up && up._on ? 1 : 0) - (dn && dn._on ? 1 : 0), span = Math.max(0.2, (i.h2 ?? 2) - fH(i));
+      rt.p = Math.max(0, Math.min(1, rt.p + v*0.5*dt/span));
+      const lim = (n, on) => { const c = fcomp(n); if (c && 'act' in c && !!c.act !== on){ c.act = on; needSolve = true; } };
+      lim(i.lo, rt.p <= 0.005); lim(i.hi, rt.p >= 0.995);
+      const on = st.boxes.filter(b => { if (b.fall || b.held) return false; const cr = facCarrier(b); return cr && cr[0] === i; });     // กล่องที่แท่นรับไว้แล้ว
+      rt.dv = rt.p >= 0.995 && on.length ? 0.5 : (rt.p <= 0.005 && on.some(b => fLoc(i, b.x, b.z)[0] < -0.02)) ? 0.5 : 0;
+      const sc = fcomp(i.s); if (sc && 'det' in sc && !!sc.det !== on.length > 0){ sc.det = on.length > 0; needSolve = true; }
     } else if (i.k === 'gate'){
       const m = fcomp(i.m), v = m && m._run ? (m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
       rt.over = (v > 0.2 && rt.p >= 1) || (v < -0.2 && rt.p <= 0);
@@ -3565,11 +3634,13 @@ function facStep(dt){
     }
   }
   // ตัวกั้นที่ยื่นอยู่ = สิ่งกีดขวาง
-  const obs = f.items.filter(i => i.k === 'stop' && frt(i).p < 0.5).map(i => ({x:i.x, z:i.z, hx:(i.r & 1) ? 0.32 : 0.03, hz:(i.r & 1) ? 0.03 : 0.32}));
+  const obs = f.items.filter(i => i.k === 'stop' && frt(i).p < 0.5).map(i => ({x:i.x, z:i.z, y:fH(i) + FAC.bs/2, hx:(i.r & 1) ? 0.32 : 0.03, hz:(i.r & 1) ? 0.03 : 0.32}));
   for (const b of st.boxes){
     if (b.held) continue;
     if (b.fall){
-      b.vy += 9.8*dt; b.y -= b.vy*dt; b.x += b.vx*dt; b.z += b.vz*dt; b.tilt += b.w*dt;
+      const y0 = b.y; b.vy += 9.8*dt; b.y -= b.vy*dt; b.x += b.vx*dt; b.z += b.vz*dt; b.tilt += b.w*dt;
+      const ld = facCarrier(b, true);      // ตกลงบนตัวพาระดับล่าง
+      if (ld && ld[1] <= y0 + 0.02 && ld[1] >= b.y){ b.y = ld[1]; b.fall = false; b.vy = 0; b.tilt = 0; b.w = 0; continue; }
       if (b.y < 0.3){ b.done = true;
         const bin = f.items.find(i => i.k === 'bin' && Math.abs(b.x - i.x) < 0.62 && Math.abs(b.z - i.z) < 0.62);
         if (!bin){ st.cnt.floor++; continue; }
@@ -3579,21 +3650,22 @@ function facStep(dt){
       }
       continue;
     }
-    const car = facCarrier(b);
+    const cr = facCarrier(b), car = cr && cr[0];
     if (!car){ b.fall = true; b.w = Math.hypot(b.vx, b.vz)*5; b.vx *= 0.8; b.vz *= 0.8; continue; }
+    b.y = cr[1];
     const d = FDIR[car.r & 3], v = facSpeed(car); b.vx = d[0]*v; b.vz = d[1]*v;
     const nx = b.x + b.vx*dt, nz = b.z + b.vz*dt, toward = o => (o.x - b.x)*b.vx + (o.z - b.z)*b.vz > 0;
-    const blocked = st.boxes.some(o => o !== b && !o.fall && !o.held && Math.abs(nx - o.x) < 0.3 && Math.abs(nz - o.z) < 0.3 && toward(o))
-      || obs.some(o => Math.abs(nx - o.x) < h + o.hx && Math.abs(nz - o.z) < h + o.hz && toward(o));
+    const blocked = st.boxes.some(o => o !== b && !o.fall && !o.held && Math.abs(o.y - b.y) < 0.28 && Math.abs(nx - o.x) < 0.3 && Math.abs(nz - o.z) < 0.3 && toward(o))
+      || obs.some(o => Math.abs(b.y - o.y) < 0.3 && Math.abs(nx - o.x) < h + o.hx && Math.abs(nz - o.z) < h + o.hz && toward(o));
     if (!blocked){ b.x = nx; b.z = nz; }
   }
   for (const i of f.items) if (i.k === 'push'){ const hd = 0.8*frt(i).p;
-    for (const b of st.boxes){ if (b.fall || b.held) continue; const [a, c] = fLoc(i, b.x, b.z);
+    for (const b of st.boxes){ if (b.fall || b.held || !fNear(i, b)) continue; const [a, c] = fLoc(i, b.x, b.z);
       if (Math.abs(c) < 0.25 + h && a > -0.1 && a < hd + h){ const w = fWorld(i, hd + h, c); b.x = w[0]; b.z = w[1]; } } }
   st.boxes = st.boxes.filter(b => !b.done);
   for (const i of f.items) if (i.k === 'photo' || i.k === 'prox'){
     const c = fcomp(i.s); if (!c || !('det' in c)) continue;
-    const on = st.boxes.some(b => { if (b.fall || b.held) return false; const [a, lat] = fLoc(i, b.x, b.z);
+    const on = st.boxes.some(b => { if (b.fall || b.held || !fNear(i, b)) return false; const [a, lat] = fLoc(i, b.x, b.z);
       return i.k === 'photo' ? (a > -h && a < 0.9 + h && Math.abs(lat) < h) : (b.metal && Math.hypot(a, lat) < 0.13); });
     if (!!c.det !== on){ c.det = on; needSolve = true; }
   }
@@ -3698,11 +3770,14 @@ function facScene(labs){
   fx.nFloor = VN;
   for (const i of (S.fac ? S.fac.items : [])){
     const rt = frt(i), odd = i.r & 1, d = FDIR[i.r & 3];
-    const P = (a, y, b) => [i.x + a*d[0] - b*d[1], y, i.z + a*d[1] + b*d[0]];
-    const L = (a, y, b, sa, sy, sb, col, em, s) => { const w = P(a, y, b); B(w[0], y, w[2], odd ? sb : sa, sy, odd ? sa : sb, col, em, s); };
+    // อุปกรณ์ที่ติดตั้งระดับสายพาน: ยกทั้งชุดขึ้นตามความสูงที่ตั้ง (yo) พร้อมเสารอง
+    const yo = ['emit','push','stop','photo','prox'].includes(i.k) ? fH(i) - FAC.H : 0;
+    const P = (a, y, b) => [i.x + a*d[0] - b*d[1], y + yo, i.z + a*d[1] + b*d[0]];
+    const L = (a, y, b, sa, sy, sb, col, em, s) => { const w = P(a, y, b); B(w[0], w[1], w[2], odd ? sb : sa, sy, odd ? sa : sb, col, em, s); };
+    if (yo > 0.02){ const q = FKIND[i.k].fp(i), w = fWorld(i, (q[0] + q[1])/2, (q[2] + q[3])/2 - (i.k === 'emit' ? 0 : 0)); if (i.k !== 'emit') B(w[0], yo/2, w[1], 0.1, yo, 0.1, alu, false, 0.3); }
     const AX = {a:l => [d[0]*l/2, 0, d[1]*l/2], b:l => [-d[1]*l/2, 0, d[0]*l/2], y:l => [0, l/2, 0]};
     const C = (a, y, b, axis, r, len, col, s, o) => fcyl(P(a, y, b), AX[axis](len), r, col, s || 0, o);
-    const lab = (t, a, y, b) => { const w = P(a, y, b); labs.push([t, w[0], y, w[2]]); };
+    const lab = (t, a, y, b) => { const w = P(a, y, b); labs.push([t, w[0], w[1], w[2]]); };
     const gearmotor = (a, y, b, run, ang) => {      // มอเตอร์เกียร์: ตัวมอเตอร์ทรงกระบอก + ครีบ + ฝาครอบพัดลม
       L(a, y, b + 0.12, 0.17, 0.17, 0.14, grey, false, 0.2); C(a, y, b - 0.1, 'b', 0.085, 0.3, blu, 0.35); C(a, y, b - 0.27, 'b', 0.09, 0.05, dk, 0.1);
       for (let k = -2; k <= 2; k++) L(a, y + 0.088, b - 0.1 + k*0.05, 0.1, 0.012, 0.012, [0.1,0.24,0.5]);
@@ -3711,18 +3786,35 @@ function facScene(labs){
     };
     switch (i.k){
       case 'conv': case 'roller': {
-        const n = i.len, cv2 = i.k === 'conv', m = cv2 && fcomp(i.m);
-        for (const b of [-0.33, 0.33]) L(0, H - 0.09, b, n, 0.15, 0.035, alu, false, 0.4);
+        // วาดตามแนวลาด: IB = กล่องเอียงตามสายพาน (a ตามแนวราบ, off ตั้งฉากกับผิวสายพาน)
+        const n = i.len, cv2 = i.k === 'conv', m = cv2 && fcomp(i.m), h1 = fH(i), h2 = cv2 ? (i.h2 ?? h1) : h1, th = Math.atan2(h2 - h1, n), ct = Math.cos(th), sn = Math.sin(th), k1 = 1/ct;
+        const up = [-d[0]*sn, ct, -d[1]*sn], al = [d[0]*ct, sn, d[1]*ct], sd = [-d[1], 0, d[0]], surf = a => h1 + (h2 - h1)*(a/n + 0.5);
+        const IB = (a, off, b, sa, sy, sb, col, em, s) => { const w = P(a, surf(a), b);
+          obox([w[0] + up[0]*off, w[1] + up[1]*off, w[2] + up[2]*off], [al[0]*sa/2, al[1]*sa/2, al[2]*sa/2], [up[0]*sy/2, up[1]*sy/2, up[2]*sy/2], [sd[0]*sb/2, sd[1]*sb/2, sd[2]*sb/2], col, s || 0, em); };
+        for (const b of [-0.33, 0.33]) IB(0, -0.09, b, n*k1, 0.15, 0.035, alu, false, 0.4);
         if (cv2){
-          L(0, H - 0.012, 0, n - 0.14, 0.024, 0.58, dk, false, 0.08); L(0, H - 0.13, 0, n - 0.14, 0.02, 0.58, dk);
-          for (const a of [-(n/2 - 0.07), n/2 - 0.07]) C(a, H - 0.072, 0, 'b', 0.06, 0.58, [0.2,0.21,0.24], 0.15);
-          const span = n - 0.3; for (let k = 0; k < Math.floor(span/0.4); k++) L((((k*0.4 + rt.o) % span) + span) % span - span/2, H + 0.0015, 0, 0.03, 0.003, 0.56, [0.24,0.25,0.29]);
-          gearmotor(n/2 - 0.07, H - 0.072, -0.47, m && m._run, rt.o*8);
-          lab(i.m || '—', n/2 - 0.07, H + 0.28, -0.6);
-        } else for (let a = -n/2 + 0.07; a < n/2; a += 0.11) C(a, H - 0.038, 0, 'b', 0.036, 0.6, chrome, 0.6, {seg:10});
+          IB(0, -0.012, 0, (n - 0.14)*k1, 0.024, 0.58, dk, false, 0.08); IB(0, -0.13, 0, (n - 0.14)*k1, 0.02, 0.58, dk);
+          for (const a of [-(n/2 - 0.07), n/2 - 0.07]) C(a, surf(a) - 0.072, 0, 'b', 0.06, 0.58, [0.2,0.21,0.24], 0.15);
+          const span = n - 0.3, steep = Math.abs(h2 - h1) > 0.05;
+          for (let k = 0; k < Math.floor(span/0.4); k++) IB((((k*0.4 + rt.o) % span) + span) % span - span/2, steep ? 0.012 : 0.0015, 0, 0.03, steep ? 0.024 : 0.003, 0.56, [0.24,0.25,0.29]);
+          const am = n/2 - 0.07; gearmotor(am, surf(am) - 0.072, -0.47, m && m._run, rt.o*8);
+          lab(i.m || '—', am, surf(am) + 0.28, -0.6);
+        } else for (let a = -n/2 + 0.07; a < n/2; a += 0.11) C(a, h1 - 0.038, 0, 'b', 0.036, 0.6, chrome, 0.6, {seg:10});
         const legs = n > 3 ? [-n/2 + 0.3, 0, n/2 - 0.3] : [-n/2 + 0.2, n/2 - 0.2];
-        for (const a of legs){ for (const b of [-0.31, 0.31]){ L(a, (H - 0.16)/2, b, 0.05, H - 0.16, 0.05, alu, false, 0.3); L(a, 0.012, b, 0.13, 0.024, 0.13, dk); }
-          L(a, 0.22, 0, 0.04, 0.04, 0.62, alu); }
+        for (const a of legs){ const hh = surf(a) - 0.16; for (const b of [-0.31, 0.31]){ L(a, hh/2, b, 0.05, hh, 0.05, alu, false, 0.3); L(a, 0.012, b, 0.13, 0.024, 0.13, dk); }
+          L(a, Math.min(0.22, hh*0.5), 0, 0.04, 0.04, 0.62, alu); if (hh > 1.3) L(a, hh*0.6, 0, 0.04, 0.04, 0.62, alu); }
+      } break;
+      case 'lift': { const h1 = fH(i), h2 = i.h2 ?? 2, y = facSurf(i, 0), top = h2 + 0.75, up = fcomp(i.yu), dn = fcomp(i.yd), mv = (up && up._on ? 1 : 0) - (dn && dn._on ? 1 : 0);
+        L(0, 0.03, 0, 1.1, 0.06, 1.3, dk);
+        for (const b of [-0.56, 0.56]){ L(0, top/2, b, 0.12, top, 0.1, [0.9,0.72,0.1], false, 0.3); L(0.07, top/2, b, 0.02, top - 0.1, 0.04, dk); }
+        L(0, top + 0.05, 0, 0.16, 0.1, 1.22, [0.9,0.72,0.1], false, 0.3);
+        L(0, y - 0.09, 0.33, 0.9, 0.15, 0.035, alu, false, 0.4); L(0, y - 0.09, -0.33, 0.9, 0.15, 0.035, alu, false, 0.4); L(0, y - 0.15, 0, 0.9, 0.04, 0.7, steel, false, 0.3);
+        for (let a = -0.4; a <= 0.41; a += 0.1) C(a, y - 0.038, 0, 'b', 0.036, 0.6, chrome, 0.6, {seg:10});
+        for (const b of [-0.45, 0.45]) L(0, y - 0.1, b, 0.2, 0.26, 0.1, blu, false, 0.3);
+        C(0, (y - 0.17)/2 + 0.03, 0, 'y', 0.035, y - 0.23, chrome, 0.9, {seg:10}); C(0, 0.2, 0, 'y', 0.07, 0.34, grey, 0.4, {seg:12});
+        for (const [hh, n2] of [[h1, i.lo], [h2, i.hi]]){ const c = fcomp(n2), on = c && c.act; L(0.09, hh - 0.2, 0.6, 0.05, 0.07, 0.05, on ? [0.3,1,0.45] : [0.35,0.37,0.4], on); }
+        L(0, top + 0.14, 0, 0.07, 0.07, 0.07, mv ? [1,0.75,0.15] : [0.3,0.32,0.36], !!mv);
+        lab('ลิฟต์ ' + (rt.p <= 0.005 ? 'ชั้นล่าง' : rt.p >= 0.995 ? 'ชั้นบน' : mv > 0 ? '▲' : mv < 0 ? '▼' : 'ค้าง') + ' ' + y.toFixed(2) + ' m', 0, top + 0.4, 0);
       } break;
       case 'emit': for (const a of [-0.25, 0.25]) for (const b of [-0.4, 0.4]) L(a, 0.9, b, 0.04, 1.8, 0.04, alu, false, 0.3);
         L(0, 1.8, 0, 0.6, 0.05, 0.9, yel); L(0, 1.5, 0.42, 0.56, 0.6, 0.02, [0.3,0.32,0.36]); L(0, 1.5, -0.42, 0.56, 0.6, 0.02, [0.3,0.32,0.36]); L(-0.27, 1.5, 0, 0.02, 0.6, 0.86, [0.3,0.32,0.36]);
@@ -3923,7 +4015,7 @@ function fxFrame(){
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const i of it){ const q = FKIND[i.k].fp(i); for (const a of [q[0], q[1]]) for (const b of [q[2], q[3]]){ const w = fWorld(i, a, b);
     x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); z0 = Math.min(z0, w[1]); z1 = Math.max(z1, w[1]); } }
-  const hm = Math.max(1.2, ...it.map(i => ({traffic:3.1, robot:2.3, tank:2.5, light:2.2, beacon:2.2, fan:1.7, gate:1.9, emit:1.9, prox:1.8})[i.k] || 1.2));
+  const hm = Math.max(1.2, ...it.map(i => Math.max(i.h || 0, (i.h2 || 0) + (i.k === 'lift' ? 0.8 : 0), ({traffic:3.1, robot:2.3, tank:2.5, light:2.2, beacon:2.2, fan:1.7, gate:1.9, emit:1.9, prox:1.8})[i.k] || 1.2)));
   fx.tgt = [(x0 + x1)/2, hm*0.42, (z0 + z1)/2]; fx.dist = Math.max(5, hm*2.7, Math.min(20, Math.max(x1 - x0, z1 - z0)*1.2 + 2.5));
 }
 function facSetScene(name){ const p = facPreset(name); S.fac = {items:p.items, btn:p.btn}; fx.sel = null; facReset(); fxFrame(); facEdited(); }
@@ -3982,7 +4074,8 @@ function fxPress(c){
     else if (f === 'add' && t.value){ const n = facItem(t.value, Math.round(fx.tgt[0]*2)/2, Math.round(fx.tgt[2]*2)/2, 0);
       n.id = Math.max(0, ...S.fac.items.map(x => x.id || 0)) + 1; S.fac.items.push(n); fx.sel = n.id; facEdited(); }
     else if (t.dataset.p && it){ const key = t.dataset.p, kind = FFLD[key][1];
-      if (kind === 'num'){ const v = parseFloat(t.value); if (!(v >= 0)) { fxHud(true); return; } it[key] = key === 'len' ? Math.max(0.5, Math.min(12, v)) : key === 'metal' ? Math.min(100, v) : Math.max(0.05, v); }
+      if (kind === 'num'){ const v = parseFloat(t.value); if (!(v >= 0)) { fxHud(true); return; } it[key] = key === 'len' ? Math.max(0.5, Math.min(12, v)) : key === 'metal' ? Math.min(100, v) : (key === 'h' || key === 'h2') ? Math.max(0.3, Math.min(4, v)) : Math.max(0.05, v);
+        if (it.k === 'conv' && Math.abs((it.h2 ?? it.h) - it.h) > it.len*0.6) it.h2 = it.h + Math.sign(it.h2 - it.h)*it.len*0.6; }
       else it[key] = t.value.trim();
       facEdited(); } });
   window.addEventListener('keydown', e => {

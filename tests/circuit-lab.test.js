@@ -139,6 +139,16 @@ const path = require('path');
     s.load('dol'); o.dolScene = s.S.fac.items.map(i => i.k).join(); press('START'); s.run(4); o.fanTurns = s.FXS.rt[1].ang > 10;
     s.load('pico'); s.run(1); o.traffic = [s.flit('D1'), s.flit('D3')]; s.run(3.2); o.traffic2 = [s.flit('D1'), s.flit('D3')];
 
+    s.load('lift'); s.run(0.5); o.liftSq = [s.find('SQ1').act, s.find('SQ2').act]; press('START');
+    let liftTop = 0, liftMaxY = 0;
+    for (let t = 0; t < 120; t += 0.05){ s.step(0.05); if (s.FXS.rt[3].p >= 0.995) liftTop++; for (const bx of s.FXS.boxes) liftMaxY = Math.max(liftMaxY, bx.y); }
+    o.lift = Object.assign({}, s.FXS.cnt); o.liftTop = liftTop; o.liftMaxY = liftMaxY;
+    // หลายระดับ: กล่องตกจากสายพานสูง 1.6 m ลงสายพานลาดเอียงด้านล่าง (0.6 → 1.2 m) แล้วลงถัง
+    s.load('factory'); s.S.fac = {btn:['START','STOP'], items:[
+      {id:1, k:'conv', x:1.5, z:0, r:0, len:3, spd:0.5, m:'M1', h:1.6, h2:1.6}, {id:2, k:'emit', x:0.3, z:0, r:0, every:2, metal:0, h:1.6},
+      {id:3, k:'conv', x:4.4, z:0, r:0, len:3, spd:0.5, m:'M1', h:0.6, h2:1.2}, {id:4, k:'bin', x:6.45, z:0, r:0, want:'any'}]};
+    s.run(0.3); press('START'); s.run(40); o.cascade = Object.assign({}, s.FXS.cnt);
+
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
@@ -197,6 +207,9 @@ const path = require('path');
   checks.push(['ตัวกั้นชิ้นงาน: ไม่มีไฟ → กล่องต่อคิวรอ, มีไฟ → กล่องไหลลงถัง', r.stopHeld[0] === 0 && r.stopHeld[1] >= 4 && r.stopOpen >= 5, JSON.stringify([r.stopHeld, r.stopOpen])]);
   checks.push(['dol: ฉากพัดลมหมุนตามมอเตอร์บนแผง', r.dolScene === 'fan,cab,station,beacon' && r.fanTurns, r.dolScene]);
   checks.push(['pico: ไฟจราจร 3D ตาม LED บนแผง (แดง → เขียว)', JSON.stringify([r.traffic, r.traffic2]) === '[[true,false],[false,true]]', JSON.stringify([r.traffic, r.traffic2])]);
+  checks.push(['lift: เริ่มที่ชั้นล่าง (SQ1) แล้วยกกล่องขึ้นถึงชั้นบน 2 m', r.liftSq[0] === true && r.liftSq[1] === false && r.liftTop > 50 && Math.abs(r.liftMaxY - 2.15) < 0.02, [r.liftTop, r.liftMaxY].join(' / ')]);
+  checks.push(['lift: กล่องผ่านลิฟต์ → สายพานชั้นบน → ทางลาด → ถัง ครบ ไม่ตกพื้น (120 s)', r.lift.metal + r.lift.other >= 6 && r.lift.floor === 0, JSON.stringify(r.lift)]);
+  checks.push(['หลายระดับ: กล่องตกจากสายพานสูงลงสายพานลาดเอียงด้านล่างแล้วลงถัง', r.cascade.other >= 10 && r.cascade.floor === 0, JSON.stringify(r.cascade)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
