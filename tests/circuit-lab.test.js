@@ -107,6 +107,13 @@ const path = require('path');
     s.load('stair'); s.run(0.1); const lit = () => RC('H1').Ir > 0.1; o.stair = [lit()];
     s.find('S1').pos = 'B'; s.poke(); o.stair.push(lit()); s.find('S2').pos = 'X'; s.poke(); o.stair.push(lit()); s.find('S3').pos = 'B'; s.poke(); o.stair.push(lit());
 
+    s.load('factory'); s.run(0.5);
+    o.facIdle = s.find('M1')._sp || 0;
+    const fs = s.find('START'); fs._pr = true; s.poke(); s.run(0.3); fs._pr = false; s.poke(); s.run(60);
+    o.facCnt = Object.assign({}, s.FXS.cnt); o.facConv = s.find('M1')._sp;
+    const fp = s.find('STOP'); fp._pr = true; s.poke(); s.run(0.3); fp._pr = false; s.poke(); s.run(8);
+    o.facStop = s.find('M1')._sp; o.facGl = !!document.querySelector('#fx').getContext('webgl');
+
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
@@ -151,6 +158,8 @@ const path = require('path');
   checks.push(['rcdtest: คนแตะสายไฟ → RCD ตัด (ไฟรั่ว) กระแสผ่านตัว ≈ 0', r.rcd0 && r.rcd1[0] === false && r.rcd1[1] === 'rcd' && r.rcd1[2] < 1e-3, JSON.stringify(r.rcd1)]);
   checks.push(['pfc: ต่อคาปาซิเตอร์ PF 0.65 → > 0.95 กระแสลดลง', Math.abs(r.pf0[0] - 0.65) < 0.01 && r.pf1[0] > 0.95 && r.pf1[1] < r.pf0[1], r.pf0.map(x => x.toFixed(3)) + ' → ' + r.pf1.map(x => x.toFixed(3))]);
   checks.push(['stair: สลับสวิตช์ตัวใดก็ได้ → ไฟสลับติด/ดับ', JSON.stringify(r.stair) === '[true,false,true,false]', JSON.stringify(r.stair)]);
+  checks.push(['factory: ก่อนกด START สายพานหยุด, กดแล้ววิ่ง, กด STOP แล้วหยุด', r.facIdle === 0 && r.facConv === 1 && r.facStop < 0.05, [r.facIdle, r.facConv, r.facStop].join(' → ')]);
+  checks.push(['factory: PLC คัดกล่องโลหะด้วยกระบอกลมครบ ไม่มีคัดผิด/หลุด (60 s)', r.facCnt.metal >= 5 && r.facCnt.other >= 5 && r.facCnt.miss === 0 && r.facCnt.wrong === 0, JSON.stringify(r.facCnt)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
