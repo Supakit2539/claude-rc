@@ -73,6 +73,12 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 #ladmsg{font-size:12px;padding:3px 10px;border-top:1px solid var(--line);min-height:22px;color:var(--muted)}
 #ladmsg .e{color:var(--bad)}
 .rung{margin:2px 0 8px}
+#ladbody.mcu{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;overflow:hidden}
+#ladbody.mcu textarea{height:100%}
+.serial{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.serial .cap{font-size:12px;color:var(--muted);padding:3px 8px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.serial pre{flex:1;margin:0;padding:6px 8px;overflow:auto;background:var(--screen);color:var(--screentext);font:12px/1.45 'IBM Plex Mono',monospace;white-space:pre-wrap}
+@media (max-width:820px){#ladbody.mcu{grid-template-columns:1fr;grid-template-rows:1fr 140px}}
 .rung svg{display:block;width:100%;max-width:980px;height:auto}
 .rung .cmt{font-size:12px;color:var(--muted)}
 .rung.sel .cmt{color:var(--accent)}
@@ -120,7 +126,7 @@ kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--
   <button class="btn" id="bUndo" title="ย้อนกลับ (Ctrl+Z)">ย้อนกลับ</button>
   <button class="btn" id="bFit" title="พอดีจอ">พอดีจอ</button>
   <span class="sp"></span>
-  <button class="btn" id="bLad" title="ตัวเขียนโปรแกรม PLC">โปรแกรม PLC</button>
+  <button class="btn" id="bLad" title="เขียนโปรแกรม PLC / ไมโครคอนโทรลเลอร์">เขียนโปรแกรม</button>
   <button class="btn run" id="bRun" title="รัน/หยุดการจำลอง (Space)"></button>
   <select id="spd" title="ความเร็วจำลอง"><option value="1" selected>×1</option><option value="5">×5</option><option value="20">×20</option></select>
   <button class="btn" id="bVal" title="แสดงค่าบนแผง">ค่า</button>
@@ -152,6 +158,52 @@ const PLC_PINS = [[-5,-2,'L+'],[-4,-2,'M'],[-3,-2,'COM'],[-2,-2,'I0'],[-1,-2,'I1
 
 /* อุปกรณ์ 2 ขั้ว: ไม่มี pins, หมุนได้ด้วย r (0–3), ครึ่งความยาว L
    บล็อก: มี pins [dx,dy,ชื่อ] และ box [x0,y0,x1,y1] (หน่วยช่อง), หมุนไม่ได้ */
+/* บอร์ดไมโครคอนโทรลเลอร์: ขาแถวบน (dy=-2) และแถวล่าง (dy=+2), null = ช่องว่าง
+   role ของขา: ตัวเลข = GPIO, 'G' = GND, 'V5' = 5V, 'V33' = 3V3 */
+function mkBoard(o){
+  const pins = [], map = {}, role = [];
+  o.top.forEach((l, i) => { if (l) pins.push([o.x0 + i, -2, l]); });
+  o.bot.forEach((l, i) => { if (l) pins.push([o.x0 + i, 2, l]); });
+  pins.forEach((pn, k) => {
+    const l = pn[2]; let r;
+    if (l === 'GND') r = 'G'; else if (l === '5V') r = 'V5'; else if (l === '3V3') r = 'V33';
+    else if (l[0] === 'A') r = o.a0 + +l.slice(1);
+    else r = +/^(?:D|GP|G)?(\d+)$/.exec(l)[1];
+    role.push(r); if (typeof r === 'number') map[r] = k;
+  });
+  const w = Math.max(o.top.length, o.bot.length);
+  return Object.assign(o, {pins, map, role, box:[o.x0 - 0.6, -2, o.x0 + w - 1 + 0.6, 2]});
+}
+const MCU = {
+  uno: mkBoard({nm:'Arduino Uno', chip:'ATmega328P', vcc:5, bits:10, rout:25, imax:0.04, led:13, x0:-6, a0:14, col:'#0e7490',
+    top:['D2','D3','D4','D5','D6','D7','D8','D9','D10','D11','D12','D13'],
+    bot:['5V','3V3','GND','GND',null,'A0','A1','A2','A3','A4','A5'],
+    adc:[14,15,16,17,18,19], pwm:[3,5,6,9,10,11], consts:{A0:14, A1:15, A2:16, A3:17, A4:18, A5:19}}),
+  esp32: mkBoard({nm:'ESP32 DevKit', chip:'ESP32-WROOM', vcc:3.3, bits:12, rout:30, imax:0.04, led:2, x0:-5, col:'#1e293b',
+    top:['3V3','GND','G2','G4','G5','G12','G13','G14','G15','G16','G27'],
+    bot:['GND','G17','G18','G19','G21','G22','G23','G25','G32','G33','G34'],
+    adc:[2,4,12,13,14,15,25,27,32,33,34], inOnly:[34], consts:{}}),
+  pico: mkBoard({nm:'Raspberry Pi Pico', chip:'RP2040', vcc:3.3, bits:10, rout:40, imax:0.012, led:25, x0:-6, col:'#166534',
+    top:['3V3','GND','GP0','GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9'],
+    bot:['GND','GP10','GP11','GP12','GP13','GP14','GP15','GP16',null,'GP26','GP27','GP28'],
+    adc:[26,27,28], consts:{A0:26, A1:27, A2:28}}),
+};
+const BLINK = `// กะพริบไฟ LED บนบอร์ด
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(115200);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println("ON");
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println("OFF");
+  delay(500);
+}
+`;
+
 const T = {
   bat:   {nm:'แบตเตอรี่',            ic:'⊣⊢', pre:'B',  d:{V:9, ri:0.01}},
   res:   {nm:'ตัวต้านทาน',           ic:'▭',  pre:'R',  d:{R:100}},
@@ -187,6 +239,8 @@ const T = {
   tank:  {nm:'ถังน้ำ',                ic:'⊔',  pre:'TK', d:{lvl:50, out:2}, pins:[], box:[-1.6,-2.5,1.6,2.5]},
   float: {nm:'ลูกลอย',               ic:'○',  pre:'LS', d:{ref:'TK1', lvl:50}},
 };
+for (const k in MCU) T[k] = {nm:MCU[k].nm, ic:'µC', pre:'U', d:{code:BLINK}, pins:MCU[k].pins, box:MCU[k].box};
+T.pot = {nm:'โพเทนชิโอมิเตอร์', ic:'⊸', pre:'RV', d:{R:10000, pos:50}, pins:[[-1,-1,'1'],[0,-1,'W'],[1,-1,'3']], box:[-1.6,-1,1.6,0.8]};
 // ตัวแปรกระแสเพิ่มใน MNA
 const NV = {bat:1, acs:1, src1:1, src3:3, led:1, psu:1, xfmr:1};
 
@@ -426,6 +480,27 @@ function solveAll(){
           for (let k = 0; k < 4; k++) Y(n[11], n[12+k], (c._run && q[k]) ? GW : GOFF, 0);
         } break;
         case 'hmi': Y(n[0], n[1], 1/240, 0); break;
+        case 'pot': { const a = Math.max(1, c.R*c.pos/100), b = Math.max(1, c.R*(1 - c.pos/100));
+          Y(n[0], n[1], 1/a, 0); Y(n[1], n[2], 1/b, 0); } break;
+        default: if (MCU[c.t]){
+          // GPIO = Norton: OUTPUT → แหล่งแรงดัน Vcc/0 ผ่าน rout, INPUT_PULLUP → 35 kΩ ไป Vcc, INPUT → อิมพีแดนซ์สูง
+          const B = MCU[c.t], vm = c._vm, gi = B.role.indexOf('G'), g = n[gi];
+          const inj = (a, val) => { if (ac) return; if (a) zr[a-1] += val; if (g) zr[g-1] -= val; };
+          B.role.forEach((r, k) => {
+            const a = n[k];
+            if (r === 'G'){ if (k !== gi) Y(a, g, GW, 0); return; }
+            if (r === 'V5' || r === 'V33'){ Y(a, g, 5, 0); inj(a, (r === 'V5' ? 5 : 3.3)*5); return; }
+            const st = vm && vm.pins[r];
+            if (st && st.mode === 1){
+              // PWM: แหล่ง Vcc ผ่าน rout/duty → กระแสเฉลี่ยลดลงตาม duty (LED หรี่ได้)
+              const d = st.pwm != null ? st.pwm : null;
+              if (d != null && d > 0 && d < 1){ const go = d/B.rout; Y(a, g, go, 0); inj(a, B.vcc*go); }
+              else { const go = 1/B.rout; Y(a, g, go, 0); inj(a, (d != null ? d : st.v)*B.vcc*go); }
+            }
+            else if (st && st.mode === 2){ const gp = 1/35000; Y(a, g, gp, 0); inj(a, B.vcc*gp); }
+            else Y(a, g, 1e-8, 0);
+          });
+        }
       }
     }
     return {Ar, Ai, zr, zi};
@@ -724,6 +799,7 @@ function trip(c){
 function discrete(dt){
   byName = nameMap();
   for (const c of S.comps){
+    if (MCU[c.t]){ if (dt > 0) runVm(c, dt); continue; }
     const r = RES.comp[c.id]; if (!r) continue;
     switch (c.t){
       case 'coil': {
@@ -778,6 +854,137 @@ function hmiLink(){
     }
   }
 }
+/* ---------- ไมโครคอนโทรลเลอร์: แปลงโค้ดสไตล์ Arduino (C) เป็น JavaScript generator ----------
+   delay() → yield (มิลลิวินาที), ฟังก์ชันของผู้ใช้ทุกตัวเป็น generator และเรียกด้วย yield*,
+   ทุกลูป for/while/do แทรก yield* __chk() กันค้าง */
+const CTYPES = '(?:unsigned\\s+|signed\\s+)?(?:long\\s+long|long|int|short|float|double|bool|boolean|byte|char|String|word|size_t|u?int(?:8|16|32|64)_t)';
+function matchParen(s, j){ let d = 1; while (j < s.length && d){ if (s[j] === '(') d++; else if (s[j] === ')') d--; j++; } return j; }
+function wrapCalls(s, names, kw){
+  if (!names.length) return s;
+  const re = new RegExp('(?<![\\w.$])(' + names.join('|') + ')\\s*\\(', 'g');
+  let out = '', i = 0, m;
+  while ((m = re.exec(s))){
+    if (/function\*\s*$/.test(s.slice(Math.max(0, m.index - 12), m.index))) continue;
+    const a = m.index + m[0].length, j = matchParen(s, a);
+    out += s.slice(i, m.index) + '(' + kw + ' ' + m[1] + '(' + wrapCalls(s.slice(a, j - 1), names, kw) + '))';
+    i = j; re.lastIndex = j;
+  }
+  return out + s.slice(i);
+}
+function guardLoops(s){
+  const re = /\b(for|while)\s*\(/g; let out = '', i = 0, m;
+  while ((m = re.exec(s))){
+    const j = matchParen(s, m.index + m[0].length); let k = j;
+    while (k < s.length && /\s/.test(s[k])) k++;
+    if (s[k] === '{'){ out += s.slice(i, k + 1) + ' yield* __chk();'; i = k + 1; re.lastIndex = k + 1; }
+  }
+  return (out + s.slice(i)).replace(/\bdo\s*\{/g, 'do { yield* __chk();');
+}
+function cToJs(src){
+  const strs = [];
+  let s = String(src || '').replace(/\r/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, x => { strs.push(x); return '__S' + (strs.length - 1) + '__'; })
+    .replace(/\/\/.*$/gm, '');
+  s = s.replace(/^\s*#include.*$/gm, '').replace(/^\s*#define\s+(\w+)\s+(.+)$/gm, 'const $1 = $2;');
+  s = s.replace(new RegExp('^\\s*(?:static\\s+)?(?:void|' + CTYPES + ')\\s+\\w+\\s*\\([^)]*\\)\\s*;', 'gm'), '');
+  const fns = [];
+  s = s.replace(new RegExp('\\b(?:static\\s+)?(?:void|' + CTYPES + ')\\s*\\*?\\s+([A-Za-z_]\\w*)\\s*\\(([^)]*)\\)\\s*\\{', 'g'), (m, name, ps) => {
+    fns.push(name);
+    const args = ps.trim() === '' || ps.trim() === 'void' ? '' : ps.split(',').map(x => { const mm = /([A-Za-z_]\w*)\s*(?:\[\s*\])?\s*(?:=.*)?$/.exec(x.trim()); return mm ? mm[1] : x; }).join(', ');
+    return 'function* ' + name + '(' + args + ') {';
+  });
+  s = s.replace(new RegExp('\\((?:const\\s+)?' + CTYPES + '\\)', 'g'), '');
+  s = s.replace(new RegExp('\\b(const\\s+)?' + CTYPES + '\\s+([A-Za-z_]\\w*)\\s*\\[\\s*[^\\]]*\\]\\s*=\\s*\\{([^{}]*)\\}', 'g'), (m, cst, n, v) => (cst ? 'const ' : 'let ') + n + ' = [' + v + ']');
+  s = s.replace(new RegExp('\\b' + CTYPES + '\\s+([A-Za-z_]\\w*)\\s*\\[\\s*([^\\]]+)\\]\\s*;', 'g'), 'let $1 = new Array($2).fill(0);');
+  s = s.replace(new RegExp('\\b(const\\s+)?(?:static\\s+)?(?:volatile\\s+)?' + CTYPES + '\\s+(?=[A-Za-z_])', 'g'), (m, cst) => cst ? 'const ' : 'let ');
+  s = wrapCalls(s, fns, 'yield*');
+  s = wrapCalls(s, ['delay', 'delayMicroseconds'], 'yield');
+  s = guardLoops(s);
+  return s.replace(/__S(\d+)__/g, (m, i) => strs[+i]);
+}
+function compileSketch(src, api){
+  const body = cToJs(src) + '\nreturn {setup: typeof setup === "function" ? setup : null, loop: typeof loop === "function" ? loop : null};';
+  const names = Object.keys(api);
+  return new Function(...names, '"use strict";\n' + body)(...names.map(k => api[k]));
+}
+function fmtSerial(x, f){
+  if (typeof x === 'boolean') x = x ? 1 : 0;
+  if (typeof x === 'number'){
+    if (f === 2 || f === 8 || f === 16) return Math.trunc(x).toString(f).toUpperCase();
+    if (!Number.isInteger(x)) return x.toFixed(f === undefined ? 2 : f);
+  }
+  return String(x);
+}
+function mcuApi(c, vm){
+  const B = MCU[c.t];
+  const chk = p => { if (B.map[p] === undefined && p !== B.led) throw new Error(B.nm + ' ไม่มีขา ' + p); };
+  const pin = p => vm.pins[p] || (vm.pins[p] = {mode:0, v:0, pwm:null});
+  const volt = p => { if (vm.dirty){ vm.dirty = false; solveAll(); }
+    const k = B.map[p], R = RES.comp[c.id]; if (k === undefined || !R || !R.pv) return 0;
+    return R.pv[k].d - R.pv[B.role.indexOf('G')].d; };
+  return Object.assign({
+    HIGH:1, LOW:0, INPUT:0, OUTPUT:1, INPUT_PULLUP:2, LED_BUILTIN:B.led, DEC:10, HEX:16, OCT:8, BIN:2, PI:Math.PI,
+    pinMode(p, m){ chk(p); if (m === 1 && B.inOnly && B.inOnly.includes(p)) throw new Error('ขา ' + p + ' ของ ' + B.nm + ' เป็นอินพุตอย่างเดียว');
+      const st = pin(p); if (st.mode !== m){ st.mode = m; st.v = 0; st.pwm = null; needSolve = vm.dirty = true; } },
+    digitalWrite(p, v){ chk(p); const st = pin(p), nv = v ? 1 : 0; if (st.mode !== 1) return;
+      if (st.v !== nv || st.pwm != null){ st.v = nv; st.pwm = null; needSolve = vm.dirty = true; } },
+    digitalRead(p){ chk(p); const st = pin(p); if (st.mode === 1 || p === B.led && B.map[p] === undefined) return st.v; return volt(p) > B.vcc*0.5 ? 1 : 0; },
+    analogRead(p){ if (!B.adc.includes(p)) throw new Error('ขา ' + p + ' ของ ' + B.nm + ' อ่านค่าแอนะล็อกไม่ได้');
+      return Math.round(Math.max(0, Math.min(B.vcc, volt(p)))/B.vcc*(2**B.bits - 1)); },
+    analogWrite(p, v){ chk(p); const st = pin(p); if (st.mode !== 1){ st.mode = 1; needSolve = true; }
+      const d = Math.max(0, Math.min(255, Math.floor(+v || 0)))/255;
+      if (B.pwm && !B.pwm.includes(p)){ const nv = d >= 0.5 ? 1 : 0; if (st.v !== nv || st.pwm != null){ st.v = nv; st.pwm = null; needSolve = true; } return; }
+      if (st.pwm !== d){ st.pwm = d; st.v = d > 0 ? 1 : 0; needSolve = vm.dirty = true; } },
+    millis: () => Math.floor(vm.ms), micros: () => Math.floor(vm.ms*1000),
+    delay: ms => Math.max(0, +ms || 0), delayMicroseconds: us => Math.max(0, (+us || 0)/1000),
+    Serial: {begin(){}, print: (x, f) => vm.out(fmtSerial(x, f)), println: (x, f) => vm.out((x === undefined ? '' : fmtSerial(x, f)) + '\n'), available: () => 0, read: () => -1},
+    map: (x, a, b, c2, d) => Math.trunc((x - a)*(d - c2)/(b - a) + c2), constrain: (x, a, b) => Math.min(b, Math.max(a, x)),
+    abs:Math.abs, min:Math.min, max:Math.max, sqrt:Math.sqrt, pow:Math.pow, sin:Math.sin, cos:Math.cos, round:Math.round, floor:Math.floor, ceil:Math.ceil,
+    random: (a, b) => b === undefined ? Math.floor(Math.random()*a) : a + Math.floor(Math.random()*(b - a)), randomSeed(){},
+    F: x => x,
+    __chk: function*(){ if (++vm.ops > 3000){ vm.ops = 0; yield 'chk'; } },
+  }, B.consts);
+}
+function mcuBoot(c){
+  const vm = {ms:0, wake:0, gen:null, phase:'setup', pins:{}, serial:'', err:null, ops:0, loops:0};
+  vm.out = x => { vm.serial = (vm.serial + x).slice(-6000); };
+  try {
+    vm.prog = compileSketch(c.code, mcuApi(c, vm));
+    if (!vm.prog.setup || !vm.prog.loop) throw new Error('ต้องมีฟังก์ชัน setup() และ loop()');
+  } catch (e){ vm.err = 'คอมไพล์ไม่ผ่าน: ' + e.message; }
+  c._vm = vm; needSolve = true;
+  return vm;
+}
+function runVm(c, dt){
+  const vm = c._vm || mcuBoot(c); if (vm.err) return;
+  const end = vm.ms + dt*1000; let n = 0, loops = 0;
+  try {
+    while (n++ < 5000){
+      if (vm.wake > end) break;
+      if (vm.wake > vm.ms) vm.ms = vm.wake;
+      if (!vm.gen) vm.gen = (vm.phase === 'setup' ? vm.prog.setup : vm.prog.loop)();
+      const r = vm.gen.next();
+      if (r.done){ vm.gen = null; if (vm.phase === 'setup') vm.phase = 'loop'; else { vm.loops++; if (++loops > 200) break; } continue; }
+      if (r.value === 'chk') break;
+      vm.wake = vm.ms + (+r.value || 0);
+    }
+  } catch (e){ vm.err = 'รันไทม์ผิดพลาด: ' + e.message; vm.gen = null; needSolve = true; }
+  vm.ms = Math.max(vm.ms, end);
+}
+function mcuPins(c){
+  const B = MCU[c.t], R = RES.comp[c.id], vm = c._vm; if (!R || !R.pv) return [];
+  const vg = R.pv[B.role.indexOf('G')].d;
+  return B.role.map((r, k) => {
+    if (typeof r !== 'number') return null;
+    const v = R.pv[k].d - vg, st = vm && vm.pins[r];
+    let i = 0;
+    if (st && st.mode === 1){ const d = st.pwm;
+      i = d != null && d > 0 && d < 1 ? (B.vcc - v)*d/B.rout : ((d != null ? d : st.v)*B.vcc - v)/B.rout; }
+    return {num:r, label:B.pins[k][2], v, mode:st ? st.mode : 0, st, i};
+  }).filter(Boolean);
+}
+
 function continuous(dt){
   byName = nameMap();
   for (const c of S.comps) if (c.t === 'tank') c._in = 0;
@@ -951,6 +1158,108 @@ const EX = {
           {cells:[null, nc('NO','Q0'), null, null, null, null, null], out:null}],
           links:[[false,true,true,false,false,false,false,false]]},
       ]};
+  })},
+  arduino: {nm:'Arduino Uno: กะพริบ + หรี่ไฟด้วย pot', f:() => build((C,W) => {
+    C('uno', 8, 4, {n:'U1', code:`// อ่านโพเทนชิโอมิเตอร์ที่ A0 แล้วหรี่ LED ที่ขา 9 ด้วย PWM
+// พร้อมกะพริบ LED บนบอร์ด (ขา 13)
+const int LED = 9;
+
+void setup() {
+  pinMode(LED, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int v = analogRead(A0);          // 0–1023
+  analogWrite(LED, v / 4);         // 0–255
+  Serial.print("A0 = ");
+  Serial.println(v);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(250);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(250);
+}
+`});
+    W([9,2],[9,0],[10,0]); C('res', 11, 0, {n:'R1', R:220}); W([12,0],[13,0]); C('led', 14, 0, {n:'D1'});
+    W([15,0],[16,0],[16,8],[4,8],[4,6]);
+    C('pot', 7, 11, {n:'RV1', pos:70}); W([6,10],[6,8]); W([7,10],[7,6]); W([8,10],[8,9],[2,9],[2,6]);
+  })},
+  esp32: {nm:'ESP32: ปุ่มกดสลับไฟ + อ่าน pot', f:() => build((C,W) => {
+    C('esp32', 8, 4, {n:'U1', code:`// กดปุ่มที่ขา 4 (INPUT_PULLUP) เพื่อสลับ LED ที่ขา 16
+// และพิมพ์ค่าโพเทนชิโอมิเตอร์ที่ขา 32 ทุก 1 วินาที
+const int BTN = 4;
+const int LED = 16;
+bool ledOn = false;
+bool last = HIGH;
+int count = 0;
+unsigned long lastPrint = 0;
+
+void setup() {
+  pinMode(BTN, INPUT_PULLUP);
+  pinMode(LED, OUTPUT);
+  Serial.begin(115200);
+  Serial.println("ESP32 พร้อม");
+}
+
+void loop() {
+  bool now = digitalRead(BTN);
+  if (last == HIGH && now == LOW) {   // เพิ่งกดปุ่ม
+    ledOn = !ledOn;
+    count++;
+    digitalWrite(LED, ledOn ? HIGH : LOW);
+    Serial.print("กดครั้งที่ ");
+    Serial.println(count);
+  }
+  last = now;
+  if (millis() - lastPrint >= 1000) {
+    lastPrint = millis();
+    Serial.print("POT = ");
+    Serial.println(analogRead(32));   // 0–4095
+  }
+  delay(20);
+}
+`});
+    C('pb', 6, 0, {r:1, n:'S1'}); W([6,1],[6,2]); W([6,-1],[4,-1],[4,2]);
+    C('res', 12, 0, {r:1, n:'R1', R:220}); W([12,1],[12,2]); W([12,-1],[13,-1]); C('led', 14, -1, {n:'D1', col:'green'});
+    W([15,-1],[16,-1],[16,8],[3,8],[3,6]);
+    C('pot', 11, 11, {n:'RV1'}); W([11,10],[11,6]); W([10,10],[10,8]); W([12,10],[12,9],[1,9],[1,1],[3,1],[3,2]);
+  })},
+  pico: {nm:'Raspberry Pi Pico: ไฟจราจร', f:() => build((C,W) => {
+    C('pico', 8, 4, {n:'U1', code:`// ไฟจราจร 3 ดวง: แดง GP2, เหลือง GP4, เขียว GP6
+const int RED = 2, YELLOW = 4, GREEN = 6;
+
+void light(int r, int y, int g, int ms) {
+  digitalWrite(RED, r);
+  digitalWrite(YELLOW, y);
+  digitalWrite(GREEN, g);
+  delay(ms);
+}
+
+void setup() {
+  pinMode(RED, OUTPUT);
+  pinMode(YELLOW, OUTPUT);
+  pinMode(GREEN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(115200);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println("แดง");
+  light(HIGH, LOW, LOW, 3000);
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println("เขียว");
+  light(LOW, LOW, HIGH, 3000);
+  Serial.println("เหลือง");
+  light(LOW, HIGH, LOW, 1000);
+}
+`});
+    W([3,2],[3,-5],[10,-5]);
+    [[6,'D1','red'],[8,'D2','yellow'],[10,'D3','green']].forEach(([x, n, col], i) => {
+      C('res', x, 0, {r:1, n:'R' + (i+1), R:330}); W([x,1],[x,2]); W([x,-2],[x,-1]);
+      C('led', x, -3, {r:3, n, col}); W([x,-4],[x,-5]);
+    });
   })},
   blank: {nm:'แผงว่าง', f:() => build(() => {})},
 };
@@ -1145,9 +1454,35 @@ function hmiLayout(c){
   for (let i = 0; i < 4; i++) lmp.push({x:c.x + 0.55, y:c.y - 1.0 + i*0.6});
   return {btn, lmp};
 }
+function drawMcu(c){
+  const B = MCU[c.t], b = B.box, X = c.x*G, Y = c.y*G, vm = c._vm;
+  const bx = X + b[0]*G, by = Y + b[1]*G, bw = (b[2] - b[0])*G, bh = (b[3] - b[1])*G;
+  ctx.fillStyle = B.col; ctx.strokeStyle = K.comp; ctx.lineWidth = 2; rrect(bx, by, bw, bh, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(bx + 6, by + 4, bw - 12, 22); ctx.fillRect(bx + 6, by + bh - 26, bw - 12, 22);
+  B.pins.forEach((pn, k) => {
+    const px = (c.x + pn[0])*G, py = (c.y + pn[1])*G, r = B.role[k], st = vm && vm.pins[r];
+    let col = '#cbd5e1';
+    if (r === 'G') col = '#64748b'; else if (r === 'V5' || r === 'V33') col = '#f87171';
+    else if (st && st.mode === 1) col = (st.pwm != null ? st.pwm > 0 : st.v) ? '#fbbf24' : '#475569';
+    else if (st && st.mode === 2) col = '#60a5fa';
+    ctx.fillStyle = col; ctx.strokeStyle = '#0b1220'; ctx.lineWidth = 1; circ(px, py, 3.5, true);
+    text(pn[2], px, py + (pn[1] < 0 ? 14 : -14), 8.5, '#f1f5f9', 'center', '600', true);
+  });
+  ctx.fillStyle = '#0b0f17'; rrect(X - 34, Y - 16, 68, 32, 3); ctx.fill();
+  text(B.chip, X, Y, 8.5, '#cbd5e1', 'center', '600', true);
+  text(B.nm, bx + 12, Y - 8, 11, '#f8fafc', 'left', '600');
+  const st = !vm ? 'พร้อม' : vm.err ? 'ERROR' : 'RUN ' + (vm.ms/1000).toFixed(1) + ' s';
+  text(st, bx + 12, Y + 9, 10, vm && vm.err ? '#fca5a5' : '#86efac', 'left', '600', true);
+  const led = vm && vm.pins[B.led], on = led && led.mode === 1 && (led.pwm != null ? led.pwm > 0 : led.v);
+  if (on){ ctx.globalAlpha = 0.4; ctx.fillStyle = '#fb923c'; dot(bx + bw - 22, Y, 10); ctx.globalAlpha = 1; }
+  ctx.fillStyle = on ? '#fb923c' : '#334155'; ctx.fillRect(bx + bw - 27, Y - 3, 10, 6);
+  text('L', bx + bw - 36, Y, 8, '#e2e8f0', 'center', '600', true);
+  if (c.n) text(c.n, bx, by - 9, 11, K.text, 'left', '600');
+}
 function drawBlock(c, ghost){
   const t = T[c.t], b = t.box, X = c.x*G, Y = c.y*G, R = (!ghost && RES.comp[c.id]) || {};
   ctx.lineWidth = 2; ctx.strokeStyle = K.comp; ctx.fillStyle = K.compfill;
+  if (MCU[c.t]){ drawMcu(c); return; }
   if (c.t === 'gnd'){ line(X,Y,X,Y+8); line(X-10,Y+8,X+10,Y+8); line(X-6,Y+13,X+6,Y+13); line(X-2,Y+18,X+2,Y+18); return; }
   const bx = X + b[0]*G, by = Y + b[1]*G, bw = (b[2]-b[0])*G, bh = (b[3]-b[1])*G;
   rrect(bx, by, bw, bh, 6); ctx.fill(); ctx.stroke();
@@ -1213,6 +1548,14 @@ function drawBlock(c, ghost){
           ctx.fillStyle = on ? '#22c55e' : '#475569'; ctx.strokeStyle = '#0b1220'; ctx.lineWidth = 1; circ(r.x*G, r.y*G, 6, true);
           text(lp.t, r.x*G + 10, r.y*G, 9, '#e2e8f0', 'left', '500'); });
       } else text('ไม่มีไฟเลี้ยง', X, Y - 0.2*G, 11, '#64748b', 'center', '500');
+    } break;
+    case 'pot': {
+      ctx.strokeStyle = K.comp; ctx.lineWidth = 2; line(X - G, Y - G, X - G, Y - 6); line(X + G, Y - G, X + G, Y - 6);
+      line(X - G, Y - 6, X - 22, Y - 6); line(X + 22, Y - 6, X + G, Y - 6);
+      ctx.fillStyle = K.compfill; ctx.beginPath(); ctx.rect(-22 + X, Y - 12, 44, 12); ctx.fill(); ctx.stroke();
+      const wx = X - 20 + 40*c.pos/100; ctx.strokeStyle = K.accent; line(X, Y - G, X, Y - 26); line(X, Y - 26, wx, Y - 26); line(wx, Y - 26, wx, Y - 14);
+      ctx.fillStyle = K.accent; ctx.beginPath(); ctx.moveTo(wx - 4, Y - 18); ctx.lineTo(wx + 4, Y - 18); ctx.lineTo(wx, Y - 12); ctx.fill();
+      text(fmt(c.R, 'Ω') + ' · ' + c.pos.toFixed(0) + '%', X, Y + 12, 9, K.muted, 'center', '600', true);
     } break;
     case 'tank': {
       const ix = bx + 6, iw = bw - 12, iy = by + 6, ih = bh - 12, f = c.lvl/100;
@@ -1363,6 +1706,8 @@ const F = {
   pump:[NMF,...MOT,['tank','ถังน้ำ','txt'],['flow','อัตราสูบ','num','%/s']],
   tank:[NMF,['lvl','ระดับน้ำ','num','%'],['out','อัตราการใช้น้ำ','num','%/s']],
   float:[NMF,['ref','ถังน้ำ','txt'],['lvl','ระดับทำงาน','num','%']],
+  uno:[NMF], esp32:[NMF], pico:[NMF],
+  pot:[NMF,['R','ความต้านทานรวม','num','Ω'],['pos','ตำแหน่งแกนหมุน','range','%']],
 };
 const NOTES = {
   res:'กฎของโอห์ม V = I × R — กระแสผ่านตัวต้านทานแปรผันตามแรงดันที่ตกคร่อม',
@@ -1397,6 +1742,10 @@ const NOTES = {
   pump:'ปั๊มเป็นมอเตอร์ 1 เฟส สูบน้ำเข้าถังที่อ้างอิงตามอัตราที่ตั้ง (% ต่อวินาที)',
   tank:'ระดับน้ำเพิ่มตามปั๊มที่อ้างอิงถังนี้ และลดลงตามอัตราการใช้น้ำ',
   float:'ลูกลอย: หน้าสัมผัสปิดเมื่อระดับน้ำ ≥ ค่าที่ตั้ง (ฮิสเทอรีซิส 0.5%)',
+  uno:'Arduino Uno (ATmega328P): ไฟเลี้ยง 5 V จาก USB · ขา D2–D13 และ A0–A5 · PWM (analogWrite) ที่ขา 3, 5, 6, 9, 10, 11 · ADC 10 บิต (0–1023) · จ่ายกระแสได้ไม่เกิน 40 mA ต่อขา · LED บนบอร์ดอยู่ที่ขา 13',
+  esp32:'ESP32: ทำงานที่ 3.3 V — ห้ามป้อน 5 V เข้าขา · ADC 12 บิต (0–4095) · ขา 34 เป็นอินพุตอย่างเดียว · LED บนบอร์ดอยู่ที่ขา 2',
+  pico:'Raspberry Pi Pico (RP2040): ทำงานที่ 3.3 V · จ่ายกระแสได้ราว 12 mA ต่อขา จึงควรใช้ตัวต้านทานค่าสูงกับ LED · ADC ที่ GP26–28 (A0–A2) · LED บนบอร์ดอยู่ที่ GP25 (ไม่มีขาออกมา)',
+  pot:'ตัวต้านทานปรับค่า 3 ขา: ขา W (wiper) แบ่งแรงดันระหว่างขา 1 และ 3 ตามตำแหน่งแกนหมุน · คลิกซีกซ้าย/ขวาบนแผงเพื่อหมุนลง/ขึ้นทีละ 10%',
 };
 const POS = new Set(['R','V','P','In','S','C','Lh','Imax','f','V1','V2','eff','pf','Vf']);
 function parseSI(s){
@@ -1407,6 +1756,7 @@ function parseSI(s){
 function fieldHTML(c, f){
   const [k, lab, kind, u] = f, v = c[k];
   if (kind === 'bool') return `<div class="fld"><label>${lab}</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-k="${k}" ${v ? 'checked' : ''}> ${u||''}</label></div>`;
+  if (kind === 'range') return `<div class="fld"><label>${lab} <output class="u">${v}${u||''}</output></label><input type="range" min="0" max="100" step="1" data-k="${k}" value="${esc(v)}"></div>`;
   if (kind === 'sel') return `<div class="fld"><label>${lab}</label><select data-k="${k}">${Object.entries(u).map(([a, b]) => `<option value="${a}" ${String(v) === a ? 'selected' : ''}>${b}</option>`).join('')}</select></div>`;
   return `<div class="fld"><label>${lab}${u ? ` <span class="u">(${u})</span>` : ''}</label><input type="text" data-k="${k}" ${kind === 'num' ? 'data-num="1" inputmode="decimal"' : ''} value="${esc(v)}"></div>`;
 }
@@ -1428,6 +1778,7 @@ function renderInsp(){
   if (c.t === 'fuse' && c._blown) acts.push(['replace','เปลี่ยนฟิวส์']);
   if ((c.t === 'coil' || c.t === 'tmr') && c._burnt) acts.push(['replace','เปลี่ยนคอยล์']);
   if (c.t === 'plc') acts.push(['prog','เปิดตัวเขียนโปรแกรม']);
+  if (MCU[c.t]){ acts.push(['prog','เขียนโค้ด / Serial Monitor']); acts.push(['mreset','รีเซ็ตบอร์ด']); }
   if (isTwo(c)) acts.push(['rot','หมุน 90°']);
   acts.push(['del','ลบอุปกรณ์']);
   s += `<div class="row">${acts.map(a => `<button class="btn" data-act="${a[0]}">${a[1]}</button>`).join('')}</div>`;
@@ -1462,6 +1813,17 @@ function compHTML(c){
       add('อินพุต I0–I7', img.I.join('')); add('เอาต์พุต Q0–Q3', img.Q.join('')); add('M0–M7', img.M.slice(0,8).join(''));
       const e = getProg(c).err; st.push(e.length ? tag('bad','โปรแกรมผิดพลาด') : c._run ? tag('ok','RUN') : tag('warn', c._pw ? 'STOP' : 'ไม่มีไฟเลี้ยง')); } break;
     case 'hmi': add('ไฟเลี้ยง', fmt(R.pw, 'V')); st.push(c._link ? tag('ok','เชื่อมต่อ ' + esc(c._link.n)) : c._swap ? tag('bad','สาย A/B สลับ') : tag('warn','ไม่เชื่อมต่อ')); break;
+    case 'uno': case 'esp32': case 'pico': {
+      const vm = c._vm, B = MCU[c.t];
+      st.push(!vm ? tag('warn','ยังไม่เริ่ม') : vm.err ? tag('bad','ผิดพลาด') : tag('ok','ทำงาน'));
+      add('เวลาตั้งแต่เริ่ม (millis)', vm ? Math.floor(vm.ms) + ' ms' : '—'); add('ไฟเลี้ยง', B.vcc + ' V');
+      for (const pi of mcuPins(c)){
+        if (pi.mode === 0 && Math.abs(pi.v) < 0.05) continue;
+        const md = pi.mode === 1 ? (pi.st.pwm != null ? 'PWM ' + Math.round(pi.st.pwm*100) + '%' : (pi.st.v ? 'OUT HIGH' : 'OUT LOW')) : pi.mode === 2 ? 'IN PULLUP' : 'IN';
+        add(pi.label + ' <span class="u">' + md + '</span>', fmt(pi.v, 'V') + (pi.mode === 1 && Math.abs(pi.i) > 1e-4 ? ' · ' + fmt(Math.abs(pi.i), 'A') : ''));
+      }
+    } break;
+    case 'pot': add('แรงดันขา W–3', fmt(rms(sub(R.pv[1], R.pv[2])), 'V')); add('แรงดันขา 1–3', fmt(rms(sub(R.pv[0], R.pv[2])), 'V')); break;
     case 'tank': add('ระดับน้ำ', c.lvl.toFixed(1) + '%'); add('น้ำเข้า', ((c._in||0)).toFixed(1) + ' %/s'); break;
   }
   if (c.t === 'lamp') st.push(c._blown ? tag('bad','หลอดขาด') : R.P > 0.05*c.P ? tag('ok','สว่าง ' + Math.min(100, R.P/c.P*100).toFixed(0) + '%') : tag('warn','ดับ'));
@@ -1496,6 +1858,14 @@ function warnList(){
     if (c.t === 'plc' && c.prog && getProg(c).err.length) w.push(['bad', `${n}: โปรแกรมมีข้อผิดพลาด`]);
     if ((c.t === 'no' || c.t === 'nc' || c.t === 'k3') && !byName[c.ref]) w.push(['warn', `หน้าสัมผัสอ้างอิง "${esc(c.ref)}" แต่ไม่มีคอยล์ชื่อนี้`]);
     if (c.t === 'xfmr' && R.Vs*R.Is > c.S*1.05) w.push(['warn', `หม้อแปลง ${n} จ่ายเกินพิกัด`]);
+    if (MCU[c.t]){
+      const B = MCU[c.t];
+      if (c._vm && c._vm.err) w.push(['bad', `${n}: ${esc(c._vm.err)}`]);
+      for (const pi of mcuPins(c)){
+        if (Math.abs(pi.i) > B.imax) w.push(['bad', `${n} ขา ${pi.label} จ่ายกระแส ${fmt(Math.abs(pi.i), 'A')} เกินพิกัด ${fmt(B.imax, 'A')} — ใส่ตัวต้านทานจำกัดกระแส`]);
+        if (pi.v > B.vcc + 0.5) w.push(['bad', `${n} ขา ${pi.label} รับแรงดัน ${fmt(pi.v, 'V')} เกิน ${B.vcc} V — ขาอาจเสียหาย`]);
+      }
+    }
     if ((c.t === 'pump' || c.t === 'float') && !byName[c.t === 'pump' ? c.tank : c.ref]) w.push(['warn', `${n}: ไม่พบถังน้ำที่อ้างอิง`]);
   }
   return w;
@@ -1530,12 +1900,14 @@ function ladStruct(){
   const el = $('#lad'); $('#bLad').classList.toggle('on', ladOpen);
   if (!ladOpen){ el.classList.remove('open'); el.innerHTML = ''; return; }
   el.classList.add('open');
+  const tgt = drawerTarget();
+  if (tgt && MCU[tgt.t]){ mcuStruct(tgt); return; }
   const p = ladPlc();
   if (!p){
-    el.innerHTML = `<div class="ladbar"><b>ตัวเขียนโปรแกรม PLC</b><span style="flex:1"></span><button class="btn" id="lclose">ปิด</button></div><div id="ladbody"><p>ยังไม่มี PLC บนแผง — เพิ่ม PLC จากแถบอุปกรณ์ด้านซ้าย หรือเปิดตัวอย่าง "PLC ควบคุมปั๊มน้ำ"</p></div><div id="ladmsg"></div>`;
+    el.innerHTML = `<div class="ladbar"><b>ตัวเขียนโปรแกรม PLC</b><span style="flex:1"></span><button class="btn" id="lclose">ปิด</button></div><div id="ladbody"><p>ยังไม่มี PLC หรือไมโครคอนโทรลเลอร์บนแผง — เพิ่มจากแถบอุปกรณ์ด้านซ้าย หรือเปิดตัวอย่าง "PLC ควบคุมปั๊มน้ำ" / "Arduino"</p></div><div id="ladmsg"></div>`;
     $('#lclose').onclick = () => { ladOpen = false; ladStruct(); }; return;
   }
-  const md = p.prog.mode, plcs = S.comps.filter(c => c.t === 'plc');
+  const md = p.prog.mode, plcs = S.comps.filter(c => c.t === 'plc' || MCU[c.t]);
   const rung = p.prog.lad[ladSel.ri];
   el.innerHTML = `<div class="ladbar">
     <select id="lplc" title="เลือก PLC">${plcs.map(c => `<option value="${c.id}" ${c === p ? 'selected' : ''}>${esc(c.n)}</option>`).join('')}</select>
@@ -1670,7 +2042,45 @@ function rungSVG(rung, ri, mon, img){
   }
   return o + '</svg>';
 }
+function drawerTarget(){
+  const ok = c => c && (c.t === 'plc' || MCU[c.t]);
+  let p = S.comps.find(c => c.id === ladPid && ok(c));
+  if (!p){ p = (sel && sel.k === 'c' && ok(sel.c)) ? sel.c : S.comps.find(ok); ladPid = p ? p.id : null; }
+  return p;
+}
+function mcuStruct(c){
+  const el = $('#lad'), list = S.comps.filter(x => x.t === 'plc' || MCU[x.t]);
+  el.innerHTML = `<div class="ladbar">
+    <select id="lplc" title="เลือกอุปกรณ์">${list.map(x => `<option value="${x.id}" ${x === c ? 'selected' : ''}>${esc(x.n)} · ${esc(T[x.t].nm)}</option>`).join('')}</select>
+    <b>${MCU[c.t].nm}</b><span class="sep"></span>
+    <button class="btn on" id="mup" title="คอมไพล์แล้วเริ่มรันโค้ดใหม่">อัปโหลด ▶</button>
+    <button class="btn" id="mrst" title="เริ่มโปรแกรมใหม่ (กดปุ่ม RESET)">รีเซ็ต</button>
+    <button class="btn" id="mclr">ล้าง Serial</button>
+    <span style="flex:1"></span><span id="lstat" class="mono"></span><button class="btn" id="lclose">ปิด</button></div>
+    <div id="ladbody" class="mcu"><textarea id="mcode" spellcheck="false"></textarea><div class="serial"><div class="cap">Serial Monitor</div><pre id="mser"></pre></div></div>
+    <div id="ladmsg"></div>`;
+  const ta = $('#mcode'); ta.value = c.code || '';
+  ta.oninput = () => { c.code = ta.value; c._dirty = true; mcuMon(c); };
+  ta.onchange = () => commit();
+  ta.onkeydown = e => { if (e.key === 'Tab'){ e.preventDefault(); const a = ta.selectionStart; ta.setRangeText('  ', a, ta.selectionEnd, 'end'); ta.oninput(); } };
+  $('#mup').onclick = () => { c.code = ta.value; c._dirty = false; mcuBoot(c); commit(); };
+  $('#mrst').onclick = () => { mcuBoot(c); mcuMon(c, true); };
+  $('#mclr').onclick = () => { if (c._vm) c._vm.serial = ''; mcuMon(c, true); };
+  $('#lclose').onclick = () => { ladOpen = false; ladStruct(); };
+  $('#lplc').onchange = e => { ladPid = +e.target.value; ladSel = {ri:0, row:0, col:0}; ladStruct(); };
+  mcuMon(c, true);
+}
+function mcuMon(c, force){
+  const vm = c._vm, ser = $('#mser'); if (!ser) return;
+  const t = vm ? vm.serial : '';
+  if (force || ser.textContent !== t){ const atEnd = ser.scrollTop + ser.clientHeight >= ser.scrollHeight - 4; ser.textContent = t; if (atEnd || force) ser.scrollTop = ser.scrollHeight; }
+  $('#lstat').innerHTML = !vm ? 'พร้อม' : vm.err ? '<span style="color:var(--bad)">ERROR</span>' : '<span style="color:var(--ok)">RUN</span> ' + (vm.ms/1000).toFixed(1) + ' s';
+  $('#ladmsg').innerHTML = vm && vm.err ? `<div class="e">${esc(vm.err)}</div>` :
+    (c._dirty ? '<span style="color:var(--warn)">แก้ไขโค้ดแล้ว — กด "อัปโหลด ▶" เพื่อให้บอร์ดใช้โค้ดใหม่</span>' :
+    'เขียนแบบ Arduino: setup(), loop(), pinMode, digitalWrite/Read, analogRead/Write, delay, millis, Serial.print · โปรแกรมเดินเมื่อกด ▶ รัน · ตัวเลขทุกชนิดเป็นทศนิยมแบบ JavaScript');
+}
 function ladMon(force){
+  const tg = drawerTarget(); if (ladOpen && tg && MCU[tg.t]){ mcuMon(tg); return; }
   const p = ladPlc(); if (!ladOpen || !p) return;
   ladMsg();
   if (p.prog.mode !== 'lad') return;
@@ -1693,6 +2103,7 @@ const PAL = [
   ['ตู้ควบคุม', ['pb','pbnc','coil','tmr','no','nc','k3','motor3']],
   ['PLC / HMI', ['psu','plc','hmi']],
   ['ระบบน้ำ', ['pump','tank','float']],
+  ['ไมโครคอนโทรลเลอร์', ['uno','esp32','pico','pot']],
 ];
 function buildPalette(){
   $('#pal').innerHTML = PAL.map(([g, ts]) => `<h3>${g}</h3>` + ts.map(t => `<button class="pi" data-t="${t}" title="${T[t].nm}"><i>${T[t].ic}</i>${T[t].nm}</button>`).join('')).join('');
@@ -1792,6 +2203,7 @@ function endDrag(){
     if (d.moved) commit();
     else if (c.t === 'sw'){ c.on = !c.on; commit(); }
     else if (c.t === 'mcb'){ c.on = !c.on; c._trip = false; c._h = 0; commit(); }
+    else if (c.t === 'pot'){ c.pos = Math.max(0, Math.min(100, c.pos + (mouse.gx < c.x ? -10 : 10))); commit(); }
   } else if (d.k === 'hmi'){ d.h._press = null; needSolve = true; }
 }
 cv.addEventListener('pointerup', endDrag);
@@ -1819,6 +2231,7 @@ $('#ihead').addEventListener('input', e => {
   const el = e.target, k = el.dataset.k; if (!k || !sel || sel.k !== 'c') return;
   const c = sel.c;
   if (el.type === 'checkbox'){ c[k] = el.checked; if (k === 'on') c._trip = false; }
+  else if (el.type === 'range'){ c[k] = +el.value; const o = el.parentElement.querySelector('output'); if (o) o.textContent = el.value + '%'; }
   else if (el.dataset.num){ const v = parseSI(el.value);
     const bad = !isFinite(v) || (POS.has(k) && v <= 0) || ((k === 'pf' || k === 'eff') && v > 1) || (k === 'lvl' && (v < 0 || v > 100));
     el.style.borderColor = bad ? 'var(--bad)' : ''; if (bad) return; c[k] = v; }
@@ -1834,6 +2247,7 @@ $('#ihead').addEventListener('click', e => {
   switch (b.dataset.act){
     case 'replace': c._blown = false; c._burnt = false; c._on = false; c._h = 0; needSolve = true; renderInsp(); break;
     case 'prog': ladPid = c.id; ladOpen = true; ladSel = {ri:0, row:0, col:0}; ladStruct(); break;
+    case 'mreset': delete c._vm; needSolve = true; break;
     case 'rot': rotate(); break;
     case 'del': delSel(); break;
   }

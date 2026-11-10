@@ -38,6 +38,20 @@ const path = require('path');
       o['pump_' + mode] = ev;
       o['hmi_' + mode] = !!s.find('HMI1')._link;
     }
+    s.load('arduino'); s.run(1.2);
+    o.ardA0 = +/A0 = (\d+)/.exec(s.find('U1')._vm.serial)[1];
+    o.ardLed = I('D1');
+    s.find('RV1').pos = 10; s.poke(); s.run(0.6);
+    o.ardLedDim = I('D1');
+
+    s.load('esp32'); s.run(0.5);
+    const btn = s.find('S1'); btn._pr = true; s.poke(); s.run(0.2); btn._pr = false; s.poke(); s.run(0.2);
+    o.espLed = !!s.find('D1')._on; o.espSerial = s.find('U1')._vm.serial;
+
+    s.load('pico'); s.run(0.5);
+    o.picoRed = !!s.find('D1')._on; o.picoRedI = I('D1');
+    s.run(3.2); o.picoGreen = !!s.find('D3')._on && !s.find('D1')._on;
+    o.mcuErr = ['arduino','esp32','pico'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
 
@@ -56,6 +70,11 @@ const path = require('path');
       ev.length >= 2 && ev[0][0] === 1 && ev[0][1] < 30 && ev[0][1] > 28 && ev[1][0] === 0 && ev[1][1] >= 90 && ev[1][1] < 91, JSON.stringify(ev)]);
     checks.push([`plcpump (${mode}): HMI เชื่อมต่อ PLC`, r['hmi_' + mode], r['hmi_' + mode]]);
   }
+  near('arduino: pot 70% → A0 ≈ 716', r.ardA0, 716, 2);
+  checks.push(['arduino: LED หรี่ลงเมื่อหมุน pot ลง', r.ardLed > 0.008 && r.ardLedDim > 0 && r.ardLedDim < r.ardLed, r.ardLed.toFixed(4) + ' → ' + r.ardLedDim.toFixed(4)]);
+  checks.push(['esp32: กดปุ่ม 1 ครั้ง → LED ติด, นับ 1 ครั้ง', r.espLed && (r.espSerial.match(/กดครั้งที่/g) || []).length === 1, JSON.stringify(r.espSerial)]);
+  checks.push(['pico: ไฟแดงติดก่อน (≈3.5 mA) แล้วเปลี่ยนเป็นเขียว', r.picoRed && Math.abs(r.picoRedI - 0.0035) < 0.0003 && r.picoGreen, r.picoRedI]);
+  checks.push(['โค้ดตัวอย่างบอร์ดทั้ง 3 คอมไพล์และรันได้', r.mcuErr.length === 0, r.mcuErr.join(' | ')]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
