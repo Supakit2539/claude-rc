@@ -196,7 +196,7 @@ const LC = 7;            // จำนวนช่องต่อแถวใน�
 const SQ3 = Math.sqrt(3);
 
 const PLC_PINS = [[-5,-2,'L+'],[-4,-2,'M'],[-3,-2,'COM'],[-2,-2,'I0'],[-1,-2,'I1'],[0,-2,'I2'],[1,-2,'I3'],[2,-2,'I4'],[3,-2,'I5'],[4,-2,'I6'],[5,-2,'I7'],
-  [-5,2,'C'],[-4,2,'Q0'],[-3,2,'Q1'],[-2,2,'Q2'],[-1,2,'Q3'],[3,2,'A'],[4,2,'B'],[0,2,'AI0'],[1,2,'AI1'],[2,2,'AM']];
+  [-5,2,'C'],[-4,2,'Q0'],[-3,2,'Q1'],[-2,2,'Q2'],[-1,2,'Q3'],[3,2,'A'],[4,2,'B'],[0,2,'AI0'],[1,2,'AI1'],[2,2,'AM'],[5,2,'A2'],[6,2,'B2']];
 
 /* อุปกรณ์ 2 ขั้ว: ไม่มี pins, หมุนได้ด้วย r (0–3), ครึ่งความยาว L
    บล็อก: มี pins [dx,dy,ชื่อ] และ box [x0,y0,x1,y1] (หน่วยช่อง), หมุนไม่ได้ */
@@ -274,7 +274,7 @@ const T = {
   k3:    {nm:'คอนแทกเตอร์ 3 ขั้ว',     ic:'‖‖', pre:'',   d:{ref:'K1'}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3'],[-1,1,'T1'],[0,1,'T2'],[1,1,'T3']], box:[-1.6,-1,1.6,1]},
   motor3:{nm:'มอเตอร์ 3 เฟส',         ic:'M3', pre:'M',  d:{V:400, P:1.1, pf:0.82, eff:0.76}, pins:[[-1,-1,'U'],[0,-1,'V'],[1,-1,'W']], box:[-1.6,-1,1.6,1.7]},
   psu:   {nm:'พาวเวอร์ซัพพลาย DC',    ic:'⎓',  pre:'PS', d:{V:24, Imax:2.5}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'+'],[1,1,'−']], box:[-1.6,-1,1.6,1]},
-  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbMode:'master', mbId:1, mbBaud:9600, mbList:''}, pins:PLC_PINS, box:[-5.6,-2,5.6,2]},
+  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbMode:'master', mbId:1, mbBaud:9600, mbList:'', mb2On:false, mb2Mode:'slave', mb2Id:1, mb2Baud:9600, mb2List:''}, pins:PLC_PINS, box:[-5.6,-2,6.6,2]},
   hmi:   {nm:'จอ HMI (RS-485)',       ic:'▣',  pre:'HMI',d:{proto:'link', sid:1, baud:9600, b1:'M0 START', b2:'M1 STOP', b3:'', b4:'', l1:'Q0 ปั๊ม', l2:'M2 ระบบ', l3:'I2 ลูกลอยล่าง', l4:'I3 ลูกลอยบน'},
           pins:[[-2,2,'24V'],[-1,2,'0V'],[1,2,'A'],[2,2,'B']], box:[-2.6,-2,2.6,2]},
   pump:  {nm:'ปั๊มน้ำ',               ic:'P',  pre:'M',  d:{V:230, P:0.75, pf:0.8, eff:0.7, tank:'TK1', flow:6}},
@@ -1421,7 +1421,7 @@ function plcScan(p, dt){
       hmiBtns(h).forEach((b, i) => { if (b) setA(img, b.a, h._press === i ? 1 : 0); });
     if (p.prog.mode === 'txt') runText(prog.code, img, dt); else runLadder(p.prog.lad, img, dt, p);
     if (!img.D) img.D = Array(32).fill(0);
-    if (p.mbOn){ if (p.mbMode === 'slave') plcSlave(p); else plcModbus(p); }
+    for (const pt of plcPorts(p)) if (pt.on){ if (pt.mode === 'slave') plcSlave(p, pt); else plcModbus(p, pt); }
   } else {
     img.Q.fill(0);
     if (!p._pw){ img.I.fill(0); img.T.forEach(t => { t.acc = 0; t.q = 0; }); }
@@ -1762,9 +1762,16 @@ const mbCrcOk = b => b.length >= 4 && crc16(b.slice(0, -2)) === (b[b.length - 2]
 const MB_FN = {1:'อ่านคอยล์', 2:'อ่านอินพุตดิจิทัล', 3:'อ่าน holding register', 4:'อ่าน input register', 5:'เขียนคอยล์ 1 ตัว', 6:'เขียนรีจิสเตอร์ 1 ตัว', 15:'เขียนคอยล์หลายตัว', 16:'เขียนรีจิสเตอร์หลายตัว'};
 const MB_EXC = {1:'ไม่รองรับฟังก์ชันนี้', 2:'แอดเดรสเกินช่วงที่สเลฟตั้งไว้', 3:'ค่าข้อมูลไม่ถูกต้อง', 4:'สเลฟทำงานผิดพลาด'};
 const PLC_A = PLC_PINS.findIndex(q => q[2] === 'A'), PLC_B = PLC_PINS.findIndex(q => q[2] === 'B');
-function mbParse(p){
-  const src = String(p.mbList || '');
-  if (p._mbp && p._mbp.src === src) return p._mbp;
+const PLC_A2 = PLC_PINS.findIndex(q => q[2] === 'A2'), PLC_B2 = PLC_PINS.findIndex(q => q[2] === 'B2');
+// พอร์ต RS-485 ของ PLC: #1 (A/B, ฟิลด์ mb*) และ #2 (A2/B2, ฟิลด์ mb2*) — แต่ละพอร์ตเป็นมาสเตอร์หรือสเลฟได้อิสระ
+// สถานะรันไทม์ของพอร์ต (rt): #1 เก็บบน PLC เอง (p._mb, p._mbs, p._mbrx …), #2 เก็บใน p._p2
+function plcPorts(p){
+  return [{k:0, a:PLC_A, b:PLC_B, on:!!p.mbOn, mode:p.mbMode || 'master', id:+p.mbId || 1, baud:+p.mbBaud || 9600, list:p.mbList || '', rt:p},
+          {k:1, a:PLC_A2, b:PLC_B2, on:!!p.mb2On, mode:p.mb2Mode || 'slave', id:+p.mb2Id || 1, baud:+p.mb2Baud || 9600, list:p.mb2List || '', rt:p._p2 || (p._p2 = {})}];
+}
+function mbParse(rt, txt){
+  const src = String(txt ?? rt.mbList ?? '');
+  if (rt._mbp && rt._mbp.src === src) return rt._mbp;
   const list = [], err = [];
   src.split('\n').forEach((raw, li) => {
     const line = raw.replace(/(\/\/|;).*$/, '').trim(); if (!line) return;
@@ -1780,7 +1787,7 @@ function mbParse(p){
     if (reg.n + qty > AREA[reg.k]) return bad(f[4] + ' + ' + qty + ' เกินพื้นที่หน่วยความจำ PLC');
     list.push({sid, fn, addr, qty, reg});
   });
-  return (p._mbp = {src, list, err});
+  return (rt._mbp = {src, list, err});
 }
 function mbRequest(p, it){
   const img = p._img, {sid, fn, addr, qty, reg} = it, b = [sid, fn, addr >> 8, addr & 255];
@@ -1794,25 +1801,29 @@ function mbRequest(p, it){
 }
 // บัส RS-485: ส่งข้อมูลจากอุปกรณ์ src (ขา A/B อยู่บนเส้นสาย A, Bn) ถึงทุกตัวบนบัส —
 // โมดูล MAX485 (RE = LOW → ออก RO), PLC ที่เปิด Modbus และ HMI โหมด Modbus (เข้าคิว _mbrx) · A/B สลับ = กลับบิต, บอดต่าง = อักขระขยะ
-const busAB = o => o.t === 'rs485' ? (o._pw ? [netOf(o, 6), netOf(o, 5)] : null)
-  : o.t === 'plc' ? (o.mbOn && o._pw ? [netOf(o, PLC_A), netOf(o, PLC_B)] : null)
-  : o.t === 'hmi' ? (o.proto === 'modbus' && o._pw ? [netOf(o, 2), netOf(o, 3)] : null) : null;
+// จุดต่อบัสของอุปกรณ์: {ab:[เส้นสาย A, B], rt: ที่เก็บคิวรับ _mbrx, baud}
+function busPorts(o){
+  if (o.t === 'rs485') return o._pw ? [{ab:[netOf(o, 6), netOf(o, 5)], rt:o, mod:true}] : [];
+  if (o.t === 'plc') return o._pw ? plcPorts(o).filter(q => q.on).map(q => ({ab:[netOf(o, q.a), netOf(o, q.b)], rt:q.rt, baud:q.baud})) : [];
+  if (o.t === 'hmi') return o.proto === 'modbus' && o._pw ? [{ab:[netOf(o, 2), netOf(o, 3)], rt:o, baud:+o.baud || 9600}] : [];
+  return [];
+}
 function busDeliver(src, A, Bn, data, baud, at, depth = 0){
-  for (const o of S.comps){
-    if (o === src && o.t !== 'rs485') continue;
-    const ab = busAB(o); if (!ab) continue;
+  for (const o of S.comps) for (const bp of busPorts(o)){
+    if (bp.rt === src && !bp.mod) continue;                                               // ไม่ส่งกลับเข้าพอร์ตที่ส่งเอง
+    const ab = bp.ab;
     let d; if (ab[0] === A && ab[1] === Bn) d = data; else if (ab[0] === Bn && ab[1] === A) d = invMix(data); else continue;
-    if (o.t === 'rs485'){
+    if (bp.mod){
       if (pinRel(o, 1, 7) > 2){ if (o !== src) o._err = 'RE = HIGH → ตัวรับปิด ไม่ได้รับข้อมูล'; continue; }
       if (o !== src){ o._err = d === data ? '' : 'สาย A/B สลับขั้ว → ข้อมูลกลับบิต'; commLog(o, 'rx', d); }
       commSend(netOf(o, 0), d, baud, o, at, depth + 1);
-    } else { const bd = +(o.t === 'plc' ? o.mbBaud : o.baud) || 9600; if (bd !== baud) d = baudMix(d, baud, bd);
-      (o._mbrx || (o._mbrx = [])).push({t:at, s:d}); }
+    } else { if (bp.baud !== baud) d = baudMix(d, baud, bp.baud);
+      (bp.rt._mbrx || (bp.rt._mbrx = [])).push({t:at, s:d}); }
   }
 }
-function plcBusSend(p, data, baud, dly = 0){
-  const at = Math.max(simT + dly, p._mbBusy || 0) + data.length*10/baud; p._mbBusy = at;
-  busDeliver(p, netOf(p, PLC_A), netOf(p, PLC_B), data, baud, at);
+function plcBusSend(p, q, data, dly = 0){
+  const rt = q.rt, at = Math.max(simT + dly, rt._mbBusy || 0) + data.length*10/q.baud; rt._mbBusy = at;
+  busDeliver(rt, netOf(p, q.a), netOf(p, q.b), data, q.baud, at);
 }
 // สเลฟ Modbus ทั่วไป: b = ไบต์คำขอ (ผ่าน CRC แล้ว), T = {c, di, hr, ir}: {has(i), get(i), set(i, v)} → ไบต์คำตอบ (หรือข้อยกเว้น)
 function mbServe(b, T){
@@ -1839,16 +1850,16 @@ function plcMbTables(p){
     di:{has:i => i < 8, get:i => img.I[i]}, hr:{has:i => i < 32, get:i => img.D[i], set:(i, v) => { img.D[i] = v & 0xFFFF; }},
     ir:{has:i => i < 2, get:i => Math.round((img.AI[i] || 0)*10)}};
 }
-function plcSlave(p){
-  const st = p._mbs || (p._mbs = {rx:0, tx:0, err:0, last:''}), q = p._mbrx || []; q.sort((a, b) => a.t - b.t);
+function plcSlave(p, pt){
+  const rt = pt.rt, st = rt._mbs || (rt._mbs = {rx:0, tx:0, err:0, last:''}), q = rt._mbrx || []; q.sort((a, b) => a.t - b.t);
   while (q.length && q[0].t <= simT + 1e-9){
     const b = mbBytes(q.shift().s);
     if (!mbCrcOk(b)){ st.err++; st.last = 'CRC ผิด'; continue; }
-    if (b[0] !== (+p.mbId || 1) && b[0] !== 0) continue;
+    if (b[0] !== pt.id && b[0] !== 0) continue;
     st.rx++; const R = mbServe(b, plcMbTables(p));
     st.last = (MB_FN[R.fn] || 'ฟังก์ชัน ' + R.fn) + ' @' + R.addr + (R.ex ? ' → ข้อยกเว้น ' + R.ex : '');
     if (b[0] === 0) continue;
-    plcBusSend(p, mbFrame(R.r), +p.mbBaud || 9600, 0.005); st.tx++;                     // ตอบหลังรับครบ ~5 ms
+    plcBusSend(p, pt, mbFrame(R.r), 0.005); st.tx++;                                     // ตอบหลังรับครบ ~5 ms
   }
 }
 // ตรวจคำตอบของสเลฟ → ข้อความผิดพลาด หรือ '' ถ้าใช้ได้
@@ -1868,14 +1879,14 @@ function mbHandle(p, st, s){
   st.ok++; st.lastErr = '';
 }
 // มาสเตอร์: ส่งคำสั่งตามตารางทีละบรรทัด รอคำตอบ (หมดเวลา 0.3 s) แล้วเว้น 20 ms
-function plcModbus(p){
-  const P = mbParse(p), st = p._mb || (p._mb = {i:0, wait:null, next:0, tx:0, ok:0, err:0, to:0, last:'', lastErr:''});
+function plcModbus(p, pt){
+  const rt = pt.rt, P = mbParse(rt, pt.list), st = rt._mb || (rt._mb = {i:0, wait:null, next:0, tx:0, ok:0, err:0, to:0, last:'', lastErr:''});
   if (P.err.length || !P.list.length) return;
-  const baud = +p.mbBaud || 9600;
+  const baud = pt.baud;
   if (st.wait && st.wait.t0 > simT + 1e-9) st.wait = null;                          // เวลาจำลองถูกรีเซ็ต
   if (st.next > simT + 1) st.next = simT;
   if (st.wait){
-    const q = p._mbrx || []; q.sort((a, b) => a.t - b.t); let s2 = '';
+    const q = rt._mbrx || []; q.sort((a, b) => a.t - b.t); let s2 = '';
     while (q.length && q[0].t <= simT + 1e-9) s2 += q.shift().s;
     if (s2){ mbHandle(p, st, s2); st.wait = null; st.next = simT + 0.02; }
     else if (simT > st.wait.dl){ st.to++; st.lastErr = `สเลฟ ${st.wait.it.sid} ไม่ตอบ (timeout)`; st.wait = null; st.next = simT + 0.02; }
@@ -1883,8 +1894,8 @@ function plcModbus(p){
   }
   if (simT < st.next) return;
   const it = P.list[st.i % P.list.length]; st.i++;
-  const req = mbRequest(p, it); st.tx++; st.last = 'TX ' + mbHex(req); p._mbrx = [];
-  plcBusSend(p, req, baud);
+  const req = mbRequest(p, it); st.tx++; st.last = 'TX ' + mbHex(req); rt._mbrx = [];
+  plcBusSend(p, pt, req);
   if (it.sid === 0){ st.next = simT + req.length*10/baud + 0.02; return; }           // กระจาย (broadcast) ไม่มีคำตอบ
   st.wait = {it, t0:simT, dl:simT + req.length*10/baud + 0.3};
 }
@@ -2645,11 +2656,11 @@ void loop() {
     W([21,6],[21,11],[18,11],[18,12],[19,12]);      // R1IN ← TX ของ PC
     W([22,6],[22,12],[21,12]);                      // ⏚
   })},
-  modbus: {nm:'Modbus RTU: PLC (มาสเตอร์) อ่าน/เขียนข้อมูล Arduino (สเลฟ ID 1) ผ่าน RS-485', f:() => build((C,W) => {
+  modbus: {nm:'Modbus RTU: PLC (มาสเตอร์) อ่าน/เขียนข้อมูล Arduino (สเลฟ ID 1) ผ่าน RS-485', f:(two) => build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6, curve:'C'});
     W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
     C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[24,11]); W([8,9],[8,10],[24,10]);
-    const plc = C('plc', 18, 15, {n:'PLC1', mbOn:true, mbBaud:9600, mbList:`1 03 0 1 D0    // อ่าน holding register 0 (ค่า pot) ของสเลฟ 1 → D0
+    const plc = C('plc', 18, 15, {n:'PLC1', mbOn:true, mbBaud:9600, mb2On:!!two, mb2Mode:'slave', mb2Id:2, mb2Baud:19200, mbList:`1 03 0 1 D0    // อ่าน holding register 0 (ค่า pot) ของสเลฟ 1 → D0
 1 15 0 2 M16   // เขียนคอยล์ 0–1 ของสเลฟ ← M16–M17
 1 06 4 1 D8    // เขียน holding register 4 ← D8 (ความสว่าง LED)`});
     W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
@@ -2657,8 +2668,15 @@ void loop() {
     W([13,17],[13,19],[11,19],[11,11]);
     C('lamp', 14, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([14,17],[14,18]); W([14,20],[14,22],[9,22],[9,10]);
     // บัส RS-485: A (y = 19), B (y = 21) จาก PLC ไปโมดูล MAX485 + ตัวต้านทานปลายสาย 120 Ω ทั้งสองปลาย
-    W([21,17],[21,19],[49,19],[49,8]); W([22,17],[22,21],[47,21],[47,8]);
-    C('res', 25, 20, {r:1, n:'RT1', R:120}); C('res', 44, 20, {r:1, n:'RT2', R:120});
+    const yA = two ? 22 : 19, yB = yA + 2;
+    W([21,17],[21,yA],[49,yA],[49,8]); W([22,17],[22,yB],[47,yB],[47,8]);
+    C('res', 25, yA + 1, {r:1, n:'RT1', R:120}); C('res', 44, yA + 1, {r:1, n:'RT2', R:120});
+    if (two){
+      // พอร์ต #2 (A2/B2) → HMI (PLC เป็นสเลฟ ID 2 บอด 19200 ขณะที่พอร์ต #1 เป็นมาสเตอร์คุม Arduino)
+      C('hmi', 26, 5, {n:'HMI1', proto:'modbus', sid:2, baud:19200, b1:'M20 LED12', b2:'', b3:'', b4:'', l1:'Q0 H1', l2:'M16 LED9', l3:'D0 pot', l4:'M17 LED12'});
+      W([24,7],[24,8],[26,8],[26,11],[24,11]); W([25,7],[25,10],[24,10]);              // 24 V, 0 V
+      W([23,17],[23,19],[27,19],[27,7]); W([24,17],[24,18],[28,18],[28,7]);              // A2 → A, B2 → B
+    }
     C('uno', 36, 6, {n:'U1', code:`// Arduino เป็นสเลฟ Modbus RTU (ID 1) บนบัส RS-485 ของ PLC
 // holding register 0 = ค่า pot (0–1023) · holding register 4 = ความสว่าง LED ขา 6 ที่ PLC เขียนมา
 // coil 0 = LED ขา 9 · coil 1 = LED ขา 12
@@ -2699,17 +2717,19 @@ void loop() {
 // เกิน 600 → ไฟ H1 ที่ PLC (Q0) และสั่ง LED ขา 9 ของ Arduino (M16 → coil 0)
 Q0 := D0 > 600
 M16 := D0 > 600
-// ปุ่ม S1 (I0) → LED ขา 12 ของ Arduino (M17 → coil 1)
-M17 := I0
+// ปุ่ม S1 (I0)${two ? ' หรือปุ่ม LED12 บน HMI (M20)' : ''} → LED ขา 12 ของ Arduino (M17 → coil 1)
+M17 := I0${two ? ' OR M20' : ''}
 // ส่งค่า pot กลับไปเป็นความสว่าง LED ขา 6 (D8 → holding register 4)
 D8 := D0
 `, lad:[
       one('ค่า pot จาก Arduino (D0) เกิน 600 → ไฟ H1', [{k:'GT', a:'D0', p:600}], {k:'OUT', a:'Q0'}),
       one('…และสั่ง LED ขา 9 ของ Arduino (M16 → coil 0)', [{k:'GT', a:'D0', p:600}], {k:'OUT', a:'M16'}),
-      one('ปุ่ม S1 → LED ขา 12 ของ Arduino (M17 → coil 1)', [nc('NO','I0')], {k:'OUT', a:'M17'}),
+      two ? {cmt:'ปุ่ม S1 หรือปุ่มบน HMI (M20) → LED ขา 12 ของ Arduino (M17 → coil 1)', rows:[row([nc('NO','I0')], {k:'OUT', a:'M17'}), row([nc('NO','M20')], null)], links:[[false,true,false,false,false,false,false,false]]}
+        : one('ปุ่ม S1 → LED ขา 12 ของ Arduino (M17 → coil 1)', [nc('NO','I0')], {k:'OUT', a:'M17'}),
       one('ส่งค่า pot กลับไปคุมความสว่าง LED ขา 6 (D8 → holding register 4)', [], {k:'MOV', a:'D8', p:'D0'}),
     ]};
   })},
+  plc2port: {nm:'PLC 2 พอร์ต: #1 มาสเตอร์คุม Arduino (9600) + #2 สเลฟให้ HMI (ID 2, 19200) พร้อมกัน', f:() => EX.modbus.f(true)},
   hmimodbus: {nm:'HMI คุยกับ PLC ด้วย Modbus RTU (PLC = สเลฟ ID 1) + ปั๊มน้ำ (มีฉาก 3D)', f:() => {
     const o = EX.plcpump.f();
     for (const c of o.comps){
@@ -3457,7 +3477,8 @@ function drawBlock(c, ghost){
       text(err ? 'ERR' : run ? 'RUN' : (c._pw ? 'STOP' : 'ไม่มีไฟ'), bx + 12, Y + 14, 10, err ? K.bad : run ? K.ok : K.muted, 'left', '600', true);
       for (let k = 0; k < 8; k++){ ctx.fillStyle = img.I[k] ? K.ok : K.ladoff; ctx.fillRect(X + (k - 2)*G - 4, Y - 2*G + 20, 8, 5); }
       for (let k = 0; k < 4; k++){ ctx.fillStyle = (run && img.Q[k]) ? K.warn : K.ladoff; ctx.fillRect(X + (k - 4)*G - 4, Y + 2*G - 25, 8, 5); }
-      text('RS-485', X + 3.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
+      text('RS-485 #1', X + 3.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true); text('#2', X + 5.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
+      [c.mbOn && (c.mbMode === 'slave' ? 'S' : 'M'), c.mb2On && (c.mb2Mode === 'slave' ? 'S' : 'M')].forEach((m, k) => { if (m) text(m + (m === 'S' ? (k ? c.mb2Id : c.mbId) : ''), X + (3.5 + 2*k)*G, Y + 2*G - 38, 9, K.accent, 'center', '700', true); });
       text('AI 4–20mA', X + 1*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
     } break;
     case 'hmi': {
@@ -3895,8 +3916,10 @@ const F = {
   no:[['ref','อ้างอิงคอยล์','txt']], nc:[['ref','อ้างอิงคอยล์','txt']], k3:[['ref','อ้างอิงคอยล์','txt'],['In','พิกัด AC-3','num','A']],
   motor3:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['conn','การต่อขดลวด','sel',{Y:'สตาร์ (Y) — 400 V',D:'เดลต้า (Δ) — 230 V'}]],
   psu:[NMF,['V','แรงดันขาออก','num','V'],['Imax','กระแสสูงสุด','num','A']],
-  plc:[NMF,['run','สวิตช์โหมด','bool','RUN'],['mbOn','Modbus RTU (ขา A/B)','bool','เปิด'],['mbMode','บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mbId','ID เมื่อเป็นสเลฟ','num',''],['mbBaud','บอดเรต Modbus','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
-    ['mbList','ตารางคำสั่ง Modbus — สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 1 03 0 4 D0 (อ่าน holding 0–3 → D0–D3) · 1 15 0 2 M16 (เขียนคอยล์ 0–1 ← M16–M17) · 1 06 4 1 D8']],
+  plc:[NMF,['run','สวิตช์โหมด','bool','RUN'],['mbOn','พอร์ต #1 Modbus RTU (ขา A/B)','bool','เปิด'],['mbMode','พอร์ต #1 บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mbId','พอร์ต #1 ID เมื่อเป็นสเลฟ','num',''],['mbBaud','พอร์ต #1 บอดเรต','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
+    ['mbList','พอร์ต #1 ตารางคำสั่ง (มาสเตอร์) — สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 1 03 0 4 D0 (อ่าน holding 0–3 → D0–D3) · 1 15 0 2 M16 (เขียนคอยล์ 0–1 ← M16–M17) · 1 06 4 1 D8'],
+    ['mb2On','พอร์ต #2 Modbus RTU (ขา A2/B2)','bool','เปิด'],['mb2Mode','พอร์ต #2 บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mb2Id','พอร์ต #2 ID เมื่อเป็นสเลฟ','num',''],['mb2Baud','พอร์ต #2 บอดเรต','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
+    ['mb2List','พอร์ต #2 ตารางคำสั่ง (มาสเตอร์)','area','รูปแบบเดียวกับพอร์ต #1']],
   hmi:[NMF,['proto','โปรโตคอล','sel',{link:'ลิงก์ตรงกับ PLC (แบบเดิม)',modbus:'Modbus RTU (HMI = มาสเตอร์)'}],['sid','ID สเลฟของ PLC','num',''],['baud','บอดเรต (Modbus)','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],['b1','ปุ่ม 1','txt'],['b2','ปุ่ม 2','txt'],['b3','ปุ่ม 3','txt'],['b4','ปุ่ม 4','txt'],['l1','ไฟ 1','txt'],['l2','ไฟ 2','txt'],['l3','ไฟ 3','txt'],['l4','ไฟ 4','txt']],
   pump:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['tank','ถังน้ำ','txt'],['flow','อัตราสูบ','num','%/s']],
   tank:[NMF,['lvl','ระดับน้ำ','num','%'],['out','อัตราการใช้น้ำ','num','%/s']],
@@ -4127,15 +4150,16 @@ function compHTML(c){
     case 'plc': { add('ไฟเลี้ยง L+/M', fmt(R.pw, 'V')); const img = c._img || newImage();
       add('อินพุต I0–I7', img.I.join('')); add('AI0 / AI1', (img.AI || [0,0]).map(v => v.toFixed(1) + '%').join(' / ')); add('เอาต์พุต Q0–Q3', img.Q.join('')); add('M0–M7', img.M.slice(0,8).join(''));
       add('D0–D7', (img.D || []).slice(0, 8).join(' · '));
-      if (c.mbOn && c.mbMode === 'slave'){ const m = c._mbs || {}; st.push(m.rx ? tag('ok', 'Modbus สเลฟ ID ' + (c.mbId || 1)) : tag('warn', 'Modbus สเลฟ: ยังไม่มีคำขอ'));
-        add('Modbus สเลฟ รับ / ตอบ / CRC ผิด', `${m.rx || 0} / ${m.tx || 0} / ${m.err || 0}` + (m.last ? ' · ' + esc(m.last) : ''));
-        add('แผนที่แอดเดรส', 'คอยล์ 0–31 = M, 100–103 = Q · อินพุต 0–7 = I · holding 0–31 = D · input reg 0–1 = AI×10'); }
-      else if (c.mbOn){ const P = mbParse(c), m = c._mb || {};
-        if (P.err.length) st.push(tag('bad', esc(P.err[0])));
-        else st.push(m.lastErr ? tag('warn', 'Modbus: ' + esc(m.lastErr)) : m.ok ? tag('ok', 'Modbus สื่อสารปกติ') : tag('warn', 'Modbus รอคำตอบ'));
-        add('Modbus ส่ง / ตอบถูก / ผิด / ไม่ตอบ', `${m.tx || 0} / ${m.ok || 0} / ${m.err || 0} / ${m.to || 0}`);
-        P.list.forEach(it => add(`สเลฟ ${it.sid} · FC${String(it.fn).padStart(2, '0')} ${MB_FN[it.fn]}`, `@${it.addr} ×${it.qty} ${[1,2,3,4].includes(it.fn) ? '→' : '←'} ${it.reg.k}${it.reg.n}`));
-        if (m.last) add('เฟรมล่าสุด', '<span class="mono">' + esc(m.last) + '</span>'); }
+      for (const pt of plcPorts(c)) if (pt.on){ const P2 = 'พอร์ต #' + (pt.k + 1) + ' ';
+        if (pt.mode === 'slave'){ const m = pt.rt._mbs || {}; st.push(m.rx ? tag('ok', P2 + 'สเลฟ ID ' + pt.id) : tag('warn', P2 + 'สเลฟ: ยังไม่มีคำขอ'));
+          add(P2 + 'สเลฟ รับ / ตอบ / CRC ผิด', `${m.rx || 0} / ${m.tx || 0} / ${m.err || 0}` + (m.last ? ' · ' + esc(m.last) : '')); }
+        else { const P = mbParse(pt.rt, pt.list), m = pt.rt._mb || {};
+          if (P.err.length) st.push(tag('bad', P2 + esc(P.err[0])));
+          else st.push(m.lastErr ? tag('warn', P2 + esc(m.lastErr)) : m.ok ? tag('ok', P2 + 'มาสเตอร์ สื่อสารปกติ') : tag('warn', P2 + 'มาสเตอร์ รอคำตอบ'));
+          add(P2 + 'ส่ง / ตอบถูก / ผิด / ไม่ตอบ', `${m.tx || 0} / ${m.ok || 0} / ${m.err || 0} / ${m.to || 0}`);
+          P.list.forEach(it => add(`${P2}สเลฟ ${it.sid} · FC${String(it.fn).padStart(2, '0')} ${MB_FN[it.fn]}`, `@${it.addr} ×${it.qty} ${[1,2,3,4].includes(it.fn) ? '→' : '←'} ${it.reg.k}${it.reg.n}`));
+          if (m.last) add(P2 + 'เฟรมล่าสุด', '<span class="mono">' + esc(m.last) + '</span>'); } }
+      if ([c.mbOn && c.mbMode === 'slave', c.mb2On && c.mb2Mode === 'slave'].some(Boolean)) add('แผนที่แอดเดรส (สเลฟ)', 'คอยล์ 0–31 = M, 100–103 = Q · อินพุต 0–7 = I · holding 0–31 = D · input reg 0–1 = AI×10');
       const e = getProg(c).err; st.push(e.length ? tag('bad','โปรแกรมผิดพลาด') : c._run ? tag('ok','RUN') : tag('warn', c._pw ? 'STOP' : 'ไม่มีไฟเลี้ยง')); } break;
     case 'hmi': add('ไฟเลี้ยง', fmt(R.pw, 'V'));
       if (c.proto === 'modbus'){ const m = c._mb || {}; st.push(simT - (m.tOk ?? -9) < 1 ? tag('ok','Modbus สื่อสารปกติ') : tag('warn', esc(m.lastErr || 'รอคำตอบจาก PLC')));

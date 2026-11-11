@@ -225,6 +225,14 @@ const path = require('path');
       h.sid = 2; s.run(1.5); e.push(/timeout/.test(h._mb.lastErr), warnList().some(w => /Modbus ไม่ได้รับคำตอบ/.test(w[1])));
       o['hmb_' + md] = e; }
     { const p = {_img:newImage()}; const R = mbServe([1, 1, 0, 40, 0, 1], plcMbTables(p)), R2 = mbServe([1, 6, 0, 3, 0x01, 0xF4], plcMbTables(p)); o.mbex = [R.ex, R.r[1], R2.ex, p._img.D[3]]; }
+    // PLC 2 พอร์ต: #1 มาสเตอร์ → Arduino, #2 สเลฟ ← HMI (ID 2, 19200) พร้อมกัน
+    for (const md of ['lad', 'txt']){ s.load('plc2port'); const plc = s.find('PLC1'), h = s.find('HMI1'); plc.prog.mode = md; delete plc._cp; s.run(2);
+      const L = n => s.RES.comp[s.find(n).id].Ir;
+      const e = [plc._img.D[0], plc._mb.ok > 5, plc._p2._mbs.rx > 5, h._mbv.D0, h._mbv.Q0];
+      h._press = 0; s.run(1); e.push(plc._img.M[17], L('D40') > 0.005); h._press = null; s.run(1); e.push(L('D40') < 0.001);
+      s.find('RV1').pos = 30; s.solveNow(); s.run(1.5); e.push(h._mbv.D0, h._mbv.Q0);
+      plc.mb2Baud = 9600; s.run(1.5); e.push(/timeout/.test(h._mb.lastErr), plc._mb.lastErr === '');
+      o['p2_' + md] = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -366,6 +374,8 @@ const path = require('path');
   for (const md of ['lad', 'txt']) checks.push([`HMI ↔ PLC Modbus RTU (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): อ่านไฟ/ค่า D5 = 1234, START → M2 = 1, STOP → M2 = 0, ID ผิด → timeout + เตือน`,
     JSON.stringify(r['hmb_' + md]) === JSON.stringify([true, 1, 1234, 1, 1, 0, 0, true, true]), JSON.stringify(r['hmb_' + md])]);
   checks.push(['PLC สเลฟ: อ่านคอยล์ 40 → ข้อยกเว้น 02 (0x81), เขียน holding 3 = 500 → D3', JSON.stringify(r.mbex) === '[2,129,0,500]', JSON.stringify(r.mbex)]);
+  for (const md of ['lad', 'txt']) checks.push([`PLC 2 พอร์ต (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): #1 มาสเตอร์อ่าน Arduino + #2 สเลฟให้ HMI พร้อมกัน, ปุ่ม HMI → LED Arduino, บอดพอร์ต #2 ผิด → HMI timeout แต่ #1 ยังปกติ`,
+    JSON.stringify(r['p2_' + md]) === JSON.stringify([767, true, true, 767, 1, 1, true, true, 307, 0, true, true]), JSON.stringify(r['p2_' + md])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
