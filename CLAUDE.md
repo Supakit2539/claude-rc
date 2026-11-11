@@ -135,7 +135,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, ceamp, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, lcdi2c, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, ceamp, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -220,6 +220,23 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
     (ส่งคลิกต่อไปยังปุ่มหัว `data-px`), สโคป/วิเคราะห์เต็มจอ · สัมผัสบน `#cv` (ตัวจับแบบ capture ก่อนตัวจับเดิม): สองนิ้ว = ซูม/เลื่อน (`TP`, `pinch`; ยกเลิกการลากของนิ้วแรกและคืนตำแหน่ง),
     แตะสองครั้งที่อุปกรณ์ = เปิดข้อมูล
 
+15. **แก้ไขวงจร / ไฟล์** — เลือกหลายชิ้น: เครื่องมือ `'box'` (ปุ่ม "เลือกหลายชิ้น" หรือ Shift + ลาก), Shift + คลิกสลับ → `sel = {k:'m', cs, ws}` (`boxSelect`, `selAll`)
+    คัดลอก/วาง/ทำสำเนา `copySel`/`pasteClip(dx, dy)`/`dupSel` (คลิปบอร์ดภายใน `CLIP`, ตั้งชื่อใหม่ไม่ซ้ำ, แก้ `ref`/`tank` ที่อ้างถึงกันในชุด), ลบ `delMulti`, ย้ายทั้งชุด `mmoveInit/Apply/End`
+    ประวัติ `hist`/`fut`: `undo()`/`redo()` (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z), Ctrl+C/V/D/A/S/O
+    เมนู "ไฟล์ ▾" (`fileAct`): บันทึก/เปิด .json, โค้ดแชร์ `encCircuit`/`decCircuit` (deflate-raw + base64url, ขึ้นต้น `CL1.`; `CL0.` ไม่บีบอัด), ลิงก์ `#c=…`, ส่งออก PNG `circuitPNG()`
+    · `clipWrite` ครอบ `navigator.clipboard` (ไม่มีสิทธิ์ → toast) · `solveNow()` เป็นฟังก์ชันระดับบนสุด
+16. **ป้ายชื่อสาย** `lbl` (1 ขั้ว, ฟิลด์ `net`, ไม่สนตัวพิมพ์) — ป้ายชื่อเดียวกันเป็นโหนดเดียวกันทุก solver (`lblPairs` ใน stamp, `RES.net`, `trRun`, `spBuild`, `scopeFloat`)
+17. **มิเตอร์จิ้มวัด** (ปุ่ม "มิเตอร์", เครื่องมือ `'probe'`): `probeTap` แตะจุดแดงแล้วจุดดำ → `probeVal()` = {dc, ac, …} วาดด้วย `probeDraw`
+18. **ความเสียหายจริง** (ใน `discrete`): ตัวต้านทานสะสม `_heat += ((P/Pr) − 1)²·dt` (เย็นลง 0.3/s) > 4 → `_blown` (วงจรเปิด, ควัน);
+    อิเล็กโทรไลต์ `_stress` จากกลับขั้ว (< −1.5 V) หรือ > 1.25·Vr นาน 0.6 s → ระเบิด (เปิดวงจร) · ปุ่ม "เปลี่ยนใหม่" ในแผงขวา
+19. **จอ LCD I2C** `lcd` (GND VCC SDA SCL; รุ่น 16×2/20×4, `addr` 0x27/0x3F) — `MCU[t].i2c` = ขา SDA/SCL (Uno A4/A5, ESP32 21/22, Pico GP4/GP5), pull-up 4.7 kΩ
+    ไลบรารี `Wire` (begin/beginTransmission/endTransmission → 0 หรือ 2 ถ้าไม่พบแอดเดรส) และ `LiquidCrystal_I2C lcd(addr, cols, rows)`
+    (init/begin/backlight/noBacklight/clear/home/setCursor/print/write) — บัฟเฟอร์ข้อความ `c._lcd.buf`; ก่อน init แถวแรกเป็นกล่องดำเหมือนจริง; รองรับเฉพาะข้อความ (ไม่มีอักขระกำหนดเอง)
+20. **Monte Carlo** (หน้าต่างวิเคราะห์): `AN.mc = {n, tolR, tolC, seed}` — `mcRun(opt, base)` สุ่มค่า R/C แบบเกาส์ σ = tol/3 ตัดที่ ±tol (mulberry32 มี seed) แล้วคืนค่าเดิมใน `finally`;
+    ผลใน `r.mc` วาดเส้นจางซ้อน + สถิติ (`mcMetric`, `mcStats`: ค่ากลาง ± σ, ต่ำสุด–สูงสุด ของ −3 dB/ยอด/ค่าเฉลี่ย)
+21. **แบบฝึกหัด** (ปุ่ม "แบบฝึกหัด"): `EXER` = led, div, par, stair, reg, rc — แต่ละข้อมี `start` (วงจรเริ่ม), `sol` (เฉลย), `check()` → [ผ่าน, ข้อความ]
+    `exStart(id, sol?)`, การ์ด `#task` (`exCard`), `exCheck()`; ข้อที่ผ่านแล้วเก็บใน localStorage `circuit-lab-ex`
+
 ## ข้อตกลง
 - สีทั้งหมดเป็น CSS token บน `:root` และรองรับ dark mode (`prefers-color-scheme` + `data-theme`); canvas อ่านค่าผ่าน `readColors()` เก็บใน `K`
 - กริด 1 ช่อง = 40 px (`G`)
@@ -275,15 +292,19 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ลากสายผ่านจุดหักของสายอื่น → ไม่ต่อ (กระแสเดิม), ปลายสายตกกลางสายอื่น → ต่อแบบ T
 - ลากหลอด H1 ใน series / หมุน H2 → กระแส 0.25 A คงเดิม, Alt+ลาก → วงจรขาด, Ctrl+Z คืน
 - rcdtest: คนแตะสายไฟ → RCD ตัด · pfc: PF 0.65 → > 0.95 · stair: สลับสวิตช์ตัวใดก็ได้ไฟสลับ
+- แก้ไข: เลือก 4 อุปกรณ์ 8 สาย → คัดลอก/วาง ได้ชื่อไม่ซ้ำ 0.25 A, undo/redo, ย้ายทั้งชุดกระแสเดิม · โค้ดแชร์ `CL1.` ถอดกลับตรง · PNG
+- ป้ายชื่อสาย VCC/GND → 9 mA (สด + SPICE), มิเตอร์จิ้ม 9.00 V · 100 Ω 0.25 W ที่ 9 V → ไหม้ · อิเล็กโทรไลต์กลับขั้ว → ระเบิด
+- lcdi2c: "TEMP 27.9 C" / "ADC  57", 40 °C → "TEMP 40.1 C" · แบบฝึกหัด 6 ข้อ: เริ่มต้นไม่ผ่าน เฉลยผ่าน · Monte Carlo RC −3 dB ≈ 159 Hz σ 4–8 Hz
 
 ## งานที่วางแผนไว้
 - ซอฟต์สตาร์ทเตอร์/อินเวอร์เตอร์ (VFD), มอเตอร์สเต็ปเปอร์, เครื่องกำเนิดไฟฟ้า, หม้อแปลง 3 เฟส, กราวด์และระบบ TN/TT
-- บล็อกหมุนได้ (ตอนนี้หมุนได้เฉพาะอุปกรณ์ 2 ขั้ว)
+- บล็อกหมุนได้ (ตอนนี้หมุนได้เฉพาะอุปกรณ์ 2 ขั้ว), หมุนชุดที่เลือกหลายชิ้น
+- ลอจิกแอนะไลเซอร์, สลับภาษา TH/EN, รายงาน PDF, แบบฝึกหัดเพิ่ม (PLC/MCU)
 - โรงงาน 3D: เครื่องจักรเพิ่ม (โต๊ะหมุน, แขนปัด, สายพานโค้ง), กล่องเอียงตามทางลาด, แขนหยิบวางต่างระดับ, เงาบนชิ้นงาน (shadow map), ตัวนับ (CTU) ใน PLC, เซนเซอร์แอนะล็อกในฉาก
 - ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, ตัวถอดรหัส I2C/SPI (ยังไม่มีอุปกรณ์ I2C/SPI), อินเวอร์เตอร์, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
 - โหมดตามเวลา: ขยายให้ครอบคลุมทรานซิสเตอร์/MOSFET/78xx/NE555/MCU PWM, 3 เฟส, ความเหนี่ยวนำแม่เหล็กหม้อแปลง
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), สลูว์เรตออปแอมป์, เกต 3–4 อินพุต, ไอซีเพิ่ม (ULN2003, 74HC138, L293D, LCD I2C), ขา PRE/CLR ของ D-FF
-- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
-- SPICE: MCU/PLC ในการวิเคราะห์ (ใช้สถานะขาปัจจุบัน), ขั้นเวลาปรับอัตโนมัติ (LTE), วิเคราะห์สัญญาณรบกวน/ความไว, Monte Carlo ตามค่าความคลาดเคลื่อน, กวาดพารามิเตอร์หลายเส้น, โหมดจำลองสดด้วยเครื่อง SPICE
+- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
+- SPICE: MCU/PLC ในการวิเคราะห์ (ใช้สถานะขาปัจจุบัน), ขั้นเวลาปรับอัตโนมัติ (LTE), วิเคราะห์สัญญาณรบกวน/ความไว, กวาดพารามิเตอร์หลายเส้น, โหมดจำลองสดด้วยเครื่อง SPICE
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น

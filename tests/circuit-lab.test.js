@@ -592,6 +592,42 @@ const path = require('path');
     checks.push(['มือถือ (iPhone): ส่วนหัวแถวเดียว ≤ 60 px, แผงวงจรเต็มกว้าง, ไม่เลื่อนแนวนอน, แถบอุปกรณ์เป็นลิ้นชักเปิด/ปิดได้, ซูมสองนิ้วได้ วงจรเดิม',
       lay.hdr <= 60 && lay.cvW >= lay.vw - 2 && !lay.over && lay.palHidden && palOpen && z1 > z0*1.5 && nr(I, 0.25, 0.01) && merr.length === 0, JSON.stringify({lay, palOpen, z0, z1, I, merr})]);
     await mctx.close(); }
+  const ed = await page.evaluate(async () => { const s = __sim, o = {};
+    // เลือกหลายชิ้น + คัดลอก/วาง + ย้อนกลับ/ทำซ้ำ + ย้ายทั้งชุด
+    s.load('series'); boxSelect(-50, -50, 50, 50); o.sel = [sel.k, sel.cs.length, sel.ws.length]; copySel(); pasteClip(0, 8); s.run(0.2);
+    o.paste = [s.S.comps.length, new Set(s.S.comps.map(c => c.n)).size, s.RES.comp[s.find('H3').id].Ir];
+    undo(); o.undo = s.S.comps.length; redo(); o.redo = s.S.comps.length;
+    boxSelect(-50, -50, 50, 6); const d = mmoveInit(0, 0); mmoveApply(d, 3, 0); mmoveEnd(d); s.run(0.2); o.move = s.RES.comp[s.find('H1').id].Ir;
+    // โค้ดแชร์ไป-กลับ + ส่งออกภาพ
+    const code = await encCircuit(ser()); o.share = [code.slice(0, 4), (await decCircuit(code)) === ser(), code.length < ser().length];
+    o.png = (circuitPNG() || '').startsWith('data:image/png');
+    // ป้ายชื่อสาย + มิเตอร์จิ้มวัด
+    s.load(build((C, W) => { C('bat',2,5,{r:1,n:'B1',V:9}); W([2,4],[2,3],[3,3]); C('lbl',3,3,{net:'VCC'}); W([2,6],[2,7],[3,7]); C('lbl',3,7,{net:'GND'});
+      C('res',12,5,{r:1,n:'R1',R:1000,Pr:0.25}); W([12,4],[12,3],[13,3]); C('lbl',13,3,{net:'vcc'}); W([12,6],[12,7],[13,7]); C('lbl',13,7,{net:'GND'}); }));
+    s.run(0.2); o.lbl = [s.RES.comp[s.find('R1').id].Ir, s.spRun({kind:'op'}).rows.find(x => x.nm === 'R1').i];
+    probeTap(12, 4); probeTap(12, 6); o.probe = probeVal().dc;
+    // ความเสียหาย: 9 V คร่อม 100 Ω 0.25 W (0.81 W) → ไหม้ · อิเล็กโทรไลต์กลับขั้ว → ระเบิด
+    s.find('R1').R = 100; s.poke(); s.run(3); o.burn = [!!s.find('R1')._blown, s.RES.comp[s.find('R1').id].Ir < 1e-6];
+    s.load(build((C, W) => { C('bat',2,5,{r:1,n:'B1',V:12}); W([2,4],[2,3],[6,3],[6,4]); C('cap',6,5,{r:3,n:'C1',C:100,Vr:25,pol:true}); W([6,6],[6,7],[2,7],[2,6]); })); s.run(1.5); o.cap = !!s.find('C1')._blown;
+    // จอ LCD I2C
+    s.load('lcdi2c'); s.run(2.5); const L = s.find('LCD1'); o.lcd = L._lcd.buf.slice(); s.find('U2').temp = 40; s.poke(); s.run(1); o.lcd40 = L._lcd.buf[0];
+    // แบบฝึกหัด: วงจรเริ่มต้นไม่ผ่าน, เฉลยผ่าน
+    o.ex = EXER.map(e => { exStart(e.id); s.run(0.3); const a = exCheck()[0]; exStart(e.id, true); s.run(0.5); const b = exCheck()[0]; return (a ? 'X' : '-') + (b ? 'P' : 'F'); }).join(''); EXCUR = null; exCard();
+    // Monte Carlo
+    s.load(build((C, W) => { C('fgen',3,6,{n:'FG1',f:100,vpp:2,zo:0.05}); W([4,7],[4,9]); W([2,7],[2,3],[6,3]); C('res',7,3,{n:'R1',R:1000}); W([8,3],[10,3],[10,5]); C('cap',10,6,{r:1,n:'C1',C:1}); W([10,7],[10,9],[4,9]); C('gnd',4,9,{}); }));
+    AN.mc = {n:40, tolR:5, tolC:10, seed:7}; const opt = {kind:'ac', src:'FG1', from:10, to:1e5, ppd:40, probes:['V(C1)']}, r = s.spRun(opt); mcRun(opt, r);
+    const f3 = [mcMetric(r, 0), ...r.mc.map(m => mcMetric(r, 0, m))].map(a => a[1][1]), mu = f3.reduce((a, b) => a + b, 0)/f3.length, sd = Math.sqrt(f3.reduce((a, b) => a + (b - mu)**2, 0)/(f3.length - 1));
+    o.mc = [r.mc.length, mu, sd, s.find('R1').R, s.find('C1').C]; AN.mc.n = 0;
+    return o; });
+  checks.push(['แก้ไข: ลากกรอบเลือก 4 อุปกรณ์ 8 สาย → คัดลอก/วาง (ชื่อไม่ซ้ำ, วงจรที่วาง 0.25 A) → ย้อนกลับ/ทำซ้ำ → ย้ายทั้งชุดกระแสเดิม',
+    JSON.stringify(ed.sel) === '["m",4,8]' && ed.paste[0] === 8 && ed.paste[1] === 8 && nr(ed.paste[2], 0.25, 0.005) && ed.undo === 4 && ed.redo === 8 && nr(ed.move, 0.25, 0.005), JSON.stringify(ed.sel.concat(ed.paste, ed.undo, ed.redo, ed.move))]);
+  checks.push(['ไฟล์: โค้ดแชร์บีบอัด (CL1.) ถอดกลับตรงทุกตัวอักษรและสั้นกว่าเดิม · ส่งออกภาพวงจร PNG', ed.share[0] === 'CL1.' && ed.share[1] && ed.share[2] && ed.png, JSON.stringify([ed.share, ed.png])]);
+  checks.push(['ป้ายชื่อสาย VCC/GND ต่อวงจรโดยไม่ลากสาย → 9 mA (จำลองสดและ SPICE) · มิเตอร์จิ้มวัด 9.00 V', nr(ed.lbl[0], 0.009, 0.0002) && ed.lbl[1] === '9.00 mA' && nr(ed.probe, 9, 0.01), JSON.stringify([ed.lbl, ed.probe])]);
+  checks.push(['ความเสียหายจริง: ตัวต้านทาน 0.25 W ได้ 0.81 W → ไหม้ วงจรขาด · ตัวเก็บประจุอิเล็กโทรไลต์กลับขั้ว → ระเบิด', ed.burn[0] && ed.burn[1] && ed.cap, JSON.stringify([ed.burn, ed.cap])]);
+  checks.push(['จอ LCD I2C + LM35: แสดง "TEMP 27.9 C" (28 °C ผ่าน ADC 10 บิต) และ "ADC  57" · 40 °C → 40.1 C', ed.lcd[0].startsWith('TEMP 27.9 C') && ed.lcd[1].startsWith('ADC  57') && ed.lcd40.startsWith('TEMP 40.1 C'), JSON.stringify([ed.lcd, ed.lcd40])]);
+  checks.push(['แบบฝึกหัด 6 ข้อ: วงจรเริ่มต้นไม่ผ่าน และเฉลยผ่านทุกข้อ', ed.ex === '-P-P-P-P-P-P', ed.ex]);
+  checks.push(['Monte Carlo (R ±5%, C ±10%, 41 รอบ): RC −3 dB เฉลี่ย ≈ 159 Hz, σ ≈ 4–8 Hz, ค่าอุปกรณ์คืนค่าเดิม',
+    ed.mc[0] === 40 && nr(ed.mc[1], 159.5, 4) && ed.mc[2] > 4 && ed.mc[2] < 8 && ed.mc[3] === 1000 && ed.mc[4] === 1, JSON.stringify(ed.mc)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
