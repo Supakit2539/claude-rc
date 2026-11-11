@@ -1,7 +1,7 @@
 # แผงทดลองวงจรไฟฟ้า (Circuit Lab)
 
 เว็บแอปหน้าเดียวสำหรับสอนและจำลองวงจรไฟฟ้า: DC, AC 1 เฟส/3 เฟส, ตู้ควบคุมรีเลย์,
-PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485, ระบบปั๊มน้ำ–ถังน้ำ ไมโครคอนโทรลเลอร์ (Arduino Uno, ESP32, Raspberry Pi Pico) เซนเซอร์ (บอร์ดและอุตสาหกรรม) อุปกรณ์อิเล็กทรอนิกส์ และมุมมองโรงงาน 3D ที่ควบคุมด้วยวงจร/PLC บนแผง
+PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485, ระบบปั๊มน้ำ–ถังน้ำ ไมโครคอนโทรลเลอร์ (Arduino Uno, ESP32, Raspberry Pi Pico) เซนเซอร์ (บอร์ดและอุตสาหกรรม) อุปกรณ์อิเล็กทรอนิกส์ ออสซิลโลสโคป และมุมมองโรงงาน 3D ที่ควบคุมด้วยวงจร/PLC บนแผง
 ผู้ใช้คนไทย: ข้อความใน UI เป็นภาษาไทยทั้งหมด
 
 > repo นี้มีอีกแอปหนึ่งคือ `index.html` (คำนวณแสงสว่าง ดู `README.md`) ซึ่งแยกจาก Circuit Lab โดยสิ้นเชิง
@@ -74,7 +74,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, osc, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -107,12 +107,21 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
     - โหมดแก้ไข (`fx.edit`): `fxPick` เลือกชิ้นจากรังสีเมาส์ (`fxRay`) ตัดระนาบ, ลากย้ายบนพื้น (สแนป 0.1 m), หมุน/ทำซ้ำ/ลบ/แก้ค่า → `facEdited()` (commit)
     - `setView('off'|'split'|'full')` สลับมุมมอง; โหลดตัวอย่างที่มี `fac` จะเปิดแบ่งจอและเล็งกล้องกลางฉาก (`fxFrame`)
 
+12. **ออสซิลโลสโคป** — อุปกรณ์ `scope` (ขา CH1, CH2, ⏚ กราวด์โพรบ; โพรบ 1 MΩ; `earth` = กราวด์โพรบต่อสายดินผ่าน 0.1 Ω) + หน้าต่าง `#scopewin`
+    - ตั้งค่าเป็นฟิลด์ที่บันทึกได้: `vdiv1/2`, `pos1/2` (ช่อง), `cpl1/2` DC/AC, `on2`, `tdiv`, `trig` '1'/'2', `slope` up/down, `tlev`, `run`
+    - `scopeRefresh()` (ทุก 200 ms ใน `frame` และใน `__sim.scope`) สร้าง `c._cap = {roll, T, t0, trig, ch:[{mn, mx (Float32Array 600 คอลัมน์), max, min, avg, rms, f, duty, src}]}`
+    - โหมดเร็ว (`tdiv < 0.1`): v(t) = DC + √2·|เฟเซอร์|·sin(2π·RES.f·t + φ) + สัญญาณสวิตชิ่ง; สวิตชิ่ง (`scopeSwitchers`: PWM/tone ของไมโครคอนโทรลเลอร์,
+      NE555 ที่ `_fast`) หาระดับจริงด้วยการแก้วงจรซ้ำโดยตั้ง `FORCE = {c, p, v}` (stamp ของขา MCU และ NE555 อ่าน `FORCE`) แล้วแก้วงจรปกติคืน
+      ความถี่ PWM: Uno 490 Hz (ขา 5, 6 = 980 Hz), ESP32/Pico 1 kHz · ทริกเกอร์หาจุดตัดระดับแรกภายใน 1.5 คาบ
+    - โหมดเลื่อน (`tdiv ≥ 0.1`): ใช้ `c._hist` ที่ `scopeRecord()` บันทึกทุก `step` (DC + แอมพลิจูด AC → วาดเป็นแถบ); สวิตชิ่งเร็วเห็นเป็นค่าเฉลี่ย
+    - `scopeDraw(ctx, x, y, w, h, c, small)` ใช้ทั้งจอเล็กใน `drawBlock` และหน้าต่างเต็ม (`scopeUI`/`scopeLive`); `scopeAutoset(c)` ปรับสเกล/ทริกอัตโนมัติ
+
 ## ข้อตกลง
 - สีทั้งหมดเป็น CSS token บน `:root` และรองรับ dark mode (`prefers-color-scheme` + `data-theme`); canvas อ่านค่าผ่าน `readColors()` เก็บใน `K`
 - กริด 1 ช่อง = 40 px (`G`)
 - แรงดันไฟบ้านค่าเริ่มต้น 230 V, 3 เฟส 400/230 V, 50 Hz
 - ทุกการแก้ไขโครงสร้างวงจรต้องเรียก `commit()`; การแก้ค่าพารามิเตอร์แบบต่อเนื่องตั้ง `needSolve=true`
-- `window.__sim` เปิดไว้สำหรับทดสอบ (`S`, `RES`, `load`, `EX`, `solveNow`, `poke`, `step`, `run(วินาที)`, `find(ชื่อ)`, `FXS`, `setView`, `flit`)
+- `window.__sim` เปิดไว้สำหรับทดสอบ (`S`, `RES`, `load`, `EX`, `solveNow`, `poke`, `step`, `run(วินาที)`, `find(ชื่อ)`, `FXS`, `setView`, `flit`, `scope(ชื่อ)` คืน `_cap`, `scopeAutoset(ชื่อ)`)
 
 ## การทดสอบ
 ```bash
@@ -132,12 +141,14 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - pickplace: ผ่านไป 60 s กล่องลงถัง ≥ 10 ใบ `floor` = 0 · ตัวกั้น: คอยล์ไม่มีไฟกล่องต่อคิว มีไฟแล้วไหลลงถัง
 - lift: เริ่มที่ชั้นล่าง (SQ1) → ยกกล่องถึง y = 2.15; ผ่านไป 120 s กล่องลงถัง ≥ 6 ใบ `floor` = 0 · กล่องตกจากสายพานสูงลงสายพานล่างได้
 - gate: OPEN → `FXS.rt[1].p` = 1 แล้ว SQ1 ตัด K1; STOP กลางทางหยุดนิ่ง; CLOSE → p = 0 แล้ว SQ2 ตัด K2
+- osc: CH1 ไซน์ Vpp ≈ 33.8 V 50 Hz, CH2 พัลส์ NE555 0–8.85 V ≈ 687 Hz ดิวตี้ ≈ 52%; Auto Set → 10 V/div, 5 V/div, 5 ms/div; โหมดเลื่อนวัดพัลส์ช้าได้ ≈ 0.69 Hz
 - rcdtest: คนแตะสายไฟ → RCD ตัด · pfc: PF 0.65 → > 0.95 · stair: สลับสวิตช์ตัวใดก็ได้ไฟสลับ
 
 ## งานที่วางแผนไว้
 - ซอฟต์สตาร์ทเตอร์/อินเวอร์เตอร์ (VFD), มอเตอร์สเต็ปเปอร์, เครื่องกำเนิดไฟฟ้า, หม้อแปลง 3 เฟส, กราวด์และระบบ TN/TT
 - บล็อกหมุนได้ (ตอนนี้หมุนได้เฉพาะอุปกรณ์ 2 ขั้ว)
 - โรงงาน 3D: เครื่องจักรเพิ่ม (โต๊ะหมุน, แขนปัด, สายพานโค้ง), กล่องเอียงตามทางลาด, แขนหยิบวางต่างระดับ, เงาบนชิ้นงาน (shadow map), ตัวนับ (CTU) ใน PLC, เซนเซอร์แอนะล็อกในฉาก
+- ออสซิลโลสโคป: โหมด XY, คณิตศาสตร์ CH1−CH2, FFT, เคอร์เซอร์วัด, โพรบ ×10, สวิตชิ่งเร็วในโหมดเลื่อน, ทริกแบบ Normal/Single
 - LED/ไดโอด/ทรานซิสเตอร์ทำงานกับไฟ AC (วงจรเรียงกระแส) — ต้องจำลองแบบโดเมนเวลา
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ตัวเก็บประจุชาร์จ/ดิสชาร์จตามเวลา, ออปแอมป์
 - ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ), Serial รับข้อมูลเข้า, จอ LCD I2C

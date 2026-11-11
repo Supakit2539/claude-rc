@@ -90,6 +90,15 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 #flab{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 #flab span{position:absolute;transform:translate(-50%,-50%);font:600 11px 'IBM Plex Mono',monospace;color:var(--text);background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:4px;padding:0 5px;white-space:nowrap}
 #hint{position:absolute;left:10px;top:8px;font-size:12px;color:var(--muted);pointer-events:none;background:color-mix(in srgb,var(--board) 85%,transparent);padding:2px 6px;border-radius:4px}
+#scopewin{position:absolute;right:10px;top:10px;width:min(720px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:6;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
+#scopewin[hidden]{display:none}
+.swh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);cursor:move;flex-wrap:wrap}
+#scv{width:100%;height:300px;display:block;flex:none}
+.swc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;padding:8px 10px;font-size:12.5px}
+.swc label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
+#scmeas{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;padding:0 10px 10px;font:12px 'IBM Plex Mono',monospace}
+#scmeas .mr{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line)}
+@media (max-width:820px){.swc{grid-template-columns:repeat(2,minmax(0,1fr))} #scv{height:220px}}
 #lad{height:0;overflow:hidden;background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;transition:height .15s}
 #lad.open{height:46%}
 .ladbar{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:6px 8px;border-bottom:1px solid var(--line)}
@@ -168,6 +177,7 @@ kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--
     <div id="views" class="off"><canvas id="cv"></canvas><div id="fwrap"><canvas id="fx"></canvas><div id="flab"></div><div id="fhud"></div></div></div>
     <div id="hint"></div>
     <section id="lad"></section>
+    <div id="scopewin" hidden></div>
   </div>
   <aside id="insp"><div id="ihead"></div><div id="ilive"></div></aside>
 </div>
@@ -334,6 +344,8 @@ T.motor6 = {nm:'มอเตอร์ 3 เฟส 6 ขั้ว (สตาร�
             pins:[[-1,-1,'U1'],[0,-1,'V1'],[1,-1,'W1'],[-1,1,'U2'],[0,1,'V2'],[1,1,'W2']], box:[-1.6,-1,1.6,1]};
 T.cable  = {nm:'สายไฟ (ตามขนาด mm²)',          ic:'═', pre:'W', d:{A:2.5, len:20, mat:'Cu'}};
 T.capbank= {nm:'คาปาซิเตอร์แบงก์ 3 เฟส',        ic:'⫴', pre:'C', d:{kvar:5, V:400}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3']], box:[-1.6,-1,1.6,1]};
+T.scope  = {nm:'ออสซิลโลสโคป 2 แชนเนล',       ic:'∿', pre:'OSC', d:{vdiv1:5, vdiv2:5, tdiv:0.005, pos1:1.5, pos2:-2.5, cpl1:'DC', cpl2:'DC', on2:true, trig:'1', slope:'up', tlev:0, earth:true, run:true},
+            pins:[[-1,2,'CH1'],[0,2,'CH2'],[2,2,'⏚']], box:[-2.6,-2,2.6,2]};
 T.pmeter = {nm:'พาวเวอร์มิเตอร์ 1 เฟส',         ic:'kW', pre:'PM', d:{}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'L'],[1,1,'N']], box:[-1.6,-1,1.6,1]};
 // ฟิลด์ใหม่ของอุปกรณ์เดิม (ค่าเริ่มต้น)
 Object.assign(T.mcb.d, {curve:'C'}); Object.assign(T.fuse.d, {inst:3, tc:15});
@@ -858,6 +870,7 @@ function solveAll(){
           for (let k = 0; k < 4; k++) Y(n[11], n[12+k], (c._run && q[k]) ? GW : GOFF, 0);
         } break;
         case 'hmi': Y(n[0], n[1], 1/240, 0); break;
+        case 'scope': Y(n[0], n[2], 1e-6, 0); Y(n[1], n[2], 1e-6, 0); if (c.earth !== false) Y(n[2], 0, 10, 0); break;   // โพรบ 1 MΩ, กราวด์โพรบต่อสายดินเครื่อง
         case 'pir': Y(n[0], n[2], 1/50000, 0); Y(n[1], c._out ? n[0] : n[2], 1/100, 0); break;
         case 'sr04': Y(n[0], n[3], 1/333, 0); Y(n[1], n[3], 1e-6, 0); Y(n[2], n[3], 1/100, 0); break;
         case 'dht': Y(n[0], n[2], 1/5000, 0); Y(n[1], n[0], 1/10000, 0); break;
@@ -896,6 +909,7 @@ function solveAll(){
           const vc = n[0], g = n[1], o = n[2];
           Y(vc, g, 1/900, 0);
           if (!c._pw) Y(o, g, 0.1, 0);
+          else if (FORCE && FORCE.c === c) Y(o, FORCE.v ? vc : g, 0.1, 0);
           else if (c._fast){ const [th, tl] = timing555(c), d = th/(th + tl); Y(o, vc, 0.1*d, 0); Y(o, g, 0.1*(1 - d), 0); }
           else Y(o, c._q ? vc : g, 0.1, 0);
         } break;
@@ -911,6 +925,7 @@ function solveAll(){
             if (r === 'G'){ if (k !== gi) Y(a, g, GW, 0); return; }
             if (r === 'V5' || r === 'V33'){ Y(a, g, 5, 0); inj(a, (r === 'V5' ? 5 : 3.3)*5); return; }
             const st = vm && vm.pins[r];
+            if (FORCE && FORCE.c === c && FORCE.p === r){ const go = 1/B.rout; Y(a, g, go, 0); inj(a, FORCE.v*B.vcc*go); return; }   // ออสซิลโลสโคป: บังคับ HIGH/LOW
             if (st && st.mode === 1){
               // PWM: แหล่ง Vcc ผ่าน rout/duty → กระแสเฉลี่ยลดลงตาม duty (LED หรี่ได้)
               const d = st.pwm != null ? st.pwm : null;
@@ -998,6 +1013,7 @@ function solveAll(){
         case 'reg': R.vin = R.pv[0].d - R.pv[1].d; R.vout = R.pv[2].d - R.pv[1].d; R.iout = -xd[j]; break;
         case 'ne555': R.vcc = R.pv[0].d - R.pv[1].d; R.vout = R.pv[2].d - R.pv[1].d; break;
         case 'hmi': R.pw = R.pv[0].d - R.pv[1].d; break;
+        case 'scope': R.ig = c.earth !== false ? rms(R.pv[2])*10 : 0; break;
       }
     }
     // สถานะพีชคณิต
@@ -1601,7 +1617,7 @@ function settle(){
     needSolve = false; solveAll(); discrete(0);
   }
 }
-function step(dt){ simT += dt; continuous(dt); facStep(dt); discrete(dt); settle(); }
+function step(dt){ simT += dt; continuous(dt); facStep(dt); discrete(dt); settle(); scopeRecord(); }
 function poke(){ needSolve = true; settle(); }
 
 /* ============================================================
@@ -2268,6 +2284,18 @@ Q2 := M0 AND NOT I3 AND NOT I5 AND NOT M3
       one('แท่นว่างและไม่อยู่ชั้นล่าง → ลิฟต์ลง (YD)', [nc('NO','M0'), nc('NC','I3'), nc('NC','I5'), nc('NC','M3')], {k:'OUT', a:'Q2'}),
     ]};
   }), {fac:facPreset('lift')})},
+  osc: {nm:'ออสซิลโลสโคป: ไซน์ 50 Hz + พัลส์ NE555', f:() => build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'});
+    C('xfmr', 6, 4, {n:'T1', V1:230, V2:12, S:20, model:'t12'}); W([2,2],[2,3],[5,3]); W([3,2],[8,2],[8,3],[7,3]);
+    C('res', 6, 7, {n:'RL', R:100, Pr:5, model:'cem5'}); W([5,5],[5,7]); W([7,5],[7,7]);
+    C('scope', 14, 6, {n:'OSC1', vdiv1:10, pos1:2, vdiv2:5, pos2:-3});
+    W([5,7],[5,10],[13,10],[13,8]);                 // CH1 ← ขดทุติยภูมิ
+    W([7,7],[7,11],[16,11],[16,8]);                 // กราวด์โพรบ
+    C('bat', 6, 17, {r:1, n:'B1', V:9, model:'9v'}); W([6,16],[6,15],[9,15]);
+    C('ne555', 10, 14, {n:'U1', R1:1000, R2:10000, C:0.1}); W([10,15],[10,18]); W([6,18],[10,18],[17,18],[17,11],[16,11]);
+    C('res', 13, 15, {n:'R3', R:470}); W([11,15],[12,15]); C('led', 16, 15, {n:'D1'}); W([14,15],[15,15]);
+    W([12,15],[12,13],[14,13],[14,8]);              // CH2 ← ขาออก NE555
+  })},
   blank: {nm:'แผงว่าง', f:() => build(() => {})},
 };
 
@@ -2762,6 +2790,16 @@ function drawBlock(c, ghost){
       text((Math.round(val*10)/10) + ' ' + c.unit, X, Y - 18, 12, K.text, 'center', '600', true);
       text(c._on ? fmt(R.I, 'A') : 'ไฟลูปไม่พอ', X, Y - 2, 9, c._on ? K.accent : K.bad, 'center', '600', true);
     } break;
+    case 'scope': {
+      ctx.fillStyle = '#2b3240'; rrect(bx + 2, by + 2, bw - 4, bh - 4, 6); ctx.fill();
+      const sw = bw*0.66, sh = bh - 44; scopeDraw(ctx, bx + 10, by + 10, sw, sh, c, true);
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1; ctx.strokeRect(bx + 10, by + 10, sw, sh);
+      const kx = bx + 20 + sw + (bw - sw - 30)/2;
+      [[by + 26, '#cbd5e1'], [by + 56, SC_COL[0]], [by + 86, SC_COL[1]]].forEach(([y, col]) => { ctx.fillStyle = '#111827'; ctx.strokeStyle = col; ctx.lineWidth = 2; circ(kx, y, 9, true); });
+      ctx.fillStyle = c.run === false ? K.bad : '#4ade80'; dot(kx, by + 112, 4);
+      text(fmtDiv(c.tdiv, 's'), bx + 12 + sw/2, by + sh + 20, 9, '#e2e8f0', 'center', '600', true);
+      if (c.earth !== false) text('⏚ ต่อสายดิน', bx + bw - 10, by + sh + 20, 8, '#94a3b8', 'right', '600');
+    } break;
     case 'pot': {
       ctx.strokeStyle = K.comp; ctx.lineWidth = 2; line(X - G, Y - G, X - G, Y - 6); line(X + G, Y - G, X + G, Y - 6);
       line(X - G, Y - 6, X - 22, Y - 6); line(X + 22, Y - 6, X + G, Y - 6);
@@ -2947,6 +2985,7 @@ const F = {
   cable:[NMF,['A','ขนาดหน้าตัด','sel',Object.fromEntries(Object.keys(CABLE).map(k => [k, k + ' mm²']))],['len','ความยาว','num','m'],['mat','ตัวนำ','sel',{Cu:'ทองแดง',Al:'อะลูมิเนียม'}]],
   capbank:[NMF,['kvar','ขนาด','num','kvar'],['V','แรงดัน','num','V']],
   pmeter:[NMF],
+  scope:[NMF,['earth','กราวด์โพรบ','bool','ต่อสายดิน (เครื่องตั้งโต๊ะ)']],
   dcm:[NMF,['V','แรงดันพิกัด','num','V'],['R','ความต้านทานขดลวด','num','Ω']],
   npn:[NMF,['beta','อัตราขยาย β (hFE)','num',''],['Vbe','V<sub>BE</sub>','num','V'],['Imax','Ic สูงสุด','num','A']],
   pnp:[NMF,['beta','อัตราขยาย β (hFE)','num',''],['Vbe','V<sub>EB</sub>','num','V'],['Imax','Ic สูงสุด','num','A']],
@@ -3020,6 +3059,7 @@ const NOTES = {
   motor6:'มอเตอร์ 3 เฟสที่นำปลายขดลวดออกมา 6 ขั้ว (U1–U2, V1–V2, W1–W2) · ต่อสตาร์ (U2-V2-W2 รวมกัน) ขดลวดรับ 230 V กระแสสตาร์ทเหลือ 1/3 · ต่อเดลต้า (U1–W2, V1–U2, W1–V2) ขดลวดรับ 400 V ทำงานเต็มกำลัง',
   cable:'สายไฟมีความต้านทาน R = ρL/A ทำให้แรงดันตกและร้อน · เลือกขนาดสายให้ทนกระแสได้มากกว่าพิกัดเบรกเกอร์ (เช่น C16 ใช้ 2.5 mm², C32 ใช้ 6 mm²) · แรงดันตกไม่ควรเกิน 5% · ตัวอย่างนี้วาดเส้นเดียวแทนตัวนำ 1 เส้น',
   capbank:'คาปาซิเตอร์แบงก์ต่อเดลต้า จ่ายกำลังรีแอกทีฟ (kvar) ชดเชยโหลดเหนี่ยวนำ เช่น มอเตอร์ ทำให้ตัวประกอบกำลังดีขึ้น กระแสในสายลดลง และลดค่าปรับ PF ต่ำ',
+  scope:'ออสซิลโลสโคปวาดแรงดันตามเวลา: ต่อโพรบ CH1/CH2 กับจุดที่ต้องการวัด และคลิปกราวด์ (⏚) กับจุดอ้างอิง · คลิกที่ตัวเครื่องเพื่อเปิดหน้าจอเต็ม · ใช้ Auto Set ให้ปรับสเกลเอง · ⚠ เครื่องตั้งโต๊ะต่อกราวด์โพรบลงสายดิน ห้ามคลิปกราวด์กับสาย L — จะลัดวงจรผ่านสายดิน (ใช้หม้อแปลงแยกวงจรหรือโพรบดิฟเฟอเรนเชียล)',
   pmeter:'พาวเวอร์มิเตอร์วัดแรงดัน กระแส กำลังจริง (W) กำลังรีแอกทีฟ (var) ตัวประกอบกำลัง และพลังงานสะสม (kWh) · ต่อ L และ N เข้าด้านบน ออกด้านล่าง',
   nmos:'MOSFET N-channel: เกตแทบไม่กินกระแส นำเมื่อ Vgs ≥ Vth (ชนิด logic-level ขับจาก Arduino ได้) ความต้านทาน D–S ต่ำมาก เหมาะขับมอเตอร์/หลอด · จำลองเป็นสวิตช์เปิด/ปิด (PWM ที่เกตถือว่าเปิด)',
   reg:'เร็กกูเลเตอร์เชิงเส้น 78xx: คุมแรงดันขาออกคงที่ (7805 = 5 V) ต้องการแรงดันขาเข้าสูงกว่าขาออกอย่างน้อย 2 V · ส่วนต่างแรงดัน × กระแส กลายเป็นความร้อน',
@@ -3069,6 +3109,7 @@ function renderInsp(){
   if (c.t === 'fuse' && c._blown) acts.push(['replace','เปลี่ยนฟิวส์']);
   if ((c.t === 'coil' || c.t === 'tmr') && c._burnt) acts.push(['replace','เปลี่ยนคอยล์']);
   if (c.t === 'plc') acts.push(['prog','เปิดตัวเขียนโปรแกรม']);
+  if (c.t === 'scope') acts.push(['scope','เปิดหน้าจอสโคป']);
   if (c.t === 'ol' && c._trip) acts.push(['reset','รีเซ็ตโอเวอร์โหลด']);
   if (c.t === 'rcd'){ acts.push(['test','กดปุ่มทดสอบ (T)']); if (!c.on) acts.push(['reset','รีเซ็ต (ยกคันโยกขึ้น)']); }
   if (c.t === 'pmeter') acts.push(['kwh','รีเซ็ต kWh']);
@@ -3214,6 +3255,7 @@ function warnList(){
     if (c.t === 'nmos' && R.id > c.Imax) w.push(['bad', `MOSFET ${n}${rated} กระแสเกิน ${c.Imax} A`]);
     if (c.t === 'nmos' && c._mon && c._mg < 0.98 && R.id > 0.05) w.push(['warn', `MOSFET ${n}${rated} แรงดันเกตไม่พอ (Vgs ${fmt(R.vgs, 'V')} < ${c.Vfull} V) — นำไม่เต็มที่และร้อน`]);
     if (c.t === 'cable' && R.Ir > cableAmp(c)) w.push(['bad', `สาย ${n} ${c.A} mm² กระแส ${fmt(R.Ir, 'A')} เกินที่ทนได้ ${fmt(cableAmp(c), 'A')}`]);
+    if (c.t === 'scope' && R.ig > 0.2) w.push(['bad', `ออสซิลโลสโคป ${n}: กราวด์โพรบมีกระแส ${fmt(R.ig, 'A')} ไหลลงสายดิน — คลิปกราวด์ต่อกับจุดที่มีแรงดัน (เช่นสาย L) ทำให้ลัดวงจร`]);
     if (c.t === 'human' && R.Ir > 0.01) w.push(['bad', `⚠ ไฟดูด! กระแสผ่านร่างกาย ${fmt(R.Ir, 'A')}`]);
     if (c.t === 'rcd' && c._trip === 'rcd') w.push(['warn', `เครื่องตัดไฟรั่ว ${n} ตัดไฟ — ตรวจหาจุดรั่วก่อนรีเซ็ต`]);
     if (c.t === 'ol' && c._trip) w.push(['bad', `โอเวอร์โหลด ${n} ทริป — หน้าสัมผัส 95–96 เปิด`]);
@@ -4085,6 +4127,221 @@ function fxPress(c){
   $('#b3d').onclick = () => setView({off:'split', split:'full', full:'off'}[fx.mode]);
 })();
 
+/* ============================================================
+   12. ออสซิลโลสโคป — อุปกรณ์ `scope` (CH1, CH2, กราวด์โพรบ) + หน้าต่างสโคปเต็ม (#scopewin)
+       รูปคลื่นสร้างจากผลคำนวณวงจร:
+       - โหมดเร็ว (Time/div < 0.1 s): ส่วน DC + ไซน์จากเฟเซอร์ AC (RES.f) + สัญญาณสวิตชิ่ง (PWM/tone/NE555)
+         ระดับ HIGH/LOW ของสวิตชิ่งได้จากการแก้วงจรซ้ำโดยบังคับสถานะ (FORCE) ไม่ใช่ค่าเฉลี่ย
+       - โหมดเลื่อน (Time/div ≥ 0.1 s): ประวัติแรงดันที่บันทึกทุก step ตามเวลาจำลอง (c._hist)
+   ============================================================ */
+let FORCE = null;
+const SC_COLS = 600, SC_V = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50,100,200];
+const SC_T = [1e-5,2e-5,5e-5,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,0.1,0.2,0.5,1,2];
+const SC_COL = ['#facc15', '#22d3ee'];
+let scopeWin = null;
+const fmtDiv = (x, u) => fmt(x, u).replace(/\.00 /, ' ').replace(/(\.\d)0 /, '$1 ');
+function scopeSwitchers(){
+  const L = [];
+  for (const c of S.comps){
+    if (MCU[c.t] && c._vm) for (const p in c._vm.pins){
+      const st = c._vm.pins[p];
+      if (st.mode === 1 && st.pwm != null && st.pwm > 0 && st.pwm < 1){
+        const tn = c._vm.tones && c._vm.tones[p];
+        L.push({c, p:+p, f:tn ? tn.f : (c.t === 'uno' ? (+p === 5 || +p === 6 ? 980 : 490) : 1000), duty:st.pwm, nm:(c.n || '') + ' ขา ' + p});
+      }
+    }
+    if (c.t === 'ne555' && c._pw && c._fast){ const [th, tl] = timing555(c); L.push({c, f:1/(th + tl), duty:th/(th + tl), nm:c.n}); }
+  }
+  return L.slice(0, 3);
+}
+// แรงดัน CH1/CH2 เทียบกราวด์โพรบ ({d, r, i} = DC + เฟเซอร์ RMS)
+function scopeProbe(c){ const R = RES.comp[c.id]; if (!R || !R.pv) return null; return [0, 1].map(k => sub(R.pv[k], R.pv[2])); }
+function scopeRecord(){
+  for (const c of S.comps) if (c.t === 'scope' && c.run !== false){
+    const p = scopeProbe(c); if (!p) continue;
+    const h = c._hist || (c._hist = []);
+    h.push({t:simT, d:[p[0].d, p[1].d], a:[Math.SQRT2*acm(p[0]), Math.SQRT2*acm(p[1])]});
+    while (h.length > 2 && h[0].t < simT - 45) h.shift();
+  }
+}
+function scopeRefresh(){
+  const scs = S.comps.filter(c => c.t === 'scope'); if (!scs.length) return;
+  const fast = scs.filter(c => c.run !== false && c.tdiv < 0.1);
+  let sws = [];
+  if (fast.length){
+    sws = scopeSwitchers();
+    if (sws.length){
+      for (const s of sws){ for (const v of [1, 0]){ FORCE = {c:s.c, p:s.p, v}; solveAll(); s[v ? 'hi' : 'lo'] = new Map(fast.map(c => [c.id, (scopeProbe(c) || []).map(q => q.d)])); } }
+      FORCE = null; solveAll();
+    }
+  }
+  for (const c of scs) if (c.run !== false || !c._cap) c._cap = scopeCapture(c, sws);
+}
+function scopeCapture(c, sws){
+  const base = scopeProbe(c); if (!base) return null;
+  const T = c.tdiv*10, roll = c.tdiv >= 0.1, cap = {roll, T, ch:[], trig:false};
+  const chs = [0, 1].map(k => {
+    const ch = {d:base[k].d, A:Math.SQRT2*acm(base[k]), ph:Math.atan2(base[k].i, base[k].r), f:RES.f || 50, sw:null};
+    if (!roll) for (const s of sws){ const hi = s.hi.get(c.id), lo = s.lo.get(c.id); if (!hi || !lo) continue;
+      const e = Math.abs(hi[k] - lo[k]); if (e > 0.01 && (!ch.sw || e > Math.abs(ch.sw.hi - ch.sw.lo))) ch.sw = {f:s.f, duty:s.duty, hi:hi[k], lo:lo[k], nm:s.nm}; }
+    if (ch.A < 1e-4) ch.A = 0;
+    ch.mean = ch.sw ? ch.sw.lo + (ch.sw.hi - ch.sw.lo)*ch.sw.duty : ch.d;
+    return ch;
+  });
+  const cpl = k => c['cpl' + (k + 1)] === 'AC';
+  if (!roll){
+    // ฟังก์ชันรูปคลื่นตามเวลาจำลองจริง (หยุดจำลอง = ภาพนิ่ง)
+    const fn = (k, t) => { const ch = chs[k], tt = simT + t;
+      let v = ch.sw ? ch.sw.lo + (ch.sw.hi - ch.sw.lo)*((((tt*ch.sw.f) % 1) + 1) % 1 < ch.sw.duty ? 1 : 0) : ch.d;
+      if (ch.A) v += ch.A*Math.sin(2*Math.PI*ch.f*tt + ch.ph);
+      return cpl(k) ? v - ch.mean : v; };
+    // ทริกเกอร์: หาจุดตัดระดับ (ขาขึ้น/ขาลง) แรกในช่วงหนึ่งคาบที่ยาวที่สุด
+    const tk = c.trig === '2' ? 1 : 0, tc = chs[tk], per = Math.max(tc.sw ? 1/tc.sw.f : 0, tc.A ? 1/tc.f : 0);
+    let t0 = 0;
+    if (per > 0){ const Ts = Math.min(per*1.5, T*4), N = 1500, up = c.slope !== 'down';
+      let prev = fn(tk, 0);
+      for (let n = 1; n <= N; n++){ const t = Ts*n/N, v = fn(tk, t);
+        if (up ? (prev < c.tlev && v >= c.tlev) : (prev > c.tlev && v <= c.tlev)){ t0 = t; cap.trig = true; break; } prev = v; } }
+    cap.t0 = t0;
+    for (const k of [0, 1]){ const mn = new Float32Array(SC_COLS), mx = new Float32Array(SC_COLS), SUB = 6;
+      let s1 = 0, s2 = 0, n = 0, vmax = -1e9, vmin = 1e9;
+      for (let i = 0; i < SC_COLS; i++){ let a = 1e9, b = -1e9;
+        for (let s2i = 0; s2i < SUB; s2i++){ const v = fn(k, t0 + (i + s2i/SUB)*T/SC_COLS); a = Math.min(a, v); b = Math.max(b, v); s1 += v; s2 += v*v; n++; }
+        mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); }
+      const ch = chs[k], f = ch.sw ? ch.sw.f : (ch.A > 0.01*Math.max(Math.abs(ch.d), 1e-3) ? ch.f : 0);
+      cap.ch.push({mn, mx, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
+    }
+  } else {
+    const h = c._hist || [], t1 = simT, ta = t1 - T;
+    for (const k of [0, 1]){ const mn = new Float32Array(SC_COLS).fill(NaN), mx = new Float32Array(SC_COLS).fill(NaN);
+      let j = 0, vmax = -1e9, vmin = 1e9, s1 = 0, s2 = 0, n = 0, last = null;
+      const mean = k2 => { let s3 = 0, m = 0; for (const e of h){ if (e.t >= ta){ s3 += e.d[k2]; m++; } } return m ? s3/m : 0; }, mu = cpl(k) ? mean(k) : 0;
+      for (let i = 0; i < SC_COLS; i++){ const tb = ta + (i + 1)*T/SC_COLS; let a = 1e9, b = -1e9, any = false;
+        while (j < h.length && h[j].t <= tb){ if (h[j].t >= ta){ const e = h[j], d = e.d[k] - mu; a = Math.min(a, d - e.a[k]); b = Math.max(b, d + e.a[k]); any = true; s1 += d; s2 += d*d + e.a[k]*e.a[k]/2; n++; } last = h[j]; j++; }
+        if (!any && last && last.t >= ta - T/SC_COLS*2){ const d = last.d[k] - mu; a = d - last.a[k]; b = d + last.a[k]; any = true; }
+        if (any){ mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); } }
+      // ความถี่จากจุดตัดกลางของสัญญาณช้า
+      let f = 0; const mid = (vmax + vmin)/2, cr = [];
+      if (vmax - vmin > 0.05){ for (let i = 1; i < SC_COLS; i++){ const a = (mn[i-1] + mx[i-1])/2, b = (mn[i] + mx[i])/2; if (a < mid && b >= mid) cr.push(i); }
+        if (cr.length >= 2) f = (cr.length - 1)/((cr[cr.length - 1] - cr[0])*T/SC_COLS); }
+      const hasAC = h.length && h[h.length - 1].a[k] > 1e-3;
+      cap.ch.push({mn, mx, max:n ? vmax : 0, min:n ? vmin : 0, avg:n ? s1/n : 0, rms:n ? Math.sqrt(s2/n) : 0, f:hasAC ? RES.f : f, duty:null, src:hasAC ? 'AC (แถบ = ขอบเขตไซน์)' : ''});
+    }
+  }
+  return cap;
+}
+// วาดจอสโคป (ใช้ทั้งจอเล็กบนแผงและหน้าต่างเต็ม)
+function scopeDraw(g, X, Y, W, H, c, small){
+  g.save(); g.beginPath(); g.rect(X, Y, W, H); g.clip();
+  g.fillStyle = '#0a1210'; g.fillRect(X, Y, W, H);
+  g.strokeStyle = 'rgba(130,175,150,0.22)'; g.lineWidth = small ? 0.6 : 1;
+  for (let i = 1; i < 10; i++){ g.beginPath(); g.moveTo(X + i*W/10, Y); g.lineTo(X + i*W/10, Y + H); g.stroke(); }
+  for (let j = 1; j < 8; j++){ g.beginPath(); g.moveTo(X, Y + j*H/8); g.lineTo(X + W, Y + j*H/8); g.stroke(); }
+  g.strokeStyle = 'rgba(130,175,150,0.45)';
+  g.beginPath(); g.moveTo(X + W/2, Y); g.lineTo(X + W/2, Y + H); g.moveTo(X, Y + H/2); g.lineTo(X + W, Y + H/2); g.stroke();
+  if (!small){ for (let i = 0; i <= 50; i++){ const x = X + i*W/50; g.beginPath(); g.moveTo(x, Y + H/2 - 3); g.lineTo(x, Y + H/2 + 3); g.stroke(); }
+    for (let j = 0; j <= 40; j++){ const y = Y + j*H/40; g.beginPath(); g.moveTo(X + W/2 - 3, y); g.lineTo(X + W/2 + 3, y); g.stroke(); } }
+  const cap = c._cap;
+  if (cap) for (const k of [0, 1]){
+    if (k === 1 && c.on2 === false) continue;
+    const ch = cap.ch[k], vd = c['vdiv' + (k + 1)], pos = c['pos' + (k + 1)] || 0;
+    const yOf = v => Math.max(Y - 2, Math.min(Y + H + 2, Y + H/2 - (v/vd + pos)*H/8));
+    g.strokeStyle = SC_COL[k]; g.lineWidth = small ? 1.1 : 1.6; g.shadowColor = SC_COL[k]; g.shadowBlur = small ? 0 : 4;
+    g.beginPath(); let started = false;
+    for (let i = 0; i < SC_COLS; i++){ if (isNaN(ch.mn[i])){ started = false; continue; }
+      const x = X + (i + 0.5)*W/SC_COLS, ya = yOf(ch.mx[i]), yb = yOf(ch.mn[i]);
+      if (!started){ g.moveTo(x, ya); started = true; } else g.lineTo(x, ya);
+      if (Math.abs(ya - yb) > 0.5) g.lineTo(x, yb); }
+    g.stroke(); g.shadowBlur = 0;
+    // เครื่องหมายระดับ 0 V ของแชนเนล
+    const y0 = Y + H/2 - pos*H/8; g.fillStyle = SC_COL[k];
+    g.beginPath(); g.moveTo(X, y0 - (small ? 3 : 5)); g.lineTo(X + (small ? 5 : 9), y0); g.lineTo(X, y0 + (small ? 3 : 5)); g.fill();
+  }
+  if (!small && cap && !cap.roll){ const k = c.trig === '2' ? 1 : 0, pos = c['pos' + (k + 1)] || 0, y = Y + H/2 - (c.tlev/c['vdiv' + (k + 1)] + pos)*H/8;
+    g.fillStyle = '#f97316'; g.beginPath(); g.moveTo(X + W, y - 5); g.lineTo(X + W - 9, y); g.lineTo(X + W, y + 5); g.fill(); }
+  g.restore();
+}
+function scopeHeadline(c){
+  const cap = c._cap, ch = k => `CH${k + 1} ${fmtDiv(c['vdiv' + (k + 1)], 'V')}/div ${c['cpl' + (k + 1)] || 'DC'}`;
+  return [ch(0), c.on2 !== false ? ch(1) : null, fmtDiv(c.tdiv, 's') + '/div',
+    cap && cap.roll ? 'ROLL' : `Trig CH${c.trig === '2' ? 2 : 1} ${c.slope === 'down' ? '↓' : '↑'} ${fmt(c.tlev, 'V')}` + (cap && !cap.roll ? (cap.trig ? '' : ' (ไม่ทริก)') : ''),
+    c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
+}
+function scopeMeasHTML(c){
+  const cap = c._cap; if (!cap) return '';
+  return [0, 1].filter(k => k === 0 || c.on2 !== false).map(k => { const m = cap.ch[k];
+    const rows = [['Vpp', fmt(m.max - m.min, 'V')], ['Vmax', fmt(m.max, 'V')], ['Vmin', fmt(m.min, 'V')], ['Vavg', fmt(m.avg, 'V')], ['Vrms', fmt(m.rms, 'V')],
+      ['ความถี่', m.f ? fmt(m.f, 'Hz') : '—'], ['คาบ', m.f ? fmt(1/m.f, 's') : '—'], ['ดิวตี้', m.duty != null ? (m.duty*100).toFixed(1) + '%' : '—']];
+    return `<div><b style="color:${SC_COL[k]}">CH${k + 1}</b> <span class="sub">${esc(m.src || '')}</span>` + rows.map(r => `<div class="mr"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('') + `</div>`; }).join('');
+}
+function scopeAutoset(c){
+  scopeRefresh(); const cap = c._cap; if (!cap) return;
+  let per = 0;
+  // สองแชนเนล: CH1 ครึ่งบน CH2 ครึ่งล่าง (สูงราว 3.5 ช่อง) · แชนเนลเดียว: กลางจอ (สูงราว 6 ช่อง)
+  const both = c.on2 !== false && cap.ch[1].max - cap.ch[1].min > 0.01;
+  [0, 1].forEach(k => { const m = cap.ch[k], pp = Math.max(m.max - m.min, 0.002), tg = pp/(both ? 3.5 : 6);
+    c['vdiv' + (k + 1)] = SC_V.find(v => v >= tg) || SC_V[SC_V.length - 1];
+    const mid = (m.max + m.min)/2; c['pos' + (k + 1)] = Math.max(-4, Math.min(4, Math.round((both ? (k ? -2 : 2) : 0)*2 - mid/c['vdiv' + (k + 1)]*2)/2));
+    if (m.f && (!per || 1/m.f > per)) { per = 1/m.f; c.trig = String(k + 1); c.tlev = Math.round(mid*100)/100; } });
+  if (per){ c.tdiv = SC_T.find(t => t*10 >= per*2.5) || 0.05; if (c.tdiv >= 0.1) c.tdiv = 0.05; } else c.tdiv = 0.2;
+  scopeRefresh(); commit();
+}
+function scopeOpen(c){ scopeWin = c.id; scopeUI(); }
+function scopeUI(){
+  const el = $('#scopewin'), c = S.comps.find(x => x.id === scopeWin && x.t === 'scope');
+  if (!c){ el.hidden = true; scopeWin = null; return; }
+  el.hidden = false;
+  const sel = (key, list, f) => `<select data-sc="${key}">${list.map(v => `<option value="${v}" ${String(c[key]) === String(v) ? 'selected' : ''}>${f(v)}</option>`).join('')}</select>`;
+  const vlist = sel => SC_V.map(v => v);
+  el.innerHTML = `<div class="swh"><b>ออสซิลโลสโคป ${esc(c.n || '')}</b><span class="sub" id="schead"></span><span style="flex:1"></span>
+      <button class="btn ${c.run === false ? '' : 'on'}" data-sa="run">${c.run === false ? '▶ RUN' : '■ STOP'}</button><button class="btn" data-sa="auto">Auto Set</button><button class="btn" data-sa="close" title="ปิด">✕</button></div>
+    <canvas id="scv"></canvas>
+    <div class="swc">
+      <label><span style="color:${SC_COL[0]}">CH1 V/div</span>${sel('vdiv1', vlist(), v => fmtDiv(v, 'V'))}</label>
+      <label>CH1 ตำแหน่ง (div)<input type="range" min="-4" max="4" step="0.5" data-sc="pos1" value="${c.pos1}"></label>
+      <label>CH1 Coupling${sel('cpl1', ['DC','AC'], v => v)}</label>
+      <label>Time/div${sel('tdiv', SC_T, v => fmtDiv(v, 's') + (v >= 0.1 ? ' (roll)' : ''))}</label>
+      <label><span style="color:${SC_COL[1]}">CH2 V/div</span>${sel('vdiv2', vlist(), v => fmtDiv(v, 'V'))}</label>
+      <label>CH2 ตำแหน่ง (div)<input type="range" min="-4" max="4" step="0.5" data-sc="pos2" value="${c.pos2}"></label>
+      <label>CH2 Coupling${sel('cpl2', ['DC','AC'], v => v)}</label>
+      <label>แสดง CH2<select data-sc="on2"><option value="1" ${c.on2 !== false ? 'selected' : ''}>เปิด</option><option value="0" ${c.on2 === false ? 'selected' : ''}>ปิด</option></select></label>
+      <label>ทริกเกอร์${sel('trig', ['1','2'], v => 'CH' + v)}</label>
+      <label>ขอบ${sel('slope', ['up','down'], v => v === 'up' ? 'ขาขึ้น ↑' : 'ขาลง ↓')}</label>
+      <label>ระดับทริก (V)<input type="text" inputmode="decimal" data-sc="tlev" value="${c.tlev}"></label>
+    </div>
+    <div id="scmeas"></div>`;
+  scopeLive();
+}
+function scopeLive(){
+  const c = S.comps.find(x => x.id === scopeWin && x.t === 'scope'); if (!c) return;
+  const cv2 = $('#scv'); if (!cv2) return;
+  const r = cv2.getBoundingClientRect(), w = Math.round(r.width*dpr), h = Math.round(r.height*dpr);
+  if (cv2.width !== w || cv2.height !== h){ cv2.width = w; cv2.height = h; }
+  const g = cv2.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scopeDraw(g, 0, 0, r.width, r.height, c, false);
+  g.font = "600 11px 'IBM Plex Mono',monospace"; g.fillStyle = '#cbd5e1'; g.textBaseline = 'top'; g.fillText(scopeHeadline(c), 8, 6);
+  $('#scmeas').innerHTML = scopeMeasHTML(c);
+}
+(function scopeEvents(){
+  const el = $('#scopewin');
+  el.addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (!b) return; const c = S.comps.find(x => x.id === scopeWin);
+    if (b.dataset.sa === 'close'){ scopeWin = null; el.hidden = true; return; }
+    if (!c) return;
+    if (b.dataset.sa === 'run'){ c.run = c.run === false; if (c.run) c._hist = []; commit(); scopeUI(); }
+    if (b.dataset.sa === 'auto'){ scopeAutoset(c); scopeUI(); } });
+  const upd = (e, done) => { const t = e.target, k = t.dataset.sc, c = S.comps.find(x => x.id === scopeWin); if (!k || !c) return;
+    if (k === 'on2') c.on2 = t.value === '1'; else if (['vdiv1','vdiv2','tdiv','pos1','pos2'].includes(k)) c[k] = +t.value;
+    else if (k === 'tlev'){ const v = parseSI(t.value); if (!isFinite(v)) return; c.tlev = v; } else c[k] = t.value;
+    scopeRefresh(); scopeLive(); if (done) commit(); };
+  el.addEventListener('input', e => upd(e, false)); el.addEventListener('change', e => upd(e, true));
+  // ลากหัวหน้าต่างเพื่อย้าย
+  el.addEventListener('pointerdown', e => { const hd = e.target.closest('.swh'); if (!hd || e.target.closest('button')) return;
+    const r = el.getBoundingClientRect(), pr = el.offsetParent.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
+    const mv = ev => { el.style.left = Math.max(0, ev.clientX - pr.left - ox) + 'px'; el.style.top = Math.max(0, ev.clientY - pr.top - oy) + 'px'; el.style.right = 'auto'; };
+    const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); });
+})();
+
 const PAL = [
   ['แหล่งจ่ายไฟ', ['bat','src1','src3','acs','psu','xfmr','reg','gnd']],
   ['ป้องกันและเดินสาย', ['mcb','rcd','fuse','ol','cable']],
@@ -4092,7 +4349,7 @@ const PAL = [
   ['โหลดไฟฟ้า', ['res','lamp','fluo','cap','ind','capbank','human']],
   ['มอเตอร์', ['motor1','motor3','motor6','dcm','pump','servo']],
   ['ควบคุมมอเตอร์ (รีเลย์/คอนแทกเตอร์)', ['coil','tmr','no','nc','k3']],
-  ['เครื่องวัด', ['am','vm','pmeter']],
+  ['เครื่องวัด', ['am','vm','pmeter','scope']],
   ['อิเล็กทรอนิกส์', ['led','diode','zener','npn','pnp','nmos','opto','ne555','seg7','rgb','buzzer','pot']],
   ['ไมโครคอนโทรลเลอร์', ['uno','esp32','pico']],
   ['เซนเซอร์ (บอร์ด)', ['ldr','ntc','pir','sr04','dht','soil']],
@@ -4135,7 +4392,7 @@ function setTool(t){
 }
 function select(s){ sel = s; renderInsp(); liveUI(); }
 function refreshUI(){ renderInsp(); liveUI(); if (ladOpen) ladStruct(); $('#bUndo').disabled = !hist.length; $('#bVal').classList.toggle('on', showVal); }
-function onLoaded(){ fx.hv++; fx.sel = null; fxFrame(); ladSel = {ri:0, row:0, col:0}; if (!S.comps.some(c => c.id === ladPid)) ladPid = null; }
+function onLoaded(){ if (scopeWin && !S.comps.some(c => c.id === scopeWin)) scopeWin = null; setTimeout(scopeUI, 0); fx.hv++; fx.sel = null; fxFrame(); ladSel = {ri:0, row:0, col:0}; if (!S.comps.some(c => c.id === ladPid)) ladPid = null; }
 function fit(){
   const r = cv.getBoundingClientRect(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   const add = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
@@ -4227,6 +4484,7 @@ function endDrag(){
     else if (c.t === 'pir'){ c._t = c.hold; needSolve = true; }
     else if (c.t === 'prox' || c.t === 'photo'){ c.det = !c.det; commit(); }
     else if (c.t === 'limit'){ c.act = !c.act; commit(); }
+    else if (c.t === 'scope') scopeOpen(c);
     else if (c.t === 'spdt'){ c.pos = c.pos === 'A' ? 'B' : 'A'; commit(); }
     else if (c.t === 'pot'){ c.pos = Math.max(0, Math.min(100, c.pos + (mouse.gx < c.x ? -10 : 10))); commit(); }
   } else if (d.k === 'hmi'){ d.h._press = null; needSolve = true; }
@@ -4277,6 +4535,7 @@ $('#ihead').addEventListener('click', e => {
     case 'reset': c._trip = false; c._h = 0; if (c.t === 'rcd') c.on = true; needSolve = true; renderInsp(); break;
     case 'test': c.on = false; c._trip = 'rcd'; needSolve = true; renderInsp(); break;
     case 'kwh': c._kwh = 0; break;
+    case 'scope': scopeOpen(c); break;
     case 'replace': c._blown = false; c._burnt = false; c._on = false; c._h = 0; needSolve = true; renderInsp(); break;
     case 'prog': ladPid = c.id; ladOpen = true; ladSel = {ri:0, row:0, col:0}; ladStruct(); break;
     case 'mreset': delete c._vm; needSolve = true; break;
@@ -4315,12 +4574,13 @@ function frame(now){
   const sp = running ? +$('#spd').value : 0, dt = Math.min(0.1, Math.max(0, (now - last)/1000)); last = now;
   if (sp > 0){ let t = dt*sp; while (t > 1e-6){ const h = Math.min(0.05, t); step(h); t -= h; } } else settle();
   draw(now); fxDraw();
-  if (now - lastUI > 200){ lastUI = now; liveUI(); if (ladOpen) ladMon(); fxHud(); }
+  if (now - lastUI > 200){ lastUI = now; scopeRefresh(); liveUI(); if (ladOpen) ladMon(); fxHud(); if (scopeWin) scopeLive(); }
   requestAnimationFrame(frame);
 }
 
 window.__sim = {
   get S(){ return S; }, get RES(){ return RES; }, EX, FXS, setView, flit,
+  scope: n => { const c = S.comps.find(x => x.n === n); scopeRefresh(); return c && c._cap; }, scopeAutoset: n => scopeAutoset(S.comps.find(x => x.n === n)),
   load: x => (typeof x === 'string' && EX[x]) ? loadEx(x) : (load(x), cur = ser(), refreshUI()),
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },

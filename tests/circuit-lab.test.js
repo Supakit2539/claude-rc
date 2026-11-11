@@ -149,6 +149,16 @@ const path = require('path');
       {id:3, k:'conv', x:4.4, z:0, r:0, len:3, spd:0.5, m:'M1', h:0.6, h2:1.2}, {id:4, k:'bin', x:6.45, z:0, r:0, want:'any'}]};
     s.run(0.3); press('START'); s.run(40); o.cascade = Object.assign({}, s.FXS.cnt);
 
+    // ออสซิลโลสโคป
+    s.load('osc'); s.run(0.5);
+    let cap = s.scope('OSC1'); const sch = k => cap.ch[k];
+    o.osc = [sch(0).max - sch(0).min, sch(0).rms, sch(0).f, sch(1).max, sch(1).min, sch(1).f, sch(1).duty, cap.trig];
+    const sc = s.find('OSC1'); sc.cpl2 = 'AC'; cap = s.scope('OSC1'); o.oscAC = Math.abs(cap.ch[1].avg); sc.cpl2 = 'DC';
+    s.scopeAutoset('OSC1'); o.oscAuto = [sc.vdiv1, sc.vdiv2, sc.tdiv, sc.trig];
+    s.find('U1').C = 100; s.poke(); sc.tdiv = 0.5; sc._hist = []; s.run(6); cap = s.scope('OSC1');
+    o.oscRoll = [cap.roll, cap.ch[1].f, cap.ch[0].max - cap.ch[0].min];
+    s.load('arduino'); s.run(1.2); o.pwmSw = scopeSwitchers().map(x => [x.f, Math.round(x.duty*100)/100]);
+
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
     return o;
   });
@@ -210,6 +220,12 @@ const path = require('path');
   checks.push(['lift: เริ่มที่ชั้นล่าง (SQ1) แล้วยกกล่องขึ้นถึงชั้นบน 2 m', r.liftSq[0] === true && r.liftSq[1] === false && r.liftTop > 50 && Math.abs(r.liftMaxY - 2.15) < 0.02, [r.liftTop, r.liftMaxY].join(' / ')]);
   checks.push(['lift: กล่องผ่านลิฟต์ → สายพานชั้นบน → ทางลาด → ถัง ครบ ไม่ตกพื้น (120 s)', r.lift.metal + r.lift.other >= 6 && r.lift.floor === 0, JSON.stringify(r.lift)]);
   checks.push(['หลายระดับ: กล่องตกจากสายพานสูงลงสายพานลาดเอียงด้านล่างแล้วลงถัง', r.cascade.other >= 10 && r.cascade.floor === 0, JSON.stringify(r.cascade)]);
+  checks.push(['osc: CH1 ไซน์ 12 Vrms (Vpp ≈ 33.8 V) 50 Hz ทริกได้', Math.abs(r.osc[0] - 33.8) < 0.3 && Math.abs(r.osc[1] - 11.97) < 0.1 && r.osc[2] === 50 && r.osc[7], r.osc.slice(0, 3).map(x => +x.toFixed(2)).join(' / ')]);
+  checks.push(['osc: CH2 พัลส์ NE555 0–8.85 V ≈ 687 Hz ดิวตี้ ≈ 52%', Math.abs(r.osc[3] - 8.85) < 0.05 && Math.abs(r.osc[4]) < 0.01 && Math.abs(r.osc[5] - 687) < 1 && Math.abs(r.osc[6] - 0.524) < 0.005, r.osc.slice(3, 7).map(x => +x.toFixed(3)).join(' / ')]);
+  checks.push(['osc: AC coupling ตัด DC ออก (ค่าเฉลี่ย ≈ 0)', r.oscAC < 0.05, r.oscAC]);
+  checks.push(['osc: Auto Set เลือก 10 V/div, 5 V/div, 5 ms/div ทริก CH1', JSON.stringify(r.oscAuto) === '[10,5,0.005,"1"]', JSON.stringify(r.oscAuto)]);
+  checks.push(['osc: โหมดเลื่อน (roll) วัดพัลส์ช้า ≈ 0.69 Hz และแถบไซน์ 33.8 Vpp', r.oscRoll[0] && Math.abs(r.oscRoll[1] - 0.69) < 0.03 && Math.abs(r.oscRoll[2] - 33.8) < 0.3, JSON.stringify(r.oscRoll)]);
+  checks.push(['osc: ตรวจพบ PWM ของ Arduino 490 Hz', r.pwmSw.length === 1 && r.pwmSw[0][0] === 490, JSON.stringify(r.pwmSw)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
