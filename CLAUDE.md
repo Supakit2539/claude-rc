@@ -134,7 +134,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, ceamp, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -195,6 +195,21 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
       โหมดเร็ว + DC: ระดับเปลี่ยนข้ามระดับทริกจากภาพก่อน (`c._pd`) = ขั้นบันได วางจุดทริกที่ 1 ช่อง (`cap.tpos`); โหมดเลื่อน: หาจุดตัดใน `c._hist` (Single เอาครั้งแรกหลัง `_arm`) แล้วรอบันทึกอีก 9 ช่อง
     - `scopeDraw(ctx, x, y, w, h, c, small)` ใช้ทั้งจอเล็กใน `drawBlock` และหน้าต่างเต็ม (`scopeUI`/`scopeLive`); `scopeAutoset(c)` ปรับสเกล/ทริกอัตโนมัติ
 
+13. **เครื่องวิเคราะห์แบบ SPICE** (หน้าต่าง `#anwin`, ปุ่ม "วิเคราะห์") — แยกจากการจำลองสด ใช้แบบจำลองไม่เชิงเส้นจริงแก้ด้วย Newton–Raphson
+    - `spBuild()` → netlist: โหนดจาก union-find ของปลายสาย (สายไฟ = 0 Ω), กราวด์ (0) = `gnd`/N ของ `src1`/กราวด์โพรบสโคป, เกาะที่ลอยผูกจุดอ้างอิงลงกราวด์ 1 จุด (`tie`);
+      อุปกรณ์ที่ไม่รองรับ (มอเตอร์, PLC, MCU, โมดูล) อยู่ใน `net.unsup` · ชนิดในชุด `SP_OK`
+    - `spLoad(net, st)` stamp ทุกอุปกรณ์ (st.mode dc/tran, a0, srcK, gmin, T °C, Cm = เมทริกซ์ความจุสำหรับ AC): ไดโอด Shockley + RS + CJO/VJ/M + TT + BV (`spDioP`, `spDio`, `pnjlim`),
+      BJT Ebers–Moll + Early (`spBjtP`), MOSFET Level 1 + Cgs/Cgd + ไดโอดบอดี (`spMosP`), ออปแอมป์มาโครโมเดล (โหนด x: G1 = 1 µS + Cp → ขั้ว GBW, กระแสจำกัด → สลูว์เรต `sr`,
+      หนีบ x ด้วย `ramp`, ขาออก tanh จำกัด `isc`, `vos`, `rin`), หลอดไส้ R ∝ V^0.42, หม้อแปลง (อุดมคติ + Lm แม่เหล็ก 3% + R ขด), 78xx/LM317 พฤติกรรม,
+      ลอจิกแบบผสม (`spDigEval`: DC วนจนนิ่ง, ชั่วคราวประเมินหลังแต่ละขั้น = หน่วง 1 ขั้น, สถานะเงาใน `el.sh`), NE555 พฤติกรรมตามเวลา
+      อุปกรณ์พฤติกรรมใช้ `BI(p, q, ตัวควบคุม, f)` อนุพันธ์เชิงตัวเลข · ประจุ `charge()` อินทิเกรตแบบ BDF2 (ขั้นแรก/หลังลอจิกเปลี่ยน = BE)
+    - `spOP` (NR → gmin stepping → source stepping) · `spRun({kind:'op'|'dc'|'ac'|'tran'|'four', probes, temp, …})`: กวาด DC ได้ทั้งค่าแหล่งจ่าย/ฟิลด์ตัวเลขของอุปกรณ์/อุณหภูมิ,
+      AC = จาโคเบียนที่จุดทำงาน + jωCm (แหล่งที่เลือก 1 V), ชั่วคราวขั้นคงที่ลดลง ÷4 เมื่อไม่ลู่เข้า, ฟูเรียร์จากคาบเต็มท้ายสุด (`spFourier`, THD), ค่าวัด `spMeas`
+    - โพรบ (`spProbes`): `V(ชื่อ)` คร่อม 2 ขั้ว, `V(ชื่อ.ขา)` เทียบกราวด์, `I(ชื่อ)`, `P(ชื่อ)`, สโคป `V(OSC.CH1−⏚)` · ตารางจุดทำงาน `spOpTable` (ย่าน BJT/MOSFET/ออปแอมป์/ไดโอด)
+    - ส่งออก CSV / PNG / netlist (`spNetlist`: ngspice/LTspice, .model ของไดโอด/BJT/MOSFET, ออปแอมป์เป็น G + RC + B-source, หม้อแปลงเป็น L คู่ K)
+    - พารามิเตอร์ SPICE แก้ได้ในแผงขวา (`SPX` ต่อท้าย `F`, เว้นว่าง = อัตโนมัติ `SPF`), ค่าตามรุ่นใน `SPMOD` · IS คำนวณจาก Vf ที่กระแสอ้างอิงเมื่อไม่ระบุ
+    - เครื่องกำเนิดสัญญาณ `fgen` (OUT COM, `wave` sine/square/tri/saw/pulse, `f`, `vpp`, `off`, `duty`, `ph`, `zo` 50 Ω): solver ปกติใช้ฮาร์มอนิกหลัก (`fgenPh`), `trRun` ใช้ `fgenV(c, t)` จริง
+
 ## ข้อตกลง
 - สีทั้งหมดเป็น CSS token บน `:root` และรองรับ dark mode (`prefers-color-scheme` + `data-theme`); canvas อ่านค่าผ่าน `readColors()` เก็บใน `K`
 - กริด 1 ช่อง = 40 px (`G`)
@@ -230,6 +245,8 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - opamp: ×−10 → ±7.07 V 1 kHz, Vs 1.5 V → ตัดยอด ±9.92 V · opamposc: คาบ ≈ 1.05 s, ตัวเก็บประจุ ±3.54 V · DC: ไม่กลับเฟส ×11 (0.6 → 6.6 V), ชมิตต์มีฮิสเทอรีซิส
 - chaser: CD4017 นับ 0→9 วนกลับ LED ติดทีละดวง · cnt7seg: CD4518 → CD4511 แสดงส่วน a–g ถูกทุกค่า, 9 → 0 · shift595: shiftOut → ตัวจับ 1, 2, 3… LED ตรงเลขฐานสอง
 - lm317: 5.08 V / 9.26 V / dropout 13.0 V / ไม่มีไฟเข้า 0 V · tempalarm: 25 °C → 0.25 V LED ดับ, 35 °C → ติด
+- SPICE: RC −3 dB ≈ 159 Hz เฟส −45° · คลื่นสี่เหลี่ยม H3/H1 = 1/3 THD(ถึง H9) ≈ 42.9% · 1N4007 ≈ 0.77 V ที่ 42 mA, −1.4 mV/°C · ceamp Ic ≈ 2.6 mA, ≈ 44 dB, THD > 3%
+  · ออปแอมป์ ×−10: 20 dB, −3 dB ≈ 90 kHz (GBW/11), ±7.07 V · rectifier ≈ 14.4 V ริปเปิล ≈ 1.24 Vpp · ทุกตัวอย่างหาจุดทำงานได้
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -254,5 +271,6 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - โหมดตามเวลา: ขยายให้ครอบคลุมทรานซิสเตอร์/MOSFET/78xx/NE555/MCU PWM, 3 เฟส, ความเหนี่ยวนำแม่เหล็กหม้อแปลง
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), สลูว์เรตออปแอมป์, เกต 3–4 อินพุต, ไอซีเพิ่ม (ULN2003, 74HC138, L293D, LCD I2C), ขา PRE/CLR ของ D-FF
 - ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
+- SPICE: MCU/PLC ในการวิเคราะห์ (ใช้สถานะขาปัจจุบัน), ขั้นเวลาปรับอัตโนมัติ (LTE), วิเคราะห์สัญญาณรบกวน/ความไว, Monte Carlo ตามค่าความคลาดเคลื่อน, กวาดพารามิเตอร์หลายเส้น, โหมดจำลองสดด้วยเครื่อง SPICE
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น

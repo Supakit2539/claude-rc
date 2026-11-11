@@ -516,6 +516,43 @@ const path = require('path');
     nr(ic.lm[0], 5.08, 0.03) && nr(ic.lm[1], 9.26, 0.05) && nr(ic.lm[2], 13.0, 0.05) && ic.lm[3] === 'do' && Math.abs(ic.lm[4]) < 0.05, JSON.stringify(ic.lm)]);
   checks.push(['LM35 + คอมพาราเตอร์: 25 °C → 0.25 V LED ดับ, 35 °C → 0.35 V LED ติด',
     nr(ic.ta[0], 0.25, 0.005) && !ic.ta[1] && nr(ic.ta[2], 0.35, 0.005) && ic.ta[3], JSON.stringify(ic.ta)]);
+  const sp = await page.evaluate(() => { const s = __sim, o = {};
+    // RC low-pass: −3 dB = 1/(2πRC) = 159.2 Hz, เฟส −45°
+    s.load(build((C,W) => { C('fgen',3,6,{n:'FG1',f:100,vpp:2,zo:0.05}); W([4,7],[4,9]); W([2,7],[2,3],[6,3]); C('res',7,3,{n:'R1',R:1000}); W([8,3],[10,3],[10,5]); C('cap',10,6,{r:1,n:'C1',C:1}); W([10,7],[10,9],[4,9]); C('gnd',4,9,{}); }));
+    let a = s.spRun({kind:'ac', src:'FG1', from:10, to:1e5, ppd:200, probes:['V(C1)']}); const i3 = a.mag[0].findIndex(v => 20*Math.log10(v) < -3);
+    o.rc = [a.xs[i3], a.ph[0][i3]];
+    let t = s.spRun({kind:'tran', tstop:0.05, tstep:1e-5, probes:['V(C1)']}); o.rct = [t.meas[0].pp, t.meas[0].f];
+    // คลื่นสี่เหลี่ยม: H3/H1 = 1/3, THD = 48.3%
+    s.find('FG1').wave = 'square'; s.find('FG1').f = 1000; t = s.spRun({kind:'four', tstop:0.01, tstep:2e-6, probes:['V(R1)'], f0:1000, nh:9}); const F4 = t.four[0];
+    o.sq = [F4.H[3].amp/F4.H[1].amp, F4.H[2].amp/F4.H[1].amp, F4.thd];
+    // ไดโอด 1N4007: Vf ที่ ≈ 42 mA, สัมประสิทธิ์อุณหภูมิติดลบ
+    s.load(build((C,W) => { C('bat',2,5,{r:1,n:'B1',V:5}); C('res',5,3,{n:'R1',R:100}); C('diode',8,5,{r:1,n:'D1',Vf:0.7,N:1.8,Rs:0.034,Cj:15,TT:4300,BV:1000}); W([2,4],[2,3],[4,3]); W([6,3],[8,3],[8,4]); W([8,6],[8,7],[2,7],[2,6]); }));
+    const d = s.spRun({kind:'dc', param:'temp', from:27, to:127, pts:2, probes:['V(D1)', 'I(D1)']}); o.dio = [d.ys[0][0], d.ys[1][0], (d.ys[0][1] - d.ys[0][0])/100];
+    // วงจรขยายอีมิตเตอร์ร่วม
+    s.load('ceamp'); o.net = s.spNetlist(); const op = s.spRun({kind:'op'}); const q = op.net.comp.get(s.find('Q1')); o.ce = [op.op.ok, q.ic, q.vbc < 0];
+    a = s.spRun({kind:'ac', src:'FG1', from:10, to:1e7, ppd:20, probes:['V(RL)']}); o.ceg = Math.max(...a.mag[0].map(v => 20*Math.log10(v)));
+    t = s.spRun({kind:'four', tstop:0.01, tstep:2e-6, probes:['V(RL)'], f0:1000, nh:5}); o.cethd = t.four[0].thd;
+    // ออปแอมป์ ×−10: −3 dB ≈ GBW/11, ชั่วคราว ±7.07 V, ตัดยอด ±9.92 V
+    s.load('opamp'); a = s.spRun({kind:'ac', src:'Vs', from:100, to:1e7, ppd:100, probes:['V(RL)']}); const m = a.mag[0].map(v => 20*Math.log10(v)); o.oa = [m[0], a.xs[m.findIndex(v => v < m[0] - 3)], a.ph[0][0]];
+    t = s.spRun({kind:'tran', tstop:0.005, tstep:2e-6, probes:['V(RL)']}); o.oat = [t.meas[0].max, t.meas[0].min];
+    // เรียงกระแส (ไดโอดแบบ Shockley + หม้อแปลงมีความเหนี่ยวนำแม่เหล็ก)
+    s.load('rectifier'); t = s.spRun({kind:'tran', tstop:0.3, tstep:5e-5, probes:['V(V1)']}); o.rect = [t.meas[0].avg, t.meas[0].pp, t.meas[0].f, t.msg.length];
+    o.ex = []; for (const k of Object.keys(s.EX)){ try { s.load(k); if (!s.spRun({kind:'op'}).op.ok) o.ex.push(k); } catch (e){ o.ex.push(k + ':' + e.message); } }
+    return o; });
+  checks.push(['SPICE AC: RC low-pass −3 dB ≈ 159 Hz เฟส −45° · ชั่วคราว 100 Hz → 1.69 Vpp',
+    nr(sp.rc[0], 159.2, 1.5) && nr(sp.rc[1], -45, 1.5) && nr(sp.rct[0], 1.693, 0.01) && nr(sp.rct[1], 100, 0.5), JSON.stringify([sp.rc, sp.rct])]);
+  checks.push(['SPICE ฟูเรียร์: คลื่นสี่เหลี่ยม H3/H1 = 1/3, ไม่มีฮาร์มอนิกคู่, THD (ถึง H9) ≈ 42.9%',
+    nr(sp.sq[0], 0.3333, 0.01) && sp.sq[1] < 0.01 && nr(sp.sq[2], 42.9, 1.5), JSON.stringify(sp.sq)]);
+  checks.push(['SPICE ไดโอด Shockley: 1N4007 ≈ 0.77 V ที่ 42 mA, อุณหภูมิเพิ่ม → Vf ลด (−1 ถึง −2.5 mV/°C)',
+    nr(sp.dio[0], 0.768, 0.02) && nr(sp.dio[1], 0.0423, 0.002) && sp.dio[2] < -1e-3 && sp.dio[2] > -2.5e-3, JSON.stringify(sp.dio)]);
+  checks.push(['SPICE BJT: วงจรขยายอีมิตเตอร์ร่วม Ic ≈ 2.6 mA ย่านแอคทีฟ, อัตราขยาย ≈ 44 dB, THD > 3% (ความไม่เชิงเส้นจริงของ BJT)',
+    sp.ce[0] && nr(sp.ce[1], 2.6e-3, 0.2e-3) && sp.ce[2] && nr(sp.ceg, 44, 2) && sp.cethd > 3, JSON.stringify([sp.ce, sp.ceg, sp.cethd])]);
+  checks.push(['SPICE ออปแอมป์: 20 dB เฟส 180°, −3 dB ≈ GBW/11 ≈ 90 kHz, ชั่วคราว ±7.07 V',
+    nr(sp.oa[0], 20, 0.05) && nr(sp.oa[1], 90900, 4000) && nr(Math.abs(sp.oa[2]), 180, 1) && nr(sp.oat[0], 7.07, 0.03) && nr(sp.oat[1], -7.07, 0.03), JSON.stringify([sp.oa, sp.oat])]);
+  checks.push(['SPICE ชั่วคราว: เรียงกระแสเต็มคลื่น ≈ 14.4 V ริปเปิล ≈ 1.24 Vpp ที่ 100 Hz',
+    nr(sp.rect[0], 14.4, 0.25) && nr(sp.rect[1], 1.24, 0.15) && nr(sp.rect[2], 100, 1) && sp.rect[3] === 0, JSON.stringify(sp.rect)]);
+  checks.push(['SPICE: netlist มี .model + แหล่ง SIN และทุกตัวอย่างหาจุดทำงาน DC ได้',
+    /\.model .*NPN/.test(sp.net) && /SIN\(/.test(sp.net) && sp.ex.length === 0, JSON.stringify(sp.ex)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
