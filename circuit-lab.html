@@ -254,8 +254,8 @@ const T = {
   sw:    {nm:'สวิตช์',               ic:'⌐',  pre:'S',  d:{on:true}},
   cap:   {nm:'ตัวเก็บประจุ',          ic:'||', pre:'C',  d:{C:10}},
   ind:   {nm:'ตัวเหนี่ยวนำ',          ic:'∿',  pre:'L',  d:{Lh:0.1, R:1}},
-  am:    {nm:'แอมมิเตอร์',            ic:'A',  pre:'A',  d:{}},
-  vm:    {nm:'โวลต์มิเตอร์',          ic:'V',  pre:'V',  d:{}},
+  am:    {nm:'แอมมิเตอร์',            ic:'A',  pre:'A',  d:{mode:'rms'}},
+  vm:    {nm:'โวลต์มิเตอร์',          ic:'V',  pre:'V',  d:{mode:'rms'}},
   gnd:   {nm:'กราวด์',               ic:'⏚',  pre:'',   d:{}, pins:[[0,0,'']], box:[-0.4,0,0.4,0.55]},
   src1:  {nm:'ไฟบ้าน 1 เฟส',          ic:'~',  pre:'G',  d:{V:230, f:50}, pins:[[0,1,'L'],[1,1,'N']], box:[-0.6,-1,1.6,1]},
   src3:  {nm:'ไฟ 3 เฟส',             ic:'3~', pre:'G',  d:{V:400, f:50, seq:1}, pins:[[-1,1,'L1'],[0,1,'L2'],[1,1,'L3'],[2,1,'N']], box:[-1.6,-1,2.6,1]},
@@ -358,7 +358,10 @@ const JUNC = {
   rgb:   c => [[0, 1, 1.9, c.Rs], [2, 1, 3, c.Rs], [3, 1, 3, c.Rs]],
   opto:  c => [[0, 1, 1.2, 2]],
 };
-Object.assign(NV, {diode:1, zener:2, seg7:8, rgb:3, opto:1, npn:2, pnp:2, reg:1});
+Object.assign(NV, {diode:1, zener:2, seg7:8, rgb:3, opto:1, npn:2, pnp:2, reg:1, bridge:4});
+// บริดจ์เรียงกระแส: ไดโอด 4 ตัว ~1→+, ~2→+, −→~1, −→~2
+JUNC.bridge = c => [[0, 2, c.Vf, 0.05], [1, 2, c.Vf, 0.05], [3, 0, c.Vf, 0.05], [3, 1, c.Vf, 0.05]];
+T.bridge = {nm:'ไดโอดบริดจ์ (เรียงกระแสเต็มคลื่น)', ic:'◇', pre:'BR', d:{Vf:0.9, Imax:2, Vrrm:600}, pins:[[-1,-2,'~1'],[1,-2,'~2'],[-1,2,'+'],[1,2,'−']], box:[-1.6,-2,1.6,2]};
 const timing555 = c => { const Cf = c.C*1e-6; return [0.693*(c.R1 + c.R2)*Cf, 0.693*c.R2*Cf]; };
 
 /* ============================================================
@@ -578,6 +581,11 @@ const MODELS = {
     {id:'th380', nm:'ไฟ 3 เฟส 380/220 V 50 Hz (มาตรฐานเดิม)', p:{V:380, f:50}},
     {id:'us480', nm:'ไฟ 3 เฟส 480/277 V 60 Hz', p:{V:480, f:60}},
     {id:'ind690', nm:'ไฟ 3 เฟส 690/400 V 50 Hz (โรงงาน)', p:{V:690, f:50}},
+  ],
+  bridge: [
+    {id:'kbp206', nm:'บริดจ์ 2 A 600 V (KBP206)', sh:'2A 600V', p:{Vf:0.9, Imax:2, Vrrm:600}, spec:{'กระแสเฉลี่ย':'2 A', 'แรงดันย้อนกลับ':'600 V', 'แรงดันตก':'≈ 0.9 V ต่อไดโอด (ผ่าน 2 ตัว ≈ 1.8 V)'}},
+    {id:'gbu808', nm:'บริดจ์ 8 A 800 V (GBU808)', sh:'8A 800V', p:{Vf:0.95, Imax:8, Vrrm:800}, spec:{'กระแสเฉลี่ย':'8 A (ติดฮีตซิงก์)', 'แรงดันย้อนกลับ':'800 V'}},
+    {id:'kbpc3510', nm:'บริดจ์ 35 A 1000 V (KBPC3510)', sh:'35A', p:{Vf:1.1, Imax:35, Vrrm:1000}, spec:{'กระแสเฉลี่ย':'35 A', 'ติดตั้ง':'สกรู + ฮีตซิงก์'}},
   ],
   diode: [
     {id:'1n4007', nm:'1N4007 เรียงกระแส 1 A 1000 V', sh:'1N4007', p:{Vf:0.7, Imax:1}, spec:{'VRRM':'1000 V', 'IF(AV)':'1 A'}},
@@ -2289,13 +2297,153 @@ function continuous(dt){
 }
 // อิมพีแดนซ์มอเตอร์ขึ้นกับความเร็ว → ความเร็วเปลี่ยนเกิน 2% ต้องแก้วงจรใหม่
 function spDirty(c){ if (Math.abs((c._sp || 0) - (c._spS || 0)) > 0.02){ c._spS = c._sp || 0; needSolve = true; } }
+/* ============================================================
+   จำลองตามเวลา (transient) — ใช้เมื่อวงจรมีแต่อุปกรณ์ที่รองรับ และมีตัวเก็บประจุ/ตัวเหนี่ยวนำ หรือไดโอดกับไฟ AC
+   ก้าวละ h ≈ 100 µs (200 จุด/คาบ) · ตัวเก็บประจุ/ขดลวด = companion model แบบ backward Euler · ไดโอด = piecewise (Vf + R / ตัดวงจร)
+   แยกตัวประกอบ LU แคชตามสถานะไดโอด · เก็บรูปคลื่นแรงดันทุกโหนดย้อนหลัง 1 s ให้สโคป (TR.tw)
+   ============================================================ */
+const TR_OK = new Set(['res','lamp','sw','pb','pbnc','fuse','mcb','am','vm','cap','ind','human','cable','ldr','ntc','buzzer','limit','estop',
+  'diode','zener','led','bridge','bat','acs','src1','xfmr','scope','gnd','spdt','pot']);
+const TR = {active:false, tw:null, sig:''};
+function trApplicable(){
+  let dyn = false, ac = false, jn = false;
+  for (const c of S.comps){ if (!TR_OK.has(c.t)) return false;
+    if (c.t === 'cap' || c.t === 'ind') dyn = true; if (c.t === 'acs' || c.t === 'src1') ac = true; if (JUNC[c.t] || c.t === 'led') jn = true; }
+  return dyn || (ac && jn);
+}
+const trJ = c => c.t === 'led' ? (c._blown ? [] : [[0, 1, c.Vf, 1]]) : JUNC[c.t] ? JUNC[c.t](c) : null;
+function luFactor(A, n){
+  const p = new Int32Array(n); for (let i = 0; i < n; i++) p[i] = i;
+  for (let k = 0; k < n; k++){
+    let m = k, mv = Math.abs(A[k*n + k]); for (let i = k + 1; i < n; i++){ const v = Math.abs(A[i*n + k]); if (v > mv){ mv = v; m = i; } }
+    if (mv < 1e-300) A[k*n + k] = 1e-300;
+    if (m !== k){ for (let j = 0; j < n; j++){ const t = A[k*n + j]; A[k*n + j] = A[m*n + j]; A[m*n + j] = t; } const t = p[k]; p[k] = p[m]; p[m] = t; }
+    const d = A[k*n + k];
+    for (let i = k + 1; i < n; i++){ const f = A[i*n + k]/d; if (!f) continue; A[i*n + k] = f; for (let j = k + 1; j < n; j++) A[i*n + j] -= f*A[k*n + j]; }
+  }
+  return {A, p, n};
+}
+function luSolve(F, b){
+  const {A, p, n} = F, x = new Float64Array(n);
+  for (let i = 0; i < n; i++){ let s2 = b[p[i]]; for (let j = 0; j < i; j++) s2 -= A[i*n + j]*x[j]; x[i] = s2; }
+  for (let i = n - 1; i >= 0; i--){ let s2 = x[i]; for (let j = i + 1; j < n; j++) s2 -= A[i*n + j]*x[j]; x[i] = s2/A[i*n + i]; }
+  return x;
+}
+// อ่านแรงดันโหนด k ณ เวลา t จากบัฟเฟอร์ (ประมาณค่าเชิงเส้น · เก่ากว่าบัฟเฟอร์ → ต่อคาบย้อนหลัง)
+function trNodeAt(k, t){
+  const W = TR.tw; if (!W || !k) return 0;
+  let x = (W.tEnd - t)/W.h; if (x < 0) x = 0;
+  if (x > W.filled - 2){ if (W.Pn > 0 && W.filled > W.Pn + 2) x = x % W.Pn; else x = W.filled - 2; if (x < 0) x = 0; }   // เก่ากว่าบัฟเฟอร์ → ใช้คาบล่าสุด
+  const i0 = Math.floor(x), fr = x - i0, rd = j => W.data[((W.w - 1 - j + W.L) % W.L)*W.nn + k];
+  return rd(i0)*(1 - fr) + rd(i0 + 1)*fr;
+}
+function trRun(dt){
+  const nn = RES.nn, f = RES.f || 50, w = 2*Math.PI*f, h = Math.min(1e-4, 1/(f*200)), K = Math.max(1, Math.round(dt/h)), hh = dt/K;
+  // ตัวแปรแหล่งแรงดัน
+  let N = nn; const vs = [];
+  for (const c of S.comps) if (c.t === 'bat' || c.t === 'acs' || c.t === 'src1' || c.t === 'xfmr'){ vs.push(c); c._tj2 = N++; }
+  const sig = nn + ':' + N + ':' + S.comps.length + ':' + S.wires.length;
+  if (!TR.tw || TR.sig !== sig){ const L = Math.round(1/hh); TR.tw = {h:hh, L, nn:nn + 1, data:new Float32Array(L*(nn + 1)), w:0, filled:0, tEnd:simT - dt, Pn:0}; TR.sig = sig; }
+  const W = TR.tw; W.Pn = Math.round(1/(f*hh));
+  const base = new Float64Array(N*N), M = (i, j, v) => { base[i*N + j] += v; };
+  const Y = (a, b, g, A2 = base) => { if (a) A2[(a-1)*N + a-1] += g; if (b) A2[(b-1)*N + b-1] += g; if (a && b){ A2[(a-1)*N + b-1] -= g; A2[(b-1)*N + a-1] -= g; } };
+  const Vs = (p, m, j, rs) => { if (p){ M(p-1, j, 1); M(j, p-1, 1); } if (m){ M(m-1, j, -1); M(j, m-1, -1); } if (rs) M(j, j, -rs); };
+  for (let i = 0; i < nn; i++) M(i, i, GMIN);
+  for (const wr of S.wires) Y(wr._a, wr._b, GW);
+  const caps = [], inds = [], juns = [], lin = [];
+  for (const c of S.comps){ const n = c._n;
+    // BDF2 (Gear อันดับ 2): ตัวเก็บประจุ i = C(3vₙ − 4vₙ₋₁ + vₙ₋₂)/2h · ขดลวด v = Ri + L(3iₙ − 4iₙ₋₁ + iₙ₋₂)/2h — แม่นกว่า Euler และไม่แกว่งตอนไดโอดสลับ
+    if (c.t === 'cap'){ const Cf = c.C*1e-6, G = 1.5*Cf/hh; Y(n[0], n[1], G); caps.push({c, G, k:Cf/(2*hh)}); if (c._vc == null) c._vc = c._vc2 = 0; if (c._vc2 == null) c._vc2 = c._vc; continue; }
+    if (c.t === 'ind'){ const R = Math.max(c.R, 0.01), k = c.Lh/(2*hh), G = 1/(R + 3*k); Y(n[0], n[1], G); inds.push({c, G, k}); if (c._il == null) c._il = c._il2 = 0; if (c._il2 == null) c._il2 = c._il; continue; }
+    const J = trJ(c); if (J){ J.forEach((q, i) => juns.push({c, i, a:n[q[0]], k:n[q[1]], Vf:q[2], R:q[3]})); if (!c._tj || c._tj.length !== J.length) c._tj = J.map(() => 0); continue; }
+    const y = isTwo(c) ? admit(c, false, w) : null; if (y){ Y(n[0], n[1], y[0]); lin.push({c, G:y[0]}); continue; }
+    switch (c.t){
+      case 'bat': Vs(n[0], n[1], c._tj2, Math.max(c.ri, 1e-4)); break;
+      case 'acs': Vs(n[0], n[1], c._tj2, 0.05); break;
+      case 'src1': Y(n[1], 0, GW); Vs(n[0], n[1], c._tj2, 0.05); break;
+      case 'xfmr': { const j = c._tj2, r = c.V2/c.V1, rs = 0.04*c.V2*c.V2/c.S;
+        if (n[2]){ M(n[2]-1, j, 1); M(j, n[2]-1, 1); } if (n[3]){ M(n[3]-1, j, -1); M(j, n[3]-1, -1); }
+        if (n[0]){ M(n[0]-1, j, -r); M(j, n[0]-1, -r); } if (n[1]){ M(n[1]-1, j, r); M(j, n[1]-1, r); } M(j, j, -rs); Y(n[0], n[1], 1e-5); } break;
+      case 'scope': Y(n[0], n[2], 1e-6/(c.px1 || 1)); Y(n[1], n[2], 1e-6/(c.px2 || 1)); if (c.earth !== false) Y(n[2], 0, 10); break;
+      case 'gnd': Y(n[0], 0, GW); break;
+      case 'spdt': Y(n[0], n[1], c.pos === 'A' ? GW : GOFF); Y(n[0], n[2], c.pos === 'B' ? GW : GOFF); break;
+      case 'pot': { const a = Math.max(1, c.R*c.pos/100), b2 = Math.max(1, c.R*(1 - c.pos/100)); Y(n[0], n[1], 1/a); Y(n[1], n[2], 1/b2); } break;
+    }
+  }
+  const cache = new Map();
+  const getLU = key => { let F = cache.get(key); if (F) return F;
+    const A = base.slice(); juns.forEach((J, i) => Y(J.a, J.k, key[i] === '1' ? 1/J.R : GOFF, A)); F = luFactor(A, N); cache.set(key, F); return F; };
+  // สถิติ: ช่วงท้ายที่ครบคาบ (ใช้หาค่าเฉลี่ย, RMS, เฟเซอร์ความถี่หลัก)
+  const Pn = Math.round(1/(f*hh)), nAcc = Pn > 0 && K >= Pn ? Math.floor(K/Pn)*Pn : K, kAcc = K - nAcc;
+  const nodeAcc = Array.from({length:nn + 1}, () => [0, 0, 0, 0]);          // Σv, Σv², Σv·sin, Σv·cos
+  const devAcc = new Map(); const acc = (c, key, v, i) => { let a = devAcc.get(c.id + ':' + key); if (!a){ a = new Float64Array(8); devAcc.set(c.id + ':' + key, a); }
+    a[0] += v; a[1] += v*v; a[2] += i; a[3] += i*i; a[4] += v*i; return a; };
+  const sw = new Float64Array(S.wires.length);
+  let x = null;
+  for (let s = 0; s < K; s++){
+    const t = simT - dt + (s + 1)*hh, sn = Math.sin(w*t), cs = Math.cos(w*t);
+    for (let it = 0; it < 25; it++){
+      const key = juns.map(J => J.c._tj[J.i] ? '1' : '0').join(''), F = getLU(key), z = new Float64Array(N);
+      for (const c of vs){ const j = c._tj2;
+        if (c.t === 'bat') z[j] = c.V; else if (c.t === 'acs') z[j] = c.V*Math.SQRT2*Math.sin(w*t + (c.ph || 0)*Math.PI/180); else if (c.t === 'src1') z[j] = c.V*Math.SQRT2*Math.sin(w*t); }
+      for (const q of caps){ const n = q.c._n, I = q.k*(4*q.c._vc - q.c._vc2); if (n[0]) z[n[0]-1] += I; if (n[1]) z[n[1]-1] -= I; }
+      for (const q of inds){ const n = q.c._n, I = q.G*q.k*(4*q.c._il - q.c._il2); if (n[0]) z[n[0]-1] -= I; if (n[1]) z[n[1]-1] += I; }
+      juns.forEach(J => { if (J.c._tj[J.i]){ const I = J.Vf/J.R; if (J.a) z[J.a-1] += I; if (J.k) z[J.k-1] -= I; } });
+      x = luSolve(F, z);
+      let ch = false; const V = k => k ? x[k-1] : 0;
+      for (const J of juns){ const v = V(J.a) - V(J.k), on = J.c._tj[J.i];
+        if (on && (v - J.Vf)/J.R < -1e-9){ J.c._tj[J.i] = 0; ch = true; } else if (!on && v > J.Vf + 1e-6){ J.c._tj[J.i] = 1; ch = true; } }
+      if (!ch) break;
+    }
+    const V = k => k ? x[k-1] : 0, rec = s >= kAcc;
+    // บันทึกรูปคลื่น
+    const off = W.w*W.nn; W.data[off] = 0; for (let k = 1; k <= nn; k++) W.data[off + k] = V(k);
+    W.w = (W.w + 1) % W.L; W.filled = Math.min(W.L, W.filled + 1); W.tEnd = t;
+    if (rec){ for (let k = 1; k <= nn; k++){ const v = V(k), a = nodeAcc[k]; a[0] += v; a[1] += v*v; a[2] += v*sn; a[3] += v*cs; }
+      S.wires.forEach((wr, i) => { sw[i] += GW*(V(wr._a) - V(wr._b)); }); }
+    // อัปเดตสถานะ + สถิติอุปกรณ์
+    for (const q of caps){ const n = q.c._n, v = V(n[0]) - V(n[1]), i = q.G*v - q.k*(4*q.c._vc - q.c._vc2); q.c._vc2 = q.c._vc; q.c._vc = v; if (rec) acc(q.c, 0, v, i); }
+    for (const q of inds){ const n = q.c._n, v = V(n[0]) - V(n[1]), i = q.G*v + q.G*q.k*(4*q.c._il - q.c._il2); q.c._il2 = q.c._il; q.c._il = i; if (rec) acc(q.c, 0, v, i); }
+    if (rec){
+      for (const q of lin){ const n = q.c._n, v = V(n[0]) - V(n[1]); acc(q.c, 0, v, q.G*v); }
+      const jc = new Map();
+      for (const J of juns){ const v = V(J.a) - V(J.k), i = J.c._tj[J.i] ? (v - J.Vf)/J.R : GOFF*v; jc.set(J.c.id + ':' + J.i, i); }
+      for (const c of S.comps){ const J = trJ(c); if (!J) continue; const n = c._n;
+        if (c.t === 'bridge'){ acc(c, 0, V(n[0]) - V(n[1]), jc.get(c.id + ':0') - jc.get(c.id + ':2')); acc(c, 1, V(n[2]) - V(n[3]), jc.get(c.id + ':0') + jc.get(c.id + ':1')); }
+        else { const v = V(n[0]) - V(n[1]), i = c.t === 'zener' ? jc.get(c.id + ':0') - jc.get(c.id + ':1') : (jc.get(c.id + ':0') || 0); acc(c, 0, v, i); } }
+      for (const c of vs){ const n = c._n, i = x[c._tj2]; if (c.t === 'xfmr'){ acc(c, 0, V(n[0]) - V(n[1]), i*c.V2/c.V1); acc(c, 1, V(n[2]) - V(n[3]), i); } else { const a = acc(c, 0, V(n[0]) - V(n[1]), i); a[5] += i*sn; a[6] += i*cs; } }
+    }
+  }
+  // ---------- สรุปผลลง RES ----------
+  const nA = Math.max(1, nAcc), q2 = Math.SQRT2/nA;
+  const nv = k => { if (!k) return {d:0, r:0, i:0}; const a = nodeAcc[k]; return Pn > 0 ? {d:a[0]/nA, r:q2*a[2], i:q2*a[3]} : {d:a[0]/nA, r:0, i:0}; };
+  const nrms = k => k ? Math.sqrt(nodeAcc[k][1]/nA) : 0;
+  RES.trans = true; RES.nvv = []; RES.nv = [];
+  for (let k = 0; k <= nn; k++){ RES.nvv[k] = nv(k); RES.nv[k] = nrms(k); }
+  RES.wire = S.wires.map((wr, i) => { const a = nv(wr._a), b = nv(wr._b); return {d:sw[i]/nA, r:GW*(a.r - b.r), i:GW*(a.i - b.i)}; });
+  const st = (a, comp) => { const vm = a[0]/nA, im = a[2]/nA, vr = Math.sqrt(Math.max(0, a[1]/nA)), ir = Math.sqrt(Math.max(0, a[3]/nA));
+    return {vm, im, vr, ir, P:a[4]/nA, vac:Math.sqrt(Math.max(0, vr*vr - vm*vm)), iac:Math.sqrt(Math.max(0, ir*ir - im*im))}; };
+  for (const c of S.comps){ const R = RES.comp[c.id] || (RES.comp[c.id] = {}), n = c._n;
+    R.pv = n.map(k => nv(k));
+    const a = devAcc.get(c.id + ':0'); if (!a) continue; const q = st(a);
+    if (isTwo(c)){ const vph = sub(nv(n[0]), nv(n[1]));
+      R.v = {d:q.vm, r:vph.r, i:vph.i}; R.i = {d:q.im, r:q.iac, i:0}; R.Vr = q.vr; R.Ir = q.ir; R.P = q.P; R.Q = 0; R.ac = q.vac > 0.01 || q.iac > 1e-6; R.Vdc = q.vm; R.Vac = q.vac;
+      if (c.t === 'bat' || c.t === 'acs') RES.src[c.id] = {P:-q.P, Q:0, I:q.ir};
+      if (c.t === 'led') c._on = q.im > 1e-4 && !c._blown;
+    } else if (c.t === 'src1'){ const ii = {r:q2*a[5], i:q2*a[6]}, vv = sub(nv(n[0]), nv(n[1]));
+      R.V = q.vr; R.I = q.ir; R.P = -q.P; R.Q = -(vv.i*ii.r - vv.r*ii.i); R.i = [{d:q.im, r:ii.r, i:ii.i}]; RES.src[c.id] = {P:R.P, Q:R.Q, I:R.I}; }
+    else if (c.t === 'xfmr'){ const b2 = st(devAcc.get(c.id + ':1')); R.Vp = q.vr; R.Vs = b2.vr; R.Is = b2.ir; R.Ip = q.ir; }
+    else if (c.t === 'bridge'){ const b2 = st(devAcc.get(c.id + ':1')); R.Vac = q.vr; R.Iac = q.ir; R.Vdc = b2.vm; R.Idc = b2.im; R.Vrip = b2.vac; }
+  }
+  TR.active = true; TR.dt = dt;
+}
 function settle(){
   for (let i = 0; i < 8; i++){
     if (!needSolve) break;
     needSolve = false; solveAll(); discrete(0);
   }
 }
-function step(dt){ simT += dt; continuous(dt); facStep(dt); discrete(dt); settle(); scopeRecord(); }
+function step(dt){ simT += dt; continuous(dt); facStep(dt); discrete(dt); settle(); if (trApplicable()) trRun(dt); else TR.active = false; scopeRecord(); }
 function poke(){ needSolve = true; settle(); }
 
 /* ============================================================
@@ -3060,6 +3208,38 @@ void loop() {
       if (c.t === 'hmi') Object.assign(c, {proto:'modbus', sid:1, baud:9600});
     }
     return o; }},
+  rectifier: {nm:'เรียงกระแสเต็มคลื่น: หม้อแปลง 12 V → บริดจ์ → ตัวเก็บประจุกรอง (จำลองตามเวลา + สโคปดูริปเปิล)', f:() => build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'});
+    C('xfmr', 6, 4, {n:'T1', V1:230, V2:12, S:20, model:'t12'}); W([2,2],[2,3],[5,3]); W([3,2],[8,2],[8,3],[7,3]);
+    C('bridge', 6, 9, {n:'BR1', model:'kbp206', Vf:0.9, Imax:2, Vrrm:600}); W([5,5],[5,7]); W([7,5],[7,7]);
+    W([5,11],[5,13],[30,13]);                                        // DC + (y = 13)
+    W([7,11],[7,12],[8,12],[8,19],[32,19]);                          // DC − (y = 19)
+    C('sw', 11, 14, {r:1, n:'S1', on:true}); C('cap', 11, 17, {r:1, n:'C1', C:1000, Vr:25, pol:true, model:'e1000'}); W([11,15],[11,16]); W([11,18],[11,19]);
+    C('res', 15, 16, {r:1, n:'RL', R:100, Pr:5}); W([15,13],[15,15]); W([15,17],[15,19]);
+    C('led', 18, 15, {r:1, n:'D1'}); C('res', 18, 17, {r:1, n:'R2', R:1000}); W([18,13],[18,14]); W([18,18],[18,19]);
+    C('vm', 21, 16, {r:1, n:'V1', mode:'dc'}); W([21,13],[21,15]); W([21,17],[21,19]);
+    C('vm', 24, 16, {r:1, n:'V2', mode:'ac'}); W([24,13],[24,15]); W([24,17],[24,19]);
+    C('scope', 30, 22, {n:'OSC1', vdiv1:5, pos1:-3, cpl1:'DC', vdiv2:0.5, pos2:2, cpl2:'AC', tdiv:0.005, trig:'2'});
+    W([29,24],[29,13]); W([30,24],[30,13]); W([32,24],[32,19]);
+  })},
+  halfwave: {nm:'เรียงกระแสครึ่งคลื่น: ไดโอด 1 ตัว + โหลด (เปิด S1 ใส่ตัวเก็บประจุกรอง)', f:() => build((C,W) => {
+    C('acs', 2, 5, {r:1, n:'G1', V:12, f:50});
+    C('diode', 5, 2, {n:'D1', model:'1n4007'}); W([2,4],[2,2],[4,2]);
+    C('res', 9, 5, {r:1, n:'RL', R:1000}); W([6,2],[9,2],[9,4]); W([9,6],[9,8],[2,8],[2,6]);
+    C('sw', 12, 3, {r:1, n:'S1', on:false}); C('cap', 12, 6, {r:1, n:'C1', C:470, Vr:25, pol:true}); W([9,2],[12,2]); W([12,4],[12,5]); W([12,7],[12,8],[9,8]);
+    C('scope', 20, 6, {n:'OSC1', vdiv1:5, pos1:1, vdiv2:5, pos2:-3, tdiv:0.005, trig:'1'});
+    W([19,8],[19,0],[2,0],[2,2]); W([20,8],[20,2],[12,2]); W([22,8],[22,9],[2,9],[2,8]);
+  })},
+  rccharge: {nm:'ตัวเก็บประจุชาร์จ/ดิสชาร์จ: RC = 10 kΩ × 470 µF = 4.7 s (สลับ S1 แล้วดูสโคปโหมดเลื่อน)', f:() => build((C,W) => {
+    C('bat', 2, 6, {r:1, n:'B1', V:9});
+    C('spdt', 6, 3, {n:'S1', pos:'B'});                               // A = ชาร์จจากแบตเตอรี่, B = คายประจุลงกราวด์
+    W([2,5],[2,0],[8,0],[8,2],[7,2]); W([7,4],[8,4],[8,10],[2,10],[2,7]);
+    C('res', 5, 5, {r:1, n:'R1', R:10000}); W([5,3],[5,4]);
+    C('cap', 5, 8, {r:1, n:'C1', C:470, Vr:16, pol:true}); W([5,6],[5,7]); W([5,9],[5,10]);
+    C('vm', 11, 8, {r:1, n:'V1', mode:'dc'}); W([11,7],[11,6],[5,6]); W([11,9],[11,10],[8,10]);
+    C('scope', 16, 8, {n:'OSC1', vdiv1:2, pos1:-3, vdiv2:2, pos2:-3, tdiv:1, trig:'1'});
+    W([15,10],[15,6],[11,6]); W([16,10],[16,-1],[5,-1],[5,3]); W([18,10],[18,11],[11,11],[11,10]);
+  })},
   semi: {nm:'สารกึ่งตัวนำ: 7805, ทรานซิสเตอร์สวิตช์, ซีเนอร์', f:() => build((C,W) => {
     C('bat', 1, 5, {r:1, n:'B1', V:12});
     W([1,4],[1,2],[16,2]); W([1,6],[1,13],[16,13]);
@@ -3695,7 +3875,8 @@ function valText(c){
 }
 function readText(c, R){
   if (!R) return '';
-  if (c.t === 'vm') return fmt(R.Vr, 'V');
+  if (c.t === 'vm' || c.t === 'am'){ const u = c.t === 'vm' ? 'V' : 'A', q = c.t === 'vm' ? R.v : R.i, tot = c.t === 'vm' ? R.Vr : R.Ir;
+    if (c.mode === 'dc') return fmt(q ? q.d : 0, u) + ' DC'; if (c.mode === 'ac') return fmt(Math.sqrt(Math.max(0, tot*tot - (q ? q.d*q.d : 0))), u) + ' AC'; if (c.t === 'vm') return fmt(R.Vr, 'V'); }
   if (c.t === 'am') return fmt(R.Ir, 'A');
   if (['sw','pb','pbnc','no','nc','float','mcb','fuse','estop','limit','presw','flowsw','tstat'].includes(c.t)) return '';
   return R.Ir > 1e-5 ? fmt(R.Ir, 'A') : '';
@@ -3977,6 +4158,14 @@ function drawBlock(c, ghost){
       ctx.strokeStyle = K.ok; ctx.lineWidth = 2.5; line(X - G, Y, X + G - 4, c.pos === 'A' ? Y - G + 4 : Y + G - 4);
       text('A', X + 0.75*G, Y - 0.55*G, 9, K.muted, 'center', '600', true); text('B', X + 0.75*G, Y + 0.55*G, 9, K.muted, 'center', '600', true);
     } break;
+    case 'bridge': {
+      // สัญลักษณ์บริดจ์: สี่เหลี่ยมข้าวหลามตัด + ไดโอด 4 ตัว
+      const d = 24; ctx.strokeStyle = K.comp; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(X, Y - d); ctx.lineTo(X + d, Y); ctx.lineTo(X, Y + d); ctx.lineTo(X - d, Y); ctx.closePath(); ctx.stroke();
+      const on = c._tj || [], tri = (x1, y1, x2, y2, k) => { const mx = (x1 + x2)/2, my = (y1 + y2)/2, ang = Math.atan2(y2 - y1, x2 - x1);
+        ctx.save(); ctx.translate(mx, my); ctx.rotate(ang); ctx.fillStyle = on[k] ? K.ok : K.comp; ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(-5, 5); ctx.lineTo(4, 0); ctx.closePath(); ctx.fill(); ctx.fillRect(4, -5, 2, 10); ctx.restore(); };
+      tri(X - d, Y, X, Y - d, 0); tri(X + d, Y, X, Y - d, 1); tri(X, Y + d, X - d, Y, 2); tri(X, Y + d, X + d, Y, 3);
+      text('~', X - d - 8, Y, 11, K.muted, 'center', '700'); text('~', X + d + 8, Y, 11, K.muted, 'center', '700'); text('+', X, Y - d - 8, 11, K.bad, 'center', '700'); text('−', X, Y + d + 8, 11, K.accent, 'center', '700');
+    } break;
     case 'rs485': case 'rs232': {
       const led = (t0, x, y, col, lb) => { const on = t0 != null && simT - t0 < 0.3; ctx.fillStyle = on ? col : '#334155'; dot(x, y, 3.5); text(lb, x + 13, y, 8, K.muted, 'center', '600', true); };
       ctx.fillStyle = c.t === 'rs485' ? '#1d4ed8' : '#0f766e'; rrect(bx + 10, by + 18, bw - 20, bh - 36, 4); ctx.fill();
@@ -4248,7 +4437,8 @@ const F = {
   bat:[NMF,['V','แรงดัน','num','V'],['ri','ความต้านทานภายใน','num','Ω']],
   acs:[NMF,['V','แรงดัน (RMS)','num','V'],['f','ความถี่','num','Hz'],['ph','มุมเฟส','num','°']],
   cap:[NMF,['C','ความจุ','num','µF'],['Vr','พิกัดแรงดัน','num','V'],['pol','ชนิดมีขั้ว (อิเล็กโทรไลต์)','bool','มีขั้ว']], ind:[NMF,['Lh','ความเหนี่ยวนำ','num','H'],['R','ความต้านทานขดลวด','num','Ω']],
-  am:[NMF], vm:[NMF], gnd:[],
+  am:[NMF,['mode','โหมดวัด','sel',{rms:'True RMS (AC+DC)',dc:'DC (ค่าเฉลี่ย)',ac:'AC (RMS ส่วนกระเพื่อม)'}]], vm:[NMF,['mode','โหมดวัด','sel',{rms:'True RMS (AC+DC)',dc:'DC (ค่าเฉลี่ย)',ac:'AC (RMS ส่วนกระเพื่อม)'}]], gnd:[],
+  bridge:[NMF,['Vf','แรงดันตกต่อไดโอด','num','V'],['Imax','กระแสเฉลี่ยสูงสุด','num','A'],['Vrrm','แรงดันย้อนกลับสูงสุด','num','V']],
   src1:[NMF,['V','แรงดัน','num','V'],['f','ความถี่','num','Hz']],
   src3:[NMF,['V','แรงดันระหว่างสาย','num','V'],['f','ความถี่','num','Hz'],['seq','ลำดับเฟส','sel',{'1':'L1→L2→L3','-1':'L1→L3→L2 (กลับ)'}]],
   mcb:[NMF,['In','พิกัดกระแส','num','A'],['curve','เส้นโค้งการตัด','sel',{B:'B (3–5 × In)',C:'C (5–10 × In)',D:'D (10–20 × In)'}],['on','สถานะ','bool','ON']],
@@ -4368,6 +4558,7 @@ const NOTES = {
   soil:'เซนเซอร์ความชื้นดินแบบแอนะล็อก: ดินแห้ง → แรงดัน AO สูง, ดินเปียก → แรงดันต่ำ · อ่านด้วย analogRead',
   servo:'เซอร์โวหมุนไปยังมุม 0–180° ตามคำสั่ง · ในโค้ดใช้ Servo s; s.attach(ขา); s.write(มุม) · ต่อสาย GND, VCC และ SIG เข้าขาของบอร์ด',
   prox:'พร็อกซิมิตี้เซนเซอร์แบบเหนี่ยวนำ 3 สาย (น้ำตาล +V, ดำ OUT, ฟ้า 0V) ตรวจจับโลหะโดยไม่สัมผัส · PNP จ่าย +24 V ให้อินพุต PLC (COM ต่อ 0 V) · NPN ดึงสัญญาณลง 0 V (COM ต้องต่อ +24 V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
+  bridge:'ไดโอดบริดจ์ (เรียงกระแสเต็มคลื่น): ขา ~ ต่อขดทุติยภูมิหม้อแปลง ได้ไฟกระเพื่อมความถี่ 2 เท่า (100 Hz) ที่ + และ − · ใส่ตัวเก็บประจุกรองขนานโหลดเพื่อลดริปเปิล (ริปเปิล ≈ I ÷ (2·f·C)) · ไฟผ่านไดโอด 2 ตัวจึงตก ≈ 1.4–2 V · วงจรที่มีแหล่ง AC + ไดโอด หรือมีตัวเก็บประจุ/ขดลวด จะจำลองตามเวลาจริงอัตโนมัติ (ก้าว 100 µs) สโคปเห็นรูปคลื่นจริง',
   rs485:'วัดแรงดันบัส: บัสว่างที่มีตัวต้านทานปลายสาย 120 Ω สองปลาย วัด A−B ได้ ≈ 0 V เป็นเรื่องปกติ (ไม่มีใครขับ) แต่ละเส้นเทียบ GND ราว 2.5 V · ไบแอส fail-safe (A ดึงขึ้น B ดึงลง) ทำให้บัสว่างเป็น "1" ชัดเจน ≈ 0.2 V · ขณะส่งตัวขับดัน A−B ±1.5–5 V · โมดูล RS-485 (ใช้กับ Modbus RTU ได้ — ดูตัวอย่าง "Modbus RTU"): แปลง UART (TTL) เป็นสัญญาณผลต่าง A–B บนสายคู่บิดเกลียว ส่งได้ไกล ~1200 m ต่อได้หลายตัวบนบัสเดียว (half-duplex) · DI ← TX ของบอร์ด, RO → RX ของบอร์ด, DE = HIGH ขณะส่ง, RE = LOW ขณะรับ (นิยมต่อ DE กับ RE เข้าขาเดียว) · ต่อ A–A, B–B (สลับ = ข้อมูลกลับบิต) และใส่ตัวต้านทานปลายสาย 120 Ω ที่ปลายบัสทั้งสองด้าน · MAX487 จำกัดความเร็ว 250 kbps แต่ต่อได้ 128 ตัว',
   rs232:'โมดูล MAX3232: แปลงระดับ TTL (0/3.3–5 V) ↔ RS-232 (±5–12 V) สำหรับพอร์ต COM ของคอมพิวเตอร์ เครื่องชั่ง PLC รุ่นเก่า · T1IN ← TX ของบอร์ด → T1OUT (DB9 ขา 3), R1IN (DB9 ขา 2) → R1OUT → RX ของบอร์ด · ต่อไขว้ TX → RX เสมอ (null-modem) · ห้ามต่อ RS-232 เข้าขาบอร์ดตรง ๆ',
   lora:'โมดูล LoRa แบบ UART (E32/E22 โหมดโปร่งใส): สิ่งที่ส่งเข้า RXD จะถูกส่งทางวิทยุไปออกที่ TXD ของโมดูลปลายทาง · ต้องตั้งความถี่ (CH) SF และแอดเดรสให้ตรงกัน (65535 = กระจายถึงทุกตัว) · M0 = M1 = LOW = โหมดปกติ · SF สูง = ไกลขึ้นแต่ใช้เวลาออกอากาศนานขึ้น · ระยะคำนวณจากตำแหน่งติดตั้ง (m) กำลังส่ง และสภาพพื้นที่',
@@ -4578,6 +4769,8 @@ function compHTML(c){
     case 'seg7': add('ส่วนที่ติด', 'abcdefg.'.split('').filter((_, k) => c._js && c._js[k]).join(' ') || '—'); break;
     case 'rgb': ['แดง','เขียว','น้ำเงิน'].forEach((nm, k) => add('กระแส' + nm, fmt(R.jI[k], 'A'))); break;
     case 'spdt': add('ตำแหน่ง', 'COM–' + c.pos); break;
+    case 'bridge': if (R.Vdc != null){ add('แรงดัน AC เข้า (RMS)', fmt(R.Vac, 'V')); add('แรงดัน DC ออก (เฉลี่ย)', fmt(R.Vdc, 'V')); add('ริปเปิล (RMS)', fmt(R.Vrip, 'V')); add('กระแส DC', fmt(R.Idc, 'A')); }
+      else add('หมายเหตุ', 'ต่อกับแหล่ง AC + ตัวเก็บประจุ/โหลด เพื่อจำลองตามเวลา'); break;
     case 'rs485': case 'rs232': { const [vi, gi] = SENS[c.t], vcc = R.pv[vi].d - R.pv[gi].d;
       st.push(c._pw ? tag('ok','มีไฟเลี้ยง') : tag('bad','ไม่มีไฟเลี้ยง')); if (c._err) st.push(tag('warn', esc(c._err)));
       add('ไฟเลี้ยง', fmt(vcc, 'V'));
@@ -4640,9 +4833,10 @@ function warnList(){
     if (c.t === 'xfmr' && R.Vs*R.Is > c.S*1.05) w.push(['warn', `หม้อแปลง ${n} จ่ายเกินพิกัด`]);
     const md = modelOf(c), rated = md ? ' (' + md.nm + ')' : '';
     if (c.t === 'res' && R.P > c.Pr) w.push([R.P > 2*c.Pr ? 'bad' : 'warn', `ตัวต้านทาน ${n} กินกำลัง ${fmt(R.P, 'W')} เกินพิกัด ${c.Pr} W — ร้อนจนไหม้ได้`]);
+    if (c.t === 'bridge' && Math.abs(R.Idc || 0) > c.Imax) w.push(['bad', `ไดโอดบริดจ์ ${n} กระแส ${fmt(Math.abs(R.Idc), 'A')} เกินพิกัด ${c.Imax} A`]);
     if (c.t === 'cap' && R.Vr > c.Vr) w.push(['bad', `ตัวเก็บประจุ ${n} รับแรงดัน ${fmt(R.Vr, 'V')} เกินพิกัด ${c.Vr} V — อาจระเบิด`]);
     if (c.t === 'cap' && c.pol && R.v && R.v.d < -0.5) w.push(['bad', `ตัวเก็บประจุอิเล็กโทรไลต์ ${n} ต่อกลับขั้ว`]);
-    if (c.t === 'cap' && c.pol && R.v && Math.hypot(R.v.r, R.v.i) > 1) w.push(['bad', `ตัวเก็บประจุอิเล็กโทรไลต์ ${n} ใช้กับไฟ AC ไม่ได้`]);
+    if (c.t === 'cap' && c.pol && R.v && (R.Vac != null ? R.Vac*1.414 > R.v.d + 0.5 : Math.hypot(R.v.r, R.v.i) > 1)) w.push(['bad', `ตัวเก็บประจุอิเล็กโทรไลต์ ${n} ใช้กับไฟ AC ไม่ได้`]);
     if (c.t === 'sw' && R.Ir > c.In) w.push(['warn', `สวิตช์ ${n} กระแส ${fmt(R.Ir, 'A')} เกินพิกัด ${c.In} A`]);
     if (c.t === 'k3' && (c._ov || 0) > 5) w.push(['warn', `คอนแทกเตอร์ ${esc(c.ref)} กระแสเกินพิกัด AC-3 ${c.In} A`]);
     if (c.t === 'diode' && R.Ir > c.Imax) w.push(['bad', `ไดโอด ${n}${rated} กระแสเกิน ${c.Imax} A`]);
@@ -5624,7 +5818,10 @@ function scopeRecord(){
   for (const c of S.comps) if (c.t === 'scope' && c.run !== false){
     const p = scopeProbe(c); if (!p) continue;
     const h = c._hist || (c._hist = []);
-    h.push({t:simT, d:[p[0].d, p[1].d], a:[Math.SQRT2*acm(p[0]), Math.SQRT2*acm(p[1])], c:[[p[0].r, p[0].i], [p[1].r, p[1].i]]});
+    if (TR.active && TR.tw && c._n){ const dt = TR.dt || 0.05, mm = [0, 1].map(k => { let a = 1e9, b = -1e9;
+        const nq = Math.max(1, Math.round(dt/TR.tw.h)); for (let q = 0; q < nq; q++){ const t = simT - q*TR.tw.h, v = trNodeAt(c._n[k], t) - trNodeAt(c._n[2], t); a = Math.min(a, v); b = Math.max(b, v); } return [a, b]; });
+      h.push({t:simT, d:mm.map(x => (x[0] + x[1])/2), a:mm.map(x => (x[1] - x[0])/2), c:[[p[0].r, p[0].i], [p[1].r, p[1].i]]}); }
+    else h.push({t:simT, d:[p[0].d, p[1].d], a:[Math.SQRT2*acm(p[0]), Math.SQRT2*acm(p[1])], c:[[p[0].r, p[0].i], [p[1].r, p[1].i]]});
     while (h.length > 2 && h[0].t < simT - 45) h.shift();
   }
 }
@@ -5680,9 +5877,13 @@ function scopeCapture(c, sws, bs){
   if (!roll){
     // ฟังก์ชันรูปคลื่นตามเวลาจำลองจริง (หยุดจำลอง = ภาพนิ่ง)
     let step = null;
+    // จำลองตามเวลา: อ่านรูปคลื่นจริงจากบัฟเฟอร์ (ช่วงค้นหาทริก Ts ก่อนหน้าหน้าต่างสุดท้าย)
+    const trw = TR.active && TR.tw && c._n ? (k => (t => trNodeAt(c._n[k], t) - trNodeAt(c._n[2], t))) : null;
+    const trPer = trw ? Math.max(...[0, 1].map(k => chs[k].A ? 1/chs[k].f : 0)) : 0, trTs = trPer ? Math.min(trPer*1.5, T*4) : 0, trB = simT - T - trTs;
     // มีเฟรมอนุกรมบนโพรบ: วาดบิตจริงตามเวลา (จุดทริก = start bit ที่ 1 ช่องจากซ้าย)
     const main = bs && (bs[c.trig === '2' ? 1 : 0] || bs[0] || bs[1]), base = main ? main.e.t0 - 0.1*T : 0;
     const fn = (k, t) => { if (main && bs[k]){ const b = bs[k], v = waveBit(b.e, base + t) ? b.hi : b.lo; return cpl(k) ? v - (b.hi + b.lo)/2 : v; }
+      if (trw){ const v = trw(k)(trB + t); return cpl(k) ? v - chs[k].mean : v; }
       if (step && t < 0){ const v = step[k]; return cpl(k) ? v - chs[k].mean : v; }
       const ch = chs[k], tt = simT + t;
       let v = ch.sw ? ch.sw.lo + (ch.sw.hi - ch.sw.lo)*((((tt*ch.sw.f) % 1) + 1) % 1 < ch.sw.duty ? 1 : 0) : ch.d;
@@ -5696,7 +5897,8 @@ function scopeCapture(c, sws, bs){
     else if (main){ cap.trig = true; cap.tpos = 1; const e = main.e;
       cap.uart = {proto:'UART 8N1', baud:e.baud, n:e.bytes.length, dur:e.bytes.length*10/e.baud, from:(e.key.c.n || '') + (e.key.p === 'ro' ? ' (RO)' : e.key.p === 'drv' ? ' (บัส A/B)' : ''),
         text:e.bytes.map(b => b >= 32 && b < 127 ? String.fromCharCode(b) : b === 10 ? '⏎' : '·').join(''), hex:e.bytes.slice(0, 24).map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}; }
-    else if (per > 0){ const Ts = Math.min(per*1.5, T*4), N = 1500, up = c.slope !== 'down';
+    else if (trw && !trPer) t0 = 0;
+    else if (per > 0){ const Ts = trw ? trTs : Math.min(per*1.5, T*4), N = 1500, up = c.slope !== 'down'; if (trw) t0 = trTs;
       let prev = fn(tk, 0);
       for (let n = 1; n <= N; n++){ const t = Ts*n/N, v = fn(tk, t);
         if (up ? (prev < c.tlev && v >= c.tlev) : (prev > c.tlev && v <= c.tlev)){ t0 = t; cap.trig = true; break; } prev = v; } }
@@ -5713,7 +5915,7 @@ function scopeCapture(c, sws, bs){
         vc[i] = F(t0 + (i + 0.5)*T/SC_COLS); mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); }
       if (k === 2){ cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:scCross(mn, mx, vmin, vmax, T), duty:null, src:mo[0]}); continue; }
       if (main && bs[k]){ const e = bs[k].e; cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:0, duty:null, src:e.segs ? e.dec.proto : `UART ${e.baud} บอด`}); continue; }
-      const ch = chs[k], f = ch.sw ? ch.sw.f : (ch.A > 0.01*Math.max(Math.abs(ch.d), 1e-3) ? ch.f : 0);
+      const ch = chs[k], f = trw ? scCross(mn, mx, vmin, vmax, T) : ch.sw ? ch.sw.f : (ch.A > 0.01*Math.max(Math.abs(ch.d), 1e-3) ? ch.f : 0);
       cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
     }
     // XY: คู่ตัวอย่าง CH1/CH2 ที่เวลาเดียวกัน
@@ -5784,7 +5986,9 @@ function scopeFFT(c, fn, chs){
     for (let n = 1; n <= nh; n++) hc.push(A2*2/(n*Math.PI)*Math.sin(n*Math.PI*sw.duty));
     return t => { let v = dc + (ch.A ? ch.A*Math.sin(2*Math.PI*ch.f*t + ch.ph) : 0);
       for (let n = 1; n <= nh; n++) v += hc[n - 1]*Math.cos(2*Math.PI*n*sw.f*t - n*Math.PI*sw.duty); return v; }; };
-  const g0 = syn(0), g1 = syn(1), G = k === 2 ? (t => mo[1](g0(t), g1(t))) : k ? g1 : g0;
+  let g0 = syn(0), g1 = syn(1);
+  if (TR.active && TR.tw && c._n){ const t0 = simT - N*dt, pr = kk => t => trNodeAt(c._n[kk], t0 + t) - trNodeAt(c._n[2], t0 + t) - (c['cpl' + (kk + 1)] === 'AC' ? chs[kk].d : 0); g0 = pr(0); g1 = pr(1); }
+  const G = k === 2 ? (t => mo[1](g0(t), g1(t))) : k ? g1 : g0;
   for (let i = 0; i < N; i++){ const w = 0.5 - 0.5*Math.cos(2*Math.PI*i/(N - 1)); re[i] = G(i*dt)*w; S1 += w; }
   fftRadix2(re, im);
   const nb = Math.floor(N/2.56) + 1, df = fs/N, P = new Float32Array(nb);   // P = กำลัง (Vrms²) ต่อช่องความถี่
@@ -6047,6 +6251,7 @@ const PAL = [
   ['อิเล็กทรอนิกส์', ['led','diode','zener','npn','pnp','nmos','opto','ne555','seg7','rgb','buzzer','pot']],
   ['ไมโครคอนโทรลเลอร์', ['uno','esp32','pico']],
   ['เซนเซอร์ (บอร์ด)', ['ldr','ntc','pir','sr04','dht','soil']],
+  ['เรียงกระแส / จำลองตามเวลา', ['diode','bridge','cap','ind','zener','led']],
   ['การสื่อสาร (RS-485 / RS-232 / LoRa / Ethernet / Wi-Fi)', ['rs485','rs232','lora','ethsw','wifiap','term']],
   ['PLC และเซนเซอร์อุตสาหกรรม', ['plc','hmi','prox','capx','photo','magsw','ultra','curtain','gasdet','presw','flowsw','tstat','tx420']],
   ['ระบบน้ำ', ['tank','float']],

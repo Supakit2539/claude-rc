@@ -166,7 +166,7 @@ const path = require('path');
     s.load('oscxy'); s.run(0.3); const xc = s.scope('OSC1'); o.xy = [xc.phase, xc.xy ? xc.xy[0].length : 0];
     // Math CH1−CH2 = แรงดันคร่อม R ≈ 8.64 Vrms (Vpp ≈ 24.4 V) ทั้งโหมดเร็ว/FFT/เลื่อน
     { const c = s.S.comps.find(x => x.n === 'OSC1'); c.disp = 'yt'; c.math = 'sub'; const m = s.scope('OSC1').ch[2];
-      c.disp = 'fft'; c.fftch = 'M'; const fp = s.scope('OSC1').fft.peaks[0]; c.disp = 'yt'; c.tdiv = 0.5; s.run(1.5); const rm = s.scope('OSC1').ch[2];
+      c.disp = 'fft'; c.fftch = 'M'; const fp = s.scope('OSC1').fft.peaks[0]; c.disp = 'yt'; c.tdiv = 0.5; c._hist = []; s.run(1.5); const rm = s.scope('OSC1').ch[2];
       o.math = [m.max - m.min, m.rms, m.f, fp.f, fp.v, rm.max - rm.min]; }
     // เคอร์เซอร์: เวลา 2→6 div ที่ 5 ms/div = 20 ms (50 Hz); แรงดัน CH2 (5 V/div, ตำแหน่ง −3) A=2, B=−2 div → 25 V, 5 V
     { s.load('osc'); s.run(0.3); const c = s.S.comps.find(x => x.t === 'scope'); c.cur = 'time'; c.ta = 2; c.tb = 6; s.scope(c.n); const t = s.scopeCursor(c.n);
@@ -437,6 +437,23 @@ const path = require('path');
     JSON.stringify(r.sbus) === JSON.stringify(['P=60⏎', '50 3D 36 30 0A', 104, true, true, true, 0.001]), JSON.stringify(r.sbus)]);
   checks.push(['สโคปวัดสัญญาณจริง: เซอร์โว 50 Hz ดิวตี้ 7.5% 3.3 V · DHT22 02 58 00 FA 54 (0–5 V) · ECHO HC-SR04 ≈ 5800 µs (100 cm) · RS-232 ±5.1 V · LoRa TXD 0–3.3 V',
     JSON.stringify(r.sigs) === JSON.stringify({servo:[50, 0.075, 3.3], dht:['02 58 00 FA 54', 4.9, 0], echo:['HC-SR04 ECHO', 5800], r232:[5.1, -5.1], lora:['RF2', 3.3, 0]}), JSON.stringify(r.sigs)]);
+  const tr = await page.evaluate(() => { const s = __sim, o = {}, R = n => s.RES.comp[s.find(n).id];
+    s.load('rectifier'); s.run(1); let cap = s.scope('OSC1');
+    o.rect = [s.RES.trans, R('V1').v.d, cap.ch[1].max - cap.ch[1].min, cap.ch[1].f, s.find('D1')._on];
+    s.find('S1').on = false; s.run(0.5); cap = s.scope('OSC1'); o.nocap = [R('V1').v.d, cap.ch[0].max, cap.ch[0].min];
+    s.load('halfwave'); s.run(0.5); cap = s.scope('OSC1'); o.half = [cap.ch[1].max, cap.ch[1].min, R('RL').v.d];
+    s.find('S1').on = true; s.run(1); cap = s.scope('OSC1'); o.half2 = [cap.ch[1].max, cap.ch[1].min];
+    s.load('rccharge'); s.run(1); const c1 = s.find('C1'); s.find('S1').pos = 'A'; s.run(4.7); o.rc1 = c1._vc; s.run(20); s.find('S1').pos = 'B'; s.run(4.7); o.rc3 = c1._vc;
+    return o; });
+  const nr = (a, b, e) => Math.abs(a - b) <= e;
+  checks.push(['เรียงกระแสเต็มคลื่น (จำลองตามเวลา): C 1000 µF → V1 ≈ 14.36 V DC, ริปเปิล ≈ 1.27 Vpp ที่ 100 Hz, LED ติด',
+    tr.rect[0] && nr(tr.rect[1], 14.36, 0.1) && nr(tr.rect[2], 1.27, 0.1) && nr(tr.rect[3], 100, 2) && tr.rect[4], JSON.stringify(tr.rect)]);
+  checks.push(['เรียงกระแสเต็มคลื่น ไม่มี C: เฉลี่ย ≈ 9.0 V, ไฟกระเพื่อม 0–15 V',
+    nr(tr.nocap[0], 9.03, 0.15) && nr(tr.nocap[1], 15.1, 0.3) && tr.nocap[2] < 0.3, JSON.stringify(tr.nocap)]);
+  checks.push(['เรียงกระแสครึ่งคลื่น: 0–16.3 V เฉลี่ย ≈ 5.06 V; ใส่ C 470 µF → 15.6–16.3 V',
+    nr(tr.half[0], 16.27, 0.2) && tr.half[1] < 0.3 && nr(tr.half[2], 5.06, 0.15) && nr(tr.half2[0], 16.27, 0.2) && nr(tr.half2[1], 15.63, 0.2), JSON.stringify([tr.half, tr.half2])]);
+  checks.push(['RC ชาร์จ/ดิสชาร์จ (τ = 4.7 s): ชาร์จ τ → ≈ 5.66 V, คายประจุ τ → ≈ 3.22 V',
+    nr(tr.rc1, 5.66, 0.1) && nr(tr.rc3, 3.22, 0.1), JSON.stringify([tr.rc1, tr.rc3])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

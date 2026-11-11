@@ -109,13 +109,19 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - **ไฟฟ้าบนบัส RS-485**: อินพุตตัวรับดึง A/B ไปราว Vcc/2 (12 kΩ, MAX487 48 kΩ), ตัวขับทำงานช่วงส่ง (`busDrive` → `_drvUntil`/`_drv`, `busDrvTick` ใน discrete): A → Vcc, B → GND ผ่าน 25 Ω,
      ไบแอส fail-safe ของโมดูล `bias` = none/20k/680 · PLC/HMI ใช้ `busStamp` (อ้างอิง M/0V) — บัสว่างที่มีปลายสาย 120 Ω สองปลายวัด A−B ≈ 0 V เป็นเรื่องปกติ
      โมดูลเซนเซอร์ถูกค้นด้วย `sensorAt(ชนิด, ขาของเซนเซอร์, ขาบอร์ด)` ผ่าน `RES.net`; เซอร์โวหาขาที่ควบคุมด้วย `servoTarget()`
+   - **จำลองตามเวลา (transient)** `trRun(dt)` — ใช้แทนผล phasor เมื่อ `trApplicable()`: อุปกรณ์ทุกตัวอยู่ใน `TR_OK` และ (มี `cap`/`ind` หรือ มีแหล่ง AC + รอยต่อ PN)
+     สเต็ปย่อย ≈ 100 µs (≥ 200 จุด/คาบ), ตัวเก็บประจุ/ขดลวดแบบ BDF2 (Gear อันดับ 2, สถานะ `_vc`/`_il`), รอยต่อ PN แบบ piecewise (`trJ`, LED = Vf + 1 Ω) วนหาสถานะ ≤ 25 รอบ,
+     LU หนาแน่น (`luFactor`/`luSolve`) แคชตามชุดสถานะรอยต่อ · บัฟเฟอร์รูปคลื่นทุกโหนด 1 s (`TR.tw`, อ่านด้วย `trNodeAt(k, t)`)
+     ผลใน RES จากคาบเต็มล่าสุด: `v.d` = ค่าเฉลี่ย, `v.r/v.i` = ฮาร์มอนิกหลัก (DFT), `Vr` = True RMS, `Vdc`/`Vac`; `bridge` มี `Vdc`, `Vrip`, `Idc`; `RES.trans = true`
+     สโคปอ่านบัฟเฟอร์โดยตรง (ความถี่จากจุดตัดจริง `scCross`), มิเตอร์ `am`/`vm` มี `mode` = rms/dc/ac · ไม่รองรับ: 3 เฟส, มอเตอร์, MCU/PLC, อิเล็กทรอนิกส์บล็อกอื่น (กลับไปใช้ solver เดิม)
+     · หม้อแปลงในโหมดนี้ไม่มีความเหนี่ยวนำแม่เหล็ก (ผ่าน DC ได้) · `bridge` ไดโอดบริดจ์ (~1 ~2 + −, รุ่น KBP206/GBU808/KBPC3510)
 5. **พฤติกรรมตามเวลา** — `discrete(dt)` (คอยล์/ไทเมอร์, เบรกเกอร์ทริป, PSU retry, ลูกลอย, HMI link, PLC scan, รันโค้ดไมโครคอนโทรลเลอร์เมื่อ dt > 0)
    และ `continuous(dt)` (ความเร็วมอเตอร์, ลำดับเฟส 3 เฟส, หลอดฟลูออเรสเซนต์, ระดับน้ำ)
-   - `step(dt)`: continuous → discrete → `settle()` (แก้วงจรซ้ำสูงสุด 8 รอบ ถ้าสถานะเปลี่ยน)
+   - `step(dt)`: continuous → `facStep` → discrete → `settle()` (แก้วงจรซ้ำสูงสุด 8 รอบ ถ้าสถานะเปลี่ยน) → `trRun` ถ้าใช้โหมดตามเวลาได้ → `scopeRecord`
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -205,6 +211,8 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - plc2port (แลดเดอร์/ข้อความ): #1 มาสเตอร์อ่าน Arduino (D0 = 767) + #2 สเลฟ ID 2 19200 ให้ HMI พร้อมกัน, ปุ่ม HMI (M20) → M17 → LED ขา 12 ของ Arduino, บอดพอร์ต #2 ผิด → HMI timeout แต่ #1 ปกติ
 - modbustcp (แลดเดอร์/ข้อความ): S1 ที่ PLC2 → H1 ที่ PLC1, ตัวนับ D0 ของ PLC2 → PLC1 → HMI, ปุ่ม HMI → PLC1 M5 → PLC2 → H2; HMI ต่างซับเน็ต → แจ้ง, IP ซ้ำ → เตือน, ถอดสวิตช์ → ไม่มีลิงก์ · MBAP ของ TID 7 = 00 07 00 00 00 06 01 03 …
 - esp32wifi (PLC แบบข้อความ/แลดเดอร์): ได้ IP + RSSI −55, pot 30% → D10 ≈ 1228, 90% → H1 + LED บนบอร์ด (Q0), ปุ่ม → M5, ไกล 500 m → หลุด, กลับ 15 m → ต่อใหม่เอง, รหัสผิด → WL_CONNECT_FAILED
+- rectifier (ตามเวลา): C 1000 µF → V1 ≈ 14.36 V DC, ริปเปิล ≈ 1.27 Vpp 100 Hz; ปลด S1 → เฉลี่ย ≈ 9.0 V กระเพื่อม 0–15.1 V
+  · halfwave: 0–16.27 V เฉลี่ย ≈ 5.06 V, ใส่ C → 15.63–16.27 V · rccharge (τ 4.7 s): ชาร์จ τ → 5.66 V, คายประจุ τ → 3.22 V
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -225,9 +233,9 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ซอฟต์สตาร์ทเตอร์/อินเวอร์เตอร์ (VFD), มอเตอร์สเต็ปเปอร์, เครื่องกำเนิดไฟฟ้า, หม้อแปลง 3 เฟส, กราวด์และระบบ TN/TT
 - บล็อกหมุนได้ (ตอนนี้หมุนได้เฉพาะอุปกรณ์ 2 ขั้ว)
 - โรงงาน 3D: เครื่องจักรเพิ่ม (โต๊ะหมุน, แขนปัด, สายพานโค้ง), กล่องเอียงตามทางลาด, แขนหยิบวางต่างระดับ, เงาบนชิ้นงาน (shadow map), ตัวนับ (CTU) ใน PLC, เซนเซอร์แอนะล็อกในฉาก
-- ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, ตัวถอดรหัส I2C/SPI (ยังไม่มีอุปกรณ์ I2C/SPI), วงจรเรียงกระแส/อินเวอร์เตอร์ (ต้องจำลองโดเมนเวลา), โพรบดิฟเฟอเรนเชียล/โพรบกระแส
-- LED/ไดโอด/ทรานซิสเตอร์ทำงานกับไฟ AC (วงจรเรียงกระแส) — ต้องจำลองแบบโดเมนเวลา
-- MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ตัวเก็บประจุชาร์จ/ดิสชาร์จตามเวลา, ออปแอมป์
+- ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, ตัวถอดรหัส I2C/SPI (ยังไม่มีอุปกรณ์ I2C/SPI), อินเวอร์เตอร์, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
+- โหมดตามเวลา: ขยายให้ครอบคลุมทรานซิสเตอร์/MOSFET/78xx/NE555/MCU PWM, 3 เฟส, ความเหนี่ยวนำแม่เหล็กหม้อแปลง
+- MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ออปแอมป์
 - ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น
