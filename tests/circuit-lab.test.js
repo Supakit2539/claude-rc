@@ -567,6 +567,17 @@ const path = require('path');
     sc2.roll[0] > 300 && sc2.roll[1] < 0.15, JSON.stringify(sc2.roll)]);
   checks.push(['เครื่องกำเนิดสัญญาณคลื่นสี่เหลี่ยม → จำลองตามเวลา: CH1 ±1.95 V, CH2 (ตัวแบ่ง) ±0.98 V, ดิวตี้ 50%',
     sc2.sq[0] && nr(sc2.sq[1], 1.95, 0.03) && nr(sc2.sq[2], -1.95, 0.03) && nr(sc2.sq[3], 0.975, 0.02) && nr(sc2.sq[4], 0.5, 0.03), JSON.stringify(sc2.sq)]);
+  const flt = await page.evaluate(() => { const s = __sim;
+    const mk = toCircuit => { s.load('cnt7seg'); const d = JSON.parse(JSON.stringify(s.S));
+      d.comps.push({id:900, t:'scope', x:30, y:4, n:'OSC1', vdiv1:5, vdiv2:5, pos1:1, pos2:-2, tdiv:2, trig:'1', on2:true, run:true, earth:true, px1:10, px2:10, cpl1:'DC', cpl2:'DC', disp:'yt', math:'off', cur:'off', tmode:'auto', slope:'up', tlev:0.01});
+      d.wires.push({x1:29,y1:6,x2:29,y2:10}, {x1:29,y1:10,x2:21,y2:10}, {x1:30,y1:6,x2:30,y2:13}, {x1:30,y1:13,x2:18,y2:13});
+      if (toCircuit) d.wires.push({x1:32,y1:6,x2:32,y2:17}, {x1:32,y1:17,x2:27,y2:17}); else { d.comps.push({id:901, t:'gnd', x:34, y:8, n:''}); d.wires.push({x1:32,y1:6,x2:34,y2:6}, {x1:34,y1:6,x2:34,y2:8}); }
+      d.nid = 1000; s.load(d); s.run(12); const c = s.scope('OSC1');
+      return [scopeFloat(s.find('OSC1')).join(','), warnList().some(w => /กราวด์โพรบ \(⏚\) ไม่ได้ต่อ/.test(w[1])), c.ch[0].max - c.ch[0].min]; };
+    const ex = Object.keys(s.EX).filter(k => { s.load(k); return s.S.comps.some(c => c.t === 'scope' && scopeFloat(c).some(Boolean)); });
+    return {f:mk(false), g:mk(true), ex}; });
+  checks.push(['สโคป: ⏚ ต่อสัญลักษณ์กราวด์แยกจากวงจรแบตเตอรี่ → ตรวจพบวงจรลอย + เตือน; ต่อ ⏚ เข้า GND วงจร → 0–9 V ถูกต้อง, ไม่มีตัวอย่างใดเตือนผิด',
+    flt.f[0] === 'true,true' && flt.f[1] && flt.g[0] === 'false,false' && !flt.g[1] && nr(flt.g[2], 9, 0.1) && flt.ex.length === 0, JSON.stringify(flt)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

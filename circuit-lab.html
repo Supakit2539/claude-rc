@@ -5470,6 +5470,7 @@ function warnList(){
         else if (S.comps.some(o => o !== c && o.id < c.id && L.lan.get(o) === me && ipOf(o) === ipOf(c))) w.push(['bad', `${n}: IP ${esc(c.ip)} ซ้ำกับอุปกรณ์อื่นบนเครือข่าย (IP conflict)`]); } }
     if (c.t === 'scope'){ const p = scopeProbe(c); if (p) [0, 1].forEach(k => { const px = c['px' + (k + 1)] || 1, lim = px === 10 ? 600 : 300, pk = Math.abs(p[k].d) + Math.SQRT2*acm(p[k]);
       if (pk > lim) w.push(['bad', `ออสซิลโลสโคป ${n}: CH${k + 1} แรงดันยอด ${fmt(pk, 'V')} เกินพิกัดโพรบ ×${px} (${lim} V)` + (px === 1 ? ' — เปลี่ยนเป็นโพรบ ×10' : '')]); }); }
+    if (c.t === 'scope'){ const fl = scopeFloat(c); if (fl[0] || fl[1]) w.push(['warn', `ออสซิลโลสโคป ${n}: กราวด์โพรบ (⏚) ไม่ได้ต่อกับวงจรที่วัด${fl[0] && fl[1] ? '' : fl[0] ? ' (CH1)' : ' (CH2)'} — วงจรลอยอยู่ ความต้านทานโพรบกลายเป็นทางกลับ รูปคลื่นจึงเพี้ยนและเปลี่ยนเมื่อต่อ/ถอดอีกแชนเนล · ต่อ ⏚ เข้ากับ GND หรือขั้วลบของแหล่งจ่ายวงจร`]); }
     if (c.t === 'scope' && R.ig > 0.2) w.push(['bad', `ออสซิลโลสโคป ${n}: กราวด์โพรบมีกระแส ${fmt(R.ig, 'A')} ไหลลงสายดิน — คลิปกราวด์ต่อกับจุดที่มีแรงดัน (เช่นสาย L) ทำให้ลัดวงจร`]);
     if (c.t === 'human' && R.Ir > 0.01) w.push(['bad', `⚠ ไฟดูด! กระแสผ่านร่างกาย ${fmt(R.Ir, 'A')}`]);
     if (c.t === 'rcd' && c._trip === 'rcd') w.push(['warn', `เครื่องตัดไฟรั่ว ${n} ตัดไฟ — ตรวจหาจุดรั่วก่อนรีเซ็ต`]);
@@ -6658,6 +6659,18 @@ function scopeDrawFFT(g, X, Y, W, H, c, cap, small){
     for (let j = 1; j < 8; j++) g.fillText((top - j*10) + ' dBV', X + 3, Y + j*H/8 - 3);
   }
 }
+// กราวด์โพรบต่อถึงวงจรที่วัดหรือไม่: หาเกาะที่ต่อถึงกันทางไฟฟ้า (ไม่นับตัวสโคปเองและสโคปอื่น) โหนด 0 = สายดิน
+// คืน [CH1 ลอย, CH2 ลอย] — ลอย = ขาโพรบอยู่คนละเกาะกับ ⏚ จึงมีแค่ความต้านทานโพรบเป็นทางกลับ ค่าที่วัดไม่มีความหมาย
+function scopeFloat(c){
+  if (!c._n) return [false, false];
+  const par = new Map(), f = a => { while (par.has(a) && par.get(a) !== a){ const g = par.get(par.get(a)) ?? par.get(a); par.set(a, g); a = g; } return a; }, u = (a, b) => { a = f(a); b = f(b); if (a !== b) par.set(a, b); };
+  for (const w of S.wires) if (w._a != null) u(w._a, w._b);
+  for (const o of S.comps){ if (o.t === 'scope' || !o._n) continue; const n = o._n;
+    for (let i = 1; i < n.length; i++) u(n[0], n[i]);
+    if (o.t === 'gnd' || o.t === 'src1' || o.t === 'src3') u(n[0], 0); }
+  if (c.earth !== false) u(c._n[2], 0);
+  const g = f(c._n[2]);
+  return [0, 1].map(k => (k === 0 || c.on2 !== false) && nodeLinked(c, k) && f(c._n[k]) !== g); }
 function scopeDraw(g, X, Y, W, H, c, small){
   g.save(); g.beginPath(); g.rect(X, Y, W, H); g.clip();
   g.fillStyle = '#0a1210'; g.fillRect(X, Y, W, H);
@@ -6689,6 +6702,11 @@ function scopeDraw(g, X, Y, W, H, c, small){
     g.beginPath(); g.moveTo(X, y0 - (small ? 3 : 5)); g.lineTo(X + (small ? 5 : 9), y0); g.lineTo(X, y0 + (small ? 3 : 5)); g.fill();
   }
   if (!small && cap) scopeDrawCursors(g, X, Y, W, H, c);
+  const fl = scopeFloat(c);
+  if (fl[0] || fl[1]){ const msg = small ? '⚠ ⏚ ลอย' : `⚠ กราวด์โพรบ (⏚) ไม่ได้ต่อกับวงจรที่วัด (${fl[0] && fl[1] ? 'CH1, CH2' : fl[0] ? 'CH1' : 'CH2'}) — วงจรลอย ค่าที่เห็นไม่ใช่สัญญาณจริง · ต่อ ⏚ เข้ากับ GND/ขั้วลบของวงจร`;
+    g.font = (small ? "700 9px" : "600 12px") + " 'IBM Plex Sans Thai',sans-serif"; const tw = Math.min(W - 8, g.measureText(msg).width + 12);
+    g.fillStyle = 'rgba(127,29,29,0.85)'; g.fillRect(X + 4, Y + H - (small ? 14 : 24), tw, small ? 12 : 20);
+    g.fillStyle = '#fecaca'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(msg, X + 10, Y + H - (small ? 8 : 14), W - 20); }
   if (cap && cap.tpos && cap.trig){ const x = X + cap.tpos*W/10; g.fillStyle = '#f97316'; g.beginPath(); g.moveTo(x - (small ? 3 : 5), Y); g.lineTo(x + (small ? 3 : 5), Y); g.lineTo(x, Y + (small ? 5 : 8)); g.fill(); }
   if (cap && cap.blank && !small){ g.fillStyle = '#94a3b8'; g.font = "600 13px 'IBM Plex Sans Thai',sans-serif"; g.textAlign = 'center';
     g.fillText(c.tmode === 'single' ? 'Single: รอทริกเกอร์ — สัญญาณต้องข้ามระดับทริก' : 'Normal: รอทริกเกอร์ — สัญญาณไม่ข้ามระดับทริก', X + W/2, Y + H/2 - 20); g.textAlign = 'left'; }
