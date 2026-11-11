@@ -162,22 +162,63 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 .wl li.ok{background:var(--okbg);color:var(--ok)}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--panel2)}
-@media (max-width:820px){
-  body{overflow:auto}
-  #main{grid-template-columns:1fr;grid-template-rows:auto 60vh auto}
-  #pal{display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:6px}
-  #pal h3{display:none}
-  .pi{width:auto;white-space:nowrap;border-color:var(--line)}
-  #insp{border-left:0;border-top:1px solid var(--line)}
-  #lad.open{height:60vh}
+/* ---------- จอสัมผัส / โทรศัพท์ / แท็บเล็ต ---------- */
+.cmp,.dclose,#ftools{display:none}
+button,select,.pi,summary{touch-action:manipulation}
+@media (pointer:coarse){
+  .btn{min-height:38px;padding:4px 12px}
+  .pi{min-height:40px}
+  input,select,textarea{font-size:16px}               /* iOS ไม่ซูมเมื่อแตะช่องกรอก */
+  .fld{grid-template-columns:1fr 130px}
+}
+@media (max-width:1100px){
+  header{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:6px 8px;gap:6px;-webkit-overflow-scrolling:touch}
+  header::-webkit-scrollbar{display:none}
+  header>*{order:3} header h1{order:0} #bPal,#bInsp{order:1} #bRun,#spd{order:2}
+  header{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);padding-right:28px}
+  header h1{font-size:14px;margin-right:4px}
+  header .sp{display:none}
+  #ex{min-width:150px;max-width:220px;flex:none}
+  #spd{min-width:62px;flex:none}
+  .cmp{display:inline-flex;align-items:center;gap:4px;flex:none}
+  #bInsp{position:relative}
+  #bInsp.wn::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--warn)}
+  #bInsp.bd::after{background:var(--bad)}
+  #bInsp.pulse{animation:pls .9s ease-out 2}
+  @keyframes pls{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+  #main{display:block;position:relative}
+  #center{position:absolute;inset:0}
+  #pal,#insp{position:absolute;top:0;bottom:0;z-index:9;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .2s ease;overscroll-behavior:contain}
+  #pal{left:0;width:min(300px,86vw);transform:translateX(-105%);border-right:1px solid var(--line)}
+  #insp{right:0;width:min(380px,92vw);transform:translateX(105%);border-left:1px solid var(--line);padding-top:6px}
+  #main.palopen #pal,#main.inspopen #insp{transform:none}
+  .dclose{display:flex;position:sticky;top:0;z-index:2;justify-content:space-between;align-items:center;gap:8px;margin:-6px -12px 6px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);font-weight:600}
+  #pal .dclose{margin:-6px -8px 6px}
+  #hint{font-size:11px;max-width:calc(100% - 20px)}
   #views.split{flex-direction:column}
   #fwrap{border-left:0;border-top:1px solid var(--line)}
+}
+@media (max-width:600px){
+  header h1{display:none}
+  #insp{top:auto;left:0;right:0;width:auto;height:58%;transform:translateY(105%);border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  #hint{display:none}
+  #ftools{display:flex;position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;gap:4px;padding:5px;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.22);max-width:calc(100% - 16px);overflow-x:auto}
+  #ftools .btn{min-width:44px;padding:4px 8px;font-size:13px}
+  #lad.open ~ #ftools,#main.inspopen #ftools{display:none}
+  #lad.open{height:62%}
+  #scopewin,#anwin{left:0 !important;right:0 !important;top:0 !important;width:100% !important;max-height:100% !important;height:100%;border-radius:0}
+  #scv{height:38vh}
+  .swc{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #ladbody.mcu{grid-template-columns:1fr;grid-template-rows:1fr 140px}
+}
 }
 </style>
 </head>
 <body>
 <header>
   <h1>แผงทดลองวงจรไฟฟ้า</h1>
+  <button class="btn cmp" id="bPal" title="แถบอุปกรณ์">☰ อุปกรณ์</button>
+  <button class="btn cmp" id="bInsp" title="ข้อมูลอุปกรณ์ / คำเตือน">ⓘ ข้อมูล</button>
   <select id="ex" title="ตัวอย่างวงจร"></select>
   <button class="btn" id="bSel" title="เลือก/ย้าย (V)">เลือก</button>
   <button class="btn" id="bWire" title="วาดสายไฟ (W)">สายไฟ</button>
@@ -202,8 +243,9 @@ kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--
     <section id="lad"></section>
     <div id="scopewin" hidden></div>
     <div id="anwin" hidden></div>
+    <div id="ftools" aria-label="เครื่องมือ"><button class="btn" data-px="bSel">เลือก</button><button class="btn" data-px="bWire">สายไฟ</button><button class="btn" data-px="bRot">หมุน</button><button class="btn" data-px="bDel">ลบ</button><button class="btn" data-px="bUndo">↶</button><button class="btn" data-px="bFit">⤢</button></div>
   </div>
-  <aside id="insp"><div id="ihead"></div><div id="ilive"></div></aside>
+  <aside id="insp"><div class="dclose"><span>ข้อมูล</span><button class="btn" data-dclose="insp">✕ ปิด</button></div><div id="ihead"></div><div id="ilive"></div></aside>
 </div>
 <script>
 'use strict';
@@ -5503,7 +5545,7 @@ function liveUI(){
     if (!I || !w){ el.innerHTML = ''; return; }
     el.innerHTML = `<table class="rd"><tr><td>แรงดันเทียบกราวด์</td><td>${fmt(RES.nv[w._a], 'V')}</td></tr><tr><td>กระแส</td><td>${fmt(rms(I), 'A')}</td></tr></table>`; return; }
   let P = 0, Q = 0; for (const k in RES.src){ P += RES.src[k].P; Q += RES.src[k].Q; }
-  const w = warnList();
+  const w = warnList(); { const bi = $('#bInsp'); if (bi){ bi.classList.toggle('wn', w.length > 0); bi.classList.toggle('bd', w.some(x => x[0] === 'bad')); } }
   el.innerHTML = `<table class="rd"><tr><td>กำลังจริงรวมที่จ่าย</td><td>${fmt(P, 'W')}</td></tr><tr><td>กำลังรีแอกทีฟรวม</td><td>${fmt(Q, 'var')}</td></tr><tr><td>เวลาจำลอง</td><td>${simT.toFixed(1)} s${running ? '' : ' (หยุด)'}</td></tr></table>
     <ul class="wl">${w.length ? w.map(x => `<li class="${x[0]}">${x[1]}</li>`).join('') : '<li class="ok">ไม่พบปัญหา</li>'}</ul>
     <div class="note"><b>วิธีใช้</b><br>เลือกอุปกรณ์จากแถบซ้ายแล้วคลิกบนแผงเพื่อวาง · ลากจากขั้ว (จุดปลาย) เพื่อต่อสายไฟ · ลากอุปกรณ์แล้วสายไฟตามไป (กด Alt ค้าง = ย้ายโดยไม่พาสาย) · คลิกสวิตช์/เบรกเกอร์เพื่อสับ · กดปุ่มค้างไว้เพื่อกด · ลากพื้นที่ว่างเพื่อเลื่อน ล้อเมาส์เพื่อซูม<br>
@@ -7541,9 +7583,9 @@ const PAL = [
 ];
 let placeM = '';
 function buildPalette(){
-  $('#pal').innerHTML = `<input id="psearch" type="search" placeholder="ค้นหาอุปกรณ์ / รุ่น…" aria-label="ค้นหาอุปกรณ์"><div id="plist"></div>`;
+  $('#pal').innerHTML = `<div class="dclose"><span>อุปกรณ์ <small style="font-weight:400;color:var(--muted)">· แตะแล้ววางบนแผง</small></span><button class="btn" data-dclose="pal">✕</button></div><input id="psearch" type="search" placeholder="ค้นหาอุปกรณ์ / รุ่น…" aria-label="ค้นหาอุปกรณ์"><div id="plist"></div>`;
   $('#psearch').oninput = renderPalette;
-  $('#pal').onclick = e => { const b = e.target.closest('button[data-t]'); if (!b) return; placeT = b.dataset.t; placeM = b.dataset.m || ''; ghostR = 0; setTool('place'); };
+  $('#pal').onclick = e => { const b = e.target.closest('button[data-t]'); if (!b) return; placeT = b.dataset.t; placeM = b.dataset.m || ''; ghostR = 0; setTool('place'); if (compact()) drawer(null); };
   renderPalette();
 }
 function renderPalette(){
@@ -7567,13 +7609,18 @@ function renderPalette(){
 function setTool(t){
   tool = t; if (t !== 'place') placeT = null; drag = null;
   $('#bSel').classList.toggle('on', t === 'sel'); $('#bWire').classList.toggle('on', t === 'wire');
+  document.querySelectorAll('#ftools [data-px]').forEach(b => b.classList.toggle('on', (b.dataset.px === 'bSel' && t === 'sel') || (b.dataset.px === 'bWire' && t === 'wire')));
   document.querySelectorAll('button.pi').forEach(b => b.classList.toggle('on', t === 'place' && b.dataset.t === placeT && (b.dataset.m || '') === placeM));
   cv.style.cursor = t === 'sel' ? 'default' : 'crosshair';
   $('#hint').textContent = t === 'wire' ? 'ลากเพื่อวาดสายไฟ (หักมุมอัตโนมัติ) · Esc กลับโหมดเลือก'
     : t === 'place' ? `คลิกเพื่อวาง${placeM ? ((MODELS[placeT] || []).find(m => m.id === placeM) || {}).nm : T[placeT].nm} · R หมุน · Shift+คลิก วางต่อเนื่อง · Esc ยกเลิก`
     : 'คลิกเลือก · ลากจากขั้วเพื่อต่อสาย · คลิกสวิตช์/เบรกเกอร์เพื่อสับ · กดปุ่มค้างไว้';
 }
-function select(s){ sel = s; renderInsp(); liveUI(); }
+function select(s){ const ch = s && s.k === 'c' && !(sel && sel.k === 'c' && sel.c === s.c); sel = s; renderInsp(); liveUI();
+  if (ch && compact() && !$('#main').classList.contains('inspopen')){ const b = $('#bInsp'); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); } }
+// ---------- จอเล็ก: ลิ้นชักอุปกรณ์ / ข้อมูล ----------
+const compact = () => window.matchMedia('(max-width:1100px)').matches;
+function drawer(w){ const m = $('#main'); m.classList.toggle('palopen', w === 'pal'); m.classList.toggle('inspopen', w === 'insp'); }
 function refreshUI(){ renderInsp(); liveUI(); if (ladOpen) ladStruct(); $('#bUndo').disabled = !hist.length; $('#bVal').classList.toggle('on', showVal); }
 function onLoaded(){ if (scopeWin && !S.comps.some(c => c.id === scopeWin)) scopeWin = null; setTimeout(scopeUI, 0); fx.hv++; fx.sel = null; fxFrame(); ladSel = {ri:0, row:0, col:0}; if (!S.comps.some(c => c.id === ladPid)) ladPid = null; }
 function fit(){
@@ -7611,6 +7658,33 @@ function rotate(){
 }
 
 cv.addEventListener('contextmenu', e => e.preventDefault());
+// สัมผัส: สองนิ้ว = ซูม/เลื่อน (ยกเลิกการลากของนิ้วแรก) · แตะสองครั้งที่อุปกรณ์ = เปิดข้อมูล
+const TP = new Map(); let pinch = null, lastTap = null;
+const tpDist = () => { const a = [...TP.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1; };
+const tpMid = () => { const a = [...TP.values()]; return {x:(a[0].x + a[1].x)/2, y:(a[0].y + a[1].y)/2}; };
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  TP.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (TP.size === 1){ const [gx, gy] = s2g(e), c = hitComp(gx, gy), now = performance.now();
+    if (c && lastTap && lastTap.c === c && now - lastTap.t < 380 && compact()){ select({k:'c', c}); drawer('insp'); lastTap = null; }
+    else lastTap = c ? {c, t:now} : null; }
+  if (TP.size === 2){
+    const d = drag;                                                         // ยกเลิกสิ่งที่นิ้วแรกเริ่มไว้
+    if (d && d.k === 'move'){ if (d.moved){ d.c.x = d.ox; d.c.y = d.oy; if (d.fw) followApply(d.c, d.fw); needSolve = true; } if (d.c.t === 'pb' || d.c.t === 'pbnc'){ d.c._pr = false; needSolve = true; } }
+    drag = null; lastTap = null;
+    const r = cv.getBoundingClientRect(), m = tpMid(); pinch = {d0:tpDist(), z0:view.z, mx:m.x - r.left, my:m.y - r.top, vx:view.x, vy:view.y};
+    e.stopImmediatePropagation(); }
+  else if (TP.size > 2) e.stopImmediatePropagation();
+}, true);
+cv.addEventListener('pointermove', e => {
+  if (e.pointerType !== 'touch' || !TP.has(e.pointerId)) return; TP.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (!pinch || TP.size < 2) return;
+  const r = cv.getBoundingClientRect(), m = tpMid(), mx = m.x - r.left, my = m.y - r.top, z = Math.max(0.25, Math.min(3, pinch.z0*tpDist()/pinch.d0));
+  view.z = z; view.x = mx - (pinch.mx - pinch.vx)*z/pinch.z0; view.y = my - (pinch.my - pinch.vy)*z/pinch.z0;
+  e.stopImmediatePropagation();
+}, true);
+const tpEnd = e => { if (e.pointerType !== 'touch') return; TP.delete(e.pointerId); if (pinch){ if (TP.size < 2) pinch = null; drag = null; e.stopImmediatePropagation(); } };
+cv.addEventListener('pointerup', tpEnd, true); cv.addEventListener('pointercancel', tpEnd, true);
 cv.addEventListener('pointerdown', e => {
   cv.setPointerCapture(e.pointerId);
   const [gx, gy] = s2g(e); mouse.gx = gx; mouse.gy = gy; setPinTol(e);
@@ -7742,6 +7816,10 @@ $('#bDel').onclick = delSel;
 $('#bUndo').onclick = undo;
 $('#bFit').onclick = fit;
 $('#bLad').onclick = () => { ladOpen = !ladOpen; ladStruct(); setTimeout(resize, 200); };
+$('#ftools').onclick = e => { const b = e.target.closest('[data-px]'); if (b) $('#' + b.dataset.px).click(); };
+$('#bPal').onclick = () => drawer($('#main').classList.contains('palopen') ? null : 'pal');
+$('#bInsp').onclick = () => drawer($('#main').classList.contains('inspopen') ? null : 'insp');
+document.addEventListener('click', e => { const b = e.target.closest('[data-dclose]'); if (b) drawer(null); });
 $('#bAn').onclick = () => { const w = $('#anwin'); if (w.hidden) anOpen(); else w.hidden = true; };
 $('#bVal').onclick = () => { showVal = !showVal; refreshUI(); };
 $('#bTheme').onclick = () => {

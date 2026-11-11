@@ -578,6 +578,20 @@ const path = require('path');
     return {f:mk(false), g:mk(true), ex}; });
   checks.push(['สโคป: ⏚ ต่อสัญลักษณ์กราวด์แยกจากวงจรแบตเตอรี่ → ตรวจพบวงจรลอย + เตือน; ต่อ ⏚ เข้า GND วงจร → 0–9 V ถูกต้อง, ไม่มีตัวอย่างใดเตือนผิด',
     flt.f[0] === 'true,true' && flt.f[1] && flt.g[0] === 'false,false' && !flt.g[1] && nr(flt.g[2], 9, 0.1) && flt.ex.length === 0, JSON.stringify(flt)]);
+  { const { devices } = require('playwright'); const mctx = await browser.newContext({...devices['iPhone 13']}); const mp = await mctx.newPage(); const merr = [];
+    mp.on('pageerror', e => merr.push(e.message)); await mp.goto('file://' + require('path').resolve(__dirname, '../circuit-lab.html')); await mp.waitForTimeout(400);
+    await mp.evaluate(() => __sim.load('series'));
+    const lay = await mp.evaluate(() => { const r = id => document.querySelector(id).getBoundingClientRect();
+      return {hdr:r('header').height, cvW:r('#cv').width, vw:innerWidth, over:document.documentElement.scrollWidth > innerWidth + 1, palHidden:r('#pal').right <= 0}; });
+    await mp.tap('#bPal'); await mp.waitForTimeout(300); const palOpen = await mp.evaluate(() => document.querySelector('#pal').getBoundingClientRect().left >= -1);
+    await mp.tap('[data-dclose="pal"]'); await mp.waitForTimeout(300);
+    const cdp = await mctx.newCDPSession(mp), z0 = await mp.evaluate(() => view.z);
+    const TT = (type, pts) => cdp.send('Input.dispatchTouchEvent', {type, touchPoints:pts.map((q, i) => ({x:q[0], y:q[1], id:i}))});
+    await TT('touchStart', [[150,400],[250,400]]); for (let k = 1; k <= 8; k++) await TT('touchMove', [[150 - k*8,400],[250 + k*8,400]]); await TT('touchEnd', []);
+    const z1 = await mp.evaluate(() => view.z), I = await mp.evaluate(() => __sim.RES.comp[__sim.find('H1').id].Ir);
+    checks.push(['มือถือ (iPhone): ส่วนหัวแถวเดียว ≤ 60 px, แผงวงจรเต็มกว้าง, ไม่เลื่อนแนวนอน, แถบอุปกรณ์เป็นลิ้นชักเปิด/ปิดได้, ซูมสองนิ้วได้ วงจรเดิม',
+      lay.hdr <= 60 && lay.cvW >= lay.vw - 2 && !lay.over && lay.palHidden && palOpen && z1 > z0*1.5 && nr(I, 0.25, 0.01) && merr.length === 0, JSON.stringify({lay, palOpen, z0, z1, I, merr})]);
+    await mctx.close(); }
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
