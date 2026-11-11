@@ -618,10 +618,17 @@ function pinsOf(c){
    ============================================================ */
 let S = {comps:[], wires:[], nid:1};
 
-function normalize(){
+// จุดที่จะแยกสาย (ต่อเข้ากลางสาย) ในการ commit ครั้งถัดไป: เฉพาะปลายของสายที่เพิ่งลาก และขั้วของอุปกรณ์ที่เพิ่งวาง/ย้าย/หมุน
+// สายที่ลากผ่านมุม/ปลายสาย/ขั้วอื่นกลางเส้นจึงไม่ต่อกัน · full = แยกทุกจุด (ตัวอย่างที่สร้างด้วย build)
+let splitPts = [];
+const markSplit = pts => { for (const p of pts) splitPts.push([p[0], p[1]]); };
+function normalize(full){
   const P = new Set(), k = (x,y) => x + ',' + y;
-  for (const w of S.wires){ P.add(k(w.x1,w.y1)); P.add(k(w.x2,w.y2)); }
-  for (const c of S.comps) for (const p of pinsOf(c)) P.add(k(p[0],p[1]));
+  if (full){
+    for (const w of S.wires){ P.add(k(w.x1,w.y1)); P.add(k(w.x2,w.y2)); }
+    for (const c of S.comps) for (const p of pinsOf(c)) P.add(k(p[0],p[1]));
+  } else for (const p of splitPts) P.add(k(p[0], p[1]));
+  splitPts = [];
   const out = [], seen = new Set();
   const push = (x1,y1,x2,y2) => {
     if (x1 === x2 && y1 === y2) return;
@@ -1641,7 +1648,7 @@ function load(o){
   if (S.fac) S.fac.items = S.fac.items.filter(i => FKIND[i.k]).map(i => Object.assign(clone(FKIND[i.k].d), i));   // เติมฟิลด์ใหม่ให้ฉากที่บันทึกไว้ก่อน
   facReset();
   for (const c of o.comps||[]){ if (!T[c.t]) continue; const k = mkComp(c.t, c.x, c.y, c); S.comps.push(k); S.nid = Math.max(S.nid, k.id + 1); }
-  normalize();
+  normalize(!!o.raw);
   RES = {comp:{}, wire:[], src:{}, nv:[], nvv:[], ok:true, nn:0, f:50};
   sel = null; needSolve = true; settle();
   if (typeof onLoaded === 'function') onLoaded();
@@ -1672,7 +1679,7 @@ function build(fn){
   const C = (t, x, y, p) => { const c = mkComp(t, x, y, p); c.id = id++; comps.push(c); return c; };
   const W = (...pts) => { for (let i = 0; i+1 < pts.length; i++) wires.push({x1:pts[i][0], y1:pts[i][1], x2:pts[i+1][0], y2:pts[i+1][1]}); };
   fn(C, W);
-  return {v:2, nid:id, comps, wires};
+  return {v:2, raw:true, nid:id, comps, wires};
 }
 const nc = (k, a) => ({k, a});
 const EX = {
@@ -4679,7 +4686,7 @@ function place(gx, gy, keep){
   c.id = S.nid++; c.n = autoName(placeT) || undefined;
   if (c.t === 'no' || c.t === 'nc' || c.t === 'k3'){ const k = S.comps.find(x => x.t === 'coil' || x.t === 'tmr'); if (k) c.ref = k.n; }
   if (c.t === 'pump' || c.t === 'float'){ const k = S.comps.find(x => x.t === 'tank'); if (k){ if (c.t === 'pump') c.tank = k.n; else c.ref = k.n; } }
-  S.comps.push(c); sel = {k:'c', c}; commit();
+  S.comps.push(c); sel = {k:'c', c}; markSplit(pinsOf(c)); commit();
   if (!keep) setTool('sel');
 }
 function delSel(){
@@ -4689,7 +4696,7 @@ function delSel(){
 }
 function rotate(){
   if (tool === 'place'){ ghostR = (ghostR + 1) % 4; return; }
-  if (sel && sel.k === 'c' && isTwo(sel.c)){ const F = followInit(sel.c); sel.c.r = ((sel.c.r||0) + 1) % 4; followApply(sel.c, F); commit(); }
+  if (sel && sel.k === 'c' && isTwo(sel.c)){ const F = followInit(sel.c); sel.c.r = ((sel.c.r||0) + 1) % 4; followApply(sel.c, F); markSplit(pinsOf(sel.c)); commit(); }
 }
 
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -4736,11 +4743,12 @@ function endDrag(){
   if (d.k === 'wire' && (d.ex !== d.x || d.ey !== d.y)){
     const pts = wirePts(d);
     for (let i = 0; i + 1 < pts.length; i++) S.wires.push({x1:pts[i][0], y1:pts[i][1], x2:pts[i+1][0], y2:pts[i+1][1]});
+    markSplit([pts[0], pts[pts.length - 1]]);   // ต่อเฉพาะที่ต้นสายและปลายสาย
     commit();
   } else if (d.k === 'move'){
     const c = d.c;
     if (c.t === 'pb' || c.t === 'pbnc'){ c._pr = false; needSolve = true; }
-    if (d.moved) commit();
+    if (d.moved){ markSplit(pinsOf(c)); commit(); }
     else if (c.t === 'sw'){ c.on = !c.on; commit(); }
     else if (c.t === 'mcb' || c.t === 'rcd'){ c.on = !c.on; c._trip = false; c._h = 0; commit(); }
     else if (c.t === 'ol'){ if (c._trip){ c._trip = false; c._h = 0; needSolve = true; } }

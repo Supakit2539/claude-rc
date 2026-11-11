@@ -279,6 +279,20 @@ const path = require('path');
   mv.push(await page.evaluate(() => { view.z = 0.4; setPinTol({pointerType:'mouse'}); const h = hitPin(2.35, 2); view.z = 1; return !!h && h.x === 2; }));
   checks.push(['ย้าย/หมุนอุปกรณ์ สายไฟตามไป (0.25 A คงเดิม), Alt+ลาก ถอดสาย, ย้อนกลับได้, ขั้วชนกันได้สายเชื่อม, ซูมออกยังจับขั้วได้',
     Math.abs(mv[0] - 0.25) < 0.002 && Math.abs(mv[1] - 0.25) < 0.002 && mv[2] < 1e-3 && Math.abs(mv[3] - 0.25) < 0.002 && Math.abs(mv[4] - 0.5) < 0.002 && mv[5] === true, JSON.stringify(mv.map(v => typeof v === 'number' ? +v.toFixed(4) : v))]);
+  // ลากสายผ่านมุม/จุดต่อของสายอื่นกลางเส้น → ไม่ต่อกัน; ปลายสายตกกลางสายอื่น → ต่อ (T)
+  // วงจร: B1 10 V → R1 100 Ω ปิดวงจรเอง และสายแนวตั้งของ B2 มีจุดหักที่ y = 6 — สายใหม่แนวนอน y = 6 ผ่านทั้งสองจุดหัก
+  await page.evaluate(() => { window.__sim.load({comps:[{id:1, t:'bat', x:4, y:3, r:1, V:10, n:'B1'}, {id:2, t:'res', x:4, y:9, r:1, R:100, n:'R1'}, {id:3, t:'bat', x:8, y:3, r:1, V:5, n:'B2'}, {id:4, t:'res', x:8, y:9, r:1, R:100, n:'R2'}],
+    wires:[{x1:4, y1:4, x2:4, y2:6}, {x1:4, y1:6, x2:4, y2:8}, {x1:8, y1:4, x2:8, y2:6}, {x1:8, y1:6, x2:8, y2:8}, {x1:4, y1:10, x2:4, y2:12}, {x1:4, y1:12, x2:3, y2:12}, {x1:3, y1:12, x2:3, y2:2}, {x1:3, y1:2, x2:4, y2:2},
+      {x1:8, y1:10, x2:8, y2:12}, {x1:8, y1:12, x2:9, y2:12}, {x1:9, y1:12, x2:9, y2:2}, {x1:9, y1:2, x2:8, y2:2}], nid:5}); });
+  await page.waitForTimeout(100);
+  const IR = () => page.evaluate(() => { window.__sim.solveNow(); const R = window.__sim.RES.comp; return [R[2].Ir, R[4].Ir]; });
+  const cr = [await IR()];
+  await page.keyboard.press('w'); await dragTo([2, 6], [10, 6]); cr.push(await IR());
+  cr.push(await page.evaluate(() => window.__sim.S.wires.filter(w => w.y1 === 6 && w.y2 === 6).length));
+  await dragTo([6, 1], [6, 6]); cr.push(await page.evaluate(() => window.__sim.S.wires.filter(w => w.y1 === 6 && w.y2 === 6).length));
+  await page.keyboard.press('Escape');
+  checks.push(['ลากสายผ่านจุดหักของสายอื่นไม่ต่อกัน (กระแส R1/R2 เท่าเดิม), ปลายสายตกกลางสาย → แยกเป็นจุดต่อ T',
+    Math.abs(cr[0][0] - 0.1) < 0.002 && Math.abs(cr[0][1] - 0.05) < 0.002 && Math.abs(cr[1][0] - 0.1) < 0.002 && Math.abs(cr[1][1] - 0.05) < 0.002 && cr[2] === 1 && cr[3] === 2, JSON.stringify(cr)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
