@@ -171,6 +171,14 @@ const path = require('path');
     // เคอร์เซอร์: เวลา 2→6 div ที่ 5 ms/div = 20 ms (50 Hz); แรงดัน CH2 (5 V/div, ตำแหน่ง −3) A=2, B=−2 div → 25 V, 5 V
     { s.load('osc'); s.run(0.3); const c = s.S.comps.find(x => x.t === 'scope'); c.cur = 'time'; c.ta = 2; c.tb = 6; s.scope(c.n); const t = s.scopeCursor(c.n);
       c.cur = 'volt'; c.cch = '2'; c.va = 2; c.vb = -2; const v = s.scopeCursor(c.n); o.cur = [t.dt, t.inv, v.vA, v.vB, v.dv]; }
+    // ลิฟต์โดยสาร 3 ชั้น (แลดเดอร์และข้อความ): เรียกชั้น 3 แล้วเรียกชั้น 2 ระหว่างทาง → จอดชั้น 2 (ประตูเปิด) → ไปชั้น 3; เรียกชั้น 1 → ลงจอดชั้น 1
+    for (const md of ['lad', 'txt']){ s.load('elevator'); const plc = s.find('PLC1'); plc.prog.mode = md; delete plc._cp;
+      const it = s.S.fac.items.find(i => i.k === 'elev'), P = () => s.FXS.rt[it.id].p, press = n => { const c = s.find(n); c._pr = true; s.poke(); s.run(0.2); c._pr = false; s.poke(); };
+      const H1 = () => s.RES.comp[s.find('H1').id].Ir > 0.01;
+      s.run(0.5); const e = [s.find('SQ1').act]; press('F3'); s.run(2.5); press('F2'); s.run(1.5);
+      e.push(P(), s.find('SQ2').act, H1(), !s.find('KU')._on); s.run(8); e.push(P(), s.find('SQ3').act);
+      press('F1'); s.run(12); e.push(P(), s.find('SQ1').act, !s.find('KD')._on);
+      o['elev_' + md] = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -293,6 +301,9 @@ const path = require('path');
   await page.keyboard.press('Escape');
   checks.push(['ลากสายผ่านจุดหักของสายอื่นไม่ต่อกัน (กระแส R1/R2 เท่าเดิม), ปลายสายตกกลางสาย → แยกเป็นจุดต่อ T',
     Math.abs(cr[0][0] - 0.1) < 0.002 && Math.abs(cr[0][1] - 0.05) < 0.002 && Math.abs(cr[1][0] - 0.1) < 0.002 && Math.abs(cr[1][1] - 0.05) < 0.002 && cr[2] === 1 && cr[3] === 2, JSON.stringify(cr)]);
+  for (const md of ['lad', 'txt']){ const e = r['elev_' + md];
+    checks.push([`ลิฟต์ 3 ชั้น (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): ขึ้นไปชั้น 3 แวะชั้น 2 ที่เรียกระหว่างทาง (ประตูเปิด) แล้วลงชั้น 1`,
+      e[0] && Math.abs(e[1] - 1.5) < 0.07 && e[2] && e[3] && e[4] && Math.abs(e[5] - 3) < 0.07 && e[6] && Math.abs(e[7]) < 0.07 && e[8] && e[9], JSON.stringify(e.map(v => typeof v === 'number' ? +v.toFixed(2) : v))]); }
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

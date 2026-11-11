@@ -2215,6 +2215,79 @@ Q2 := M0
     W([14,12],[15,12]); C('pb', 16, 12, {n:'CLOSE', model:'y22', col:'yellow'}); C('no', 16, 14, {ref:'K2'}); W([15,12],[15,14]); W([17,12],[17,14]); W([17,12],[18,12]);
     C('limit', 19, 12, {n:'SQ2', mode:'NC'}); W([20,12],[21,12]); C('nc', 22, 12, {ref:'K1'}); W([23,12],[24,12]); C('coil', 25, 12, {n:'K2'}); W([26,12],[28,12]);
   }), {fac:facPreset('gate')})},
+  elevator: {nm:'โรงงาน 3D: ลิฟต์โดยสาร 3 ชั้น (PLC + มอเตอร์กลับทางหมุน)', f:() => Object.assign(build((C,W) => {
+    // กำลัง: 3 เฟส → เบรกเกอร์ → KU (ขึ้น) / KD (ลง สลับ L1–L3) → มอเตอร์ M1
+    C('src3', 2, 1, {n:'การไฟฟ้า', model:'th400'});
+    for (let k = 1; k <= 3; k++){ C('mcb', k, 4, {r:1, n:'F' + (k + 3), In:6, curve:'C'}); W([k,2],[k,3]); W([k,5],[k,9]); W([k,11],[k,15]); }
+    C('k3', 2, 10, {ref:'KU', model:'k9'}); C('k3', 7, 10, {ref:'KD', model:'k9'});
+    W([1,6],[6,6],[6,9]); W([2,7],[7,7],[7,9]); W([3,8],[8,8],[8,9]);
+    C('motor3', 2, 16, {n:'M1'});
+    W([6,11],[6,12],[3,12]); W([7,11],[7,13],[2,13]); W([8,11],[8,14],[1,14]);
+    // ไฟเลี้ยง 24 VDC จาก L1–N
+    C('psu', 12, 8, {n:'PS1', model:'p24_25'}); W([6,6],[11,6],[11,7]); W([4,2],[4,3],[13,3],[13,7]);
+    W([11,9],[11,11],[28,11]); W([13,9],[13,10],[29,10]);                                     // +24 V (y = 11), 0 V (y = 10)
+    const plc = C('plc', 22, 15, {n:'PLC1'});
+    W([17,13],[17,11]); W([18,13],[18,10]); W([19,13],[19,10]);                               // L+, M, COM
+    C('pb', 20, 12, {r:1, n:'F1', model:'g22'}); C('pb', 21, 12, {r:1, n:'F2', model:'g22'}); C('pb', 22, 12, {r:1, n:'F3', model:'g22'});   // I0–I2 ปุ่มเรียกชั้น
+    C('limit', 23, 12, {r:1, n:'SQ1'}); C('limit', 24, 12, {r:1, n:'SQ2'}); C('limit', 25, 12, {r:1, n:'SQ3'});                           // I3–I5 ลิมิตประจำชั้น
+    C('estop', 26, 12, {r:1, n:'ES1'});                                                                                                  // I6 หยุดฉุกเฉิน (NC)
+    W([17,17],[17,19],[15,19],[15,11]);                                                        // C → +24 V
+    C('coil', 18, 19, {r:1, n:'KU', V:24, S:3, dc:true, model:'k24dc'}); W([18,17],[18,18]); W([18,20],[18,24]);
+    C('coil', 19, 22, {r:1, n:'KD', V:24, S:3, dc:true, model:'k24dc'}); W([19,17],[19,21]); W([19,23],[19,24]);
+    C('lamp', 20, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([20,17],[20,18]); W([20,20],[20,24]);    // ประตูเปิด
+    C('lamp', 21, 22, {r:1, n:'H2', V:24, P:1.2, model:'pil24'}); W([21,17],[21,21]); W([21,23],[21,24]);    // กำลังเคลื่อนที่
+    W([18,24],[29,24],[29,10]);
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    const par = (cmt, rs, out, b) => ({cmt, rows:rs.map((r, k) => row(r, k ? null : out)), links:rs.slice(1).map(() => Array(LC + 1).fill(false).map((_, j) => j === b))});
+    const seal = (cmt, i, m, x, y) => par(cmt, [[nc('NO', i), nc('NC', x), nc('NC', y)], [nc('NO', m)]], {k:'OUT', a:m}, 1);
+    plc.prog = {mode:'lad', txt:`// ลิฟต์ 3 ชั้น: I0–I2 ปุ่มเรียกชั้น 1–3, I3–I5 ลิมิตสวิตช์ประจำชั้น, I6 หยุดฉุกเฉิน (NC)
+// Q0 = KU ขึ้น, Q1 = KD ลง, Q2 = ประตูเปิด, Q3 = ไฟกำลังเคลื่อนที่
+// จำการเรียกแต่ละชั้น (M1–M3)
+SET M1 := I0
+SET M2 := I1
+SET M3 := I2
+// จำชั้นล่าสุดที่ห้องโดยสารผ่าน (M11–M13)
+M11 := (I3 OR M11) AND NOT I4 AND NOT I5
+M12 := (I4 OR M12) AND NOT I3 AND NOT I5
+M13 := (I5 OR M13) AND NOT I3 AND NOT I4
+// ถึงชั้นที่ถูกเรียก → เปิดประตู แล้วล้างการเรียกของชั้นนั้น
+SET M20 := (I3 AND M1) OR (I4 AND M2) OR (I5 AND M3)
+RST M1 := I3
+RST M2 := I4
+RST M3 := I5
+// ประตูเปิด 3 วินาที
+T0 := TON(M20, 3)
+RST M20 := T0
+// มีการเรียกชั้นที่สูงกว่า (M30) / ต่ำกว่า (M31) ชั้นปัจจุบัน
+M30 := (M2 AND M11) OR (M3 AND M11) OR (M3 AND M12)
+M31 := (M2 AND M13) OR (M1 AND M12) OR (M1 AND M13)
+// ขึ้น/ลง: ประตูปิด อินเตอร์ล็อกกัน และไม่เกินชั้นบนสุด/ล่างสุด
+Q0 := I6 AND NOT M20 AND NOT Q1 AND NOT I5 AND M30
+Q1 := I6 AND NOT M20 AND NOT Q0 AND NOT I3 AND M31
+Q2 := M20
+Q3 := Q0 OR Q1
+`, lad:[
+      one('กดเรียกชั้น 1 (F1) → จำไว้', [nc('NO','I0')], {k:'SET', a:'M1'}),
+      one('กดเรียกชั้น 2 (F2) → จำไว้', [nc('NO','I1')], {k:'SET', a:'M2'}),
+      one('กดเรียกชั้น 3 (F3) → จำไว้', [nc('NO','I2')], {k:'SET', a:'M3'}),
+      seal('ชั้นล่าสุด = 1 (ผ่าน SQ1 จนกว่าจะถึงชั้นอื่น)', 'I3', 'M11', 'I4', 'I5'),
+      seal('ชั้นล่าสุด = 2', 'I4', 'M12', 'I3', 'I5'),
+      seal('ชั้นล่าสุด = 3', 'I5', 'M13', 'I3', 'I4'),
+      par('ถึงชั้นที่ถูกเรียก → เปิดประตู', [[nc('NO','I3'), nc('NO','M1')], [nc('NO','I4'), nc('NO','M2')], [nc('NO','I5'), nc('NO','M3')]], {k:'SET', a:'M20'}, 2),
+      one('ถึงชั้น 1 → ล้างการเรียกชั้น 1', [nc('NO','I3')], {k:'RST', a:'M1'}),
+      one('ถึงชั้น 2 → ล้างการเรียกชั้น 2', [nc('NO','I4')], {k:'RST', a:'M2'}),
+      one('ถึงชั้น 3 → ล้างการเรียกชั้น 3', [nc('NO','I5')], {k:'RST', a:'M3'}),
+      one('ประตูเปิดค้าง 3 วินาที', [nc('NO','M20')], {k:'TON', a:'T0', p:3}),
+      one('ครบเวลา → ปิดประตู', [nc('NO','T0')], {k:'RST', a:'M20'}),
+      par('มีการเรียกชั้นที่สูงกว่าชั้นปัจจุบัน', [[nc('NO','M2'), nc('NO','M11')], [nc('NO','M3'), nc('NO','M11')], [nc('NO','M3'), nc('NO','M12')]], {k:'OUT', a:'M30'}, 2),
+      par('มีการเรียกชั้นที่ต่ำกว่าชั้นปัจจุบัน', [[nc('NO','M2'), nc('NO','M13')], [nc('NO','M1'), nc('NO','M12')], [nc('NO','M1'), nc('NO','M13')]], {k:'OUT', a:'M31'}, 2),
+      one('ขึ้น (KU): ES1 ปกติ ประตูปิด ไม่ได้กำลังลง ยังไม่ถึงชั้นบนสุด', [nc('NO','I6'), nc('NC','M20'), nc('NC','Q1'), nc('NC','I5'), nc('NO','M30')], {k:'OUT', a:'Q0'}),
+      one('ลง (KD): ES1 ปกติ ประตูปิด ไม่ได้กำลังขึ้น ยังไม่ถึงชั้นล่างสุด', [nc('NO','I6'), nc('NC','M20'), nc('NC','Q0'), nc('NC','I3'), nc('NO','M31')], {k:'OUT', a:'Q1'}),
+      one('ไฟประตูเปิด (H1)', [nc('NO','M20')], {k:'OUT', a:'Q2'}),
+      par('ไฟกำลังเคลื่อนที่ (H2)', [[nc('NO','Q0')], [nc('NO','Q1')]], {k:'OUT', a:'Q3'}, 1),
+    ]};
+  }), {fac:facPreset('elev')})},
   pickplace: {nm:'โรงงาน 3D: แขนหยิบวางปลายสายพาน', f:() => Object.assign(build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:10, curve:'C', model:'c10'});
     W([2,2],[2,3]); W([2,5],[2,14],[5,14]); W([2,7],[6,7]); W([3,2],[3,26]); W([3,6],[8,6],[8,7]);
@@ -3619,6 +3692,7 @@ const FDIR = [[1,0],[0,1],[-1,0],[0,-1]];
 const FKIND = {
   conv:   {nm:'สายพานลำเลียง (ปรับลาดเอียงได้)', d:{len:4, spd:0.5, m:'M1', h:0.8, h2:0.8}, fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
   roller: {nm:'โต๊ะลูกกลิ้ง',       d:{len:1.1, h:0.8},         fp:i => [-i.len/2, i.len/2, -0.36, 0.36]},
+  elev:   {nm:'ลิฟต์โดยสาร (หลายชั้น)', d:{fl:3, fh:1.5, m:'M1', l1:'SQ1', l2:'SQ2', l3:'SQ3', l4:'', dr:'H1'}, fp:() => [-0.8, 1.5, -0.9, 0.9]},
   lift:   {nm:'ลิฟต์ยกชิ้นงาน',     d:{h:0.8, h2:2, yu:'YU', yd:'YD', lo:'SQ1', hi:'SQ2', s:'PE1'}, fp:() => [-0.5, 0.5, -0.62, 0.62]},
   emit:   {nm:'ตัวปล่อยกล่อง',      d:{every:3, metal:50, h:0.8}, fp:() => [-0.3, 0.3, -0.45, 0.45]},
   push:   {nm:'กระบอกลมดัน',        d:{y:'Y1', h:0.8},          fp:() => [-0.9, 0.15, -0.3, 0.3]},
@@ -3642,7 +3716,9 @@ const FFLD = {h:['ความสูง (m)','num'], h2:['ความสูง�
   len:['ความยาว (m)','num'], spd:['ความเร็ว (m/s)','num'], every:['ปล่อยทุก (s)','num'], metal:['สัดส่วนโลหะ (%)','num'],
   want:['รับชิ้นงาน','sel',{any:'ทุกชนิด', metal:'โลหะ', other:'ไม่ใช่โลหะ'}], m:['มอเตอร์บนแผง','bind'], y:['คอยล์/โซลินอยด์บนแผง','bind'],
   s:['เซนเซอร์บนแผง','bind'], lg:['หลอด/อุปกรณ์ (เขียว)','bind'], ly:['หลอด/อุปกรณ์ (เหลือง)','bind'], lr:['หลอด/อุปกรณ์ (แดง)','bind'], tk:['ถังน้ำบนแผง','bind'],
-  ag:['มอเตอร์ใบกวน (ถ้ามี)','bind'], lo:['ลิมิตสวิตช์เปิดสุด/ชั้นล่าง','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind'], b1:['ปุ่มที่ 1 บนแผง','bind'], b2:['ปุ่มที่ 2 บนแผง','bind'], b3:['ปุ่มที่ 3 บนแผง','bind']};
+  ag:['มอเตอร์ใบกวน (ถ้ามี)','bind'], lo:['ลิมิตสวิตช์เปิดสุด/ชั้นล่าง','bind'], lc:['ลิมิตสวิตช์ปิดสุด','bind'], b1:['ปุ่มที่ 1 บนแผง','bind'], b2:['ปุ่มที่ 2 บนแผง','bind'], b3:['ปุ่มที่ 3 บนแผง','bind'],
+  fl:['จำนวนชั้น (2–4)','num'], fh:['ความสูงต่อชั้น (m)','num'], l1:['ลิมิตสวิตช์ชั้น 1','bind'], l2:['ลิมิตสวิตช์ชั้น 2','bind'], l3:['ลิมิตสวิตช์ชั้น 3','bind'], l4:['ลิมิตสวิตช์ชั้น 4','bind'],
+  dr:['สัญญาณประตูเปิด (หลอด/คอยล์)','bind']};
 const FXS = {boxes:[], rt:{}, auto:true, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}};
 function facItem(k, x, z, r, p){ return Object.assign({k, x, z, r:r || 0}, clone(FKIND[k].d), p || {}); }
 function facPreset(name){
@@ -3657,6 +3733,7 @@ function facPreset(name){
       I('bin',3.7,1.6,0,{want:'any'}), I('cab',-1.0,1.9,0), I('light',-1.0,2.35,0,{lg:'H1',lr:'H2'}), I('station',-0.4,-1.3,0), I('fence',4.9,0.8,1,{len:3})]},
     lift: {btn:['START','STOP'], items:[I('conv',1.5,0,0,{len:3,m:'M1'}), I('emit',0.3,0,0,{every:4,metal:30}), I('lift',3.45,0,0,{h:0.8,h2:2,yu:'YU',yd:'YD',lo:'SQ1',hi:'SQ2',s:'PE1'}),
       I('conv',5.4,0,0,{len:3,m:'M2',h:2,h2:2}), I('conv',7.2,1.2,1,{len:3,m:'M2',h:2,h2:0.8}), I('bin',7.2,3.25,0,{want:'any'}), I('cab',-1.0,1.9,0), I('station',-0.4,-1.3,0)]},
+    elev: {btn:['F1','F2','F3'], items:[I('elev',2.5,0,2), I('station',0.9,-1.3,0,{b1:'F1',b2:'F2',b3:'F3'}), I('cab',3.6,-1.6,0), I('beacon',2.9,-1.6,0,{lg:'H2'})]},
     tank: {btn:['START','STOP'], items:[I('tank',3,0.5,0,{tk:'TK1'}), I('pump',0.8,0.5,0,{m:'M1'}), I('cab',-1.0,1.9,0), I('station',-0.4,-0.9,0)]},
     gate: {btn:['OPEN','CLOSE','STOP'], items:[I('gate',0,0,0,{m:'M1',lo:'SQ1',lc:'SQ2'}), I('cab',-1.2,-1.4,0), I('station',-1.2,-0.7,0,{b1:'OPEN',b2:'CLOSE',b3:'STOP'}), I('beacon',3.5,-0.75,0,{lg:'M1'})]},
     fan: {btn:['START','STOP'], items:[I('fan',2,0,0,{m:'M1'}), I('cab',0,-1.6,0), I('station',0.8,-1.5,0), I('beacon',0,-1.1,0,{lg:'M1'})]},
@@ -3666,7 +3743,7 @@ function facPreset(name){
   P.items.forEach((it, n) => { it.id = n + 1; });
   return P;
 }
-const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', pick:'แขนหยิบวางปลายสายพาน', lift:'ลิฟต์ + สายพาน 2 ระดับ + ทางลาด', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', fan:'มอเตอร์ขับพัดลม', traffic:'ไฟจราจร', empty:'ฉากว่าง'};
+const FPRE = {sort:'คัดแยกชิ้นงานโลหะ', seq:'สายพาน 2 ช่วง (สตาร์ทตามลำดับ)', pick:'แขนหยิบวางปลายสายพาน', lift:'ลิฟต์ + สายพาน 2 ระดับ + ทางลาด', elev:'ลิฟต์โดยสาร 3 ชั้น', tank:'สถานีสูบน้ำ', gate:'ประตูเลื่อนอัตโนมัติ', fan:'มอเตอร์ขับพัดลม', traffic:'ไฟจราจร', empty:'ฉากว่าง'};
 function facReset(){ Object.assign(FXS, {boxes:[], rt:{}, seed:7, cnt:{metal:0, other:0, miss:0, wrong:0, floor:0}}); }
 function facRnd(){ FXS.seed = (FXS.seed*1103515245 + 12345) & 0x7fffffff; return FXS.seed/0x7fffffff; }
 const fcomp = n => n ? S.comps.find(c => c.n === n) : null;
@@ -3739,6 +3816,15 @@ function facStep(dt){
       const on = st.boxes.filter(b => { if (b.fall || b.held) return false; const cr = facCarrier(b); return cr && cr[0] === i; });     // กล่องที่แท่นรับไว้แล้ว
       rt.dv = rt.p >= 0.995 && on.length ? 0.5 : (rt.p <= 0.005 && on.some(b => fLoc(i, b.x, b.z)[0] < -0.02)) ? 0.5 : 0;
       const sc = fcomp(i.s); if (sc && 'det' in sc && !!sc.det !== on.length > 0){ sc.det = on.length > 0; needSolve = true; }
+    } else if (i.k === 'elev'){
+      // ลิฟต์โดยสาร: มอเตอร์ 3 เฟสกลับทางหมุน → ขึ้น/ลง 0.5 m/s ที่ความเร็วพิกัด; ลิมิตสวิตช์ประจำชั้นทำงานเมื่อห้องโดยสารอยู่ในช่วง ±6 cm ของระดับชั้น
+      const m = fcomp(i.m), v = m && m._run ? (m._sp || 0)*(m._dir < 0 ? -1 : 1)*0.5 : 0, n = Math.max(2, Math.min(4, Math.round(i.fl || 3))), top = (n - 1)*i.fh;
+      rt.over = (v > 0.05 && rt.p >= top) || (v < -0.05 && rt.p <= 0);
+      rt.p = Math.max(0, Math.min(top, rt.p + v*dt)); rt.v = v;
+      const lim = (nm, on) => { const c = fcomp(nm); if (c && 'act' in c && !!c.act !== on){ c.act = on; needSolve = true; } };
+      for (let k = 0; k < n; k++) lim(i['l' + (k + 1)], Math.abs(rt.p - k*i.fh) < 0.06);
+      const at = Math.abs(rt.p - Math.round(rt.p/i.fh)*i.fh) < 0.06, want = at && Math.abs(v) < 0.01 && flit(i.dr) ? 1 : 0;
+      rt.ang += Math.sign(want - rt.ang)*Math.min(Math.abs(want - rt.ang), dt/0.8);      // ประตูห้องโดยสาร 0–1
     } else if (i.k === 'gate'){
       const m = fcomp(i.m), v = m && m._run ? (m._sp || 0)*(m._dir < 0 ? -1 : 1) : 0;
       rt.over = (v > 0.2 && rt.p >= 1) || (v < -0.2 && rt.p <= 0);
@@ -4054,6 +4140,36 @@ function facScene(labs){
         { const q = P(-0.455, 0.36 + 0.09*Math.sin(t2*20), 0.09*Math.cos(t2*20)); B(q[0], q[1], q[2], 0.03, 0.03, 0.03, run ? [0.5,1,0.6] : [0.7,0.7,0.72], run); }
         lab((i.m || '—') + (run ? ' ●' : ''), 0, 0.95, 0);
       } break;
+      case 'elev': { const n = Math.max(2, Math.min(4, Math.round(i.fl || 3))), fh = i.fh, top = (n - 1)*fh + 1.75, y0 = rt.p + 0.06, frame = [0.55,0.58,0.62], gl = [0.55,0.7,0.8];
+        // ปล่องลิฟต์: เสา 4 มุม + คานทุกชั้น + ผนังหลัง
+        L(0, 0.03, 0, 1.6, 0.06, 1.8, dk);
+        for (const a of [-0.75, 0.75]) for (const b of [-0.85, 0.85]) L(a, top/2, b, 0.08, top, 0.08, frame, false, 0.3);
+        L(-0.75, top/2, 0, 0.03, top, 1.62, dark ? [0.2,0.22,0.27] : [0.78,0.8,0.83], false, 0.05);
+        for (let k = 0; k <= n; k++){ const y = k < n ? k*fh + 1.68 : top; for (const b of [-0.85, 0.85]) L(0, y, b, 1.5, 0.06, 0.06, frame); L(-0.75, y, 0, 0.06, 0.06, 1.7, frame); L(0.75, y, 0, 0.06, 0.06, 1.7, frame); }
+        for (const b of [-0.45, 0.45]) L(-0.6, top/2, b, 0.05, top, 0.05, chrome, false, 0.8);       // รางนำ
+        // ชานพักแต่ละชั้น + ไฟบอกชั้น (ลิมิตสวิตช์ทำงาน = เขียว)
+        for (let k = 0; k < n; k++){ const y = k*fh, sq = fcomp(i['l' + (k + 1)]), on = !!(sq && sq.act);
+          if (k > 0){ L(1.15, y - 0.04, 0, 0.7, 0.08, 1.7, dark ? [0.32,0.34,0.38] : [0.74,0.72,0.68], false, 0.1);
+            for (const bb of [-0.8, 0.8]) L(1.45, (y - 0.08)/2, bb, 0.06, y - 0.08, 0.06, frame, false, 0.3);
+            L(1.48, y + 0.5, 0, 0.03, 0.03, 1.7, frame); for (const bb of [-0.82, 0.82]) L(1.48, y + 0.25, bb, 0.03, 0.5, 0.03, frame); }
+          else L(1.15, 0.02, 0, 0.7, 0.04, 1.7, dark ? [0.32,0.34,0.38] : [0.74,0.72,0.68], false, 0.1);
+          L(0.8, y + 1.55, -0.6, 0.03, 0.1, 0.16, on ? [0.3,1,0.45] : [0.2,0.22,0.25], on);
+          L(0.62, y + 0.06, 0.82, 0.05, 0.05, 0.05, on ? [0.3,1,0.45] : [0.35,0.37,0.4], on);
+          lab('ชั้น ' + (k + 1) + (sq ? ' · ' + sq.n : ''), 1.35, y + 0.25, 0.55); }
+        // ห้องโดยสาร
+        const cw = 1.2, ch = 1.45, cd = 1.3;
+        L(0, y0, 0, cw, 0.08, cd, [0.3,0.32,0.36], false, 0.2); L(0, y0 + ch, 0, cw, 0.08, cd, [0.3,0.32,0.36], false, 0.2);
+        L(-cw/2 + 0.02, y0 + ch/2, 0, 0.04, ch, cd, [0.72,0.62,0.45], false, 0.15);
+        for (const b of [-cd/2 + 0.02, cd/2 - 0.02]) L(0, y0 + ch/2, b, cw, ch, 0.04, [0.78,0.8,0.84], false, 0.6);
+        L(-cw/2 + 0.06, y0 + 0.9, 0, 0.03, 0.04, cd - 0.15, chrome, false, 0.9);                         // ราวจับ
+        const dw = (cd - 0.1)/2*(1 - 0.92*rt.ang);
+        for (const s2 of [-1, 1]) L(cw/2 - 0.02, y0 + ch/2, s2*(cd/2 - 0.05 - dw/2), 0.04, ch - 0.1, dw, gl, false, 0.8);
+        L(0, y0 + ch + 0.1, 0, 0.3, 0.12, 0.3, grey); C(-0.3, (top + y0 + ch + 0.16)/2, 0, 'y', 0.012, Math.max(0.01, top - y0 - ch - 0.16), dk, 0.3, {seg:6});
+        const mv = rt.v > 0.01 ? '▲' : rt.v < -0.01 ? '▼' : '', fl = Math.round(rt.p/fh) + 1, at = Math.abs(rt.p - (fl - 1)*fh) < 0.06;
+        L(0, top + 0.18, 0, 0.5, 0.3, 0.5, [0.25,0.3,0.36], false, 0.25); C(0, top + 0.18, 0.32, 'b', 0.12, 0.14, blu, 0.35);   // เครื่องขับบนหลังคาปล่อง
+        if (rt.over) lab('⚠ ห้องโดยสารชนสุดปล่อง — ลิมิตสวิตช์ไม่ตัด', 0, top + 0.9, 0);
+        lab('ลิฟต์ ' + (at ? 'ชั้น ' + fl : (rt.p/fh + 1).toFixed(1)) + ' ' + mv + (rt.ang > 0.5 ? ' · ประตูเปิด' : ''), 0, top + 0.55, 0);
+      } break;
       case 'gate': { const p = rt.p, m = fcomp(i.m), c0 = 1.5 + 3*p, frame = [0.16,0.2,0.3];
         L(3, 0.02, 0, 6.5, 0.04, 0.1, steel, false, 0.5); for (const a of [-0.12, 3.12]){ L(a, 0.9, -0.2, 0.22, 1.8, 0.22, [0.62,0.62,0.6], false, 0.05); L(a, 1.83, -0.2, 0.28, 0.06, 0.28, [0.5,0.5,0.48]); }
         L(c0, 0.2, 0, 3.05, 0.09, 0.05, frame, false, 0.3); L(c0, 1.42, 0, 3.05, 0.09, 0.05, frame, false, 0.3); L(c0 - 1.5, 0.81, 0, 0.07, 1.3, 0.05, frame); L(c0 + 1.5, 0.81, 0, 0.07, 1.3, 0.05, frame);
@@ -4146,7 +4262,7 @@ function fxFrame(){
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
   for (const i of it){ const q = FKIND[i.k].fp(i); for (const a of [q[0], q[1]]) for (const b of [q[2], q[3]]){ const w = fWorld(i, a, b);
     x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); z0 = Math.min(z0, w[1]); z1 = Math.max(z1, w[1]); } }
-  const hm = Math.max(1.2, ...it.map(i => Math.max(i.h || 0, (i.h2 || 0) + (i.k === 'lift' ? 0.8 : 0), ({traffic:3.1, robot:2.3, tank:2.5, light:2.2, beacon:2.2, fan:1.7, gate:1.9, emit:1.9, prox:1.8})[i.k] || 1.2)));
+  const hm = Math.max(1.2, ...it.map(i => Math.max(i.h || 0, (i.h2 || 0) + (i.k === 'lift' ? 0.8 : 0), (i.k === 'elev' ? (Math.round(i.fl || 3) - 1)*(i.fh || 1.5) + 2 : 0), ({traffic:3.1, robot:2.3, tank:2.5, light:2.2, beacon:2.2, fan:1.7, gate:1.9, emit:1.9, prox:1.8})[i.k] || 1.2)));
   fx.tgt = [(x0 + x1)/2, hm*0.42, (z0 + z1)/2]; fx.dist = Math.max(5, hm*2.7, Math.min(20, Math.max(x1 - x0, z1 - z0)*1.2 + 2.5));
 }
 function facSetScene(name){ const p = facPreset(name); S.fac = {items:p.items, btn:p.btn}; fx.sel = null; facReset(); fxFrame(); facEdited(); }
