@@ -205,6 +205,17 @@ const path = require('path');
       const e = [/Arduino พร้อม/.test(pc._log)]; termSend(pc, 'on'); s.run(0.5); e.push(L(), /LED ติด\n$/.test(pc._log));
       termSend(pc, 'OFF'); s.run(0.5); e.push(L()); pc.baud = 2400; termSend(pc, 'ON'); s.run(0.5); e.push(L());
       o.c232 = e; }
+    // Modbus RTU: PLC มาสเตอร์ ↔ Arduino สเลฟ (แลดเดอร์และข้อความ)
+    for (const md of ['lad', 'txt']){ s.load('modbus'); const plc = s.find('PLC1'); plc.prog.mode = md; delete plc._cp; s.run(2);
+      const u = s.find('U1'), L = n => s.RES.comp[s.find(n).id].Ir, im = plc._img;
+      const e = [im.D[0], im.D[8], L('H1') > 0.04, L('D37') > 0.005, L('D34')];
+      s.find('RV1').pos = 30; s.solveNow(); s.run(1.5); e.push(im.D[0], L('H1') < 0.001, L('D37') < 0.001, L('D34') < e[4]);
+      const S1 = s.find('S1'); S1._pr = true; s.poke(); s.run(1); e.push(L('D40') > 0.005); S1._pr = false; s.poke();
+      u.code = u.code.replace('modbus.begin(1, 9600)', 'modbus.begin(1, 4800)'); mcuBoot(u); s.run(0.5); const ok0 = plc._mb.ok; s.run(1.5);
+      e.push(plc._mb.ok === ok0, u._vm.mb.err > 0, /timeout/.test(plc._mb.lastErr));
+      o['mb_' + md] = e.map(v => typeof v === 'number' ? +v.toFixed(4) : v); }
+    { const im = newImage(); const c = compile('D3 := (AI0 + 10) * 2 - D1 / 4\nQ0 := D3 >= 60'); im.AI[0] = 25; im.D[1] = 40; runText(c.code, im, 0.1); o.mbexpr = [c.err.length, im.D[3], im.Q[0]]; }
+    { const f = mbFrame([1, 3, 0, 0, 0, 1]); o.crc = mbHex(f); }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -338,6 +349,11 @@ const path = require('path');
     JSON.stringify(r.clora) === JSON.stringify([true, true, -110, true, false, true, true]), JSON.stringify(r.clora)]);
   checks.push(['RS-232 (MAX3232): บอร์ดทักทายเทอร์มินัล, สั่ง ON/OFF ได้, บอดเทอร์มินัลไม่ตรง → คำสั่งไม่ผ่าน',
     JSON.stringify(r.c232) === JSON.stringify([true, 1, true, 0, 0]), JSON.stringify(r.c232)]);
+  for (const md of ['lad', 'txt']){ const e = r['mb_' + md];
+    checks.push([`Modbus RTU (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): PLC อ่าน pot 75% → D0 = 767, H1 + coil 0 ติด, D8 → PWM; pot 30% → D0 = 307 ดับ + LED หรี่; ปุ่ม → coil 1; บอดสเลฟไม่ตรง → CRC ผิด/timeout`,
+      e[0] === 767 && e[1] === 767 && e[2] && e[3] && e[5] === 307 && e[6] && e[7] && e[8] && e[9] && e[10] && e[11] && e[12], JSON.stringify(e)]); }
+  checks.push(['PLC: D3 := (AI0 + 10)*2 − D1/4 = 60, Q0 := D3 >= 60 · CRC Modbus ของ 01 03 00 00 00 01 = 84 0A',
+    JSON.stringify(r.mbexpr) === '[0,60,1]' && r.crc === '01 03 00 00 00 01 84 0A', JSON.stringify([r.mbexpr, r.crc])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

@@ -274,7 +274,7 @@ const T = {
   k3:    {nm:'คอนแทกเตอร์ 3 ขั้ว',     ic:'‖‖', pre:'',   d:{ref:'K1'}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3'],[-1,1,'T1'],[0,1,'T2'],[1,1,'T3']], box:[-1.6,-1,1.6,1]},
   motor3:{nm:'มอเตอร์ 3 เฟส',         ic:'M3', pre:'M',  d:{V:400, P:1.1, pf:0.82, eff:0.76}, pins:[[-1,-1,'U'],[0,-1,'V'],[1,-1,'W']], box:[-1.6,-1,1.6,1.7]},
   psu:   {nm:'พาวเวอร์ซัพพลาย DC',    ic:'⎓',  pre:'PS', d:{V:24, Imax:2.5}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'+'],[1,1,'−']], box:[-1.6,-1,1.6,1]},
-  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null}, pins:PLC_PINS, box:[-5.6,-2,5.6,2]},
+  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbBaud:9600, mbList:''}, pins:PLC_PINS, box:[-5.6,-2,5.6,2]},
   hmi:   {nm:'จอ HMI (RS-485)',       ic:'▣',  pre:'HMI',d:{b1:'M0 START', b2:'M1 STOP', b3:'', b4:'', l1:'Q0 ปั๊ม', l2:'M2 ระบบ', l3:'I2 ลูกลอยล่าง', l4:'I3 ลูกลอยบน'},
           pins:[[-2,2,'24V'],[-1,2,'0V'],[1,2,'A'],[2,2,'B']], box:[-2.6,-2,2.6,2]},
   pump:  {nm:'ปั๊มน้ำ',               ic:'P',  pre:'M',  d:{V:230, P:0.75, pf:0.8, eff:0.7, tank:'TK1', flow:6}},
@@ -1206,19 +1206,24 @@ function solveAll(){
 /* ============================================================
    4. PLC
    ============================================================ */
-const AREA = {I:8, Q:4, M:32, T:8};
+const AREA = {I:8, Q:4, M:32, T:8, D:32};
 function newImage(){
-  return {I:Array(8).fill(0), Q:Array(4).fill(0), M:Array(32).fill(0), AI:[0,0],
+  return {I:Array(8).fill(0), Q:Array(4).fill(0), M:Array(32).fill(0), AI:[0,0], D:Array(32).fill(0),
           T:Array.from({length:8}, () => ({pre:0, acc:0, q:0}))};
 }
 function parseAddr(a){
-  const m = /^([IQMT])(\d{1,2})$/.exec(String(a||'').trim().toUpperCase());
+  const m = /^([IQMTD])(\d{1,2})$/.exec(String(a||'').trim().toUpperCase());
   if (!m) return null;
   const n = +m[2]; if (n >= AREA[m[1]]) return null;
   return {k:m[1], n};
 }
-function getA(img, a){ const p = parseAddr(a); if (!p) return 0; return p.k === 'T' ? img.T[p.n].q : img[p.k][p.n]; }
-function setA(img, a, v){ const p = parseAddr(a); if (!p || p.k === 'T') return; img[p.k][p.n] = v ? 1 : 0; }
+function getA(img, a){ const p = parseAddr(a); if (!p) return 0; if (p.k === 'D') return (img.D || [])[p.n] ? 1 : 0; return p.k === 'T' ? img.T[p.n].q : img[p.k][p.n]; }
+function setA(img, a, v){ const p = parseAddr(a); if (!p || p.k === 'T' || p.k === 'D') return; img[p.k][p.n] = v ? 1 : 0; }
+// รีจิสเตอร์ข้อมูล D0–D31 (คำ 16 บิต 0–65535) และค่าตัวเลข: AI0/AI1 (%) หรือ Dn
+const isNumA = a => /^(AI[01]|D([0-9]|[12][0-9]|3[01]))$/.test(String(a || '').toUpperCase());
+function numA(img, a){ a = String(a || '').toUpperCase(); if (/^AI[01]$/.test(a)) return (img.AI || [0,0])[+a[2]] || 0; const p = parseAddr(a); return p && p.k === 'D' ? (img.D || [])[p.n] || 0 : 0; }
+const numOf = (img, v) => isNumA(v) ? numA(img, v) : (+v || 0);
+function setD(img, a, v){ const p = parseAddr(a); if (!p || p.k !== 'D') return; if (!img.D) img.D = Array(32).fill(0); img.D[p.n] = Math.round(+v || 0) & 0xFFFF; }
 function ton(img, a, inp, pre, dt){
   const p = parseAddr(a); if (!p || p.k !== 'T') return;
   const t = img.T[p.n]; t.pre = pre;
@@ -1248,7 +1253,7 @@ function compile(src){
       if (t==='('){ next(); const e = expr(); if (next() !== ')') fail('ขาดวงเล็บปิด'); return e; }
       if (t==='TRUE'){ next(); return {o:'k', v:1}; }
       if (t==='FALSE'){ next(); return {o:'k', v:0}; }
-      if (/^AI[01]$/.test(t)){ next(); const op = next();
+      if (isNumA(t)){ next(); const op = next();
         if (!['>','<','>=','<='].includes(op)) fail('ต้องมีตัวเปรียบเทียบ > < >= <= หลัง ' + t);
         const v = parseFloat(next()); if (isNaN(v)) fail('ต้องมีตัวเลขหลัง ' + op);
         return {o:'cmp', a:t, op, v}; }
@@ -1262,6 +1267,16 @@ function compile(src){
       if (!pd) fail('ที่อยู่ปลายทางไม่ถูกต้อง');
       if (pd.k === 'I') fail('เขียนค่าลงอินพุต ' + dst + ' ไม่ได้');
       const op = next(); if (op !== ':=' && op !== '=') fail('ต้องมี := หลัง ' + dst);
+      // D ← นิพจน์ตัวเลข (+ − × ÷, วงเล็บ, ตัวเลข, AI0/AI1, Dn)
+      const nsum = () => { let a = nprod(); while (peek() === '+' || peek() === '-'){ const o = next(); a = {o:'n' + o, a, b:nprod()}; } return a; };
+      const nprod = () => { let a = natom(); while (peek() === '*' || peek() === '/'){ const o = next(); a = {o:'n' + o, a, b:natom()}; } return a; };
+      const natom = () => { const t = peek();
+        if (t === '('){ next(); const e = nsum(); if (next() !== ')') fail('ขาดวงเล็บปิด'); return e; }
+        if (t === '-'){ next(); return {o:'n-', a:{o:'k', v:0}, b:natom()}; }
+        if (isNumA(t)){ next(); return {o:'v', a:t}; }
+        if (/^\d/.test(t)){ next(); return {o:'k', v:+t}; }
+        fail(t ? 'ไม่รู้จัก "' + toks[p] + '" ในนิพจน์ตัวเลข' : 'นิพจน์ไม่ครบ'); };
+      if (pd.k === 'D'){ if (k !== '=') fail('SET/RST ใช้กับรีจิสเตอร์ D ไม่ได้'); code.push({k:'MOV', dst, e:nsum()}); if (p < toks.length) fail('มีข้อความเกิน: "' + toks.slice(p).join(' ') + '"'); return; }
       if (pd.k === 'T'){
         if (peek() !== 'TON') fail('ไทเมอร์ต้องใช้ TON(เงื่อนไข, วินาที)');
         next(); if (next() !== '(') fail('ขาด ( หลัง TON');
@@ -1282,13 +1297,20 @@ function ev(e, img){
     case 'not': return ev(e.a,img) ? 0 : 1;
     case 'k':   return e.v;
     case 'a':   return getA(img, e.a) ? 1 : 0;
-    case 'cmp': { const x = (img.AI || [0,0])[+e.a[2]];
+    case 'cmp': { const x = numA(img, e.a);
       return (e.op === '>' ? x > e.v : e.op === '<' ? x < e.v : e.op === '>=' ? x >= e.v : x <= e.v) ? 1 : 0; }
   }
   return 0;
 }
+function evn(e, img){
+  switch (e.o){ case 'k': return e.v; case 'v': return numA(img, e.a);
+    case 'n+': return evn(e.a, img) + evn(e.b, img); case 'n-': return evn(e.a, img) - evn(e.b, img);
+    case 'n*': return evn(e.a, img)*evn(e.b, img); case 'n/': { const d = evn(e.b, img); return d ? evn(e.a, img)/d : 0; } }
+  return 0;
+}
 function runText(code, img, dt){
   for (const s of code){
+    if (s.k === 'MOV'){ setD(img, s.dst, evn(s.e, img)); continue; }
     const v = ev(s.e, img);
     if (s.k === '=') setA(img, s.dst, v);
     else if (s.k === 'S'){ if (v) setA(img, s.dst, 1); }
@@ -1314,7 +1336,7 @@ function cellPass(x, img){
   if (!x || x.k === 'H') return 1;
   if (x.k === 'NO') return getA(img, x.a) ? 1 : 0;
   if (x.k === 'NC') return getA(img, x.a) ? 0 : 1;
-  if (x.k === 'GT' || x.k === 'LT'){ const v = (img.AI || [0,0])[+String(x.a)[2]] || 0; return (x.k === 'GT' ? v > +x.p : v < +x.p) ? 1 : 0; }
+  if (x.k === 'GT' || x.k === 'LT'){ const v = numA(img, x.a); return (x.k === 'GT' ? v > +x.p : v < +x.p) ? 1 : 0; }
   return 0;
 }
 function evalRung(rung, img){
@@ -1345,6 +1367,7 @@ function runLadder(lad, img, dt, plc){
       else if (o.k === 'SET'){ if (on) setA(img, o.a, 1); }
       else if (o.k === 'RST'){ if (on) setA(img, o.a, 0); }
       else if (o.k === 'TON') ton(img, o.a, on, +o.p || 0, dt);
+      else if (o.k === 'MOV'){ if (on) setD(img, o.a, numOf(img, o.p)); }
     });
     mon.push(m);
   }
@@ -1355,7 +1378,7 @@ function validateLad(lad){
   lad.forEach((rung, ri) => {
     rung.rows.forEach((row, r) => {
       row.cells.forEach((x, c) => {
-        if (x && (x.k === 'GT' || x.k === 'LT')){ if (!/^AI[01]$/.test(x.a) || !isFinite(+x.p)) err.push(`รัง ${ri+1} แถว ${r+1} ช่อง ${c+1}: การเปรียบเทียบต้องใช้ AI0/AI1 และตัวเลข`); }
+        if (x && (x.k === 'GT' || x.k === 'LT')){ if (!isNumA(x.a) || !isFinite(+x.p)) err.push(`รัง ${ri+1} แถว ${r+1} ช่อง ${c+1}: การเปรียบเทียบต้องใช้ AI0/AI1 หรือ D0–D31 และตัวเลข`); }
         else if (x && x.k !== 'H' && !parseAddr(x.a)) err.push(`รัง ${ri+1} แถว ${r+1} ช่อง ${c+1}: ที่อยู่ "${x.a||''}" ไม่ถูกต้อง`);
       });
       const o = row.out;
@@ -1363,6 +1386,8 @@ function validateLad(lad){
         const p = parseAddr(o.a);
         if (!p) err.push(`รัง ${ri+1}: ที่อยู่เอาต์พุต "${o.a||''}" ไม่ถูกต้อง`);
         else if (o.k === 'TON' && p.k !== 'T') err.push(`รัง ${ri+1}: TON ต้องใช้ที่อยู่ T0–T7`);
+        else if (o.k === 'MOV' && (p.k !== 'D' || !(isNumA(o.p) || isFinite(+o.p)))) err.push(`รัง ${ri+1}: MOV ต้องเขียนลง D0–D31 จากตัวเลข, AI0/AI1 หรือ Dn`);
+        else if (o.k !== 'MOV' && p.k === 'D') err.push(`รัง ${ri+1}: คอยล์เขียนลงรีจิสเตอร์ ${o.a} ไม่ได้ (ใช้ MOV)`);
         else if (o.k !== 'TON' && (p.k === 'I' || p.k === 'T')) err.push(`รัง ${ri+1}: คอยล์เขียนลง ${o.a} ไม่ได้`);
       }
       if (r > 0){ const [a, b] = rowSpan(rung, r);
@@ -1395,6 +1420,8 @@ function plcScan(p, dt){
     for (const h of S.comps) if (h.t === 'hmi' && h._link === p)
       hmiBtns(h).forEach((b, i) => { if (b) setA(img, b.a, h._press === i ? 1 : 0); });
     if (p.prog.mode === 'txt') runText(prog.code, img, dt); else runLadder(p.prog.lad, img, dt, p);
+    if (!img.D) img.D = Array(32).fill(0);
+    if (p.mbOn) plcModbus(p);
   } else {
     img.Q.fill(0);
     if (!p._pw){ img.I.fill(0); img.T.forEach(t => { t.acc = 0; t.q = 0; }); }
@@ -1580,7 +1607,7 @@ function cToJs(src){
   // อ็อบเจกต์ไลบรารี: DHT dht(2, DHT22);  Servo s;
   // String ของ Arduino: s.length() → s.length, s.trim(); / toUpperCase(); แก้ค่าในตัวแปรเอง
   s = s.replace(/\.length\(\)/g, '.length').replace(/\b([A-Za-z_]\w*)\.(trim|toUpperCase|toLowerCase)\(\)\s*;/g, '$1 = $1.$2();');
-  s = s.replace(/\b(DHT|Servo|SoftwareSerial)\s+([A-Za-z_]\w*)\s*(?:\(([^;]*)\))?\s*;/g, (m, cls, n, a) => 'const ' + n + ' = new ' + cls + '(' + (a || '') + ');');
+  s = s.replace(/\b(DHT|Servo|SoftwareSerial|ModbusRTUSlave)\s+([A-Za-z_]\w*)\s*(?:\(([^;]*)\))?\s*;/g, (m, cls, n, a) => 'const ' + n + ' = new ' + cls + '(' + (a || '') + ');');
   s = wrapInts(s);
   s = s.replace(new RegExp('^\\s*(?:static\\s+)?(?:void|' + CTYPES + ')\\s+\\w+\\s*\\([^)]*\\)\\s*;', 'gm'), '');
   const fns = [];
@@ -1622,7 +1649,8 @@ function baudMix(s, a, b){ if (!a || !b || Math.abs(a - b) <= 0.03*b) return s;
   return Array.from(s).map((ch, i) => String.fromCharCode(0xC0 + (ch.charCodeAt(0)*7 + i*13 + Math.round(a/b*10)) % 62)).join(''); }
 const invMix = s => Array.from(s).map(ch => String.fromCharCode(0xC0 + ((~ch.charCodeAt(0)) & 63))).join('');
 function commLog(c, dir, s){ c._log = ((c._log || '') + s).slice(-800); c[dir === 'tx' ? '_tx' : '_rx'] = simT; }
-const commTail = c => c._log ? esc(c._log.slice(-48).replace(/\n/g, '⏎')) : '—';
+const commTail = c => { if (!c._log) return '—'; const t = c._log.slice(-48);
+  return /[\x00-\x08\x0b-\x1f\x7f-\xff]/.test(t) ? 'HEX ' + mbHex(c._log.slice(-16)) : esc(t.replace(/\n/g, '⏎')); };
 function commSend(net, data, baud, src, at, depth = 0){
   if (net == null || net < 0 || !data || depth > 5) return;
   for (const m of S.comps){
@@ -1655,6 +1683,13 @@ function rs485Tx(m, data, baud, at, depth){
     if (pinRel(o, 1, 7) > 2){ if (o !== m) o._err = 'RE = HIGH → ตัวรับปิด ไม่ได้รับข้อมูล'; continue; }
     if (o !== m){ o._err = d === data ? '' : 'สาย A/B สลับขั้ว → ข้อมูลกลับบิต'; commLog(o, 'rx', d); }
     commSend(netOf(o, 0), d, baud, o, at, depth + 1);
+  }
+  // PLC ที่เปิด Modbus บนบัสเดียวกัน (ขา A/B ในตัว)
+  for (const p of S.comps) if (p.t === 'plc' && p.mbOn){
+    const pa = netOf(p, PLC_A), pb = netOf(p, PLC_B); let d;
+    if (pa === A && pb === Bn) d = data; else if (pa === Bn && pb === A) d = invMix(data); else continue;
+    if ((+p.mbBaud || 9600) !== baud) d = baudMix(d, baud, +p.mbBaud || 9600);
+    (p._mbrx || (p._mbrx = [])).push({t:at, s:d});
   }
 }
 // LoRa: ช่อง/แบนด์/SF ต้องตรงกัน, แอดเดรสเท่ากัน (หรือ 65535 = กระจาย), M0 = M1 = LOW (โหมดปกติ)
@@ -1690,6 +1725,91 @@ function termTick(c){ if (!c._rxq || !c._rxq.length) return; c._rxq.sort((a, b) 
 for (const [k, f] of Object.entries({toInt(){ return parseInt(this, 10) || 0; }, toFloat(){ return parseFloat(this) || 0; }, equals(o){ return String(this) === String(o); },
   equalsIgnoreCase(o){ return String(this).toLowerCase() === String(o).toLowerCase(); }, c_str(){ return String(this); }}))
   if (!String.prototype[k]) Object.defineProperty(String.prototype, k, {value:f, writable:true, configurable:true});
+/* ---------- Modbus RTU ----------
+   เฟรม = [แอดเดรสสเลฟ, ฟังก์ชัน, ข้อมูล…, CRC16 (ไบต์ต่ำก่อน)] ส่งเป็นอักขระ 0–255 ผ่านระบบสื่อสารเดียวกับ UART
+   PLC = มาสเตอร์ บนขา A/B ในตัว (ตารางคำสั่ง mbList: "สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC" เช่น 1 03 0 4 D0)
+   บอร์ด = สเลฟ ผ่านไลบรารี ModbusRTUSlave (configureCoils/…/begin/poll) */
+function crc16(bytes){ let c = 0xFFFF; for (const b of bytes){ c ^= b; for (let i = 0; i < 8; i++) c = c & 1 ? (c >>> 1) ^ 0xA001 : c >>> 1; } return c; }
+const mbBytes = s => Array.from(s, ch => ch.charCodeAt(0) & 255);
+const mbFrame = bytes => { const c = crc16(bytes); return String.fromCharCode(...bytes, c & 255, c >> 8); };
+const mbHex = s => mbBytes(s).map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+const mbCrcOk = b => b.length >= 4 && crc16(b.slice(0, -2)) === (b[b.length - 2] | b[b.length - 1] << 8);
+const MB_FN = {1:'อ่านคอยล์', 2:'อ่านอินพุตดิจิทัล', 3:'อ่าน holding register', 4:'อ่าน input register', 5:'เขียนคอยล์ 1 ตัว', 6:'เขียนรีจิสเตอร์ 1 ตัว', 15:'เขียนคอยล์หลายตัว', 16:'เขียนรีจิสเตอร์หลายตัว'};
+const MB_EXC = {1:'ไม่รองรับฟังก์ชันนี้', 2:'แอดเดรสเกินช่วงที่สเลฟตั้งไว้', 3:'ค่าข้อมูลไม่ถูกต้อง', 4:'สเลฟทำงานผิดพลาด'};
+const PLC_A = PLC_PINS.findIndex(q => q[2] === 'A'), PLC_B = PLC_PINS.findIndex(q => q[2] === 'B');
+function mbParse(p){
+  const src = String(p.mbList || '');
+  if (p._mbp && p._mbp.src === src) return p._mbp;
+  const list = [], err = [];
+  src.split('\n').forEach((raw, li) => {
+    const line = raw.replace(/(\/\/|;).*$/, '').trim(); if (!line) return;
+    const f = line.split(/[\s,]+/), sid = +f[0], fn = +f[1], addr = +f[2], qty = +f[3], reg = parseAddr(f[4]);
+    const bad = m => err.push('Modbus บรรทัด ' + (li + 1) + ': ' + m);
+    if (f.length < 5) return bad('ต้องมี 5 ช่อง: สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC');
+    if (!(sid >= 0 && sid <= 247)) return bad('แอดเดรสสเลฟต้องเป็น 0–247');
+    if (!MB_FN[fn]) return bad('ฟังก์ชัน ' + f[1] + ' ไม่รองรับ (ใช้ 1 2 3 4 5 6 15 16)');
+    if (!(addr >= 0 && addr <= 65535) || !(qty >= 1 && qty <= 32)) return bad('แอดเดรส/จำนวนไม่ถูกต้อง');
+    const bits = [1, 2, 5, 15].includes(fn);
+    if (!reg || (bits ? !'MQ'.includes(reg.k) || ([1, 2].includes(fn) && reg.k === 'Q' && false) : reg.k !== 'D')) return bad(bits ? 'คอยล์ต้องจับคู่กับ M หรือ Q (เช่น M16)' : 'รีจิสเตอร์ต้องจับคู่กับ D (เช่น D0)');
+    if ((fn === 5 || fn === 6) && qty !== 1) return bad('ฟังก์ชัน 5/6 เขียนได้ครั้งละ 1 ตัว (จำนวน = 1)');
+    if (reg.n + qty > AREA[reg.k]) return bad(f[4] + ' + ' + qty + ' เกินพื้นที่หน่วยความจำ PLC');
+    list.push({sid, fn, addr, qty, reg});
+  });
+  return (p._mbp = {src, list, err});
+}
+function mbRequest(p, it){
+  const img = p._img, {sid, fn, addr, qty, reg} = it, b = [sid, fn, addr >> 8, addr & 255];
+  const u16 = x => Math.round(+x || 0) & 0xFFFF, bit = k => img[reg.k][reg.n + k] ? 1 : 0;
+  if (fn <= 4) b.push(qty >> 8, qty & 255);
+  else if (fn === 5) b.push(bit(0) ? 0xFF : 0, 0);
+  else if (fn === 6){ const v = u16(img.D[reg.n]); b.push(v >> 8, v & 255); }
+  else if (fn === 15){ const nb = Math.ceil(qty/8); b.push(qty >> 8, qty & 255, nb); for (let i = 0; i < nb; i++){ let v = 0; for (let k = 0; k < 8 && i*8 + k < qty; k++) v |= bit(i*8 + k) << k; b.push(v); } }
+  else if (fn === 16){ b.push(qty >> 8, qty & 255, qty*2); for (let k = 0; k < qty; k++){ const v = u16(img.D[reg.n + k]); b.push(v >> 8, v & 255); } }
+  return mbFrame(b);
+}
+function plcBusSend(p, data, baud){
+  const at = Math.max(simT, p._mbBusy || 0) + data.length*10/baud; p._mbBusy = at;
+  const A = netOf(p, PLC_A), Bn = netOf(p, PLC_B);
+  for (const o of S.comps) if (o.t === 'rs485' && o._pw){
+    const oa = netOf(o, 6), ob = netOf(o, 5); let d;
+    if (oa === A && ob === Bn) d = data; else if (oa === Bn && ob === A) d = invMix(data); else continue;
+    if (pinRel(o, 1, 7) > 2){ o._err = 'RE = HIGH → ตัวรับปิด ไม่ได้รับข้อมูล'; continue; }
+    o._err = d === data ? '' : 'สาย A/B สลับขั้ว → ข้อมูลกลับบิต'; commLog(o, 'rx', d);
+    commSend(netOf(o, 0), d, baud, o, at, 1);
+  }
+}
+function mbHandle(p, st, s){
+  const b = mbBytes(s), it = st.wait.it, img = p._img;
+  st.last = 'RX ' + mbHex(s);
+  if (!mbCrcOk(b)){ st.err++; st.lastErr = 'CRC ผิด — สัญญาณรบกวน บอดไม่ตรง หรือสาย A/B สลับ'; return; }
+  if (b[0] !== it.sid){ st.err++; st.lastErr = 'ตอบจากสเลฟผิดตัว (' + b[0] + ')'; return; }
+  if (b[1] === (it.fn | 0x80)){ st.err++; st.lastErr = `สเลฟ ${it.sid} ตอบข้อยกเว้น ${b[2]}: ${MB_EXC[b[2]] || ''}`; return; }
+  if (b[1] !== it.fn){ st.err++; st.lastErr = 'ฟังก์ชันในคำตอบไม่ตรง'; return; }
+  if (it.fn <= 2) for (let k = 0; k < it.qty; k++) img[it.reg.k][it.reg.n + k] = (b[3 + (k >> 3)] >> (k & 7)) & 1;
+  if (it.fn === 3 || it.fn === 4) for (let k = 0; k < it.qty; k++) img.D[it.reg.n + k] = (b[3 + 2*k] << 8) | b[4 + 2*k];
+  st.ok++; st.lastErr = '';
+}
+// มาสเตอร์: ส่งคำสั่งตามตารางทีละบรรทัด รอคำตอบ (หมดเวลา 0.3 s) แล้วเว้น 20 ms
+function plcModbus(p){
+  const P = mbParse(p), st = p._mb || (p._mb = {i:0, wait:null, next:0, tx:0, ok:0, err:0, to:0, last:'', lastErr:''});
+  if (P.err.length || !P.list.length) return;
+  const baud = +p.mbBaud || 9600;
+  if (st.wait && st.wait.t0 > simT + 1e-9) st.wait = null;                          // เวลาจำลองถูกรีเซ็ต
+  if (st.next > simT + 1) st.next = simT;
+  if (st.wait){
+    const q = p._mbrx || []; q.sort((a, b) => a.t - b.t); let s2 = '';
+    while (q.length && q[0].t <= simT + 1e-9) s2 += q.shift().s;
+    if (s2){ mbHandle(p, st, s2); st.wait = null; st.next = simT + 0.02; }
+    else if (simT > st.wait.dl){ st.to++; st.lastErr = `สเลฟ ${st.wait.it.sid} ไม่ตอบ (timeout)`; st.wait = null; st.next = simT + 0.02; }
+    return;
+  }
+  if (simT < st.next) return;
+  const it = P.list[st.i % P.list.length]; st.i++;
+  const req = mbRequest(p, it); st.tx++; st.last = 'TX ' + mbHex(req); p._mbrx = [];
+  plcBusSend(p, req, baud);
+  if (it.sid === 0){ st.next = simT + req.length*10/baud + 0.02; return; }           // กระจาย (broadcast) ไม่มีคำตอบ
+  st.wait = {it, t0:simT, dl:simT + req.length*10/baud + 0.3};
+}
 function mcuApi(c, vm){
   const B = MCU[c.t];
   const chk = p => { if (B.map[p] === undefined && p !== B.led) throw new Error(B.nm + ' ไม่มีขา ' + p); };
@@ -1720,7 +1840,7 @@ function mcuApi(c, vm){
       print: (x, f) => send(fmtSerial(x, f)), println: (x, f) => send((x === undefined ? '' : fmtSerial(x, f)) + '\n'),
       write(x){ send(typeof x === 'number' ? String.fromCharCode(x & 255) : String(x)); return 1; },
       available(){ pull(); return u.buf.length; }, read(){ pull(); return u.buf ? take(1) : -1; }, peek(){ pull(); return u.buf ? u.buf[0] : -1; },
-      readString(){ pull(); waitMore(() => false); return take(u.buf.length); },
+      readString(){ pull(); waitMore(() => false); return take(u.buf.length); }, _drain(){ pull(); return take(u.buf.length); },
       readStringUntil(ch){ pull(); ch = typeof ch === 'number' ? String.fromCharCode(ch) : String(ch); waitMore(() => u.buf.includes(ch));
         const i = u.buf.indexOf(ch); if (i < 0) return take(u.buf.length); const s2 = take(i); take(1); return s2; },
       parseInt(){ pull(); waitMore(() => /-?\d+\D/.test(u.buf)); const m = /^[^\d-]*(-?\d+)/.exec(u.buf); if (!m) return 0; take(m[0].length); return +m[1]; },
@@ -1730,7 +1850,7 @@ function mcuApi(c, vm){
   const volt = p => { if (vm.dirty){ vm.dirty = false; solveAll(); }
     const k = B.map[p], R = RES.comp[c.id]; if (k === undefined || !R || !R.pv) return 0;
     return R.pv[k].d - R.pv[B.role.indexOf('G')].d; };
-  return Object.assign({
+  const A = Object.assign({
     HIGH:1, LOW:0, INPUT:0, OUTPUT:1, INPUT_PULLUP:2, LED_BUILTIN:B.led, DEC:10, HEX:16, OCT:8, BIN:2, PI:Math.PI,
     pinMode(p, m){ chk(p); if (m === 1 && B.inOnly && B.inOnly.includes(p)) throw new Error('ขา ' + p + ' ของ ' + B.nm + ' เป็นอินพุตอย่างเดียว');
       const st = pin(p); if (st.mode !== m){ st.mode = m; st.v = 0; st.pwm = null; needSolve = vm.dirty = true; } },
@@ -1748,6 +1868,37 @@ function mcuApi(c, vm){
     Serial: mkPort('Serial', null, null, true),
     SoftwareSerial: function(rx, tx){ return mkPort('SoftwareSerial(' + rx + ',' + tx + ')', rx, tx, false); },
     SERIAL_8N1:0x06, SERIAL_8E1:0x26, SERIAL_8O1:0x36, SERIAL_7E1:0x24,
+    // ไลบรารี ModbusRTUSlave: modbus(พอร์ต, ขา DE/RE) · configureCoils/DiscreteInputs/HoldingRegisters/InputRegisters(อาร์เรย์, จำนวน) · begin(ID, บอด) · poll()
+    ModbusRTUSlave: class {
+      constructor(port, de){ this.port = port; this.de = de == null ? -1 : de; this.id = 1; this.t = {c:null, di:null, hr:null, ir:null}; this.st = vm.mb = {rx:0, tx:0, err:0, last:''}; }
+      configureCoils(a, n){ this.t.c = [a, n ?? a.length]; } configureDiscreteInputs(a, n){ this.t.di = [a, n ?? a.length]; }
+      configureHoldingRegisters(a, n){ this.t.hr = [a, n ?? a.length]; } configureInputRegisters(a, n){ this.t.ir = [a, n ?? a.length]; }
+      begin(id, baud){ this.id = +id || 1; this.port.begin(baud || 9600); if (this.de >= 0){ A.pinMode(this.de, 1); A.digitalWrite(this.de, 0); } }
+      poll(){
+        const s = this.port._drain(); if (!s) return false;
+        const b = mbBytes(s), st = this.st;
+        if (!mbCrcOk(b)){ st.err++; st.last = 'CRC ผิด: ' + mbHex(s); return false; }
+        if (b[0] !== this.id && b[0] !== 0) return false;
+        st.rx++; const fn = b[1], addr = b[2] << 8 | b[3], qty = b[4] << 8 | b[5];
+        const tab = {1:'c', 2:'di', 3:'hr', 4:'ir', 5:'c', 6:'hr', 15:'c', 16:'hr'}[fn], T2 = tab && this.t[tab], u16 = x => Math.round(+x || 0) & 0xFFFF;
+        let r = null, ex = 0;
+        if (!T2) ex = 1;
+        else { const [arr, n] = T2, cnt = fn === 5 || fn === 6 ? 1 : qty;
+          if (addr + cnt > n) ex = 2;
+          else if (fn === 1 || fn === 2){ const nb = Math.ceil(qty/8); r = [b[0], fn, nb]; for (let i = 0; i < nb; i++){ let v = 0; for (let k = 0; k < 8 && i*8 + k < qty; k++) v |= (arr[addr + i*8 + k] ? 1 : 0) << k; r.push(v); } }
+          else if (fn === 3 || fn === 4){ r = [b[0], fn, qty*2]; for (let k = 0; k < qty; k++){ const v = u16(arr[addr + k]); r.push(v >> 8, v & 255); } }
+          else if (fn === 5){ arr[addr] = b[4] === 0xFF ? 1 : 0; r = b.slice(0, 6); }
+          else if (fn === 6){ arr[addr] = b[4] << 8 | b[5]; r = b.slice(0, 6); }
+          else if (fn === 15){ for (let k = 0; k < qty; k++) arr[addr + k] = (b[7 + (k >> 3)] >> (k & 7)) & 1; r = b.slice(0, 6); }
+          else if (fn === 16){ for (let k = 0; k < qty; k++) arr[addr + k] = b[7 + 2*k] << 8 | b[8 + 2*k]; r = b.slice(0, 6); } }
+        if (ex) r = [b[0], fn | 0x80, ex];
+        st.last = MB_FN[fn] ? MB_FN[fn] + ' @' + addr + (ex ? ' → ข้อยกเว้น ' + ex : '') : 'ฟังก์ชัน ' + fn;
+        if (b[0] === 0) return true;                      // broadcast: ไม่ตอบ
+        if (this.de >= 0) A.digitalWrite(this.de, 1);
+        this.port.write(mbFrame(r)); st.tx++;
+        if (this.de >= 0) A.digitalWrite(this.de, 0);
+        return true;
+      } },
     map: (x, a, b, c2, d) => Math.trunc((x - a)*(d - c2)/(b - a) + c2), constrain: (x, a, b) => Math.min(b, Math.max(a, x)),
     abs:Math.abs, min:Math.min, max:Math.max, sqrt:Math.sqrt, pow:Math.pow, sin:Math.sin, cos:Math.cos, round:Math.round, floor:Math.floor, ceil:Math.ceil,
     pulseIn(p){ chk(p); const s = sensorAt('sr04', 2, p); return s ? Math.round(s.dist*58.3) : 0; },
@@ -1767,6 +1918,7 @@ function mcuApi(c, vm){
     F: x => x,
     __chk: function*(){ if (++vm.ops > 3000){ vm.ops = 0; yield 'chk'; } },
   }, B.consts, Object.fromEntries(Object.entries(B.uarts || {}).map(([n, [rx, tx]]) => [n, mkPort(n, rx, tx, false)])));
+  return A;
 }
 function mcuBoot(c){
   const vm = {ms:0, wake:0, gen:null, phase:'setup', pins:{}, serial:'', err:null, ops:0, loops:0, tones:{}, servos:{}, uarts:{}};
@@ -2424,6 +2576,71 @@ void loop() {
     W([19,6],[19,10],[20,10],[20,12]);              // T1OUT → RX ของ PC (ไขว้)
     W([21,6],[21,11],[18,11],[18,12],[19,12]);      // R1IN ← TX ของ PC
     W([22,6],[22,12],[21,12]);                      // ⏚
+  })},
+  modbus: {nm:'Modbus RTU: PLC (มาสเตอร์) อ่าน/เขียนข้อมูล Arduino (สเลฟ ID 1) ผ่าน RS-485', f:() => build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6, curve:'C'});
+    W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[24,11]); W([8,9],[8,10],[24,10]);
+    const plc = C('plc', 18, 15, {n:'PLC1', mbOn:true, mbBaud:9600, mbList:`1 03 0 1 D0    // อ่าน holding register 0 (ค่า pot) ของสเลฟ 1 → D0
+1 15 0 2 M16   // เขียนคอยล์ 0–1 ของสเลฟ ← M16–M17
+1 06 4 1 D8    // เขียน holding register 4 ← D8 (ความสว่าง LED)`});
+    W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
+    C('pb', 16, 12, {r:1, n:'S1', model:'g22'});                                                    // I0
+    W([13,17],[13,19],[11,19],[11,11]);
+    C('lamp', 14, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([14,17],[14,18]); W([14,20],[14,22],[9,22],[9,10]);
+    // บัส RS-485: A (y = 19), B (y = 21) จาก PLC ไปโมดูล MAX485 + ตัวต้านทานปลายสาย 120 Ω ทั้งสองปลาย
+    W([21,17],[21,19],[49,19],[49,8]); W([22,17],[22,21],[47,21],[47,8]);
+    C('res', 25, 20, {r:1, n:'RT1', R:120}); C('res', 44, 20, {r:1, n:'RT2', R:120});
+    C('uno', 36, 6, {n:'U1', code:`// Arduino เป็นสเลฟ Modbus RTU (ID 1) บนบัส RS-485 ของ PLC
+// holding register 0 = ค่า pot (0–1023) · holding register 4 = ความสว่าง LED ขา 6 ที่ PLC เขียนมา
+// coil 0 = LED ขา 9 · coil 1 = LED ขา 12
+#include <SoftwareSerial.h>
+#include <ModbusRTUSlave.h>
+SoftwareSerial rs485(10, 11);     // RX ← RO, TX → DI ของ MAX485
+ModbusRTUSlave modbus(rs485, 8);  // ขา 8 → DE + RE (ไลบรารีสลับส่ง/รับให้เอง)
+bool coils[4];
+uint16_t holdingRegisters[8];
+
+void setup() {
+  pinMode(6, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(12, OUTPUT);
+  modbus.configureCoils(coils, 4);
+  modbus.configureHoldingRegisters(holdingRegisters, 8);
+  modbus.begin(1, 9600);
+}
+
+void loop() {
+  holdingRegisters[0] = analogRead(A0);
+  modbus.poll();
+  digitalWrite(9, coils[0]);
+  digitalWrite(12, coils[1]);
+  analogWrite(6, holdingRegisters[4] / 4);
+}
+`});
+    C('rs485', 48, 6, {n:'MD1', model:'max485'});
+    W([39,4],[39,2],[50,2],[50,4]); W([38,4],[38,1],[46,1],[46,4]); W([47,4],[47,3],[49,3],[49,4]); W([36,4],[36,0],[48,0],[48,3]);
+    W([30,8],[30,10],[46,10],[46,8]); W([32,8],[32,11],[50,11],[50,8]);
+    C('pot', 35, 14, {n:'RV1', pos:75}); W([34,13],[34,11]); W([35,13],[35,8]); W([36,13],[36,10]);
+    // LED ขา 6, 9, 12 (ผ่าน R 220 Ω) แคโทดรวมลง GND
+    for (const x of [34, 37, 40]){ W([x,4],[x,-2]); C('res', x, -3, {r:1, n:'R' + x, R:220}); W([x,-4],[x,-5]); C('led', x, -6, {r:3, n:'D' + x, col:x === 34 ? 'yellow' : x === 37 ? 'red' : 'green'}); W([x,-7],[x,-8]); }
+    W([34,-8],[28,-8],[28,11],[32,11]); W([34,-8],[40,-8]);
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    plc.prog = {mode:'lad', txt:`// D0 = ค่า pot ที่อ่านจาก Arduino ทาง Modbus (0–1023)
+// เกิน 600 → ไฟ H1 ที่ PLC (Q0) และสั่ง LED ขา 9 ของ Arduino (M16 → coil 0)
+Q0 := D0 > 600
+M16 := D0 > 600
+// ปุ่ม S1 (I0) → LED ขา 12 ของ Arduino (M17 → coil 1)
+M17 := I0
+// ส่งค่า pot กลับไปเป็นความสว่าง LED ขา 6 (D8 → holding register 4)
+D8 := D0
+`, lad:[
+      one('ค่า pot จาก Arduino (D0) เกิน 600 → ไฟ H1', [{k:'GT', a:'D0', p:600}], {k:'OUT', a:'Q0'}),
+      one('…และสั่ง LED ขา 9 ของ Arduino (M16 → coil 0)', [{k:'GT', a:'D0', p:600}], {k:'OUT', a:'M16'}),
+      one('ปุ่ม S1 → LED ขา 12 ของ Arduino (M17 → coil 1)', [nc('NO','I0')], {k:'OUT', a:'M17'}),
+      one('ส่งค่า pot กลับไปคุมความสว่าง LED ขา 6 (D8 → holding register 4)', [], {k:'MOV', a:'D8', p:'D0'}),
+    ]};
   })},
   semi: {nm:'สารกึ่งตัวนำ: 7805, ทรานซิสเตอร์สวิตช์, ซีเนอร์', f:() => build((C,W) => {
     C('bat', 1, 5, {r:1, n:'B1', V:12});
@@ -3600,7 +3817,8 @@ const F = {
   no:[['ref','อ้างอิงคอยล์','txt']], nc:[['ref','อ้างอิงคอยล์','txt']], k3:[['ref','อ้างอิงคอยล์','txt'],['In','พิกัด AC-3','num','A']],
   motor3:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['conn','การต่อขดลวด','sel',{Y:'สตาร์ (Y) — 400 V',D:'เดลต้า (Δ) — 230 V'}]],
   psu:[NMF,['V','แรงดันขาออก','num','V'],['Imax','กระแสสูงสุด','num','A']],
-  plc:[NMF,['run','สวิตช์โหมด','bool','RUN']],
+  plc:[NMF,['run','สวิตช์โหมด','bool','RUN'],['mbOn','Modbus RTU มาสเตอร์ (ขา A/B)','bool','เปิด'],['mbBaud','บอดเรต Modbus','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
+    ['mbList','ตารางคำสั่ง Modbus — สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 1 03 0 4 D0 (อ่าน holding 0–3 → D0–D3) · 1 15 0 2 M16 (เขียนคอยล์ 0–1 ← M16–M17) · 1 06 4 1 D8']],
   hmi:[NMF,['b1','ปุ่ม 1','txt'],['b2','ปุ่ม 2','txt'],['b3','ปุ่ม 3','txt'],['b4','ปุ่ม 4','txt'],['l1','ไฟ 1','txt'],['l2','ไฟ 2','txt'],['l3','ไฟ 3','txt'],['l4','ไฟ 4','txt']],
   pump:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['tank','ถังน้ำ','txt'],['flow','อัตราสูบ','num','%/s']],
   tank:[NMF,['lvl','ระดับน้ำ','num','%'],['out','อัตราการใช้น้ำ','num','%/s']],
@@ -3701,7 +3919,7 @@ const NOTES = {
   soil:'เซนเซอร์ความชื้นดินแบบแอนะล็อก: ดินแห้ง → แรงดัน AO สูง, ดินเปียก → แรงดันต่ำ · อ่านด้วย analogRead',
   servo:'เซอร์โวหมุนไปยังมุม 0–180° ตามคำสั่ง · ในโค้ดใช้ Servo s; s.attach(ขา); s.write(มุม) · ต่อสาย GND, VCC และ SIG เข้าขาของบอร์ด',
   prox:'พร็อกซิมิตี้เซนเซอร์แบบเหนี่ยวนำ 3 สาย (น้ำตาล +V, ดำ OUT, ฟ้า 0V) ตรวจจับโลหะโดยไม่สัมผัส · PNP จ่าย +24 V ให้อินพุต PLC (COM ต่อ 0 V) · NPN ดึงสัญญาณลง 0 V (COM ต้องต่อ +24 V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
-  rs485:'โมดูล RS-485: แปลง UART (TTL) เป็นสัญญาณผลต่าง A–B บนสายคู่บิดเกลียว ส่งได้ไกล ~1200 m ต่อได้หลายตัวบนบัสเดียว (half-duplex) · DI ← TX ของบอร์ด, RO → RX ของบอร์ด, DE = HIGH ขณะส่ง, RE = LOW ขณะรับ (นิยมต่อ DE กับ RE เข้าขาเดียว) · ต่อ A–A, B–B (สลับ = ข้อมูลกลับบิต) และใส่ตัวต้านทานปลายสาย 120 Ω ที่ปลายบัสทั้งสองด้าน · MAX487 จำกัดความเร็ว 250 kbps แต่ต่อได้ 128 ตัว',
+  rs485:'โมดูล RS-485 (ใช้กับ Modbus RTU ได้ — ดูตัวอย่าง "Modbus RTU"): แปลง UART (TTL) เป็นสัญญาณผลต่าง A–B บนสายคู่บิดเกลียว ส่งได้ไกล ~1200 m ต่อได้หลายตัวบนบัสเดียว (half-duplex) · DI ← TX ของบอร์ด, RO → RX ของบอร์ด, DE = HIGH ขณะส่ง, RE = LOW ขณะรับ (นิยมต่อ DE กับ RE เข้าขาเดียว) · ต่อ A–A, B–B (สลับ = ข้อมูลกลับบิต) และใส่ตัวต้านทานปลายสาย 120 Ω ที่ปลายบัสทั้งสองด้าน · MAX487 จำกัดความเร็ว 250 kbps แต่ต่อได้ 128 ตัว',
   rs232:'โมดูล MAX3232: แปลงระดับ TTL (0/3.3–5 V) ↔ RS-232 (±5–12 V) สำหรับพอร์ต COM ของคอมพิวเตอร์ เครื่องชั่ง PLC รุ่นเก่า · T1IN ← TX ของบอร์ด → T1OUT (DB9 ขา 3), R1IN (DB9 ขา 2) → R1OUT → RX ของบอร์ด · ต่อไขว้ TX → RX เสมอ (null-modem) · ห้ามต่อ RS-232 เข้าขาบอร์ดตรง ๆ',
   lora:'โมดูล LoRa แบบ UART (E32/E22 โหมดโปร่งใส): สิ่งที่ส่งเข้า RXD จะถูกส่งทางวิทยุไปออกที่ TXD ของโมดูลปลายทาง · ต้องตั้งความถี่ (CH) SF และแอดเดรสให้ตรงกัน (65535 = กระจายถึงทุกตัว) · M0 = M1 = LOW = โหมดปกติ · SF สูง = ไกลขึ้นแต่ใช้เวลาออกอากาศนานขึ้น · ระยะคำนวณจากตำแหน่งติดตั้ง (m) กำลังส่ง และสภาพพื้นที่',
   term:'คอมพิวเตอร์ที่เปิดโปรแกรมเทอร์มินัลบนพอร์ต COM (RS-232) · TX/RX ระดับ RS-232 ต้องต่อผ่านโมดูล MAX3232 · พิมพ์ข้อความในช่องด้านบนแล้วกด Enter เพื่อส่ง · บอดเรตต้องตรงกับบอร์ด',
@@ -3751,6 +3969,7 @@ function fieldHTML(c, f){
   if (kind === 'bool') return `<div class="fld"><label>${lab}</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-k="${k}" ${v ? 'checked' : ''}> ${u||''}</label></div>`;
   if (kind === 'range'){ const o = f[4] || {min:0, max:100, step:1};
     return `<div class="fld"><label>${lab} <output class="u" data-u="${esc(u||'')}">${v} ${u||''}</output></label><input type="range" min="${o.min}" max="${o.max}" step="${o.step}" data-k="${k}" value="${esc(v)}"></div>`; }
+  if (kind === 'area') return `<div class="fld wide"><label>${lab}</label><textarea data-k="${k}" rows="4" spellcheck="false" style="width:100%;font:12px 'IBM Plex Mono',monospace" placeholder="${esc(u||'')}">${esc(v || '')}</textarea>${u ? `<div class="sub">${esc(u)}</div>` : ''}</div>`;
   if (kind === 'sel') return `<div class="fld"><label>${lab}</label><select data-k="${k}">${Object.entries(u).map(([a, b]) => `<option value="${a}" ${String(v) === a ? 'selected' : ''}>${b}</option>`).join('')}</select></div>`;
   return `<div class="fld"><label>${lab}${u ? ` <span class="u">(${u})</span>` : ''}</label><input type="text" data-k="${k}" ${kind === 'num' ? 'data-num="1" inputmode="decimal"' : ''} value="${esc(v)}"></div>`;
 }
@@ -3829,12 +4048,20 @@ function compHTML(c){
     case 'xfmr': add('แรงดันปฐมภูมิ', fmt(R.Vp, 'V')); add('แรงดันทุติยภูมิ', fmt(R.Vs, 'V')); add('กระแสทุติยภูมิ', fmt(R.Is, 'A')); add('ภาระ', ((R.Vs*R.Is)/c.S*100).toFixed(0) + '%'); break;
     case 'plc': { add('ไฟเลี้ยง L+/M', fmt(R.pw, 'V')); const img = c._img || newImage();
       add('อินพุต I0–I7', img.I.join('')); add('AI0 / AI1', (img.AI || [0,0]).map(v => v.toFixed(1) + '%').join(' / ')); add('เอาต์พุต Q0–Q3', img.Q.join('')); add('M0–M7', img.M.slice(0,8).join(''));
+      add('D0–D7', (img.D || []).slice(0, 8).join(' · '));
+      if (c.mbOn){ const P = mbParse(c), m = c._mb || {};
+        if (P.err.length) st.push(tag('bad', esc(P.err[0])));
+        else st.push(m.lastErr ? tag('warn', 'Modbus: ' + esc(m.lastErr)) : m.ok ? tag('ok', 'Modbus สื่อสารปกติ') : tag('warn', 'Modbus รอคำตอบ'));
+        add('Modbus ส่ง / ตอบถูก / ผิด / ไม่ตอบ', `${m.tx || 0} / ${m.ok || 0} / ${m.err || 0} / ${m.to || 0}`);
+        P.list.forEach(it => add(`สเลฟ ${it.sid} · FC${String(it.fn).padStart(2, '0')} ${MB_FN[it.fn]}`, `@${it.addr} ×${it.qty} ${[1,2,3,4].includes(it.fn) ? '→' : '←'} ${it.reg.k}${it.reg.n}`));
+        if (m.last) add('เฟรมล่าสุด', '<span class="mono">' + esc(m.last) + '</span>'); }
       const e = getProg(c).err; st.push(e.length ? tag('bad','โปรแกรมผิดพลาด') : c._run ? tag('ok','RUN') : tag('warn', c._pw ? 'STOP' : 'ไม่มีไฟเลี้ยง')); } break;
     case 'hmi': add('ไฟเลี้ยง', fmt(R.pw, 'V')); st.push(c._link ? tag('ok','เชื่อมต่อ ' + esc(c._link.n)) : c._swap ? tag('bad','สาย A/B สลับ') : tag('warn','ไม่เชื่อมต่อ')); break;
     case 'uno': case 'esp32': case 'pico': {
       const vm = c._vm, B = MCU[c.t];
       st.push(!vm ? tag('warn','ยังไม่เริ่ม') : vm.err ? tag('bad','ผิดพลาด') : tag('ok','ทำงาน'));
       add('เวลาตั้งแต่เริ่ม (millis)', vm ? Math.floor(vm.ms) + ' ms' : '—'); add('ไฟเลี้ยง', B.vcc + ' V');
+      if (vm && vm.mb) add('Modbus สเลฟ รับ / ตอบ / CRC ผิด', `${vm.mb.rx} / ${vm.mb.tx} / ${vm.mb.err}` + (vm.mb.last ? ' · ' + esc(vm.mb.last) : ''));
       for (const pi of mcuPins(c)){
         if (pi.mode === 0 && Math.abs(pi.v) < 0.05) continue;
         const md = pi.mode === 1 ? (pi.st.pwm != null ? 'PWM ' + Math.round(pi.st.pwm*100) + '%' : (pi.st.v ? 'OUT HIGH' : 'OUT LOW')) : pi.mode === 2 ? 'IN PULLUP' : 'IN';
@@ -4008,7 +4235,7 @@ function ladPlc(){
   return p;
 }
 const TOOLS = [['NO','┤ ├','หน้าสัมผัส NO'],['NC','┤/├','หน้าสัมผัส NC'],['H','──','เส้นตรง'],['OUT','( )','คอยล์เอาต์พุต'],['SET','(S)','เซ็ต'],['RST','(R)','รีเซ็ต'],['TON','TON','ไทเมอร์หน่วงเวลา'],
-  ['GT','[>]','เปรียบเทียบ AI มากกว่าค่า'],['LT','[<]','เปรียบเทียบ AI น้อยกว่าค่า'],
+  ['GT','[>]','เปรียบเทียบ AI0/AI1 หรือ D มากกว่าค่า'],['LT','[<]','เปรียบเทียบ AI0/AI1 หรือ D น้อยกว่าค่า'],['MOV','MOV','ย้ายค่า (ตัวเลข/AI/D) ลงรีจิสเตอร์ D'],
   ['LL','┃←','เชื่อมกับแถวบน ด้านซ้ายของช่อง'],['LR','→┃','เชื่อมกับแถวบน ด้านขวาของช่อง'],['DEL','ลบ','ลบคำสั่งในช่อง']];
 function ladStruct(){
   const el = $('#lad'); $('#bLad').classList.toggle('on', ladOpen);
@@ -4039,10 +4266,10 @@ function ladStruct(){
   el.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => applyTool(p, b.dataset.tool));
   el.querySelectorAll('[data-op]').forEach(b => b.onclick = () => ladOp(p, b.dataset.op));
   if (md === 'lad'){
-    const fillSel = () => { const it = selItem(p); $('#laddr').value = it && it.a ? it.a : ''; $('#lpre').value = it && ['TON','GT','LT'].includes(it.k) ? it.p : ''; };
+    const fillSel = () => { const it = selItem(p); $('#laddr').value = it && it.a ? it.a : ''; $('#lpre').value = it && ['TON','GT','LT','MOV'].includes(it.k) ? it.p : ''; };
     fillSel();
     $('#laddr').onchange = e => { const it = selItem(p); if (it && it.k !== 'H'){ it.a = e.target.value.trim().toUpperCase(); progEdited(p); } };
-    $('#lpre').onchange = e => { const it = selItem(p); if (it && ['TON','GT','LT'].includes(it.k)){ it.p = parseFloat(e.target.value) || 0; progEdited(p); } };
+    $('#lpre').onchange = e => { const it = selItem(p); if (it && ['TON','GT','LT','MOV'].includes(it.k)){ const v = e.target.value.trim().toUpperCase(); it.p = it.k === 'MOV' && isNumA(v) ? v : parseFloat(v) || 0; progEdited(p); } };
     $('#lcmt').onchange = e => { const r = p.prog.lad[ladSel.ri]; if (r){ r.cmt = e.target.value; progEdited(p); } };
   }
   renderLadBody();
@@ -4074,8 +4301,8 @@ function ladMsg(){
   const p = ladPlc(), el = $('#ladmsg'); if (!p || !el) return;
   const e = getProg(p).err;
   el.innerHTML = e.length ? e.map(x => `<div class="e">${esc(x)}</div>`).join('') :
-    (p.prog.mode === 'lad' ? 'คลิกช่องเพื่อเลือก แล้วกดปุ่มคำสั่ง · ใส่ที่อยู่ I0–I7, Q0–Q3, M0–M31, T0–T7 · สีเขียว = มีไฟไหลผ่าน'
-      : 'รูปแบบ: <span class="mono">Q0 := (I0 OR Q0) AND NOT I1</span> · <span class="mono">T0 := TON(I2, 3)</span> · <span class="mono">SET Q1 := I3</span> · <span class="mono">RST Q1 := I4</span>');
+    (p.prog.mode === 'lad' ? 'คลิกช่องเพื่อเลือก แล้วกดปุ่มคำสั่ง · ใส่ที่อยู่ I0–I7, Q0–Q3, M0–M31, T0–T7, D0–D31 (รีจิสเตอร์ 16 บิต) · MOV: ช่องเวลา/ค่า = ตัวเลข AI0 หรือ Dn · สีเขียว = มีไฟไหลผ่าน'
+      : 'รูปแบบ: <span class="mono">Q0 := (I0 OR Q0) AND NOT I1</span> · <span class="mono">T0 := TON(I2, 3)</span> · <span class="mono">SET Q1 := I3</span> · <span class="mono">RST Q1 := I4</span> · <span class="mono">D8 := D0 / 4 + 10</span> · <span class="mono">Q2 := D0 > 600</span>');
   const st = $('#lstat'); if (st) st.innerHTML = getProg(p).err.length ? '<span style="color:var(--bad)">ERR</span>' : p._run ? '<span style="color:var(--ok)">RUN</span>' : (p._pw ? 'STOP' : 'ไม่มีไฟเลี้ยง');
 }
 function applyTool(p, k){
@@ -4083,11 +4310,12 @@ function applyTool(p, k){
   const row = rung.rows[ladSel.row]; if (!row) return;
   const addr = ($('#laddr') && $('#laddr').value || '').trim().toUpperCase();
   const pre = parseFloat($('#lpre') && $('#lpre').value) || 3;
-  const isOut = ['OUT','SET','RST','TON'].includes(k);
+  const isOut = ['OUT','SET','RST','TON','MOV'].includes(k);
   if (isOut){
-    const def = k === 'TON' ? 'T0' : 'Q0';
-    const a = addr && (k === 'TON' ? addr[0] === 'T' : addr[0] !== 'I' && addr[0] !== 'T') ? addr : def;
-    row.out = k === 'TON' ? {k, a, p:pre} : {k, a}; ladSel.col = LC;
+    const def = k === 'TON' ? 'T0' : k === 'MOV' ? 'D0' : 'Q0';
+    const a = addr && (k === 'TON' ? addr[0] === 'T' : k === 'MOV' ? addr[0] === 'D' : !'ITD'.includes(addr[0])) ? addr : def;
+    const pv = ($('#lpre') && $('#lpre').value || '').trim().toUpperCase();
+    row.out = k === 'TON' ? {k, a, p:pre} : k === 'MOV' ? {k, a, p:isNumA(pv) ? pv : (parseFloat(pv) || 0)} : {k, a}; ladSel.col = LC;
   } else if (k === 'DEL'){ if (ladSel.col >= LC) row.out = null; else row.cells[ladSel.col] = null; }
   else if (k === 'LL' || k === 'LR'){
     if (ladSel.row === 0){ $('#ladmsg').innerHTML = '<span class="e">เลือกช่องในแถวกิ่ง (แถวที่ 2 ขึ้นไป) ก่อน แล้วจึงเชื่อมกับแถวบน</span>'; return; }
@@ -4095,7 +4323,7 @@ function applyTool(p, k){
     const L = rung.links[ladSel.row - 1]; L[b] = !L[b];
   } else if ((k === 'GT' || k === 'LT') && ladSel.col < LC){
     const v = parseFloat($('#lpre') && $('#lpre').value);
-    row.cells[ladSel.col] = {k, a: /^AI[01]$/.test(addr) ? addr : 'AI0', p: isNaN(v) ? 50 : v};
+    row.cells[ladSel.col] = {k, a: isNumA(addr) ? addr : 'AI0', p: isNaN(v) ? 50 : v};
     if (ladSel.col < LC - 1) ladSel.col++;
   } else if (ladSel.col < LC){
     if (k === 'H') row.cells[ladSel.col] = {k:'H'};
@@ -4129,8 +4357,8 @@ function rungSVG(rung, ri, mon, img){
       if (cell && (cell.k === 'GT' || cell.k === 'LT')){
         o += L(x, cy, x + 8, cy, cl) + L(x + 70, cy, x + CW, cy, cr);
         o += `<rect x="${x+8}" y="${cy-13}" width="62" height="26" rx="3" fill="none" stroke="${ps ? ON : BASE}" stroke-width="2"/>`;
-        o += T_(cell.a + (cell.k === 'GT' ? ' >' : ' <'), x + 39, cy - 1, /^AI[01]$/.test(cell.a) ? 'var(--text)' : 'var(--bad)') + T_(String(cell.p), x + 39, cy + 11, 'var(--muted)');
-        o += T_(img && img.AI ? img.AI[+String(cell.a)[2]].toFixed(1) : '', x + 39, cy - 17, 'var(--muted)');
+        o += T_(cell.a + (cell.k === 'GT' ? ' >' : ' <'), x + 39, cy - 1, isNumA(cell.a) ? 'var(--text)' : 'var(--bad)') + T_(String(cell.p), x + 39, cy + 11, 'var(--muted)');
+        o += T_(img ? (/^AI/.test(cell.a) ? numA(img, cell.a).toFixed(1) : String(numA(img, cell.a))) : '', x + 39, cy - 17, 'var(--muted)');
       } else if (cell && cell.k !== 'H'){
         const closed = ps;
         o += L(x, cy, x + 30, cy, cl) + L(x + 48, cy, x + CW, cy, cr);
@@ -4145,7 +4373,10 @@ function rungSVG(rung, ri, mon, img){
     if (out){
       const act = img ? getA(img, out.a) : 0, cc = pon ? ON : BASE, x = XO;
       o += L(x, cy, x + 38, cy, cc) + L(x + 82, cy, XR, cy, cc);
-      if (out.k === 'TON'){
+      if (out.k === 'MOV'){
+        o += `<rect x="${x+30}" y="${cy-14}" width="60" height="28" rx="3" fill="none" stroke="${cc}" stroke-width="2"/>` + T_('MOV', x + 60, cy - 2, 'var(--text)') + T_(String(out.p) + '→' + out.a, x + 60, cy + 10, 'var(--muted)');
+        o += T_(img ? String(numA(img, out.a)) : '', x + 60, cy - 18, /^D/.test(out.a) ? 'var(--text)' : 'var(--bad)');
+      } else if (out.k === 'TON'){
         o += `<rect x="${x+38}" y="${cy-14}" width="44" height="28" rx="3" fill="${act ? 'var(--ladon)' : 'none'}" fill-opacity="0.2" stroke="${cc}" stroke-width="2"/>` + T_('TON', x + 60, cy + 4, 'var(--text)');
         const tn = parseAddr(out.a); const acc = img && tn && tn.k === 'T' ? img.T[tn.n].acc : 0;
         o += T_(out.a + ' ' + (+out.p).toFixed(1) + 's', x + 60, cy - 18, parseAddr(out.a) ? 'var(--text)' : 'var(--bad)') + T_(acc.toFixed(1), x + 60, cy + 25, 'var(--muted)');
@@ -5365,7 +5596,7 @@ function fit(){
 }
 function loadEx(k){
   if (cur !== null) pushHist();
-  load(EX[k].f()); cur = ser(); save(); simT = 0; fit(); refreshUI();
+  simT = 0; load(EX[k].f()); cur = ser(); save(); simT = 0; fit(); refreshUI();
   if (S.fac && fx.mode === 'off') setView('split');
 }
 function place(gx, gy, keep){
