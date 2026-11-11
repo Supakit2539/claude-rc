@@ -66,6 +66,8 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    `validateLad()` ตรวจตำแหน่ง, `plcScan()` สแกนทุกเฟรม, อิมเมจหน่วยความจำจาก `newImage()` (I0–7, Q0–3, M0–31, T0–7, D0–31 รีจิสเตอร์ 16 บิต)
    - รีจิสเตอร์ D: `numA`/`setD` (0–65535) · เปรียบเทียบ `GT`/`LT` ใช้ AI0/AI1 หรือ Dn (`isNumA`) · ข้อความ `D8 := D0 / 4 + AI0` (นิพจน์ตัวเลข `evn`) · แลดเดอร์เอาต์พุต `MOV` (`{k:'MOV', a:'D8', p:ตัวเลข|'D0'|'AI0'}`)
    - **Modbus RTU มาสเตอร์** (ขา A/B ในตัว): `mbOn`, `mbBaud`, `mbList` (บรรทัดละ `สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC`, ฟังก์ชัน 1 2 3 4 5 6 15 16; บิต ↔ M/Q, รีจิสเตอร์ ↔ D; `mbParse`)
+     **สเลฟ** (`mbMode = 'slave'`, `mbId`): `plcSlave` ตอบคำขอใน `p._mbrx` ผ่าน `mbServe` + `plcMbTables` — คอยล์ 0–31 = M, 100–103 = Q · อินพุต 0–7 = I · holding 0–31 = D · input reg 0–1 = AI×10; สถิติ `p._mbs`
+     บัส RS-485 รวมที่ `busDeliver(src, A, B, data, baud, at)` (MAX485 → RO, PLC/HMI ที่เปิด Modbus → `_mbrx`) · `mbCheck` ตรวจคำตอบ (CRC, ID, ข้อยกเว้น)
      `plcModbus` ส่งทีละบรรทัด (`mbRequest` + `crc16`/`mbFrame`, `plcBusSend` → MAX485 บนบัส) รอคำตอบใน `p._mbrx` (ส่งเข้ามาจาก `rs485Tx`) หมดเวลา 0.3 s → `mbHandle` (CRC, ข้อยกเว้น `MB_EXC`), สถิติ `p._mb`
    - ขั้ว PLC: L+, M (ไฟเลี้ยง 24 VDC), COM, I0–I7 (ON เมื่อ |V| ≥ 15 V เทียบ COM: ใช้ได้ทั้ง sink/source), C–Q0..Q3 (หน้าสัมผัสรีเลย์), A/B (RS-485),
      AI0/AI1–AM (อินพุต 4–20 mA ผ่าน 250 Ω, อ่านเป็น 0–100% ใน `img.AI`)
@@ -73,6 +75,8 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - แลดเดอร์: รัง = `{cmt, rows:[{cells:[LC=7], out}], links:[rows-1][LC+1]}`
      ไฟไหลซ้ายไปขวาผ่านช่อง เส้นแนวตั้ง (`links`) ไหลได้สองทาง ช่องว่างในช่วงของแถว (`rowSpan`) = เส้นตรง
      ผลการไหลเก็บใน `plc._mon` เพื่อมอนิเตอร์
+   - HMI: `proto` = `link` (ลิงก์ตรงแบบเดิม: `hmiLink` ตรวจ A–A/B–B แล้วเขียนบิตของ PLC โดยตรง) | `modbus` (HMI = มาสเตอร์ `hmiModbus`: ปุ่มกด/ปล่อย → FC05 คอยล์,
+     ไฟ M/Q → FC01, I → FC02, D → FC03 แสดงตัวเลข; ค่าใน `h._mbv`, สถิติ `h._mb`, `sid`, `baud`) — `hmiVal(h, a)` ใช้ได้ทั้งสองโหมด
    - ข้อความ: `Q0 := expr`, `SET Q1 := expr`, `RST Q1 := expr`, `T0 := TON(expr, วินาที)`; ตัวดำเนินการ AND/OR/NOT (& | !)
    - โปรแกรมที่คอมไพล์แล้วแคชใน `plc._cp` — ลบทิ้ง (`delete p._cp`) ทุกครั้งที่แก้โปรแกรม
    - ไมโครคอนโทรลเลอร์: บอร์ดนิยามใน `MCU` (สร้างด้วย `mkBoard`: ขา, `role` ต่อขา = GPIO/G/V5/V33, `vcc`, `bits` ของ ADC, `rout`, `imax`, `adc`, `pwm`, `inOnly`)
@@ -98,7 +102,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, hmimodbus, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -175,6 +179,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - rs485: สเลฟรับ `P=60` แล้วหรี่ LED, pot 20% → LED หรี่ลง, บอดไม่ตรง → อ่านไม่ออก · lora: 1.5 km RSSI ≈ −110 dBm รับได้, 9 km SF9 ขาด, SF12 กลับมารับได้
 - rs232: เทอร์มินัลได้ข้อความทักทาย, ส่ง ON/OFF คุม LED ขา 13, บอดเทอร์มินัล 2400 → คำสั่งไม่ผ่าน
 - modbus (แลดเดอร์/ข้อความ): pot 75% → D0 = 767, H1 + coil 0 (LED ขา 9) ติด, D8 → PWM ขา 6; pot 30% → D0 = 307; ปุ่ม S1 → coil 1; บอดสเลฟ 4800 → CRC ผิด + timeout · `D3 := (AI0 + 10)*2 − D1/4` = 60; CRC ของ 01 03 00 00 00 01 = 84 0A
+- hmimodbus (แลดเดอร์/ข้อความ): HMI อ่านไฟ + D5 = 1234, START → M2 = 1, STOP → M2 = 0, ID ผิด → timeout + เตือน · PLC สเลฟ อ่านคอยล์ 40 → ข้อยกเว้น 02
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -198,6 +203,6 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
 - LED/ไดโอด/ทรานซิสเตอร์ทำงานกับไฟ AC (วงจรเรียงกระแส) — ต้องจำลองแบบโดเมนเวลา
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ตัวเก็บประจุชาร์จ/ดิสชาร์จตามเวลา, ออปแอมป์
-- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์ / PLC เป็นสเลฟ / HMI ผ่าน Modbus, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
+- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์, PLC สองพอร์ต (มาสเตอร์ + สเลฟพร้อมกัน), Modbus TCP, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น

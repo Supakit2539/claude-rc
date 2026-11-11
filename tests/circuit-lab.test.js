@@ -216,6 +216,15 @@ const path = require('path');
       o['mb_' + md] = e.map(v => typeof v === 'number' ? +v.toFixed(4) : v); }
     { const im = newImage(); const c = compile('D3 := (AI0 + 10) * 2 - D1 / 4\nQ0 := D3 >= 60'); im.AI[0] = 25; im.D[1] = 40; runText(c.code, im, 0.1); o.mbexpr = [c.err.length, im.D[3], im.Q[0]]; }
     { const f = mbFrame([1, 3, 0, 0, 0, 1]); o.crc = mbHex(f); }
+    // HMI ↔ PLC ผ่าน Modbus RTU (PLC = สเลฟ): ปุ่ม START/STOP บน HMI, ไฟอ่านกลับ, ค่า D บนจอ, ID ผิด → timeout
+    for (const md of ['lad', 'txt']){ s.load('hmimodbus'); const plc = s.find('PLC1'), h = s.find('HMI1'); plc.prog.mode = md; delete plc._cp;
+      h.l4 = 'D5 ค่า'; plc._img = plc._img || newImage(); s.run(1); plc._img.D[5] = 1234; s.run(1);
+      const e = [h._mb.ok > 3, h._mbv.I2, h._mbv.D5];
+      h._press = 0; s.run(0.4); h._press = null; s.run(0.6); e.push(plc._img.M[2], h._mbv.M2);
+      h._press = 1; s.run(0.4); h._press = null; s.run(0.6); e.push(plc._img.M[2], h._mbv.M2);
+      h.sid = 2; s.run(1.5); e.push(/timeout/.test(h._mb.lastErr), warnList().some(w => /Modbus ไม่ได้รับคำตอบ/.test(w[1])));
+      o['hmb_' + md] = e; }
+    { const p = {_img:newImage()}; const R = mbServe([1, 1, 0, 40, 0, 1], plcMbTables(p)), R2 = mbServe([1, 6, 0, 3, 0x01, 0xF4], plcMbTables(p)); o.mbex = [R.ex, R.r[1], R2.ex, p._img.D[3]]; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -354,6 +363,9 @@ const path = require('path');
       e[0] === 767 && e[1] === 767 && e[2] && e[3] && e[5] === 307 && e[6] && e[7] && e[8] && e[9] && e[10] && e[11] && e[12], JSON.stringify(e)]); }
   checks.push(['PLC: D3 := (AI0 + 10)*2 − D1/4 = 60, Q0 := D3 >= 60 · CRC Modbus ของ 01 03 00 00 00 01 = 84 0A',
     JSON.stringify(r.mbexpr) === '[0,60,1]' && r.crc === '01 03 00 00 00 01 84 0A', JSON.stringify([r.mbexpr, r.crc])]);
+  for (const md of ['lad', 'txt']) checks.push([`HMI ↔ PLC Modbus RTU (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): อ่านไฟ/ค่า D5 = 1234, START → M2 = 1, STOP → M2 = 0, ID ผิด → timeout + เตือน`,
+    JSON.stringify(r['hmb_' + md]) === JSON.stringify([true, 1, 1234, 1, 1, 0, 0, true, true]), JSON.stringify(r['hmb_' + md])]);
+  checks.push(['PLC สเลฟ: อ่านคอยล์ 40 → ข้อยกเว้น 02 (0x81), เขียน holding 3 = 500 → D3', JSON.stringify(r.mbex) === '[2,129,0,500]', JSON.stringify(r.mbex)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
