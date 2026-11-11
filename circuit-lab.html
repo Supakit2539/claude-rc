@@ -999,8 +999,8 @@ function solveAll(){
         case 'hmi': Y(n[0], n[1], 1/240, 0); if (c.proto === 'modbus' && c._pw) busStamp(n[2], n[3], n[1], FORCE && FORCE.c === c && FORCE.p === 'port' ? FORCE.v : (c._drv ? 1 : null), Y, ac, zr); break;
         case 'scope': Y(n[0], n[2], 1e-6/(c.px1 || 1), 0); Y(n[1], n[2], 1e-6/(c.px2 || 1), 0); if (c.earth !== false) Y(n[2], 0, 10, 0); break;   // โพรบ ×1 = 1 MΩ, ×10 = 10 MΩ; กราวด์โพรบต่อสายดินเครื่อง
         case 'pir': Y(n[0], n[2], 1/50000, 0); Y(n[1], c._out ? n[0] : n[2], 1/100, 0); break;
-        case 'sr04': Y(n[0], n[3], 1/333, 0); Y(n[1], n[3], 1e-6, 0); Y(n[2], n[3], 1/100, 0); break;
-        case 'dht': Y(n[0], n[2], 1/5000, 0); Y(n[1], n[0], 1/10000, 0); break;
+        case 'sr04': Y(n[0], n[3], 1/333, 0); Y(n[1], n[3], 1e-6, 0); Y(n[2], FORCE && FORCE.c === c && FORCE.p === 'echo' && FORCE.v ? n[0] : n[3], 1/100, 0); break;   // ECHO: ปกติ LOW, พัลส์ HIGH ตามระยะ
+        case 'dht': Y(n[0], n[2], 1/5000, 0); Y(n[1], n[0], 1/10000, 0); if (FORCE && FORCE.c === c && FORCE.p === 'data' && !FORCE.v) Y(n[1], n[2], 1/50, 0); break;   // DATA: pull-up 10 kΩ, ส่งบิตด้วยการดึงลง
         case 'soil': { const f = Math.max(0.02, Math.min(0.98, 1 - 0.75*c.moist/100));
           Y(n[0], n[1], 1/20000, 0); Y(n[2], n[0], 1/(10000*(1 - f)), 0); Y(n[2], n[1], 1/(10000*f), 0); } break;
         case 'servo': Y(n[1], n[0], 1/50, 0); Y(n[2], n[0], 1e-5, 0); break;
@@ -1017,10 +1017,16 @@ function solveAll(){
             const fd = FORCE && FORCE.c === c && FORCE.p === 'drv' ? FORCE.v : (c._drv ? 1 : null);     // 1 = mark (A สูง), 0 = space (A ต่ำ)
             if (fd === 1){ Y(n[6], n[4], 1/25, 0); Y(n[5], n[7], 1/25, 0); } else if (fd === 0){ Y(n[6], n[7], 1/25, 0); Y(n[5], n[4], 1/25, 0); } }
           break;
-        case 'rs232': Y(n[0], n[3], 1/3300, 0); Y(n[6], n[3], GW, 0); if (c._pw) Y(n[2], n[0], 1/200, 0); break;
+        case 'rs232': { Y(n[0], n[3], 1/3300, 0); Y(n[6], n[3], GW, 0); Y(n[5], n[3], 1/5000, 0);                 // R1IN 5 kΩ
+          const src = (x, V, R) => { Y(x, n[3], 1/R, 0); if (!ac){ if (x) zr[x-1] += V/R; if (n[3]) zr[n[3]-1] -= V/R; } };
+          if (c._pw){ const t1 = FORCE && FORCE.c === c && FORCE.p === 't1out' ? FORCE.v : 1, r1 = FORCE && FORCE.c === c && FORCE.p === 'r1out' ? FORCE.v : 1;
+            src(n[4], t1 ? -5.4 : 5.4, 300);                                                                     // T1OUT: mark (1) = −5.4 V, space (0) = +5.4 V
+            Y(n[2], r1 ? n[0] : n[3], 1/200, 0); } } break;                                                    // R1OUT ระดับ TTL
         case 'ethsw': Y(n[5], n[6], 1/480, 0); break;
+        case 'term': { const v = FORCE && FORCE.c === c && FORCE.p === 'tx' ? FORCE.v : 1, R = 300; Y(n[0], n[2], 1/R, 0); if (!ac){ const V = v ? -12 : 12; if (n[0]) zr[n[0]-1] += V/R; if (n[2]) zr[n[2]-1] -= V/R; }   // พอร์ต COM: TX ±12 V
+          Y(n[1], n[2], 1/5000, 0); } break;
         case 'wifiap': Y(n[0], n[1], 1/240, 0); break;                                            // ≈ 2.4 W ที่ 24 V                                             // ≈ 1.2 W ที่ 24 V
-        case 'lora': Y(n[5], n[6], 1/700, 0); if (c._pw){ Y(n[3], n[5], 1/1000, 0); Y(n[4], n[5], 1/1000, 0); } break;   // TXD/AUX = HIGH เมื่อว่าง
+        case 'lora': Y(n[5], n[6], 1/700, 0); if (c._pw){ Y(n[3], FORCE && FORCE.c === c && FORCE.p === 'txd' && !FORCE.v ? n[6] : n[5], 1/1000, 0); Y(n[4], n[5], 1/1000, 0); } break;   // TXD/AUX = HIGH เมื่อว่าง
         case 'tx420':
           // ทรานสมิตเตอร์ 2 สาย: เป็นแหล่งกระแส 4–20 mA เมื่อแรงดันลูป ≥ 10 V
           Y(n[0], n[1], 1e-6, 0);
@@ -1724,8 +1730,8 @@ function commSend(net, data, baud, src, at, depth = 0){
     switch (m.t){
       case 'rs485': if (netOf(m, 3) === net) rs485Tx(m, data, baud, at, depth); break;
       case 'rs232': if (!m._pw) break;
-        if (netOf(m, 1) === net){ commLog(m, 'tx', data); commSend(netOf(m, 4), data, baud, m, at, depth + 1); }
-        if (netOf(m, 5) === net){ const d = src && MCU[src.t] ? invMix(data) : data; commLog(m, 'rx', d); commSend(netOf(m, 2), d, baud, m, at, depth + 1); }
+        if (netOf(m, 1) === net){ commLog(m, 'tx', data); commRec(m, 't1out', data, baud, at); commSend(netOf(m, 4), data, baud, m, at, depth + 1); }
+        if (netOf(m, 5) === net){ const d = src && MCU[src.t] ? invMix(data) : data; commLog(m, 'rx', d); commRec(m, 'r1out', d, baud, at); commSend(netOf(m, 2), d, baud, m, at, depth + 1); }
         break;
       case 'lora': if (netOf(m, 2) === net) loraTx(m, baudMix(data, baud, +m.baud), at, depth); break;
       case 'term': if (netOf(m, 1) === net){ const d = src && MCU[src.t] ? invMix(baudMix(data, baud, +m.baud)) : baudMix(data, baud, +m.baud);
@@ -1759,13 +1765,14 @@ function loraTx(m, data, at, depth){
     const L = loraLink(m, o); o._link = L;
     if (!L.ok){ o._lost = (o._lost || 0) + 1; continue; }
     commLog(o, 'rx', data); o._rssi = L.rssi;
-    commSend(netOf(o, 3), baudMix(data, +o.baud, +m.baud), +o.baud, o, t1 + data.length*10/(+o.baud), depth + 1);
+    const d2 = baudMix(data, +o.baud, +m.baud), at2 = t1 + data.length*10/(+o.baud); commRec(o, 'txd', d2, +o.baud, at2);
+    commSend(netOf(o, 3), d2, +o.baud, o, at2, depth + 1);
   }
 }
 function termSend(c, txt){
   const s = txt + ({crlf:'\r\n', nl:'\n'}[c.eol] ?? ''), b = +c.baud || 9600, at = Math.max(simT, c._busy || 0) + s.length*10/b; c._busy = at;
   c._log = ((c._log || '') + '› ' + txt + '\n').slice(-3000);
-  commSend(netOf(c, 0), s, b, c, at);
+  commRec(c, 'tx', s, b, at); commSend(netOf(c, 0), s, b, c, at);
 }
 // ส่งข้อความเข้าหน้าจอเทอร์มินัลเมื่อถึงเวลา (เรียกใน discrete)
 function termTick(c){ if (!c._rxq || !c._rxq.length) return; c._rxq.sort((a, b) => a.t - b.t);
@@ -1902,6 +1909,16 @@ function commRec(c, p, data, baud, at){
   if (!data || !baud) return; const bytes = Array.from(String(data), ch => { const k = ch.charCodeAt(0); return k < 256 ? k : 63; });
   COMM_HIST.push({key:{c, p}, t0:at - bytes.length*10/baud, end:at, baud, bytes});
   while (COMM_HIST.length > 80 || (COMM_HIST.length && COMM_HIST[0].end < simT - 20)) COMM_HIST.shift();
+}
+// สัญญาณที่ไม่ใช่ UART: ลำดับช่วง segs = [[ระยะเวลา s, บิต], …], ค่าว่าง idle, ถอดรหัส dec = {proto, text, hex}
+function waveRec(c, p, t0, idle, segs, dec){
+  const dur = segs.reduce((a, q) => a + q[0], 0);
+  COMM_HIST.push({key:{c, p}, t0, end:t0 + dur, idle, segs, dec, dur});
+  while (COMM_HIST.length > 80 || (COMM_HIST.length && COMM_HIST[0].end < simT - 20)) COMM_HIST.shift();
+}
+function waveBit(e, t){
+  if (!e.segs) return uartBit(e, t);
+  let x = e.t0; if (t < x) return e.idle; for (const q of e.segs){ if (t < x + q[0]) return q[1]; x += q[0]; } return e.idle;
 }
 // ระดับบิตของสายในเวลาจริง t: ว่าง = 1 (mark) · เฟรม = start 0, ข้อมูล 8 บิต (LSB ก่อน), stop 1
 function uartBit(e, t){
@@ -2042,6 +2059,18 @@ function tcpCall(c, ip, unit, pdu, cli){
   if (R.ex){ cli.err = 'ข้อยกเว้น ' + R.ex + ': ' + (MB_EXC[R.ex] || ''); return null; }
   cli.err = ''; cli.ok = (cli.ok || 0) + 1; return R.r;
 }
+// DHT11/22 สายเดียว: บอร์ดดึงลง (≥1 ms / 18 ms) → เซนเซอร์ตอบ 80/80 µs → 40 บิต (LOW 50 µs + HIGH 26 µs = 0, 70 µs = 1) = ความชื้น 16 บิต, อุณหภูมิ 16 บิต, checksum
+function dhtWave(s, type){
+  let b;
+  if (type === 11) b = [Math.round(s.hum), 0, Math.round(s.temp), 0];
+  else { const h = Math.round(s.hum*10), t = Math.round(Math.abs(s.temp)*10) | (s.temp < 0 ? 0x8000 : 0); b = [h >> 8, h & 255, t >> 8, t & 255]; }
+  b.push((b[0] + b[1] + b[2] + b[3]) & 255);
+  const segs = [[type === 11 ? 0.018 : 0.001, 0], [30e-6, 1], [80e-6, 0], [80e-6, 1]];
+  for (const x of b) for (let k = 7; k >= 0; k--) segs.push([50e-6, 0], [(x >> k) & 1 ? 70e-6 : 26e-6, 1]);
+  segs.push([50e-6, 0]);
+  waveRec(s, 'data', simT + 0.001, 1, segs, {proto:'DHT' + (type === 11 ? '11' : '22') + ' (สายเดียว)', n:5, hex:b.map(x => x.toString(16).toUpperCase().padStart(2, '0')).join(' '),
+    text:type === 11 ? `ความชื้น ${b[0]}% · อุณหภูมิ ${b[2]}°C · checksum ${b[4]}` : `ความชื้น ${((b[0] << 8 | b[1])/10).toFixed(1)}% · อุณหภูมิ ${s.temp < 0 ? '−' : ''}${(((b[2] & 127) << 8 | b[3])/10).toFixed(1)}°C · checksum ${b[4]}`});
+}
 function mcuApi(c, vm){
   const B = MCU[c.t];
   const chk = p => { if (B.map[p] === undefined && p !== B.led) throw new Error(B.nm + ' ไม่มีขา ' + p); };
@@ -2156,18 +2185,27 @@ function mcuApi(c, vm){
       } },
     map: (x, a, b, c2, d) => Math.trunc((x - a)*(d - c2)/(b - a) + c2), constrain: (x, a, b) => Math.min(b, Math.max(a, x)),
     abs:Math.abs, min:Math.min, max:Math.max, sqrt:Math.sqrt, pow:Math.pow, sin:Math.sin, cos:Math.cos, round:Math.round, floor:Math.floor, ceil:Math.ceil,
-    pulseIn(p){ chk(p); const s = sensorAt('sr04', 2, p); return s ? Math.round(s.dist*58.3) : 0; },
+    // HC-SR04: พัลส์ TRIG 10 µs จากบอร์ด → เซนเซอร์ยิงคลื่น 8 ลูก (~0.45 ms) → ECHO HIGH กว้าง = ระยะ × 58.3 µs/cm
+    pulseIn(p){ chk(p); const s = sensorAt('sr04', 2, p); if (!s) return 0; const w = s.dist*58.3e-6;
+      if (simT - (s._pT ?? -9) > 0.05){ s._pT = simT; const t0 = simT + 0.001;
+        for (const k in B.map) if (s._n && RES.net[c._n[B.map[k]]] === RES.net[s._n[1]]) waveRec(c, +k, t0, 0, [[10e-6, 1]], {proto:'HC-SR04 TRIG', text:'พัลส์สั่งวัด 10 µs'});
+        waveRec(s, 'echo', t0 + 10e-6, 0, [[0.00045, 0], [w, 1]], {proto:'HC-SR04 ECHO', text:`พัลส์ ${Math.round(w*1e6)} µs → ${s.dist} cm (÷ 58.3)`}); }
+      return Math.round(s.dist*58.3); },
     tone(p, f, d){ chk(p); const st = pin(p); st.mode = 1; if (st.pwm !== 0.5){ st.pwm = 0.5; st.v = 1; needSolve = vm.dirty = true; }
       vm.tones[p] = {f, until: d ? vm.ms + d : Infinity}; },
     noTone(p){ chk(p); const st = pin(p); delete vm.tones[p]; if (st.pwm != null || st.v){ st.pwm = null; st.v = 0; needSolve = vm.dirty = true; } },
     DHT11:11, DHT21:21, DHT22:22,
     DHT: class { constructor(pin, type){ this.pin = pin; this.type = type || 22; } begin(){}
-      _r(k){ const s = sensorAt('dht', 1, this.pin); if (!s) return NaN; return this.type === 11 ? Math.round(s[k]) : Math.round(s[k]*10)/10; }
+      _r(k){ const s = sensorAt('dht', 1, this.pin); if (!s) return NaN;
+        if (simT - (s._rdT ?? -9) > 0.1){ s._rdT = simT; dhtWave(s, this.type); }
+        return this.type === 11 ? Math.round(s[k]) : Math.round(s[k]*10)/10; }
       readTemperature(f){ const t = this._r('temp'); return f ? t*9/5 + 32 : t; }
       readHumidity(){ return this._r('hum'); } },
-    Servo: class { attach(p){ chk(p); this.p = p; this.a = this.a ?? 90; vm.servos[p] = this; return 1; }
-      write(a){ this.a = Math.max(0, Math.min(180, +a || 0)); } writeMicroseconds(us){ this.write((us - 1000)/1000*180); }
-      read(){ return Math.round(this.a ?? 90); } attached(){ return this.p != null; } detach(){ delete vm.servos[this.p]; this.p = null; } },
+    // เซอร์โว: ขาสัญญาณเป็นพัลส์ 50 Hz กว้าง 1.0–2.0 ms ตามมุม (0–180°) → สโคปเห็นจริง, ค่าเฉลี่ยไฟฟ้า = Vcc × ดิวตี้
+    Servo: class { _out(){ const st = pin(this.p), d = (1 + (this.a ?? 90)/180)/20; st.mode = 1; st.servo = true; if (st.pwm !== d){ st.pwm = d; st.v = 1; needSolve = vm.dirty = true; } }
+      attach(p){ chk(p); this.p = p; this.a = this.a ?? 90; vm.servos[p] = this; this._out(); return 1; }
+      write(a){ this.a = Math.max(0, Math.min(180, +a || 0)); if (this.p != null) this._out(); } writeMicroseconds(us){ this.write((us - 1000)/1000*180); }
+      read(){ return Math.round(this.a ?? 90); } attached(){ return this.p != null; } detach(){ const st = pin(this.p); st.pwm = null; st.v = 0; st.servo = false; needSolve = true; delete vm.servos[this.p]; this.p = null; } },
     isnan: x => Number.isNaN(x), __i: x => typeof x === 'string' && x.length === 1 ? x.charCodeAt(0) : Math.trunc(x),
     random: (a, b) => b === undefined ? Math.floor(Math.random()*a) : a + Math.floor(Math.random()*(b - a)), randomSeed(){},
     F: x => x,
@@ -5573,7 +5611,7 @@ function scopeSwitchers(){
       const st = c._vm.pins[p];
       if (st.mode === 1 && st.pwm != null && st.pwm > 0 && st.pwm < 1){
         const tn = c._vm.tones && c._vm.tones[p];
-        L.push({c, p:+p, f:tn ? tn.f : (c.t === 'uno' ? (+p === 5 || +p === 6 ? 980 : 490) : 1000), duty:st.pwm, nm:(c.n || '') + ' ขา ' + p});
+        L.push({c, p:+p, f:tn ? tn.f : st.servo ? 50 : (c.t === 'uno' ? (+p === 5 || +p === 6 ? 980 : 490) : 1000), duty:st.pwm, nm:(c.n || '') + ' ขา ' + p + (st.servo ? ' (เซอร์โว)' : '')});
       }
     }
     if (c.t === 'ne555' && c._pw && c._fast){ const [th, tl] = timing555(c); L.push({c, f:1/(th + tl), duty:th/(th + tl), nm:c.n}); }
@@ -5601,9 +5639,10 @@ function scopeRefresh(){
     for (let i = COMM_HIST.length - 1; i >= 0 && cand.length < 4; i--){ const e = COMM_HIST[i]; if (e.end < simT - 0.4) break;
       if (e.t0 > simT + 0.5 || cand.some(x => x.key.c === e.key.c && x.key.p === e.key.p)) continue;
       // รวมก้อนที่ส่งต่อเนื่องติดกัน (เช่น print แล้ว println) จากผู้ส่งเดียวกันเป็นเฟรมเดียว
+      if (e.segs){ cand.push(e); continue; }
       let m = {key:e.key, t0:e.t0, end:e.end, baud:e.baud, bytes:e.bytes.slice()};
       for (let j = i - 1; j >= 0; j--){ const q = COMM_HIST[j]; if (q.key.c !== e.key.c || q.key.p !== e.key.p) continue;
-        if (q.baud !== m.baud || q.end < m.t0 - 1.5/m.baud) break; m = Object.assign(m, {t0:q.t0, bytes:q.bytes.concat(m.bytes)}); }
+        if (q.segs || q.baud !== m.baud || q.end < m.t0 - 1.5/m.baud) break; m = Object.assign(m, {t0:q.t0, bytes:q.bytes.concat(m.bytes)}); }
       cand.push(m); }
     for (const s of sws){ for (const v of [1, 0]){ FORCE = {c:s.c, p:s.p, v}; solveAll(); s[v ? 'hi' : 'lo'] = new Map(fast.map(c => [c.id, (scopeProbe(c) || []).map(q => q.d)])); } }
     for (const e of cand){ for (const v of [1, 0]){ FORCE = {c:e.key.c, p:e.key.p, v}; solveAll(); e[v ? '_hi' : '_lo'] = new Map(fast.map(c => [c.id, (scopeProbe(c) || []).map(q => q.d)])); } }
@@ -5643,7 +5682,7 @@ function scopeCapture(c, sws, bs){
     let step = null;
     // มีเฟรมอนุกรมบนโพรบ: วาดบิตจริงตามเวลา (จุดทริก = start bit ที่ 1 ช่องจากซ้าย)
     const main = bs && (bs[c.trig === '2' ? 1 : 0] || bs[0] || bs[1]), base = main ? main.e.t0 - 0.1*T : 0;
-    const fn = (k, t) => { if (main && bs[k]){ const b = bs[k], v = uartBit(b.e, base + t) ? b.hi : b.lo; return cpl(k) ? v - (b.hi + b.lo)/2 : v; }
+    const fn = (k, t) => { if (main && bs[k]){ const b = bs[k], v = waveBit(b.e, base + t) ? b.hi : b.lo; return cpl(k) ? v - (b.hi + b.lo)/2 : v; }
       if (step && t < 0){ const v = step[k]; return cpl(k) ? v - chs[k].mean : v; }
       const ch = chs[k], tt = simT + t;
       let v = ch.sw ? ch.sw.lo + (ch.sw.hi - ch.sw.lo)*((((tt*ch.sw.f) % 1) + 1) % 1 < ch.sw.duty ? 1 : 0) : ch.d;
@@ -5652,8 +5691,10 @@ function scopeCapture(c, sws, bs){
     // ทริกเกอร์: หาจุดตัดระดับ (ขาขึ้น/ขาลง) แรกในช่วงหนึ่งคาบที่ยาวที่สุด
     const tk = c.trig === '2' ? 1 : 0, tc = chs[tk], per = Math.max(tc.sw ? 1/tc.sw.f : 0, tc.A ? 1/tc.f : 0);
     let t0 = 0;
-    if (main){ cap.trig = true; cap.tpos = 1; const e = main.e;
-      cap.uart = {baud:e.baud, n:e.bytes.length, dur:e.bytes.length*10/e.baud, from:(e.key.c.n || '') + (e.key.p === 'ro' ? ' (RO)' : e.key.p === 'drv' ? ' (บัส A/B)' : ''),
+    if (main && main.e.segs){ cap.trig = true; cap.tpos = 1; const e = main.e;
+      cap.uart = Object.assign({baud:0, n:0, hex:'', dur:e.dur, from:(e.key.c.n || '') + ' (' + e.key.p + ')'}, e.dec); }
+    else if (main){ cap.trig = true; cap.tpos = 1; const e = main.e;
+      cap.uart = {proto:'UART 8N1', baud:e.baud, n:e.bytes.length, dur:e.bytes.length*10/e.baud, from:(e.key.c.n || '') + (e.key.p === 'ro' ? ' (RO)' : e.key.p === 'drv' ? ' (บัส A/B)' : ''),
         text:e.bytes.map(b => b >= 32 && b < 127 ? String.fromCharCode(b) : b === 10 ? '⏎' : '·').join(''), hex:e.bytes.slice(0, 24).map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}; }
     else if (per > 0){ const Ts = Math.min(per*1.5, T*4), N = 1500, up = c.slope !== 'down';
       let prev = fn(tk, 0);
@@ -5671,7 +5712,7 @@ function scopeCapture(c, sws, bs){
         for (let s2i = 0; s2i < SUB; s2i++){ const v = F(t0 + (i + s2i/SUB)*T/SC_COLS); a = Math.min(a, v); b = Math.max(b, v); s1 += v; s2 += v*v; n++; }
         vc[i] = F(t0 + (i + 0.5)*T/SC_COLS); mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); }
       if (k === 2){ cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:scCross(mn, mx, vmin, vmax, T), duty:null, src:mo[0]}); continue; }
-      if (main && bs[k]){ cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:0, duty:null, src:`UART ${bs[k].e.baud} บอด`}); continue; }
+      if (main && bs[k]){ const e = bs[k].e; cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:0, duty:null, src:e.segs ? e.dec.proto : `UART ${e.baud} บอด`}); continue; }
       const ch = chs[k], f = ch.sw ? ch.sw.f : (ch.A > 0.01*Math.max(Math.abs(ch.d), 1e-3) ? ch.f : 0);
       cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
     }
@@ -5879,8 +5920,9 @@ function scopeCurHTML(c, row){
 }
 function scopeMeasBody(c, cap, row){
   if (cap.uart && !cap.blank){ const u = cap.uart;
-    return `<div><b>ถอดรหัส UART</b> <span class="sub">8N1 · ${u.baud} บอด · จาก ${esc(u.from)}</span>` + row('ข้อความ', '<span class="mono">' + esc(u.text) + '</span>') + row('ไบต์ (HEX)', '<span class="mono">' + esc(u.hex) + (u.n > 24 ? ' …' : '') + '</span>') +
-      row('จำนวน / เวลาเฟรม', `${u.n} ไบต์ · ${fmt(u.dur, 's')}`) + row('ความกว้างบิต', fmt(1/u.baud, 's')) + `</div>` + scopeMeasBody(c, Object.assign({}, cap, {uart:null}), row); }
+    return `<div><b>ถอดรหัส ${esc(u.proto || 'UART')}</b> <span class="sub">${u.baud ? '8N1 · ' + u.baud + ' บอด · ' : ''}จาก ${esc(u.from)}</span>` + row('ข้อมูล', '<span class="mono">' + esc(u.text) + '</span>') +
+      (u.hex ? row('ไบต์ (HEX)', '<span class="mono">' + esc(u.hex) + (u.n > 24 ? ' …' : '') + '</span>') : '') +
+      row(u.n ? 'จำนวน / เวลาเฟรม' : 'เวลาเฟรม', (u.n ? `${u.n} ไบต์ · ` : '') + fmt(u.dur, 's')) + (u.baud ? row('ความกว้างบิต', fmt(1/u.baud, 's')) : '') + `</div>` + scopeMeasBody(c, Object.assign({}, cap, {uart:null}), row); }
   if (cap.blank) return `<div class="sub">รอทริกเกอร์ (${SC_TM[c.tmode] || ''}) — ยังไม่มีภาพที่จับได้ ตรวจแชนเนล/ระดับ/ขอบทริก หรือเปลี่ยนเป็น Auto</div>`;
   if (c.disp === 'fft' && cap.fft){ const F = cap.fft;
     return `<div><b style="color:${SC_COL[F.k]}">FFT CH${F.k + 1}</b> <span class="sub">ยอดความถี่ (Vrms / dBV)</span>` +

@@ -266,6 +266,22 @@ const path = require('path');
       // A กับ B ตรงข้ามกันทุกคอลัมน์
       if (cap && cap.uart){ let opp = 0; for (let i = 0; i < SC_COLS; i++) if ((cap.ch[0].vc[i] > 2.5) !== (cap.ch[1].vc[i] > 2.5)) opp++; e.push(opp > SC_COLS*0.95); }
       sc.tdiv = 0.01; scopeAutoset(sc); e.push(sc.tdiv); o.sbus = e; }
+    // สัญญาณจริงของอุปกรณ์ที่สโคปวัดได้: เซอร์โว, DHT22, HC-SR04, RS-232 (±V), LoRa TXD
+    { const attach = (pins, opt) => { const sc = Object.assign(mkComp('scope', 120, -42, Object.assign({n:'OSCT'}, opt)), {id:s.S.nid++}); s.S.comps.push(sc);
+        const sp = pinsOf(sc); pins.forEach((q, k) => { if (!q) return; const y = -40 - 2*(k + 1), t = sp[k]; s.S.wires.push({x1:q[0], y1:q[1], x2:q[0], y2:y}, {x1:q[0], y1:y, x2:t[0], y2:y}, {x1:t[0], y1:y, x2:t[0], y2:t[1]}); });
+        s.solveNow(); return sc; };
+      const pinOf = (n, lab) => pinsOf(s.find(n)).find(q => q[2] === lab);
+      const grab = sec => { let cap = null; for (let i = 0; i < sec/0.05 && !(cap && cap.uart); i++){ s.step(0.05); cap = s.scope('OSCT'); } return cap; };
+      const e = {};
+      s.load('espgarden'); s.run(1); { const sv = s.S.comps.find(c => c.t === 'servo'); attach([pinsOf(sv).find(q => q[2] === 'SIG'), null, pinsOf(sv).find(q => q[2] === 'GND')], {tdiv:0.005, vdiv1:1}); }
+      s.run(0.3); let cap = s.scope('OSCT'); e.servo = [cap.ch[0].f, cap.ch[0].duty, +cap.ch[0].max.toFixed(1)];
+      s.load('ardsense'); s.run(0.5); { const dht = s.S.comps.find(c => c.t === 'dht'), sr = s.S.comps.find(c => c.t === 'sr04');
+        attach([pinsOf(dht)[1], null, pinsOf(dht)[2]], {tdiv:0.001, vdiv1:2, tmode:'norm'}); cap = grab(3); e.dht = cap && cap.uart ? [cap.uart.hex, +cap.ch[0].max.toFixed(1), +cap.ch[0].min.toFixed(1)] : null;
+        s.load('ardsense'); s.run(0.5); const sr2 = s.S.comps.find(c => c.t === 'sr04'); attach([pinsOf(sr2)[2], null, pinsOf(sr2)[3]], {tdiv:0.002, vdiv1:2, tmode:'norm'}); cap = grab(3);
+        let hi = 0; if (cap && cap.uart) for (let i = 0; i < SC_COLS; i++) if (cap.ch[0].vc[i] > 2.5) hi++; e.echo = cap && cap.uart ? [cap.uart.proto, Math.round(hi/SC_COLS*cap.T*1e6/100)*100] : null; }
+      s.load('rs232'); s.run(0.5); attach([pinOf('MD1', 'T1OUT'), null, pinOf('MD1', '⏚')], {tdiv:0.005, vdiv1:5}); cap = grab(3); e.r232 = cap && cap.uart ? [+cap.ch[0].max.toFixed(1), +cap.ch[0].min.toFixed(1)] : null;
+      s.load('lora'); s.run(1); attach([pinOf('RF2', 'TXD'), null, pinOf('RF2', 'GND')], {tdiv:0.01, vdiv1:2, tmode:'norm'}); cap = grab(4); e.lora = cap && cap.uart ? [cap.uart.from, +cap.ch[0].max.toFixed(1), +cap.ch[0].min.toFixed(1)] : null;
+      o.sigs = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -419,6 +435,8 @@ const path = require('path');
   checks.push(['ESP32 Wi-Fi + Modbus TCP (PLC แบบแลดเดอร์): ผลเหมือนกัน', JSON.stringify(r.wifi_lad) === JSON.stringify(r.wifi_txt.slice(0, 14)), JSON.stringify(r.wifi_lad)]);
   checks.push(['สโคปจับเฟรม UART บนบัส RS-485: ถอดรหัส "P=60⏎" (50 3D 36 30 0A), บิต 104 µs, A/B สลับกัน, Auto Set → 1 ms/div',
     JSON.stringify(r.sbus) === JSON.stringify(['P=60⏎', '50 3D 36 30 0A', 104, true, true, true, 0.001]), JSON.stringify(r.sbus)]);
+  checks.push(['สโคปวัดสัญญาณจริง: เซอร์โว 50 Hz ดิวตี้ 7.5% 3.3 V · DHT22 02 58 00 FA 54 (0–5 V) · ECHO HC-SR04 ≈ 5800 µs (100 cm) · RS-232 ±5.1 V · LoRa TXD 0–3.3 V',
+    JSON.stringify(r.sigs) === JSON.stringify({servo:[50, 0.075, 3.3], dht:['02 58 00 FA 54', 4.9, 0], echo:['HC-SR04 ECHO', 5800], r232:[5.1, -5.1], lora:['RF2', 3.3, 0]}), JSON.stringify(r.sigs)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
