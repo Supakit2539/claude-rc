@@ -2901,6 +2901,8 @@ function draw(now){
     for (let i = 0; i + 1 < pts.length; i++) line(pts[i][0]*G, pts[i][1]*G, pts[i+1][0]*G, pts[i+1][1]*G);
     ctx.setLineDash([]);
   }
+  // ชี้ที่ขั้ว: วงแหวนบอกว่าลากจากตรงนี้จะเดินสาย
+  if (tool === 'sel' && !drag && mouse.in && mouse.pin){ ctx.strokeStyle = K.sel; ctx.lineWidth = 2; circ(mouse.pin.x*G, mouse.pin.y*G, 7, false); }
   if ((tool === 'wire' || (drag && drag.k === 'wire')) && mouse.in){
     ctx.strokeStyle = K.sel; ctx.lineWidth = 1.5; circ(Math.round(mouse.gx)*G, Math.round(mouse.gy)*G, 6, false);
   }
@@ -2917,10 +2919,41 @@ function segDist(px, py, x1, y1, x2, y2){
   const t = l ? Math.max(0, Math.min(1, ((px - x1)*dx + (py - y1)*dy)/l)) : 0;
   return Math.hypot(px - x1 - t*dx, py - y1 - t*dy);
 }
+// ระยะจับขั้ว (หน่วยกริด): ราว 10 px บนจอ (นิ้วสัมผัส 18 px) ไม่ว่าซูมเท่าใด แต่ไม่เกินครึ่งช่อง
+let pinTol = 0.25;
+const setPinTol = e => { pinTol = Math.max(0.22, Math.min(0.45, ((e && e.pointerType === 'touch') ? 18 : 10)/(G*view.z))); };
+// ขั้ว/ปลายสายที่ใกล้ที่สุดภายในระยะจับ
 function hitPin(gx, gy){
-  for (const c of S.comps) for (const p of pinsOf(c)) if (Math.hypot(p[0] - gx, p[1] - gy) < 0.22) return {x:p[0], y:p[1]};
-  for (const w of S.wires) for (const p of [[w.x1,w.y1],[w.x2,w.y2]]) if (Math.hypot(p[0] - gx, p[1] - gy) < 0.22) return {x:p[0], y:p[1]};
-  return null;
+  let best = null, bd = pinTol;
+  const chk = (x, y) => { const d = Math.hypot(x - gx, y - gy); if (d < bd){ bd = d; best = {x, y}; } };
+  for (const c of S.comps) for (const p of pinsOf(c)) chk(p[0], p[1]);
+  for (const w of S.wires){ chk(w.x1, w.y1); chk(w.x2, w.y2); }
+  return best;
+}
+// ---------- สายไฟตามอุปกรณ์เมื่อย้าย/หมุน ----------
+// จำสายเดิม ขั้วเดิม และขั้วของอุปกรณ์อื่นที่ชนกันอยู่ (ต่อกันตรงโดยไม่มีสาย)
+function followInit(c){
+  const pins = pinsOf(c).map(p => [p[0], p[1]]), shared = [];
+  for (const d of S.comps) if (d !== c) for (const q of pinsOf(d)) pins.forEach((p, i) => { if (p[0] === q[0] && p[1] === q[1]) shared.push({i, x:q[0], y:q[1]}); });
+  return {orig:S.wires.map(w => ({...w})), pins, shared};
+}
+// สร้างสายใหม่: ปลายสายที่อยู่บนขั้วเดิมย้ายตามขั้วใหม่ ถ้าเอียงให้หักฉาก (ด้านปลายที่อยู่กับที่คงทิศเดิม)
+function followApply(c, F){
+  const np = pinsOf(c), mp = new Map(F.pins.map((p, i) => [p[0] + ',' + p[1], np[i]])), out = [];
+  // หักฉากโดยเลี่ยงไม่ให้มุมไปอยู่บนตัวอุปกรณ์ (เช่นตอนหมุน) ซึ่งจะทำให้ขั้วทั้งสองถูกลัด
+  const bx = compBox(c), inBox = (x, y) => x > bx[0] && x < bx[2] && y > bx[1] && y < bx[3];
+  const L = (fx, fy, mx, my, horiz) => { if (fx === mx || fy === my){ out.push({x1:fx, y1:fy, x2:mx, y2:my}); return; }
+    if (inBox(horiz ? mx : fx, horiz ? fy : my)) horiz = !horiz;
+    const cx = horiz ? mx : fx, cy = horiz ? fy : my; out.push({x1:fx, y1:fy, x2:cx, y2:cy}, {x1:cx, y1:cy, x2:mx, y2:my}); };
+  for (const w of F.orig){
+    const a = mp.get(w.x1 + ',' + w.y1), b = mp.get(w.x2 + ',' + w.y2);
+    if (!a && !b){ out.push({...w}); continue; }
+    const A = a ? a : [w.x1, w.y1], B = b ? b : [w.x2, w.y2], horiz = w.y1 === w.y2;
+    if (a && b){ L(A[0], A[1], B[0], B[1], horiz); continue; }
+    if (a) L(B[0], B[1], A[0], A[1], horiz); else L(A[0], A[1], B[0], B[1], horiz);
+  }
+  for (const sh of F.shared){ const n = np[sh.i]; if (n[0] !== sh.x || n[1] !== sh.y) L(sh.x, sh.y, n[0], n[1], Math.abs(n[0] - sh.x) >= Math.abs(n[1] - sh.y)); }
+  S.wires = out.filter(w => w.x1 !== w.x2 || w.y1 !== w.y2);
 }
 function hitComp(gx, gy){
   for (let i = S.comps.length - 1; i >= 0; i--){
@@ -3311,7 +3344,7 @@ function liveUI(){
   const w = warnList();
   el.innerHTML = `<table class="rd"><tr><td>กำลังจริงรวมที่จ่าย</td><td>${fmt(P, 'W')}</td></tr><tr><td>กำลังรีแอกทีฟรวม</td><td>${fmt(Q, 'var')}</td></tr><tr><td>เวลาจำลอง</td><td>${simT.toFixed(1)} s${running ? '' : ' (หยุด)'}</td></tr></table>
     <ul class="wl">${w.length ? w.map(x => `<li class="${x[0]}">${x[1]}</li>`).join('') : '<li class="ok">ไม่พบปัญหา</li>'}</ul>
-    <div class="note"><b>วิธีใช้</b><br>เลือกอุปกรณ์จากแถบซ้ายแล้วคลิกบนแผงเพื่อวาง · ลากจากขั้ว (จุดปลาย) เพื่อต่อสายไฟ · คลิกสวิตช์/เบรกเกอร์เพื่อสับ · กดปุ่มค้างไว้เพื่อกด · ลากพื้นที่ว่างเพื่อเลื่อน ล้อเมาส์เพื่อซูม<br>
+    <div class="note"><b>วิธีใช้</b><br>เลือกอุปกรณ์จากแถบซ้ายแล้วคลิกบนแผงเพื่อวาง · ลากจากขั้ว (จุดปลาย) เพื่อต่อสายไฟ · ลากอุปกรณ์แล้วสายไฟตามไป (กด Alt ค้าง = ย้ายโดยไม่พาสาย) · คลิกสวิตช์/เบรกเกอร์เพื่อสับ · กดปุ่มค้างไว้เพื่อกด · ลากพื้นที่ว่างเพื่อเลื่อน ล้อเมาส์เพื่อซูม<br>
     <kbd>R</kbd> หมุน · <kbd>W</kbd> สายไฟ · <kbd>V</kbd> เลือก · <kbd>Delete</kbd> ลบ · <kbd>Ctrl</kbd>+<kbd>Z</kbd> ย้อนกลับ · <kbd>Esc</kbd> ยกเลิก · <kbd>Space</kbd> รัน/หยุด</div>`;
 }
 
@@ -4656,13 +4689,13 @@ function delSel(){
 }
 function rotate(){
   if (tool === 'place'){ ghostR = (ghostR + 1) % 4; return; }
-  if (sel && sel.k === 'c' && isTwo(sel.c)){ sel.c.r = ((sel.c.r||0) + 1) % 4; commit(); }
+  if (sel && sel.k === 'c' && isTwo(sel.c)){ const F = followInit(sel.c); sel.c.r = ((sel.c.r||0) + 1) % 4; followApply(sel.c, F); commit(); }
 }
 
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('pointerdown', e => {
   cv.setPointerCapture(e.pointerId);
-  const [gx, gy] = s2g(e); mouse.gx = gx; mouse.gy = gy;
+  const [gx, gy] = s2g(e); mouse.gx = gx; mouse.gy = gy; setPinTol(e);
   if (e.button === 1 || e.button === 2){ drag = {k:'pan', sx:e.clientX, sy:e.clientY, vx:view.x, vy:view.y}; return; }
   if (tool === 'place'){ place(gx, gy, e.shiftKey); return; }
   const sx = Math.round(gx), sy = Math.round(gy);
@@ -4674,7 +4707,8 @@ cv.addEventListener('pointerdown', e => {
   const c = hitComp(gx, gy);
   if (c){
     if (!(sel && sel.k === 'c' && sel.c === c)) select({k:'c', c});
-    drag = {k:'move', c, ox:c.x, oy:c.y, gx, gy, moved:false};
+    // ลากย้ายแล้วสายไฟตามไปด้วย (กด Alt ค้างเพื่อย้ายโดยไม่พาสาย)
+    drag = {k:'move', c, ox:c.x, oy:c.y, gx, gy, moved:false, fw:e.altKey ? null : followInit(c)};
     if (c.t === 'pb' || c.t === 'pbnc'){ c._pr = true; needSolve = true; }
     return;
   }
@@ -4685,7 +4719,7 @@ cv.addEventListener('pointerdown', e => {
 });
 cv.addEventListener('pointermove', e => {
   const [gx, gy] = s2g(e); mouse.gx = gx; mouse.gy = gy; mouse.in = true;
-  if (!drag) return;
+  if (!drag){ setPinTol(e); const hp = tool === 'sel' && hitPin(gx, gy); mouse.pin = hp || null; cv.style.cursor = hp ? 'crosshair' : ''; return; }
   if (drag.k === 'pan'){ view.x = drag.vx + e.clientX - drag.sx; view.y = drag.vy + e.clientY - drag.sy; }
   else if (drag.k === 'wire'){
     drag.ex = Math.round(gx); drag.ey = Math.round(gy);
@@ -4693,7 +4727,7 @@ cv.addEventListener('pointermove', e => {
     if (drag.ex === drag.x && drag.ey === drag.y) drag.ax = null;
   } else if (drag.k === 'move'){
     const nx = drag.ox + Math.round(gx - drag.gx), ny = drag.oy + Math.round(gy - drag.gy);
-    if (nx !== drag.c.x || ny !== drag.c.y){ drag.c.x = nx; drag.c.y = ny; drag.moved = true; needSolve = true; }
+    if (nx !== drag.c.x || ny !== drag.c.y){ drag.c.x = nx; drag.c.y = ny; drag.moved = true; needSolve = true; if (drag.fw) followApply(drag.c, drag.fw); }
   }
 });
 cv.addEventListener('pointerleave', () => { mouse.in = false; });

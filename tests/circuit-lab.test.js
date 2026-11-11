@@ -259,6 +259,26 @@ const path = require('path');
   checks.push(['โพรบ: ×1 อ่าน 3.33 V (โหลด 1 MΩ), ×10 อ่าน 4.76 V; Single รอทริกแล้วจับขั้นบันได + STOP', r.probe[0] === true && r.probe[1] === true && r.probe[2] && r.probe[3] === false && Math.abs(r.probe[4] - 3.33) < 0.02 && Math.abs(r.probe[5]) < 0.05 && Math.abs(r.probe[6] - 4.75) < 0.03, JSON.stringify(r.probe)]);
   checks.push(['ทริก Normal (โหมดเลื่อน): ค้างพัลส์ 0.5 s ที่ 1 ช่องจากซ้าย', r.norm[0] && r.norm[1] < 0.05 && Math.abs(r.norm[2] - 4.75) < 0.03 && r.norm[3] < 0.05, JSON.stringify(r.norm)]);
   checks.push(['โพรบ: วัด 322 Vpk ด้วย ×1 เตือนเกินพิกัด, ×10 ไม่เตือน', r.prwarn[0] && !r.prwarn[1], JSON.stringify(r.prwarn)]);
+  // ลาก/หมุนอุปกรณ์ด้วยเมาส์จริง: สายไฟตามไป วงจรยังต่ออยู่ · Alt+ลาก = ถอดสาย · ขั้วชนกันตรง ๆ ได้สายเชื่อมอัตโนมัติ
+  await page.setViewportSize({width:1400, height:900});
+  await page.evaluate(() => window.__sim.load('series')); await page.waitForTimeout(200);
+  const g2c = (gx, gy) => page.evaluate(([gx, gy]) => { const cv = document.querySelector('canvas'), q = cv.getBoundingClientRect();
+    const a = s2g({clientX:q.left, clientY:q.top}), b = s2g({clientX:q.left + 100, clientY:q.top + 100});
+    return [q.left + (gx - a[0])*100/(b[0] - a[0]), q.top + (gy - a[1])*100/(b[1] - a[1])]; }, [gx, gy]);
+  const IA = () => page.evaluate(() => { window.__sim.solveNow(); return window.__sim.RES.comp[window.__sim.find('A1').id].Ir; });
+  const dragTo = async (a, b, alt) => { const [x, y] = await g2c(...a), [x2, y2] = await g2c(...b); if (alt) await page.keyboard.down('Alt');
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x2, y2, {steps:5}); await page.mouse.up(); if (alt) await page.keyboard.up('Alt'); };
+  const mv = [];
+  await dragTo([5, 2], [5, 4]); mv.push(await IA());
+  { const [x, y] = await g2c(9, 2); await page.mouse.click(x, y); await page.keyboard.press('r'); } mv.push(await IA());
+  await dragTo([9, 2], [9, 8], true); mv.push(await IA());
+  await page.keyboard.press('Control+z'); mv.push(await IA());
+  mv.push(await page.evaluate(() => { const s = window.__sim;
+    s.load({comps:[{id:1, t:'bat', x:2, y:3, r:1, V:10, n:'B1'}, {id:2, t:'res', x:3, y:2, R:10, n:'R1'}, {id:3, t:'res', x:3, y:4, R:10, n:'R2'}], wires:[{x1:4, y1:2, x2:4, y2:4}], nid:4});
+    const c = s.find('R1'), F = followInit(c); c.x = 5; c.y = 0; followApply(c, F); s.solveNow(); return s.RES.comp[2].Ir; }));
+  mv.push(await page.evaluate(() => { view.z = 0.4; setPinTol({pointerType:'mouse'}); const h = hitPin(2.35, 2); view.z = 1; return !!h && h.x === 2; }));
+  checks.push(['ย้าย/หมุนอุปกรณ์ สายไฟตามไป (0.25 A คงเดิม), Alt+ลาก ถอดสาย, ย้อนกลับได้, ขั้วชนกันได้สายเชื่อม, ซูมออกยังจับขั้วได้',
+    Math.abs(mv[0] - 0.25) < 0.002 && Math.abs(mv[1] - 0.25) < 0.002 && mv[2] < 1e-3 && Math.abs(mv[3] - 0.25) < 0.002 && Math.abs(mv[4] - 0.5) < 0.002 && mv[5] === true, JSON.stringify(mv.map(v => typeof v === 'number' ? +v.toFixed(4) : v))]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
