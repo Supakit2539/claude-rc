@@ -40,7 +40,8 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      (ตัวอย่างที่สร้างด้วย `build` ไม่เรียก `applyModel` — ใส่ค่าสเปกเองถ้าต้องการ)
    - อิเล็กทรอนิกส์: 2 ขั้ว `diode`, `zener`, `dcm`; บล็อก `npn`, `pnp`, `nmos`, `reg` (78xx), `opto`, `ne555`, `seg7`, `rgb`, `spdt`
      รอยต่อ PN แบบ piecewise ใน `JUNC[t](c)` = `[ขาแอโนด, ขาแคโทด, Vf, R]` ต่อรอยต่อ ใช้ตัวแปรกระแส 1 ตัว (`NV`), สถานะใน `c._js[i]`
-     (diode 1, zener 2 = ตรง + ซีเนอร์, seg7 8, rgb 3, opto 1) · ทรานซิสเตอร์ BJT: สถานะ `c._bj` = off/act/sat, ตัวแปร 2 ตัว (Ib, Ic)
+     (diode 1, zener 2 = ตรง + ซีเนอร์, seg7 8, rgb 3, opto 1) · ทรานซิสเตอร์ BJT: สถานะ `c._bj` = off/act/sat, ตัวแปร 2 ตัว (Ib, Ic);
+     AC (เฟเซอร์) ใช้แบบจำลองสัญญาณเล็ก rπ = β·Vt/Ic (`c._ic` จากผล DC, `c._icu` ค่าที่ใช้ — ต่างเกิน 2% → วนแก้ใหม่) + Ic = β·Ib จึงเห็นอัตราขยายบนสโคป
      MOSFET: สวิตช์ตาม Vgs ≥ Vth (`c._mon`) · 78xx: แหล่งแรงดัน `c._vs` = min(V, Vin − 2) ดึงกระแสจากขา IN · NE555: สลับ OUT ใน `discrete` ตาม `timing555()`, ถ้าคาบ < 0.1 s ใช้ค่าเฉลี่ย
      ทุกตัวจำลองเฉพาะไฟ DC
    - **ลอจิก/ออปแอมป์** (บล็อก 4×4 ช่อง, `nolab` = วาดป้ายขาเอง, ชุด `NLT`): `gate` (A B Y VCC GND; `fn` AND/OR/NOT/NAND/NOR/XOR/XNOR ตาม `GFN`, `fam` HC/4000/LS ตาม `LFAM`, `st` ชมิตต์),
@@ -182,6 +183,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
       ระดับไฟฟ้าจริง: RS-232 T1OUT ±5.4 V (`'t1out'`, mark = ลบ), R1OUT TTL (`'r1out'`), PC `term` TX ±12 V (`'tx'`), LoRa TXD (`'txd'`), เซอร์โว = PWM 50 Hz 1–2 ms (`st.servo`, อยู่ใน `scopeSwitchers`)
       → `scopeCapture(c, sws, bs)` วาดบิตจริง (`uartBit`: start 0, 8 บิต LSB ก่อน, stop 1) จุดทริก = start bit ที่ 1 ช่อง, `cap.uart` = ถอดรหัสข้อความ/HEX; Auto Set เลือก Time/div ให้พอดีเฟรม
     - โหมดเลื่อน (`tdiv ≥ 0.1`): ใช้ `c._hist` ที่ `scopeRecord()` บันทึกทุก `step` (DC + แอมพลิจูด AC → วาดเป็นแถบ); สวิตชิ่งเร็วเห็นเป็นค่าเฉลี่ย
+      โหมดตามเวลา: แบ่งแต่ละสเต็ปเป็นรายการละ 1 คอลัมน์จอ (min/max จากบัฟเฟอร์) + `md` = ช่วงจริงของ Math (sub/add/mul) ต่อคอลัมน์ — ไม่เป็นขั้นบันได
     - `disp` = `yt` | `xy` | `fft`: XY ใช้ `cap.xy` (คู่ตัวอย่าง CH1/CH2 2400 จุด; โหมดเลื่อนใช้ประวัติ DC), `cap.phase` = เฟส CH2 − CH1 จากเฟเซอร์ (องศา)
       FFT (`scopeFFT`, เฉพาะโหมดเร็ว): บันทึกแยกจากจอ N = 8192, fs = 2.56 × ช่วง (`fspan` หรืออัตโนมัติ = 10 × ความถี่หลัก), หน้าต่าง Hann, `fftRadix2`;
       สัญญาณสร้างแบบจำกัดแบนด์ (DC + ไซน์ + อนุกรมฟูเรียร์ของคลื่นสี่เหลี่ยมถึง Nyquist) จึงไม่มี aliasing; ยอด = รวมกำลัง ±3 ช่อง ÷ ENBW 1.5 → Vrms,
@@ -208,7 +210,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
     - โพรบ (`spProbes`): `V(ชื่อ)` คร่อม 2 ขั้ว, `V(ชื่อ.ขา)` เทียบกราวด์, `I(ชื่อ)`, `P(ชื่อ)`, สโคป `V(OSC.CH1−⏚)` · ตารางจุดทำงาน `spOpTable` (ย่าน BJT/MOSFET/ออปแอมป์/ไดโอด)
     - ส่งออก CSV / PNG / netlist (`spNetlist`: ngspice/LTspice, .model ของไดโอด/BJT/MOSFET, ออปแอมป์เป็น G + RC + B-source, หม้อแปลงเป็น L คู่ K)
     - พารามิเตอร์ SPICE แก้ได้ในแผงขวา (`SPX` ต่อท้าย `F`, เว้นว่าง = อัตโนมัติ `SPF`), ค่าตามรุ่นใน `SPMOD` · IS คำนวณจาก Vf ที่กระแสอ้างอิงเมื่อไม่ระบุ
-    - เครื่องกำเนิดสัญญาณ `fgen` (OUT COM, `wave` sine/square/tri/saw/pulse, `f`, `vpp`, `off`, `duty`, `ph`, `zo` 50 Ω): solver ปกติใช้ฮาร์มอนิกหลัก (`fgenPh`), `trRun` ใช้ `fgenV(c, t)` จริง
+    - เครื่องกำเนิดสัญญาณ `fgen` (OUT COM, `wave` sine/square/tri/saw/pulse, `f`, `vpp`, `off`, `duty`, `ph`, `zo` 50 Ω): solver ปกติใช้ฮาร์มอนิกหลัก (`fgenPh`), `trRun` ใช้ `fgenV(c, t)` จริง · คลื่นที่ไม่ใช่ไซน์บังคับโหมดตามเวลาเสมอ (ถ้าอุปกรณ์ทุกตัวรองรับ) · ดิวตี้บนสโคปโหมดตามเวลาคำนวณจากสัดส่วนคอลัมน์ที่สูงกว่าค่ากลาง
 
 ## ข้อตกลง
 - สีทั้งหมดเป็น CSS token บน `:root` และรองรับ dark mode (`prefers-color-scheme` + `data-theme`); canvas อ่านค่าผ่าน `readColors()` เก็บใน `K`
@@ -247,6 +249,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - lm317: 5.08 V / 9.26 V / dropout 13.0 V / ไม่มีไฟเข้า 0 V · tempalarm: 25 °C → 0.25 V LED ดับ, 35 °C → ติด
 - SPICE: RC −3 dB ≈ 159 Hz เฟส −45° · คลื่นสี่เหลี่ยม H3/H1 = 1/3 THD(ถึง H9) ≈ 42.9% · 1N4007 ≈ 0.77 V ที่ 42 mA, −1.4 mV/°C · ceamp Ic ≈ 2.6 mA, ≈ 44 dB, THD > 3%
   · ออปแอมป์ ×−10: 20 dB, −3 dB ≈ 90 kHz (GBW/11), ±7.07 V · rectifier ≈ 14.4 V ริปเปิล ≈ 1.24 Vpp · ทุกตัวอย่างหาจุดทำงานได้
+- สโคป 2 แชนเนล: ceamp (จำลองสด) CH1 20 mVpp → CH2 ≈ 3.15 Vpp · opamposc โหมดเลื่อนเปลี่ยน < 0.15 V ต่อจุด · fgen สี่เหลี่ยม → ±1.95 V / ±0.98 V ดิวตี้ 50%
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด

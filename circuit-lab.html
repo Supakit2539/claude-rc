@@ -1285,11 +1285,13 @@ function solveAll(){
           // BE = รอยต่อ 0.7 V (ตัวแปร j), CE: active → Ic = β·Ib, sat → Vce = 0.2 V (ตัวแปร j+1)
           const b = n[0], cc = n[1], e = n[2], st = c._bj || 'off', npn = c.t === 'npn';
           Y(cc, e, GOFF, 0); Y(b, e, 1e-5, 0);   // 100 kΩ รั่ว B–E: เบสลอย = ไม่นำ
-          if (ac || st === 'off'){ Z(j); Z(j + 1); break; }
-          if (npn) V(b, e, j, c.Vbe || 0.7, 0, 1); else V(e, b, j, c.Vbe || 0.7, 0, 1);
+          if (st === 'off'){ Z(j); Z(j + 1); break; }
+          // AC (เฟเซอร์): แบบจำลองสัญญาณเล็ก rπ = β·Vt/Ic + Ic = β·Ib → มีอัตราขยายจริง
+          const rpi = ac ? 1 + (c.beta || 100)*0.02585/Math.max(Math.abs(c._icu = c._ic || 1e-3), 1e-7) : 1, vb = ac ? 0 : (c.Vbe || 0.7);
+          if (npn) V(b, e, j, vb, 0, rpi); else V(e, b, j, vb, 0, rpi);
           const [p2, m2] = npn ? [cc, e] : [e, cc], k = j + 1;
           if (p2) M(p2 - 1, k, 1, 0); if (m2) M(m2 - 1, k, -1, 0);
-          if (st === 'sat'){ if (p2) M(k, p2 - 1, 1, 0); if (m2) M(k, m2 - 1, -1, 0); M(k, k, -0.05, 0); zr[k] += 0.2; }
+          if (st === 'sat'){ if (p2) M(k, p2 - 1, 1, 0); if (m2) M(k, m2 - 1, -1, 0); M(k, k, -0.05, 0); if (!ac) zr[k] += 0.2; }
           else { M(k, k, 1, 0); M(k, j, -c.beta, 0); }
         } break;
         case 'nmos': Y(n[0], n[2], 1e-7, 0); Y(n[1], n[2], (c._mg || 0) > 0 ? (c._mg/Math.max(c.Ron, 1e-3)) : GOFF, 0); break;
@@ -1404,7 +1406,7 @@ function solveAll(){
           R.ai = [(R.pv[18].d - R.pv[20].d)/250, (R.pv[19].d - R.pv[20].d)/250]; break;
         case 'tx420': R.V = R.pv[0].d - R.pv[1].d; R.I = c._on ? txI(c) : R.V*txI(c)/10; break;
         case 'npn': case 'pnp': { const sg = c.t === 'npn' ? 1 : -1;
-          R.ib = j >= 0 ? xd[j] : 0; R.ic = j >= 0 ? xd[j + 1] : 0;
+          R.ib = j >= 0 ? xd[j] : 0; R.ic = j >= 0 ? xd[j + 1] : 0; c._ic = R.ic;
           R.vbe = sg*(R.pv[0].d - R.pv[2].d); R.vce = sg*(R.pv[1].d - R.pv[2].d); } break;
         case 'nmos': R.vgs = R.pv[0].d - R.pv[2].d; R.vds = R.pv[1].d - R.pv[2].d; R.id = R.vds*((c._mg || 0) > 0 ? c._mg/Math.max(c.Ron, 1e-3) : GOFF); break;
         case 'rcd': case 'pmeter': {
@@ -1445,6 +1447,7 @@ function solveAll(){
       switch (c.t){
         case 'npn': case 'pnp': {
           const st = c._bj || 'off'; let ns = st;
+          if (st !== 'off' && Math.abs(R.ic - (c._icu ?? 0)) > 0.02*Math.abs(R.ic) + 1e-7) ch = true;   // rπ ของ AC ต้องใช้ Ic ล่าสุด
           if (st === 'off'){ if (R.vbe > (c.Vbe || 0.7)) ns = 'act'; }
           else if (R.ib < 0) ns = 'off';
           else if (st === 'act' && R.vce < 0.2) ns = 'sat';
@@ -2577,7 +2580,7 @@ const TR = {active:false, tw:null, sig:''};
 function trApplicable(){
   let dyn = false, ac = false, jn = false;
   for (const c of S.comps){ if (!TR_OK.has(c.t)) return false;
-    if (c.t === 'cap' || c.t === 'ind') dyn = true; if (c.t === 'acs' || c.t === 'src1' || c.t === 'fgen') ac = true; if (JUNC[c.t] || c.t === 'led' || NLT.has(c.t)) jn = true; }
+    if (c.t === 'cap' || c.t === 'ind') dyn = true; if (c.t === 'acs' || c.t === 'src1' || c.t === 'fgen') ac = true; if (c.t === 'fgen' && c.wave && c.wave !== 'sine') dyn = true; if (JUNC[c.t] || c.t === 'led' || NLT.has(c.t)) jn = true; }
   return dyn || (ac && jn);
 }
 const trJ = c => c.t === 'led' ? (c._blown ? [] : [[0, 1, c.Vf, 1]]) : JUNC[c.t] ? JUNC[c.t](c) : null;
@@ -6431,9 +6434,14 @@ function scopeRecord(){
   for (const c of S.comps) if (c.t === 'scope' && c.run !== false){
     const p = scopeProbe(c); if (!p) continue;
     const h = c._hist || (c._hist = []);
-    if (TR.active && TR.tw && c._n){ const dt = TR.dt || 0.05, mm = [0, 1].map(k => { let a = 1e9, b = -1e9;
-        const nq = Math.max(1, Math.round(dt/TR.tw.h)); for (let q = 0; q < nq; q++){ const t = simT - q*TR.tw.h, v = trNodeAt(c._n[k], t) - trNodeAt(c._n[2], t); a = Math.min(a, v); b = Math.max(b, v); } return [a, b]; });
-      h.push({t:simT, d:mm.map(x => (x[0] + x[1])/2), a:mm.map(x => (x[1] - x[0])/2), c:[[p[0].r, p[0].i], [p[1].r, p[1].i]]}); }
+    if (TR.active && TR.tw && c._n){
+      // โหมดตามเวลา: แบ่งสเต็ปเป็นช่วงละ 1 คอลัมน์ของจอ (min/max จากบัฟเฟอร์รูปคลื่น) — ไม่เป็นขั้นบันได
+      const dt = TR.dt || 0.05, W = TR.tw, col = Math.max(W.h, Math.min(dt, (c.tdiv || 0.1)*10/600)), nc = Math.max(1, Math.round(dt/col)), cw = dt/nc;
+      for (let s2 = nc - 1; s2 >= 0; s2--){ const te = simT - s2*cw, nq = Math.max(1, Math.round(cw/W.h));
+        const mm = [[1e9, -1e9], [1e9, -1e9]], md = {sub:[1e9, -1e9], add:[1e9, -1e9], mul:[1e9, -1e9]}, ex = (r, v) => { if (v < r[0]) r[0] = v; if (v > r[1]) r[1] = v; };
+        for (let q = 0; q < nq; q++){ const t = te - q*W.h, g = trNodeAt(c._n[2], t), v0 = trNodeAt(c._n[0], t) - g, v1 = trNodeAt(c._n[1], t) - g;
+          ex(mm[0], v0); ex(mm[1], v1); ex(md.sub, v0 - v1); ex(md.add, v0 + v1); ex(md.mul, v0*v1); }
+        h.push({t:te, d:mm.map(x => (x[0] + x[1])/2), a:mm.map(x => (x[1] - x[0])/2), md}); } }   // md = ช่วงจริงของช่อง Math ต่อคอลัมน์
     else h.push({t:simT, d:[p[0].d, p[1].d], a:[Math.SQRT2*acm(p[0]), Math.SQRT2*acm(p[1])], c:[[p[0].r, p[0].i], [p[1].r, p[1].i]]});
     while (h.length > 2 && h[0].t < simT - 45) h.shift();
   }
@@ -6529,7 +6537,7 @@ function scopeCapture(c, sws, bs){
       if (k === 2){ cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:scCross(mn, mx, vmin, vmax, T), duty:null, src:mo[0]}); continue; }
       if (main && bs[k]){ const e = bs[k].e; cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:0, duty:null, src:e.segs ? e.dec.proto : `UART ${e.baud} บอด`}); continue; }
       const ch = chs[k], f = trw ? scCross(mn, mx, vmin, vmax, T) : ch.sw ? ch.sw.f : (ch.A > 0.01*Math.max(Math.abs(ch.d), 1e-3) ? ch.f : 0);
-      cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
+      cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : trw && f > 0 && vmax - vmin > 1e-3 ? (() => { const m = (vmax + vmin)/2; let hi = 0; for (let i = 0; i < vc.length; i++) if (vc[i] > m) hi++; return hi/vc.length; })() : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
     }
     // XY: คู่ตัวอย่าง CH1/CH2 ที่เวลาเดียวกัน
     if (c.disp === 'xy'){ const NR = 2400; cap.xy = [new Float32Array(NR), new Float32Array(NR)];
@@ -6550,6 +6558,7 @@ function scopeCapture(c, sws, bs){
     const mo = scMath(c);
     // ค่าของแต่ละแชนเนลจากรายการประวัติ: [DC, แอมพลิจูดยอดของ AC]
     const ev = (e, k) => { if (k < 2) return [e.d[k], e.a[k]];
+      if (e.md){ const r = e.md[c.math] || e.md.sub; return [(r[0] + r[1])/2, (r[1] - r[0])/2]; }
       const d = mo[1](e.d[0], e.d[1]); if (c.math === 'mul' || !e.c) return [d, 0];
       const sg = c.math === 'sub' ? -1 : 1; return [d, Math.SQRT2*Math.hypot(e.c[0][0] + sg*e.c[1][0], e.c[0][1] + sg*e.c[1][1])]; };
     for (const k of mo ? [0, 1, 2] : [0, 1]){ const mn = new Float32Array(SC_COLS).fill(NaN), mx = new Float32Array(SC_COLS).fill(NaN);

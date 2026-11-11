@@ -553,6 +553,20 @@ const path = require('path');
     nr(sp.rect[0], 14.4, 0.25) && nr(sp.rect[1], 1.24, 0.15) && nr(sp.rect[2], 100, 1) && sp.rect[3] === 0, JSON.stringify(sp.rect)]);
   checks.push(['SPICE: netlist มี .model + แหล่ง SIN และทุกตัวอย่างหาจุดทำงาน DC ได้',
     /\.model .*NPN/.test(sp.net) && /SIN\(/.test(sp.net) && sp.ex.length === 0, JSON.stringify(sp.ex)]);
+  const sc2 = await page.evaluate(() => { const s = __sim, o = {};
+    s.load('ceamp'); s.run(1); let cap = s.scope('OSC1'); o.ce = [cap.ch[0].max - cap.ch[0].min, cap.ch[1].max - cap.ch[1].min];
+    s.load('opamposc'); s.run(3); const h = s.find('OSC1')._hist.filter(e => e.t > 1.5); let mx = 0; for (let i = 1; i < h.length; i++) mx = Math.max(mx, Math.abs(h[i].d[0] - h[i - 1].d[0]));
+    o.roll = [h.length, mx];
+    s.load(build((C,W) => { C('fgen',3,6,{n:'FG1',wave:'square',f:1000,vpp:4,zo:50}); W([4,7],[4,10]); W([2,7],[2,3],[6,3]); C('res',7,3,{n:'R1',R:1000}); W([8,3],[10,3],[10,6]); C('res',10,7,{r:1,n:'R2',R:1000}); W([10,8],[10,10],[4,10]);
+      C('scope',16,6,{n:'OSC1',vdiv1:1,vdiv2:1,tdiv:0.0005,trig:'1'}); W([15,8],[15,9],[12,9],[12,2],[2,2],[2,3]); W([16,8],[16,10],[13,10],[13,6],[10,6]); W([18,8],[18,11],[4,11],[4,10]); }));
+    s.run(0.5); cap = s.scope('OSC1'); o.sq = [s.RES.trans, cap.ch[0].max, cap.ch[0].min, cap.ch[1].max, cap.ch[0].duty];
+    return o; });
+  checks.push(['สโคป 2 แชนเนล: วงจรขยาย BJT (จำลองสด) CH1 20 mVpp → CH2 ≈ 3.1 Vpp (สัญญาณเล็ก rπ = β·Vt/Ic ตรงกับ SPICE 3.17 Vpp)',
+    nr(sc2.ce[0], 0.019, 0.002) && nr(sc2.ce[1], 3.15, 0.15), JSON.stringify(sc2.ce)]);
+  checks.push(['สโคปโหมดเลื่อน (ตามเวลา): บันทึกละเอียดทุกคอลัมน์ ไม่เป็นขั้นบันได (ตัวเก็บประจุเปลี่ยน < 0.15 V ต่อจุด)',
+    sc2.roll[0] > 300 && sc2.roll[1] < 0.15, JSON.stringify(sc2.roll)]);
+  checks.push(['เครื่องกำเนิดสัญญาณคลื่นสี่เหลี่ยม → จำลองตามเวลา: CH1 ±1.95 V, CH2 (ตัวแบ่ง) ±0.98 V, ดิวตี้ 50%',
+    sc2.sq[0] && nr(sc2.sq[1], 1.95, 0.03) && nr(sc2.sq[2], -1.95, 0.03) && nr(sc2.sq[3], 0.975, 0.02) && nr(sc2.sq[4], 0.5, 0.03), JSON.stringify(sc2.sq)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
