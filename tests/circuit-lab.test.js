@@ -190,6 +190,21 @@ const path = require('path');
       e.push(set('UB1', 'dist', 50)); set('UB1', 'dist', 150);
       e.push(set('BT1', 'pv', 70), set('CX1', 'det', true));
       o['ind_' + md] = e; }
+    // สื่อสาร RS-485 / LoRa / RS-232
+    { s.load('rs485'); s.run(3); const u2 = s.find('U2'), D = () => s.RES.comp[s.find('D1').id].Ir;
+      const e = [u2._vm.err, /รับ P=60\n$/.test(u2._vm.serial), D()];
+      s.find('RV1').pos = 20; s.solveNow(); s.run(2); e.push(/รับ P=20\n$/.test(u2._vm.serial), D());
+      u2.code = u2.code.replace('rs485.begin(9600)', 'rs485.begin(4800)'); mcuBoot(u2); s.run(2); e.push(/รับ/.test(u2._vm.serial));          // บอดไม่ตรง → อ่านไม่ออก
+      o.c485 = e; }
+    { s.load('lora'); s.run(5); const u2 = s.find('U2'), rf = s.find('RF2');
+      const e = [/ได้รับ: TEMP=\d+;N=3\n$/.test(u2._vm.serial), rf._link.ok, Math.round(rf._link.rssi)];
+      rf.loc = 9000; const n0 = u2._vm.serial.length; s.run(4); e.push(u2._vm.serial.length === n0, rf._link.ok);
+      s.find('RF1').sf = 12; rf.sf = 12; s.run(4); e.push(u2._vm.serial.length > n0, rf._link.ok);
+      o.clora = e; }
+    { s.load('rs232'); s.run(2.5); const pc = s.find('PC1'), u1 = s.find('U1'), L = () => u1._vm.pins[13] ? u1._vm.pins[13].v : 0;
+      const e = [/Arduino พร้อม/.test(pc._log)]; termSend(pc, 'on'); s.run(0.5); e.push(L(), /LED ติด\n$/.test(pc._log));
+      termSend(pc, 'OFF'); s.run(0.5); e.push(L()); pc.baud = 2400; termSend(pc, 'ON'); s.run(0.5); e.push(L());
+      o.c232 = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -317,6 +332,12 @@ const path = require('path');
       e[0] && Math.abs(e[1] - 1.5) < 0.07 && e[2] && e[3] && e[4] && Math.abs(e[5] - 3) < 0.07 && e[6] && Math.abs(e[7]) < 0.07 && e[8] && e[9], JSON.stringify(e.map(v => typeof v === 'number' ? +v.toFixed(2) : v))]); }
   for (const md of ['lad', 'txt']) checks.push([`เซนเซอร์อุตสาหกรรม (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): โฟลว์/ความดัน (ดิฟเฟอเรนเชียล)/ม่านแสง/แก๊ส/อัลตราโซนิก/เทอร์โมสตัท/คาปาซิทีฟ`,
     JSON.stringify(r['ind_' + md]) === JSON.stringify(['1011','1011','1111','0011','0011','1011','0100','0101','1010','1001','1000']), JSON.stringify(r['ind_' + md])]);
+  checks.push(['RS-485 (MAX485): มาสเตอร์ส่ง P=60 → สเลฟรับ, หมุน pot 20% → LED หรี่ลง, บอดไม่ตรง → อ่านไม่ออก',
+    r.c485[0] === null && r.c485[1] && r.c485[3] && r.c485[4] < r.c485[2] && !r.c485[5], JSON.stringify(r.c485)]);
+  checks.push(['LoRa (E32): 1.5 km รับได้ (RSSI ≈ −110 dBm), 9 km ที่ SF9 ขาด, เปลี่ยนเป็น SF12 → รับได้อีกครั้ง',
+    JSON.stringify(r.clora) === JSON.stringify([true, true, -110, true, false, true, true]), JSON.stringify(r.clora)]);
+  checks.push(['RS-232 (MAX3232): บอร์ดทักทายเทอร์มินัล, สั่ง ON/OFF ได้, บอดเทอร์มินัลไม่ตรง → คำสั่งไม่ผ่าน',
+    JSON.stringify(r.c232) === JSON.stringify([true, 1, true, 0, 0]), JSON.stringify(r.c232)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

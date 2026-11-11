@@ -43,6 +43,9 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      (diode 1, zener 2 = ตรง + ซีเนอร์, seg7 8, rgb 3, opto 1) · ทรานซิสเตอร์ BJT: สถานะ `c._bj` = off/act/sat, ตัวแปร 2 ตัว (Ib, Ic)
      MOSFET: สวิตช์ตาม Vgs ≥ Vth (`c._mon`) · 78xx: แหล่งแรงดัน `c._vs` = min(V, Vin − 2) ดึงกระแสจากขา IN · NE555: สลับ OUT ใน `discrete` ตาม `timing555()`, ถ้าคาบ < 0.1 s ใช้ค่าเฉลี่ย
      ทุกตัวจำลองเฉพาะไฟ DC
+   - โมดูลสื่อสาร (บล็อก, อยู่ใน `SENS` เพื่อตรวจไฟเลี้ยง `c._pw`): `rs485` (RO RE DE DI / VCC B A GND; รุ่น MAX485/MAX487/MAX3485 ต่างกันที่ `vmin`, `maxbd`),
+     `rs232` (MAX3232: T1IN→T1OUT, R1IN→R1OUT, ขั้ว DB9), `lora` (E32/E22 UART โปร่งใส: M0 M1 RXD TXD AUX VCC GND; `band`, `ch`, `addr`, `sf`, `pw` dBm, `loc` m, `env`, `baud`),
+     `term` (คอมพิวเตอร์ + เทอร์มินัล RS-232: TX RX GND, `baud`, `eol`; ช่องพิมพ์ส่งในแผงขวา → `termSend`, หน้าจอ `c._log`)
    - หน้าสัมผัส `no`/`nc`/`k3` อ้างอิงคอยล์ (`coil`/`tmr`) ด้วยชื่อในฟิลด์ `ref`; ปั๊ม (`tank`) และลูกลอย (`ref`) อ้างอิงถังด้วยชื่อ
 2. **โทโพโลยี** — สายต่อกันเฉพาะที่ปลายสายร่วมกัน (โหนด = จุดกริด); สายที่ตัดหรือผ่านมุม/ปลายสาย/ขั้วอื่นกลางเส้นไม่เชื่อมกัน
    - `normalize(full)` ลบสายซ้ำ และแยกสายเฉพาะที่จุดใน `splitPts` (`markSplit`) = ปลายสองข้างของสายที่เพิ่งลาก (ต่อแบบ T เข้ากลางสายอื่น)
@@ -76,6 +79,14 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      การอ่านขาหลังเปลี่ยนสถานะขาจะแก้วงจรใหม่ก่อน (`vm.dirty`)
      ตัวแปรจำนวนเต็มที่ประกาศพร้อมค่าเริ่มต้นถูกตัดเศษด้วย `__i()` (`wrapInts`); การกำหนดค่าภายหลังยังเป็นทศนิยม
      ไลบรารีจำลอง: `DHT` (readTemperature/readHumidity), `Servo` (attach/write/read), `pulseIn` (HC-SR04), `tone`/`noTone`
+     **พอร์ตอนุกรม** (`mkPort` ใน `mcuApi`, สถานะใน `vm.uarts`): `Serial` = Serial Monitor (รับข้อความจากช่องพิมพ์ใต้ Serial Monitor), `SoftwareSerial s(rx, tx)` ทุกบอร์ด,
+     `MCU[t].uarts`: ESP32 `Serial2` (16/17), `Serial1` (ต้องระบุขาใน begin), Pico `Serial1` (GP1/GP0), `Serial2` (GP5/GP4) — begin(baud[, cfg, rx, tx]), print/println/write,
+     available/read/peek/readString/readStringUntil/parseInt/parseFloat; `read()` คืนอักขระ 1 ตัว (สตริง) หรือ −1; การอ่านแบบรอดึงก้อนที่ตามมาในคิวภายใน 1 s (เลียนแบบ timeout)
+     String แบบ Arduino: `.length()`, `s.trim();`/`toUpperCase();` (แก้ในตัว), `toInt()`, `toFloat()`, `equals()` (เพิ่มใน `String.prototype`)
+   - **การสื่อสาร** (`commSend(net, data, baud, src, at)`): ข้อความเดินตาม `RES.net` จากขา TX → ขารับของบอร์ด / DI ของ `rs485` (`rs485Tx`: ต้อง DE = HIGH, ปลายทาง RE = LOW,
+     A/B ต้องตรงกัน สลับ = ข้อมูลกลับบิต `invMix`) / T1IN–R1IN ของ `rs232` / RXD ของ `lora` (`loraTx`: ช่อง/แบนด์/SF/แอดเดรสตรงกัน, M0 = M1 = LOW, ลิงก์ `loraLink`:
+     RSSI = pw − (PL1m + 10·n·log d) ≥ `LORA_SENS[sf]`, หน่วง `loraAir`) / RX ของ `term`; เวลาถึง = คิวผู้ส่ง + ไบต์ × 10/บอด; บอดต่างเกิน 3% → `baudMix` (อักขระขยะ)
+     · TTL ต่อเข้า RS-232 ตรง → กลับขั้ว + เตือน
      โมดูลเซนเซอร์ถูกค้นด้วย `sensorAt(ชนิด, ขาของเซนเซอร์, ขาบอร์ด)` ผ่าน `RES.net`; เซอร์โวหาขาที่ควบคุมด้วย `servoTarget()`
 5. **พฤติกรรมตามเวลา** — `discrete(dt)` (คอยล์/ไทเมอร์, เบรกเกอร์ทริป, PSU retry, ลูกลอย, HMI link, PLC scan, รันโค้ดไมโครคอนโทรลเลอร์เมื่อ dt > 0)
    และ `continuous(dt)` (ความเร็วมอเตอร์, ลำดับเฟส 3 เฟส, หลอดฟลูออเรสเซนต์, ระดับน้ำ)
@@ -83,7 +94,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -157,6 +168,8 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ardsense: บรรทัดแรกของ Serial = `T=25C H=60% แสง=936 ระยะ=100cm PIR=0` · espgarden: ดินแห้ง → เซอร์โว 90°, ชื้น → 0°
 - plcsense: ทรานสมิตเตอร์ 40% → AI0 ≈ 40, พร็อกซิมิตี้ → Q0, ลิมิตสวิตช์ตัด Q0, AI0 > 75 → Q2
 - indsense: H1–H4 = 1011 → ไม่มีน้ำไหล 3 s → เตือน; ความดัน 3 bar ตัด, 2 bar ค้าง, 1.3 bar ต่อ; บังม่านแสง → 0100; แก๊ส → 0101; วัตถุใกล้ UB1 → H4 ดับ; ร้อน → H3 ดับ (แลดเดอร์/ข้อความ)
+- rs485: สเลฟรับ `P=60` แล้วหรี่ LED, pot 20% → LED หรี่ลง, บอดไม่ตรง → อ่านไม่ออก · lora: 1.5 km RSSI ≈ −110 dBm รับได้, 9 km SF9 ขาด, SF12 กลับมารับได้
+- rs232: เทอร์มินัลได้ข้อความทักทาย, ส่ง ON/OFF คุม LED ขา 13, บอดเทอร์มินัล 2400 → คำสั่งไม่ผ่าน
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -180,6 +193,6 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
 - LED/ไดโอด/ทรานซิสเตอร์ทำงานกับไฟ AC (วงจรเรียงกระแส) — ต้องจำลองแบบโดเมนเวลา
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ตัวเก็บประจุชาร์จ/ดิสชาร์จตามเวลา, ออปแอมป์
-- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ), Serial รับข้อมูลเข้า, จอ LCD I2C
+- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus RTU บน RS-485 (PLC/HMI ↔ บอร์ด), LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น
