@@ -164,6 +164,13 @@ const path = require('path');
     o.fft2 = [F.fund.f, F.fund.v, hv(3), hv(5), F.dc, F.span];
     // XY: วงจร RC → ผลต่างเฟส −atan(ωRC) ≈ −46°
     s.load('oscxy'); s.run(0.3); const xc = s.scope('OSC1'); o.xy = [xc.phase, xc.xy ? xc.xy[0].length : 0];
+    // Math CH1−CH2 = แรงดันคร่อม R ≈ 8.64 Vrms (Vpp ≈ 24.4 V) ทั้งโหมดเร็ว/FFT/เลื่อน
+    { const c = s.S.comps.find(x => x.n === 'OSC1'); c.disp = 'yt'; c.math = 'sub'; const m = s.scope('OSC1').ch[2];
+      c.disp = 'fft'; c.fftch = 'M'; const fp = s.scope('OSC1').fft.peaks[0]; c.disp = 'yt'; c.tdiv = 0.5; s.run(1.5); const rm = s.scope('OSC1').ch[2];
+      o.math = [m.max - m.min, m.rms, m.f, fp.f, fp.v, rm.max - rm.min]; }
+    // เคอร์เซอร์: เวลา 2→6 div ที่ 5 ms/div = 20 ms (50 Hz); แรงดัน CH2 (5 V/div, ตำแหน่ง −3) A=2, B=−2 div → 25 V, 5 V
+    { s.load('osc'); s.run(0.3); const c = s.S.comps.find(x => x.t === 'scope'); c.cur = 'time'; c.ta = 2; c.tb = 6; s.scope(c.n); const t = s.scopeCursor(c.n);
+      c.cur = 'volt'; c.cch = '2'; c.va = 2; c.vb = -2; const v = s.scopeCursor(c.n); o.cur = [t.dt, t.inv, v.vA, v.vB, v.dv]; }
     s.load('arduino'); s.run(1.2); o.pwmSw = scopeSwitchers().map(x => [x.f, Math.round(x.duty*100)/100]);
 
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
@@ -237,6 +244,8 @@ const path = require('path');
   // คลื่นสี่เหลี่ยม 0–8.85 V ดิวตี้ 0.524: Vn(rms) = 2A/(nπ)·|sin(nπd)|/√2 → H1 3.97, H3 1.29, H5 0.74; DC = A·d = 4.64
   checks.push(['FFT: พัลส์ NE555 → หลัก 687 Hz 3.97 V, H3 1.29 V, H5 0.74 V, DC 4.64 V', Math.abs(r.fft2[0] - 687) < 1 && Math.abs(r.fft2[1] - 3.97) < 0.04 && Math.abs(r.fft2[2] - 1.29) < 0.03 && Math.abs(r.fft2[3] - 0.74) < 0.03 && Math.abs(r.fft2[4] - 4.64) < 0.05 && r.fft2[5] === 10000, JSON.stringify(r.fft2.map(x => +x.toFixed(3)))]);
   checks.push(['XY: วงจร RC ผลต่างเฟส ≈ −46°', Math.abs(r.xy[0] + 46.0) < 0.3 && r.xy[1] > 1000, JSON.stringify(r.xy)]);
+  checks.push(['Math CH1−CH2: แรงดันคร่อม R Vpp ≈ 24.4 V, 8.64 Vrms 50 Hz (FFT และโหมดเลื่อนตรงกัน)', Math.abs(r.math[0] - 24.42) < 0.2 && Math.abs(r.math[1] - 8.63) < 0.08 && r.math[2] === 50 && Math.abs(r.math[3] - 50) < 0.2 && Math.abs(r.math[4] - 8.63) < 0.08 && Math.abs(r.math[5] - 24.42) < 0.2, JSON.stringify(r.math.map(x => +x.toFixed(3)))]);
+  checks.push(['เคอร์เซอร์: Δt = 20 ms (1/Δt = 50 Hz), แรงดัน A 25 V B 5 V ΔV −20 V', Math.abs(r.cur[0] - 0.02) < 1e-9 && Math.abs(r.cur[1] - 50) < 1e-6 && r.cur[2] === 25 && r.cur[3] === 5 && r.cur[4] === -20, JSON.stringify(r.cur)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

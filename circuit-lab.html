@@ -93,10 +93,10 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 #scopewin{position:absolute;right:10px;top:10px;width:min(720px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:6;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
 #scopewin[hidden]{display:none}
 .swh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);cursor:move;flex-wrap:wrap}
-#scv{width:100%;height:300px;display:block;flex:none}
+#scv{width:100%;height:300px;display:block;flex:none;touch-action:none}
 .swc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;padding:8px 10px;font-size:12.5px}
 .swc label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
-#scmeas{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;padding:0 10px 10px;font:12px 'IBM Plex Mono',monospace}
+#scmeas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:4px 18px;padding:0 10px 10px;font:12px 'IBM Plex Mono',monospace}
 #scmeas .mr{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line)}
 @media (max-width:820px){.swc{grid-template-columns:repeat(2,minmax(0,1fr))} #scv{height:220px}}
 #lad{height:0;overflow:hidden;background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;transition:height .15s}
@@ -344,7 +344,8 @@ T.motor6 = {nm:'มอเตอร์ 3 เฟส 6 ขั้ว (สตาร�
             pins:[[-1,-1,'U1'],[0,-1,'V1'],[1,-1,'W1'],[-1,1,'U2'],[0,1,'V2'],[1,1,'W2']], box:[-1.6,-1,1.6,1]};
 T.cable  = {nm:'สายไฟ (ตามขนาด mm²)',          ic:'═', pre:'W', d:{A:2.5, len:20, mat:'Cu'}};
 T.capbank= {nm:'คาปาซิเตอร์แบงก์ 3 เฟส',        ic:'⫴', pre:'C', d:{kvar:5, V:400}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3']], box:[-1.6,-1,1.6,1]};
-T.scope  = {nm:'ออสซิลโลสโคป 2 แชนเนล',       ic:'∿', pre:'OSC', d:{vdiv1:5, vdiv2:5, tdiv:0.005, pos1:1.5, pos2:-2.5, cpl1:'DC', cpl2:'DC', on2:true, trig:'1', slope:'up', tlev:0, earth:true, run:true, disp:'yt', fftch:'1', fspan:'auto', fref:30},
+T.scope  = {nm:'ออสซิลโลสโคป 2 แชนเนล',       ic:'∿', pre:'OSC', d:{vdiv1:5, vdiv2:5, tdiv:0.005, pos1:1.5, pos2:-2.5, cpl1:'DC', cpl2:'DC', on2:true, trig:'1', slope:'up', tlev:0, earth:true, run:true, disp:'yt', fftch:'1', fspan:'auto', fref:30,
+              math:'off', vdivm:5, posm:0, cur:'off', cch:'1', ta:3, tb:7, va:2, vb:-2},
             pins:[[-1,2,'CH1'],[0,2,'CH2'],[2,2,'⏚']], box:[-2.6,-2,2.6,2]};
 T.pmeter = {nm:'พาวเวอร์มิเตอร์ 1 เฟส',         ic:'kW', pre:'PM', d:{}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'L'],[1,1,'N']], box:[-1.6,-1,1.6,1]};
 // ฟิลด์ใหม่ของอุปกรณ์เดิม (ค่าเริ่มต้น)
@@ -4146,7 +4147,14 @@ function fxPress(c){
 let FORCE = null;
 const SC_COLS = 600, SC_V = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50,100,200];
 const SC_T = [1e-5,2e-5,5e-5,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,0.1,0.2,0.5,1,2];
-const SC_COL = ['#facc15', '#22d3ee'];
+const SC_COL = ['#facc15', '#22d3ee', '#e879f9'];
+// ช่อง Math: ผลรวม/ผลต่าง/ผลคูณของ CH1 และ CH2 ณ เวลาเดียวกัน
+const SC_MATH = {sub:['CH1 − CH2', (a, b) => a - b, 'V'], add:['CH1 + CH2', (a, b) => a + b, 'V'], mul:['CH1 × CH2', (a, b) => a*b, 'V²']};
+const scMath = c => c.math && SC_MATH[c.math];
+// สเกล/ตำแหน่ง/หน่วยของแต่ละแชนเนล (0 = CH1, 1 = CH2, 2 = Math)
+const scV = (c, k) => k === 2 ? c.vdivm : c['vdiv' + (k + 1)];
+const scP = (c, k) => (k === 2 ? c.posm : c['pos' + (k + 1)]) || 0;
+const scU = (c, k) => k === 2 && scMath(c) ? scMath(c)[2] : 'V';
 let scopeWin = null;
 const fmtDiv = (x, u) => fmt(x, u).replace(/\.00 /, ' ').replace(/(\.\d)0 /, '$1 ');
 function scopeSwitchers(){
@@ -4169,7 +4177,7 @@ function scopeRecord(){
   for (const c of S.comps) if (c.t === 'scope' && c.run !== false){
     const p = scopeProbe(c); if (!p) continue;
     const h = c._hist || (c._hist = []);
-    h.push({t:simT, d:[p[0].d, p[1].d], a:[Math.SQRT2*acm(p[0]), Math.SQRT2*acm(p[1])]});
+    h.push({t:simT, d:[p[0].d, p[1].d], a:[Math.SQRT2*acm(p[0]), Math.SQRT2*acm(p[1])], c:[[p[0].r, p[0].i], [p[1].r, p[1].i]]});
     while (h.length > 2 && h[0].t < simT - 45) h.shift();
   }
 }
@@ -4212,13 +4220,15 @@ function scopeCapture(c, sws){
       for (let n = 1; n <= N; n++){ const t = Ts*n/N, v = fn(tk, t);
         if (up ? (prev < c.tlev && v >= c.tlev) : (prev > c.tlev && v <= c.tlev)){ t0 = t; cap.trig = true; break; } prev = v; } }
     cap.t0 = t0;
-    for (const k of [0, 1]){ const mn = new Float32Array(SC_COLS), mx = new Float32Array(SC_COLS), SUB = 6;
+    const mo = scMath(c), fk = k => k === 2 ? (t => mo[1](fn(0, t), fn(1, t))) : (t => fn(k, t));
+    for (const k of mo ? [0, 1, 2] : [0, 1]){ const mn = new Float32Array(SC_COLS), mx = new Float32Array(SC_COLS), vc = new Float32Array(SC_COLS), SUB = 6, F = fk(k);
       let s1 = 0, s2 = 0, n = 0, vmax = -1e9, vmin = 1e9;
       for (let i = 0; i < SC_COLS; i++){ let a = 1e9, b = -1e9;
-        for (let s2i = 0; s2i < SUB; s2i++){ const v = fn(k, t0 + (i + s2i/SUB)*T/SC_COLS); a = Math.min(a, v); b = Math.max(b, v); s1 += v; s2 += v*v; n++; }
-        mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); }
+        for (let s2i = 0; s2i < SUB; s2i++){ const v = F(t0 + (i + s2i/SUB)*T/SC_COLS); a = Math.min(a, v); b = Math.max(b, v); s1 += v; s2 += v*v; n++; }
+        vc[i] = F(t0 + (i + 0.5)*T/SC_COLS); mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); }
+      if (k === 2){ cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f:scCross(mn, mx, vmin, vmax, T), duty:null, src:mo[0]}); continue; }
       const ch = chs[k], f = ch.sw ? ch.sw.f : (ch.A > 0.01*Math.max(Math.abs(ch.d), 1e-3) ? ch.f : 0);
-      cap.ch.push({mn, mx, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
+      cap.ch.push({mn, mx, vc, max:vmax, min:vmin, avg:s1/n, rms:Math.sqrt(s2/n), f, duty:ch.sw ? ch.sw.duty : null, src:ch.sw ? ch.sw.nm : (ch.A ? 'AC ' + fmt(ch.f, 'Hz') : '')});
     }
     // XY: คู่ตัวอย่าง CH1/CH2 ที่เวลาเดียวกัน
     if (c.disp === 'xy'){ const NR = 2400; cap.xy = [new Float32Array(NR), new Float32Array(NR)];
@@ -4228,19 +4238,24 @@ function scopeCapture(c, sws){
     if (c.disp === 'fft') cap.fft = scopeFFT(c, fn, chs);
   } else {
     const h = c._hist || [], t1 = simT, ta = t1 - T;
-    for (const k of [0, 1]){ const mn = new Float32Array(SC_COLS).fill(NaN), mx = new Float32Array(SC_COLS).fill(NaN);
+    const mo = scMath(c);
+    // ค่าของแต่ละแชนเนลจากรายการประวัติ: [DC, แอมพลิจูดยอดของ AC]
+    const ev = (e, k) => { if (k < 2) return [e.d[k], e.a[k]];
+      const d = mo[1](e.d[0], e.d[1]); if (c.math === 'mul' || !e.c) return [d, 0];
+      const sg = c.math === 'sub' ? -1 : 1; return [d, Math.SQRT2*Math.hypot(e.c[0][0] + sg*e.c[1][0], e.c[0][1] + sg*e.c[1][1])]; };
+    for (const k of mo ? [0, 1, 2] : [0, 1]){ const mn = new Float32Array(SC_COLS).fill(NaN), mx = new Float32Array(SC_COLS).fill(NaN);
       let j = 0, vmax = -1e9, vmin = 1e9, s1 = 0, s2 = 0, n = 0, last = null;
-      const mean = k2 => { let s3 = 0, m = 0; for (const e of h){ if (e.t >= ta){ s3 += e.d[k2]; m++; } } return m ? s3/m : 0; }, mu = cpl(k) ? mean(k) : 0;
+      const mean = k2 => { let s3 = 0, m = 0; for (const e of h){ if (e.t >= ta){ s3 += ev(e, k2)[0]; m++; } } return m ? s3/m : 0; }, mu = k < 2 && cpl(k) ? mean(k) : 0;
       for (let i = 0; i < SC_COLS; i++){ const tb = ta + (i + 1)*T/SC_COLS; let a = 1e9, b = -1e9, any = false;
-        while (j < h.length && h[j].t <= tb){ if (h[j].t >= ta){ const e = h[j], d = e.d[k] - mu; a = Math.min(a, d - e.a[k]); b = Math.max(b, d + e.a[k]); any = true; s1 += d; s2 += d*d + e.a[k]*e.a[k]/2; n++; } last = h[j]; j++; }
-        if (!any && last && last.t >= ta - T/SC_COLS*2){ const d = last.d[k] - mu; a = d - last.a[k]; b = d + last.a[k]; any = true; }
+        while (j < h.length && h[j].t <= tb){ if (h[j].t >= ta){ const [d0, am] = ev(h[j], k), d = d0 - mu; a = Math.min(a, d - am); b = Math.max(b, d + am); any = true; s1 += d; s2 += d*d + am*am/2; n++; } last = h[j]; j++; }
+        if (!any && last && last.t >= ta - T/SC_COLS*2){ const [d0, am] = ev(last, k), d = d0 - mu; a = d - am; b = d + am; any = true; }
         if (any){ mn[i] = a; mx[i] = b; vmin = Math.min(vmin, a); vmax = Math.max(vmax, b); } }
       // ความถี่จากจุดตัดกลางของสัญญาณช้า
       let f = 0; const mid = (vmax + vmin)/2, cr = [];
       if (vmax - vmin > 0.05){ for (let i = 1; i < SC_COLS; i++){ const a = (mn[i-1] + mx[i-1])/2, b = (mn[i] + mx[i])/2; if (a < mid && b >= mid) cr.push(i); }
         if (cr.length >= 2) f = (cr.length - 1)/((cr[cr.length - 1] - cr[0])*T/SC_COLS); }
-      const hasAC = h.length && h[h.length - 1].a[k] > 1e-3;
-      cap.ch.push({mn, mx, max:n ? vmax : 0, min:n ? vmin : 0, avg:n ? s1/n : 0, rms:n ? Math.sqrt(s2/n) : 0, f:hasAC ? RES.f : f, duty:null, src:hasAC ? 'AC (แถบ = ขอบเขตไซน์)' : ''});
+      const hasAC = h.length && ev(h[h.length - 1], k)[1] > 1e-3;
+      cap.ch.push({mn, mx, vc:null, max:n ? vmax : 0, min:n ? vmin : 0, avg:n ? s1/n : 0, rms:n ? Math.sqrt(s2/n) : 0, f:hasAC ? RES.f : f, duty:null, src:(k === 2 ? mo[0] + ' ' : '') + (hasAC ? 'AC (แถบ = ขอบเขตไซน์)' : '')});
     }
   }
   return cap;
@@ -4257,19 +4272,26 @@ function fftRadix2(re, im){
       for (let k = 0; k < h; k++){ const p = i + k, q = p + h, vr = re[q]*cr - im[q]*ci, vi = re[q]*ci + im[q]*cr;
         re[q] = re[p] - vr; im[q] = im[p] - vi; re[p] += vr; im[p] += vi; const t = cr*wr - ci*wi; ci = cr*wi + ci*wr; cr = t; } } }
 }
+// ความถี่จากจุดตัดระดับกลาง (ขาขึ้น) ของข้อมูลคอลัมน์
+function scCross(mn, mx, vmin, vmax, T){
+  if (vmax - vmin < 0.05) return 0; const mid = (vmax + vmin)/2, cr = [];
+  for (let i = 1; i < SC_COLS; i++){ const a = (mn[i-1] + mx[i-1])/2, b = (mn[i] + mx[i])/2; if (a < mid && b >= mid) cr.push(i); }
+  return cr.length >= 2 ? (cr.length - 1)/((cr[cr.length - 1] - cr[0])*T/SC_COLS) : 0;
+}
 function scopeFFT(c, fn, chs){
-  const k = c.fftch === '2' ? 1 : 0, ch = chs[k], f0 = ch.sw ? ch.sw.f : ch.A ? ch.f : 0;
+  const mo = scMath(c), k = c.fftch === 'M' && mo ? 2 : c.fftch === '2' ? 1 : 0;
+  const f0of = ch => ch.sw ? ch.sw.f : ch.A ? ch.f : 0, f0 = k === 2 ? Math.max(f0of(chs[0]), f0of(chs[1])) : f0of(chs[k]);
   const span = c.fspan === 'auto' ? (SC_SPAN.find(s => s >= 10*f0) || 50000) : +c.fspan;
   const N = 8192, fs = 2.56*span, dt = 1/fs, re = new Float64Array(N), im = new Float64Array(N);
   let S1 = 0;
   // สร้างสัญญาณแบบจำกัดแบนด์ (anti-alias): DC + ไซน์ AC + อนุกรมฟูเรียร์ของคลื่นสี่เหลี่ยมถึงความถี่ Nyquist
-  const sw = ch.sw, nh = sw ? Math.min(400, Math.floor(fs/2/sw.f)) : 0, A2 = sw ? sw.hi - sw.lo : 0, cpl = c['cpl' + (k + 1)] === 'AC';
-  const dc = (sw ? sw.lo + A2*sw.duty : ch.d) - (cpl ? ch.mean : 0), hc = [];
-  for (let n = 1; n <= nh; n++) hc.push(A2*2/(n*Math.PI)*Math.sin(n*Math.PI*sw.duty));
-  for (let i = 0; i < N; i++){ const t = i*dt, w = 0.5 - 0.5*Math.cos(2*Math.PI*i/(N - 1));
-    let v = dc + (ch.A ? ch.A*Math.sin(2*Math.PI*ch.f*t + ch.ph) : 0);
-    for (let n = 1; n <= nh; n++) v += hc[n - 1]*Math.cos(2*Math.PI*n*sw.f*t - n*Math.PI*sw.duty);
-    re[i] = v*w; S1 += w; }
+  const syn = kk => { const ch = chs[kk], sw = ch.sw, nh = sw ? Math.min(400, Math.floor(fs/2/sw.f)) : 0, A2 = sw ? sw.hi - sw.lo : 0, cpl = c['cpl' + (kk + 1)] === 'AC';
+    const dc = (sw ? sw.lo + A2*sw.duty : ch.d) - (cpl ? ch.mean : 0), hc = [];
+    for (let n = 1; n <= nh; n++) hc.push(A2*2/(n*Math.PI)*Math.sin(n*Math.PI*sw.duty));
+    return t => { let v = dc + (ch.A ? ch.A*Math.sin(2*Math.PI*ch.f*t + ch.ph) : 0);
+      for (let n = 1; n <= nh; n++) v += hc[n - 1]*Math.cos(2*Math.PI*n*sw.f*t - n*Math.PI*sw.duty); return v; }; };
+  const g0 = syn(0), g1 = syn(1), G = k === 2 ? (t => mo[1](g0(t), g1(t))) : k ? g1 : g0;
+  for (let i = 0; i < N; i++){ const w = 0.5 - 0.5*Math.cos(2*Math.PI*i/(N - 1)); re[i] = G(i*dt)*w; S1 += w; }
   fftRadix2(re, im);
   const nb = Math.floor(N/2.56) + 1, df = fs/N, P = new Float32Array(nb);   // P = กำลัง (Vrms²) ต่อช่องความถี่
   for (let i = 0; i < nb; i++){ const a = 2*Math.hypot(re[i], im[i])/S1; P[i] = i === 0 ? (a/2)*(a/2) : a*a/2; }
@@ -4299,6 +4321,7 @@ function scopeDrawXY(g, X, Y, W, H, c, cap, small){
 function scopeDrawFFT(g, X, Y, W, H, c, cap, small){
   const F = cap.fft; if (!F) return;
   const top = c.fref ?? 30, yOf = db => Y + (top - db)/10*H/8, nb = F.P.length, col = SC_COL[F.k];
+  if (!small) scopeDrawCursors(g, X, Y, W, H, c);
   g.strokeStyle = col; g.lineWidth = small ? 1 : 1.4; g.beginPath();
   const cols = Math.max(60, Math.round(W));
   for (let x = 0; x < cols; x++){ const i0 = Math.floor(x/cols*nb), i1 = Math.max(i0 + 1, Math.floor((x + 1)/cols*nb)); let m = 0;
@@ -4330,9 +4353,9 @@ function scopeDraw(g, X, Y, W, H, c, small){
   if (cap && c.disp === 'fft'){ if (cap.fft) scopeDrawFFT(g, X, Y, W, H, c, cap, small);
     else if (!small){ g.fillStyle = '#94a3b8'; g.font = "600 13px 'IBM Plex Sans Thai',sans-serif"; g.textAlign = 'center'; g.fillText('FFT ใช้ได้เมื่อ Time/div < 0.1 s', X + W/2, Y + H/2); }
     g.restore(); return; }
-  if (cap) for (const k of [0, 1]){
+  if (cap) for (let k = 0; k < cap.ch.length; k++){
     if (k === 1 && c.on2 === false) continue;
-    const ch = cap.ch[k], vd = c['vdiv' + (k + 1)], pos = c['pos' + (k + 1)] || 0;
+    const ch = cap.ch[k], vd = scV(c, k), pos = scP(c, k);
     const yOf = v => Math.max(Y - 2, Math.min(Y + H + 2, Y + H/2 - (v/vd + pos)*H/8));
     g.strokeStyle = SC_COL[k]; g.lineWidth = small ? 1.1 : 1.6; g.shadowColor = SC_COL[k]; g.shadowBlur = small ? 0 : 4;
     g.beginPath(); let started = false;
@@ -4345,21 +4368,59 @@ function scopeDraw(g, X, Y, W, H, c, small){
     const y0 = Y + H/2 - pos*H/8; g.fillStyle = SC_COL[k];
     g.beginPath(); g.moveTo(X, y0 - (small ? 3 : 5)); g.lineTo(X + (small ? 5 : 9), y0); g.lineTo(X, y0 + (small ? 3 : 5)); g.fill();
   }
+  if (!small && cap) scopeDrawCursors(g, X, Y, W, H, c);
   if (!small && cap && !cap.roll){ const k = c.trig === '2' ? 1 : 0, pos = c['pos' + (k + 1)] || 0, y = Y + H/2 - (c.tlev/c['vdiv' + (k + 1)] + pos)*H/8;
     g.fillStyle = '#f97316'; g.beginPath(); g.moveTo(X + W, y - 5); g.lineTo(X + W - 9, y); g.lineTo(X + W, y + 5); g.fill(); }
+  g.restore();
+}
+// ---------- เคอร์เซอร์ ----------
+// ค่า ณ คอลัมน์ (0–599) ของแชนเนล k
+function scAt(cap, k, xdiv){ const ch = cap.ch[k]; if (!ch) return NaN; const i = Math.max(0, Math.min(SC_COLS - 1, Math.floor(xdiv/10*SC_COLS)));
+  return ch.vc ? ch.vc[i] : (ch.mn[i] + ch.mx[i])/2; }
+function scopeCursorVals(c){
+  const cap = c._cap; if (!cap || c.cur === 'off' || c.disp === 'xy') return null;
+  const k = c.cch === 'M' && scMath(c) && cap.ch[2] ? 2 : c.cch === '2' ? 1 : 0, u = scU(c, k), nm = k === 2 ? 'Math' : 'CH' + (k + 1);
+  if (c.disp === 'fft' && cap.fft){ const F = cap.fft, fA = c.ta/10*F.span, fB = c.tb/10*F.span;
+    const db = f => { const i = Math.max(0, Math.min(F.P.length - 1, Math.round(f/F.df))); let m = 0; for (let j = Math.max(0, i - 2); j <= Math.min(F.P.length - 1, i + 2); j++) m = Math.max(m, F.P[j]); return dBV(Math.sqrt(m)); };
+    return {kind:'freq', fA, fB, df:fB - fA, dbA:db(fA), dbB:db(fB), ddb:db(fB) - db(fA)}; }
+  if (c.cur === 'time'){ const tA = c.ta*c.tdiv, tB = c.tb*c.tdiv, vA = scAt(cap, k, c.ta), vB = scAt(cap, k, c.tb);
+    return {kind:'time', nm, u, tA, tB, dt:tB - tA, inv:Math.abs(tB - tA) > 1e-12 ? 1/Math.abs(tB - tA) : 0, vA, vB, dv:vB - vA}; }
+  const vd = scV(c, k), pos = scP(c, k), vA = (c.va - pos)*vd, vB = (c.vb - pos)*vd;
+  return {kind:'volt', nm, u, vA, vB, dv:vB - vA};
+}
+function scopeDrawCursors(g, X, Y, W, H, c){
+  if (c.cur === 'off' || c.disp === 'xy') return;
+  const vert = c.cur === 'time' || c.disp === 'fft';
+  g.save(); g.setLineDash([6, 4]); g.lineWidth = 1.2; g.font = "600 11px 'IBM Plex Mono',monospace";
+  [['A', vert ? c.ta : c.va, '#fb923c'], ['B', vert ? c.tb : c.vb, '#a5b4fc']].forEach(([nm, v, col]) => {
+    g.strokeStyle = col; g.fillStyle = col; g.beginPath();
+    if (vert){ const x = X + v*W/10; g.moveTo(x, Y); g.lineTo(x, Y + H); g.stroke(); g.fillText(nm, x + 4, Y + 30); }
+    else { const y = Y + H/2 - v*H/8; g.moveTo(X, y); g.lineTo(X + W, y); g.stroke(); g.fillText(nm, X + W - 18, y - 4); } });
   g.restore();
 }
 function scopeHeadline(c){
   const cap = c._cap, ch = k => `CH${k + 1} ${fmtDiv(c['vdiv' + (k + 1)], 'V')}/div ${c['cpl' + (k + 1)] || 'DC'}`;
   if (c.disp === 'xy') return ['XY', 'X = ' + ch(0), 'Y = ' + ch(1), cap && cap.phase != null ? 'Δφ ' + cap.phase.toFixed(1) + '°' : '', c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
   if (c.disp === 'fft') return ['FFT CH' + (c.fftch === '2' ? 2 : 1), 'ช่วง 0–' + fmt(cap && cap.fft ? cap.fft.span : 0, 'Hz'), (c.fref ?? 30) + ' dBV บนสุด · 10 dB/div', cap && cap.fft ? 'ความละเอียด ' + fmt(cap.fft.df, 'Hz') : '', 'Hann', c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
-  return [ch(0), c.on2 !== false ? ch(1) : null, fmtDiv(c.tdiv, 's') + '/div',
+  const mo = scMath(c);
+  return [ch(0), c.on2 !== false ? ch(1) : null, mo ? `M ${mo[0]} ${fmtDiv(c.vdivm, mo[2])}/div` : null, fmtDiv(c.tdiv, 's') + '/div',
     cap && cap.roll ? 'ROLL' : `Trig CH${c.trig === '2' ? 2 : 1} ${c.slope === 'down' ? '↓' : '↑'} ${fmt(c.tlev, 'V')}` + (cap && !cap.roll ? (cap.trig ? '' : ' (ไม่ทริก)') : ''),
     c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
 }
 function scopeMeasHTML(c){
   const cap = c._cap; if (!cap) return '';
   const row = (a, b) => `<div class="mr"><span>${a}</span><span>${b}</span></div>`;
+  return scopeCurHTML(c, row) + scopeMeasBody(c, cap, row);
+}
+function scopeCurHTML(c, row){
+  const v = scopeCursorVals(c); if (!v) return '';
+  const fv = (x, u) => isFinite(x) ? fmt(x, u) : '—';
+  if (v.kind === 'freq') return `<div><b style="color:#fb923c">เคอร์เซอร์ FFT</b>` + row('A', fmt(v.fA, 'Hz') + ' · ' + v.dbA.toFixed(1) + ' dBV') + row('B', fmt(v.fB, 'Hz') + ' · ' + v.dbB.toFixed(1) + ' dBV') + row('Δf', fmt(v.df, 'Hz')) + row('Δ', v.ddb.toFixed(1) + ' dB') + `</div>`;
+  if (v.kind === 'time') return `<div><b style="color:#fb923c">เคอร์เซอร์เวลา</b> <span class="sub">อ่านค่า ${v.nm}</span>` + row('A', fmt(v.tA, 's') + ' · ' + fv(v.vA, v.u)) + row('B', fmt(v.tB, 's') + ' · ' + fv(v.vB, v.u)) +
+    row('Δt', fmt(v.dt, 's')) + row('1/Δt', v.inv ? fmt(v.inv, 'Hz') : '—') + row('ΔV', fv(v.dv, v.u)) + `</div>`;
+  return `<div><b style="color:#fb923c">เคอร์เซอร์แรงดัน</b> <span class="sub">สเกล ${v.nm}</span>` + row('A', fv(v.vA, v.u)) + row('B', fv(v.vB, v.u)) + row('ΔV', fv(v.dv, v.u)) + `</div>`;
+}
+function scopeMeasBody(c, cap, row){
   if (c.disp === 'fft' && cap.fft){ const F = cap.fft;
     return `<div><b style="color:${SC_COL[F.k]}">FFT CH${F.k + 1}</b> <span class="sub">ยอดความถี่ (Vrms / dBV)</span>` +
       F.peaks.map(p => row((p.h > 1 ? 'H' + p.h + ' ' : p === F.fund ? 'หลัก ' : '') + fmt(p.f, 'Hz'), fmt(p.v, 'V') + ' / ' + dBV(p.v).toFixed(1))).join('') + `</div>` +
@@ -4369,10 +4430,10 @@ function scopeMeasHTML(c){
     row('Vpp X (CH1)', fmt(cap.ch[0].max - cap.ch[0].min, 'V')) + row('Vpp Y (CH2)', fmt(cap.ch[1].max - cap.ch[1].min, 'V')) +
     row('ความถี่ X / Y', (cap.ch[0].f ? fmt(cap.ch[0].f, 'Hz') : '—') + ' / ' + (cap.ch[1].f ? fmt(cap.ch[1].f, 'Hz') : '—')) + `</div>` +
     `<div class="sub">วงรีเอียง = สัญญาณความถี่เดียวกันต่างเฟส · เส้นตรง = เฟสตรงกัน (0° หรือ 180°) · วงกลม = ต่างเฟส 90° และขนาดเท่ากัน · sin Δφ = (ระยะตัดแกน Y) ÷ (ความสูงสูงสุด)</div>`;
-  return [0, 1].filter(k => k === 0 || c.on2 !== false).map(k => { const m = cap.ch[k];
-    const rows = [['Vpp', fmt(m.max - m.min, 'V')], ['Vmax', fmt(m.max, 'V')], ['Vmin', fmt(m.min, 'V')], ['Vavg', fmt(m.avg, 'V')], ['Vrms', fmt(m.rms, 'V')],
+  return [0, 1, 2].filter(k => cap.ch[k] && (k !== 1 || c.on2 !== false)).map(k => { const m = cap.ch[k], u = scU(c, k), fmt0 = fmt; const fmt2 = (x, uu) => fmt0(x, uu === 'V' ? u : uu);
+    const rows = [['Vpp', fmt2(m.max - m.min, 'V')], ['Vmax', fmt2(m.max, 'V')], ['Vmin', fmt2(m.min, 'V')], ['Vavg', fmt2(m.avg, 'V')], ['Vrms', fmt2(m.rms, 'V')],
       ['ความถี่', m.f ? fmt(m.f, 'Hz') : '—'], ['คาบ', m.f ? fmt(1/m.f, 's') : '—'], ['ดิวตี้', m.duty != null ? (m.duty*100).toFixed(1) + '%' : '—']];
-    return `<div><b style="color:${SC_COL[k]}">CH${k + 1}</b> <span class="sub">${esc(m.src || '')}</span>` + rows.map(r => `<div class="mr"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('') + `</div>`; }).join('');
+    return `<div><b style="color:${SC_COL[k]}">${k === 2 ? 'Math' : 'CH' + (k + 1)}</b> <span class="sub">${esc(m.src || '')}</span>` + rows.map(r => `<div class="mr"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('') + `</div>`; }).join('');
 }
 function scopeAutoset(c){
   scopeRefresh(); const cap = c._cap; if (!cap) return;
@@ -4409,8 +4470,13 @@ function scopeUI(){
       <label>ขอบ${sel('slope', ['up','down'], v => v === 'up' ? 'ขาขึ้น ↑' : 'ขาลง ↓')}</label>
       <label>ระดับทริก (V)<input type="text" inputmode="decimal" data-sc="tlev" value="${c.tlev}"></label>
       <label>โหมดแสดงผล${sel('disp', ['yt','xy','fft'], v => ({yt:'Y–T (ปกติ)', xy:'XY (ลิสซาจูส)', fft:'FFT (สเปกตรัม)'})[v])}</label>
-      <label>FFT แชนเนล${sel('fftch', ['1','2'], v => 'CH' + v)}</label>
+      <label>FFT แชนเนล${sel('fftch', ['1','2','M'], v => v === 'M' ? 'Math' : 'CH' + v)}</label>
       <label>FFT ช่วงความถี่${sel('fspan', ['auto', ...SC_SPAN], v => v === 'auto' ? 'อัตโนมัติ' : '0–' + fmt(v, 'Hz'))}</label>
+      <label><span style="color:${SC_COL[2]}">Math</span>${sel('math', ['off','sub','add','mul'], v => v === 'off' ? 'ปิด' : SC_MATH[v][0])}</label>
+      <label>Math V/div${sel('vdivm', SC_V, v => fmtDiv(v, scMath(c) ? scMath(c)[2] : 'V'))}</label>
+      <label>Math ตำแหน่ง (div)<input type="range" min="-4" max="4" step="0.5" data-sc="posm" value="${c.posm}"></label>
+      <label>เคอร์เซอร์${sel('cur', ['off','time','volt'], v => ({off:'ปิด', time:'แนวเวลา (Δt)', volt:'แนวแรงดัน (ΔV)'})[v])}</label>
+      <label>เคอร์เซอร์อ่านค่า${sel('cch', ['1','2','M'], v => v === 'M' ? 'Math' : 'CH' + v)}</label>
       <label>FFT ระดับบนสุด${sel('fref', [40, 30, 20, 10, 0, -10, -20], v => v + ' dBV')}</label>
     </div>
     <div id="scmeas"></div>`;
@@ -4434,9 +4500,18 @@ function scopeLive(){
     if (b.dataset.sa === 'run'){ c.run = c.run === false; if (c.run) c._hist = []; commit(); scopeUI(); }
     if (b.dataset.sa === 'auto'){ scopeAutoset(c); scopeUI(); } });
   const upd = (e, done) => { const t = e.target, k = t.dataset.sc, c = S.comps.find(x => x.id === scopeWin); if (!k || !c) return;
-    if (k === 'on2') c.on2 = t.value === '1'; else if (['vdiv1','vdiv2','tdiv','pos1','pos2','fref'].includes(k)) c[k] = +t.value;
+    if (k === 'on2') c.on2 = t.value === '1'; else if (['vdiv1','vdiv2','tdiv','pos1','pos2','fref','vdivm','posm'].includes(k)) c[k] = +t.value;
     else if (k === 'tlev'){ const v = parseSI(t.value); if (!isFinite(v)) return; c.tlev = v; } else c[k] = t.value;
-    scopeRefresh(); scopeLive(); if (done) commit(); };
+    scopeRefresh(); scopeLive(); if (done) commit(); if (done && (k === 'math' || k === 'cur')) scopeUI(); };
+  // ลากเคอร์เซอร์บนจอ
+  el.addEventListener('pointerdown', e => { if (e.target.id !== 'scv') return; const c = S.comps.find(x => x.id === scopeWin); if (!c || c.cur === 'off' || c.disp === 'xy') return;
+    const cv2 = e.target, r = cv2.getBoundingClientRect(), vert = c.cur === 'time' || c.disp === 'fft';
+    const pos = ev => vert ? Math.max(0, Math.min(10, (ev.clientX - r.left)/r.width*10)) : Math.max(-4, Math.min(4, (r.height/2 - (ev.clientY - r.top))/r.height*8));
+    const a = vert ? 'ta' : 'va', b = vert ? 'tb' : 'vb', p0 = pos(e), key = Math.abs(p0 - c[a]) <= Math.abs(p0 - c[b]) ? a : b;
+    cv2.setPointerCapture(e.pointerId); c[key] = Math.round(p0*20)/20; scopeLive();
+    const mv = ev => { c[key] = Math.round(pos(ev)*20)/20; scopeLive(); };
+    const up = () => { cv2.removeEventListener('pointermove', mv); cv2.removeEventListener('pointerup', up); commit(); };
+    cv2.addEventListener('pointermove', mv); cv2.addEventListener('pointerup', up); });
   el.addEventListener('input', e => upd(e, false)); el.addEventListener('change', e => upd(e, true));
   // ลากหัวหน้าต่างเพื่อย้าย
   el.addEventListener('pointerdown', e => { const hd = e.target.closest('.swh'); if (!hd || e.target.closest('button')) return;
@@ -4684,7 +4759,7 @@ function frame(now){
 
 window.__sim = {
   get S(){ return S; }, get RES(){ return RES; }, EX, FXS, setView, flit,
-  scope: n => { const c = S.comps.find(x => x.n === n); scopeRefresh(); return c && c._cap; }, scopeAutoset: n => scopeAutoset(S.comps.find(x => x.n === n)),
+  scope: n => { const c = S.comps.find(x => x.n === n); scopeRefresh(); return c && c._cap; }, scopeCursor: n => scopeCursorVals(S.comps.find(x => x.n === n)), scopeAutoset: n => scopeAutoset(S.comps.find(x => x.n === n)),
   load: x => (typeof x === 'string' && EX[x]) ? loadEx(x) : (load(x), cur = ser(), refreshUI()),
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },
