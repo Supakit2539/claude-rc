@@ -257,6 +257,15 @@ const path = require('path');
       u.wdist = 500; s.run(2); e.push(u._vm.wifi.st, /ยังไม่ได้ต่อ Wi-Fi/.test(u._vm.serial.slice(-80))); u.wdist = 15; s.run(6); e.push(u._vm.wifi.st, u._vm.mbtcp.on);
       if (md === 'txt'){ s.find('AP1').pass = 'wrong'; mcuBoot(u); s.run(3); e.push(u._vm.wifi.st, u._vm.wifi.why); }
       o['wifi_' + md] = e; }
+    // สโคปจับเฟรม UART บนบัส RS-485: ต่อโพรบ A/B → ถอดรหัส "P=60⏎", A และ B กลับขั้วกัน, Auto Set → 1 ms/div
+    { const ob = EX.rs485.f(); ob.raw = true;
+      ob.comps.push(Object.assign(mkComp('scope', 30, 18, {n:'OSCB', tdiv:0.001, vdiv1:2, vdiv2:2, pos1:0, pos2:-3, tmode:'norm'}), {id:ob.nid++}));
+      ob.wires.push({x1:29, y1:20, x2:29, y2:12}, {x1:30, y1:20, x2:30, y2:14}, {x1:32, y1:20, x2:32, y2:22}, {x1:32, y1:22, x2:55, y2:22}, {x1:55, y1:22, x2:55, y2:9}, {x1:55, y1:9, x2:52, y2:9});
+      s.load(ob); s.run(1.2); let cap = null; for (let i = 0; i < 12 && !(cap && cap.uart); i++){ s.step(0.05); cap = s.scope('OSCB'); }
+      const sc = s.find('OSCB'); const e = cap && cap.uart ? [cap.uart.text, cap.uart.hex, +(1/cap.uart.baud*1e6).toFixed(0), cap.ch[0].max > 3.5 && cap.ch[0].min < 1.5, cap.ch[1].max > 3.5 && cap.ch[1].min < 1.5] : [null];
+      // A กับ B ตรงข้ามกันทุกคอลัมน์
+      if (cap && cap.uart){ let opp = 0; for (let i = 0; i < SC_COLS; i++) if ((cap.ch[0].vc[i] > 2.5) !== (cap.ch[1].vc[i] > 2.5)) opp++; e.push(opp > SC_COLS*0.95); }
+      sc.tdiv = 0.01; scopeAutoset(sc); e.push(sc.tdiv); o.sbus = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -408,6 +417,8 @@ const path = require('path');
   checks.push(['ESP32 Wi-Fi + Modbus TCP: ได้ IP/RSSI −55, pot 30% → D10 ≈ 1228, 90% → H1 + LED บอร์ด, ปุ่ม → M5, ไกล 500 m → หลุด, กลับ 15 m → ต่อใหม่, รหัสผิด → WL_CONNECT_FAILED',
     JSON.stringify(r.wifi_txt) === JSON.stringify([null, true, true, 0, true, 1, 1, 1, 1, 0, 6, true, 3, true, 4, 'รหัสผ่าน Wi-Fi ไม่ถูกต้อง']), JSON.stringify(r.wifi_txt)]);
   checks.push(['ESP32 Wi-Fi + Modbus TCP (PLC แบบแลดเดอร์): ผลเหมือนกัน', JSON.stringify(r.wifi_lad) === JSON.stringify(r.wifi_txt.slice(0, 14)), JSON.stringify(r.wifi_lad)]);
+  checks.push(['สโคปจับเฟรม UART บนบัส RS-485: ถอดรหัส "P=60⏎" (50 3D 36 30 0A), บิต 104 µs, A/B สลับกัน, Auto Set → 1 ms/div',
+    JSON.stringify(r.sbus) === JSON.stringify(['P=60⏎', '50 3D 36 30 0A', 104, true, true, true, 0.001]), JSON.stringify(r.sbus)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
