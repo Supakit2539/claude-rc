@@ -67,11 +67,15 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - รีจิสเตอร์ D: `numA`/`setD` (0–65535) · เปรียบเทียบ `GT`/`LT` ใช้ AI0/AI1 หรือ Dn (`isNumA`) · ข้อความ `D8 := D0 / 4 + AI0` (นิพจน์ตัวเลข `evn`) · แลดเดอร์เอาต์พุต `MOV` (`{k:'MOV', a:'D8', p:ตัวเลข|'D0'|'AI0'}`)
    - **Modbus RTU 2 พอร์ต** (`plcPorts(p)`): #1 = A/B ฟิลด์ `mbOn`, `mbMode`, `mbId`, `mbBaud`, `mbList`; #2 = A2/B2 ฟิลด์ `mb2*` — แต่ละพอร์ตเป็นมาสเตอร์หรือสเลฟได้อิสระพร้อมกัน
      สถานะรันไทม์ต่อพอร์ตอยู่ใน `rt` (#1 = ตัว PLC เอง: `p._mb`, `p._mbs`, `p._mbrx`, `p._mbBusy`, `p._mbp`; #2 = `p._p2`) · `busPorts(o)` คืนจุดต่อบัสของแต่ละอุปกรณ์
+   - **Modbus TCP / Ethernet**: ฟิลด์ `ip`, `ethSrv` (เซิร์ฟเวอร์ พอร์ต 502, ค่าเริ่มต้นเปิด), `mbtOn`, `mbtList` (บรรทัดละ `IP Unit ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC`) — เป็นพอร์ตที่ 3 ใน `plcPorts` (`tcp:true`, rt = `p._p3`)
+     เครือข่าย `ethLan()`: ขา ETH (`ethIdx`) ของ PLC/HMI ต่อถึงกันตรง ๆ หรือผ่านสวิตช์ `ethsw` (มีไฟ 24 V → ทุกพอร์ตรวมเป็นวงเดียว); `ethFind(src, ip)` ตรวจลิงก์, IP, ซับเน็ต /24
+     `ethSend(rt, src, ip, เฟรมRTU)` สร้าง MBAP (`tcpAdu`) แล้วเข้าคิว `dst._tcprx` → `plcTcpServer` ตอบด้วย `mbServe` + `plcMbTables` (ไม่สน Unit ID) → คำตอบเข้าคิว `rt._mbrx` เป็นเฟรมแบบ RTU (มี CRC) เพื่อใช้ `mbCheck`/`mbHandle` เดิม
+     HMI `proto = 'tcp'`: `ip`, `srvIp` (IP ของ PLC) · เตือน IP ซ้ำ (IP conflict) / IP ไม่ถูกต้อง
    - **มาสเตอร์**: `mbList` (บรรทัดละ `สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC`, ฟังก์ชัน 1 2 3 4 5 6 15 16; บิต ↔ M/Q, รีจิสเตอร์ ↔ D; `mbParse`)
      **สเลฟ** (`mbMode = 'slave'`, `mbId`): `plcSlave` ตอบคำขอใน `p._mbrx` ผ่าน `mbServe` + `plcMbTables` — คอยล์ 0–31 = M, 100–103 = Q · อินพุต 0–7 = I · holding 0–31 = D · input reg 0–1 = AI×10; สถิติ `p._mbs`
      บัส RS-485 รวมที่ `busDeliver(src, A, B, data, baud, at)` (MAX485 → RO, PLC/HMI ที่เปิด Modbus → `_mbrx`) · `mbCheck` ตรวจคำตอบ (CRC, ID, ข้อยกเว้น)
      `plcModbus` ส่งทีละบรรทัด (`mbRequest` + `crc16`/`mbFrame`, `plcBusSend` → MAX485 บนบัส) รอคำตอบใน `p._mbrx` (ส่งเข้ามาจาก `rs485Tx`) หมดเวลา 0.3 s → `mbHandle` (CRC, ข้อยกเว้น `MB_EXC`), สถิติ `p._mb`
-   - ขั้ว PLC: L+, M (ไฟเลี้ยง 24 VDC), COM, I0–I7 (ON เมื่อ |V| ≥ 15 V เทียบ COM: ใช้ได้ทั้ง sink/source), C–Q0..Q3 (หน้าสัมผัสรีเลย์), A/B (RS-485 #1), A2/B2 (RS-485 #2),
+   - ขั้ว PLC: L+, M (ไฟเลี้ยง 24 VDC), COM, I0–I7 (ON เมื่อ |V| ≥ 15 V เทียบ COM: ใช้ได้ทั้ง sink/source), C–Q0..Q3 (หน้าสัมผัสรีเลย์), A/B (RS-485 #1), A2/B2 (RS-485 #2), ETH (Ethernet, ต่อท้าย `PLC_PINS` เพื่อไม่ให้ดัชนีขาเดิมเลื่อน),
      AI0/AI1–AM (อินพุต 4–20 mA ผ่าน 250 Ω, อ่านเป็น 0–100% ใน `img.AI`)
    - เปรียบเทียบแอนะล็อก: แลดเดอร์ช่องชนิด `GT`/`LT` (`{k, a:'AI0', p:ค่า}`), ข้อความ `AI0 > 75` (`>`, `<`, `>=`, `<=`)
    - แลดเดอร์: รัง = `{cmt, rows:[{cells:[LC=7], out}], links:[rows-1][LC+1]}`
@@ -104,7 +108,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -183,6 +187,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - modbus (แลดเดอร์/ข้อความ): pot 75% → D0 = 767, H1 + coil 0 (LED ขา 9) ติด, D8 → PWM ขา 6; pot 30% → D0 = 307; ปุ่ม S1 → coil 1; บอดสเลฟ 4800 → CRC ผิด + timeout · `D3 := (AI0 + 10)*2 − D1/4` = 60; CRC ของ 01 03 00 00 00 01 = 84 0A
 - hmimodbus (แลดเดอร์/ข้อความ): HMI อ่านไฟ + D5 = 1234, START → M2 = 1, STOP → M2 = 0, ID ผิด → timeout + เตือน · PLC สเลฟ อ่านคอยล์ 40 → ข้อยกเว้น 02
 - plc2port (แลดเดอร์/ข้อความ): #1 มาสเตอร์อ่าน Arduino (D0 = 767) + #2 สเลฟ ID 2 19200 ให้ HMI พร้อมกัน, ปุ่ม HMI (M20) → M17 → LED ขา 12 ของ Arduino, บอดพอร์ต #2 ผิด → HMI timeout แต่ #1 ปกติ
+- modbustcp (แลดเดอร์/ข้อความ): S1 ที่ PLC2 → H1 ที่ PLC1, ตัวนับ D0 ของ PLC2 → PLC1 → HMI, ปุ่ม HMI → PLC1 M5 → PLC2 → H2; HMI ต่างซับเน็ต → แจ้ง, IP ซ้ำ → เตือน, ถอดสวิตช์ → ไม่มีลิงก์ · MBAP ของ TID 7 = 00 07 00 00 00 06 01 03 …
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -206,6 +211,6 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
 - LED/ไดโอด/ทรานซิสเตอร์ทำงานกับไฟ AC (วงจรเรียงกระแส) — ต้องจำลองแบบโดเมนเวลา
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ตัวเก็บประจุชาร์จ/ดิสชาร์จตามเวลา, ออปแอมป์
-- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์, Modbus TCP, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
+- ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์, บอร์ดต่อ Ethernet (W5500/ESP32 Wi-Fi), เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น

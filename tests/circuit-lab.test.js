@@ -233,6 +233,17 @@ const path = require('path');
       s.find('RV1').pos = 30; s.solveNow(); s.run(1.5); e.push(h._mbv.D0, h._mbv.Q0);
       plc.mb2Baud = 9600; s.run(1.5); e.push(/timeout/.test(h._mb.lastErr), plc._mb.lastErr === '');
       o['p2_' + md] = e; }
+    // Modbus TCP ผ่าน Ethernet: PLC1 ไคลเอนต์ ↔ PLC2 เซิร์ฟเวอร์, HMI → PLC1, ซับเน็ตผิด, IP ซ้ำ, ถอดสวิตช์
+    for (const md of ['lad', 'txt']){ s.load('modbustcp'); const p1 = s.find('PLC1'), p2 = s.find('PLC2'), h = s.find('HMI1'), S1 = s.find('S1');
+      p1.prog.mode = md; delete p1._cp; const L = n => s.RES.comp[s.find(n).id].Ir > 0.02 ? 1 : 0;
+      S1.on = false; s.solveNow(); s.run(2); const e = [L('H1'), p1._img.D[0] > 10 && Math.abs(p1._img.D[0] - p2._img.D[0]) < 20, h._mbv.D0 > 10];
+      S1.on = true; s.solveNow(); s.run(1); e.push(L('H1'), h._mbv.M0);
+      h._press = 0; s.run(1); e.push(p2._img.M[5], L('H2')); h._press = null; s.run(1); e.push(L('H2'));
+      h.ip = '192.168.2.50'; s.run(1.5); e.push(/ซับเน็ต/.test(h._mb.lastErr)); h.ip = '192.168.1.50';
+      p2.ip = '192.168.1.10'; s.solveNow(); e.push(warnList().some(w => /IP conflict/.test(w[1]))); p2.ip = '192.168.1.20';
+      s.S.comps = s.S.comps.filter(c => c.t !== 'ethsw'); s.solveNow(); s.run(1.5); e.push(/ไม่มีลิงก์/.test(p1._p3._mb.lastErr));
+      o['tcp_' + md] = e; }
+    { const a = tcpAdu(7, mbBytes(mbFrame([1, 3, 0, 0, 0, 4]))); o.mbap = hexB(a); }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -376,6 +387,9 @@ const path = require('path');
   checks.push(['PLC สเลฟ: อ่านคอยล์ 40 → ข้อยกเว้น 02 (0x81), เขียน holding 3 = 500 → D3', JSON.stringify(r.mbex) === '[2,129,0,500]', JSON.stringify(r.mbex)]);
   for (const md of ['lad', 'txt']) checks.push([`PLC 2 พอร์ต (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): #1 มาสเตอร์อ่าน Arduino + #2 สเลฟให้ HMI พร้อมกัน, ปุ่ม HMI → LED Arduino, บอดพอร์ต #2 ผิด → HMI timeout แต่ #1 ยังปกติ`,
     JSON.stringify(r['p2_' + md]) === JSON.stringify([767, true, true, 767, 1, 1, true, true, 307, 0, true, true]), JSON.stringify(r['p2_' + md])]);
+  for (const md of ['lad', 'txt']) checks.push([`Modbus TCP (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): S1 ที่ PLC2 → H1 ที่ PLC1, ตัวนับ D0 ถึง HMI, ปุ่ม HMI → PLC1 → PLC2 ไฟ H2, ซับเน็ตผิด/IP ซ้ำ/ไม่มีลิงก์ แจ้งเตือน`,
+    JSON.stringify(r['tcp_' + md]) === JSON.stringify([0, true, true, 1, 1, 1, 1, 0, true, true, true]), JSON.stringify(r['tcp_' + md])]);
+  checks.push(['Modbus TCP: MBAP ของ TID 7 อ่าน holding 0–3 = 00 07 00 00 00 06 01 03 00 00 00 04', r.mbap === '00 07 00 00 00 06 01 03 00 00 00 04', r.mbap]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

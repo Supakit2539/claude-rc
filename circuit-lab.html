@@ -196,7 +196,7 @@ const LC = 7;            // จำนวนช่องต่อแถวใน�
 const SQ3 = Math.sqrt(3);
 
 const PLC_PINS = [[-5,-2,'L+'],[-4,-2,'M'],[-3,-2,'COM'],[-2,-2,'I0'],[-1,-2,'I1'],[0,-2,'I2'],[1,-2,'I3'],[2,-2,'I4'],[3,-2,'I5'],[4,-2,'I6'],[5,-2,'I7'],
-  [-5,2,'C'],[-4,2,'Q0'],[-3,2,'Q1'],[-2,2,'Q2'],[-1,2,'Q3'],[3,2,'A'],[4,2,'B'],[0,2,'AI0'],[1,2,'AI1'],[2,2,'AM'],[5,2,'A2'],[6,2,'B2']];
+  [-5,2,'C'],[-4,2,'Q0'],[-3,2,'Q1'],[-2,2,'Q2'],[-1,2,'Q3'],[3,2,'A'],[4,2,'B'],[0,2,'AI0'],[1,2,'AI1'],[2,2,'AM'],[5,2,'A2'],[6,2,'B2'],[6,-2,'ETH']];
 
 /* อุปกรณ์ 2 ขั้ว: ไม่มี pins, หมุนได้ด้วย r (0–3), ครึ่งความยาว L
    บล็อก: มี pins [dx,dy,ชื่อ] และ box [x0,y0,x1,y1] (หน่วยช่อง), หมุนไม่ได้ */
@@ -274,9 +274,9 @@ const T = {
   k3:    {nm:'คอนแทกเตอร์ 3 ขั้ว',     ic:'‖‖', pre:'',   d:{ref:'K1'}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3'],[-1,1,'T1'],[0,1,'T2'],[1,1,'T3']], box:[-1.6,-1,1.6,1]},
   motor3:{nm:'มอเตอร์ 3 เฟส',         ic:'M3', pre:'M',  d:{V:400, P:1.1, pf:0.82, eff:0.76}, pins:[[-1,-1,'U'],[0,-1,'V'],[1,-1,'W']], box:[-1.6,-1,1.6,1.7]},
   psu:   {nm:'พาวเวอร์ซัพพลาย DC',    ic:'⎓',  pre:'PS', d:{V:24, Imax:2.5}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'+'],[1,1,'−']], box:[-1.6,-1,1.6,1]},
-  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbMode:'master', mbId:1, mbBaud:9600, mbList:'', mb2On:false, mb2Mode:'slave', mb2Id:1, mb2Baud:9600, mb2List:''}, pins:PLC_PINS, box:[-5.6,-2,6.6,2]},
-  hmi:   {nm:'จอ HMI (RS-485)',       ic:'▣',  pre:'HMI',d:{proto:'link', sid:1, baud:9600, b1:'M0 START', b2:'M1 STOP', b3:'', b4:'', l1:'Q0 ปั๊ม', l2:'M2 ระบบ', l3:'I2 ลูกลอยล่าง', l4:'I3 ลูกลอยบน'},
-          pins:[[-2,2,'24V'],[-1,2,'0V'],[1,2,'A'],[2,2,'B']], box:[-2.6,-2,2.6,2]},
+  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbMode:'master', mbId:1, mbBaud:9600, mbList:'', mb2On:false, mb2Mode:'slave', mb2Id:1, mb2Baud:9600, mb2List:'', ip:'192.168.1.10', ethSrv:true, mbtOn:false, mbtList:''}, pins:PLC_PINS, box:[-5.6,-2,6.6,2]},
+  hmi:   {nm:'จอ HMI (RS-485)',       ic:'▣',  pre:'HMI',d:{proto:'link', sid:1, baud:9600, ip:'192.168.1.50', srvIp:'192.168.1.10', b1:'M0 START', b2:'M1 STOP', b3:'', b4:'', l1:'Q0 ปั๊ม', l2:'M2 ระบบ', l3:'I2 ลูกลอยล่าง', l4:'I3 ลูกลอยบน'},
+          pins:[[-2,2,'24V'],[-1,2,'0V'],[1,2,'A'],[2,2,'B'],[0,2,'ETH']], box:[-2.6,-2,2.6,2]},
   pump:  {nm:'ปั๊มน้ำ',               ic:'P',  pre:'M',  d:{V:230, P:0.75, pf:0.8, eff:0.7, tank:'TK1', flow:6}},
   tank:  {nm:'ถังน้ำ',                ic:'⊔',  pre:'TK', d:{lvl:50, out:2}, pins:[], box:[-1.6,-2.5,1.6,2.5]},
   float: {nm:'ลูกลอย',               ic:'○',  pre:'LS', d:{ref:'TK1', lvl:50}},
@@ -322,9 +322,11 @@ T.rs232 = {nm:'โมดูล RS-232 ↔ TTL (MAX3232)', ic:'232', pre:'MD', d:
   pins:[[-2,-2,'VCC'],[-1,-2,'T1IN'],[1,-2,'R1OUT'],[2,-2,'GND'],[-1,2,'T1OUT'],[1,2,'R1IN'],[2,2,'⏚']], box:[-2.6,-2,2.6,2]};
 T.lora  = {nm:'โมดูล LoRa UART (E32 / E22)', ic:'((·))', pre:'RF', d:{band:433, ch:23, addr:0, sf:9, pw:20, loc:0, env:'open', baud:9600},
   pins:[[-3,2,'M0'],[-2,2,'M1'],[-1,2,'RXD'],[0,2,'TXD'],[1,2,'AUX'],[2,2,'VCC'],[3,2,'GND']], box:[-3.6,-2,3.6,2]};
+T.ethsw = {nm:'สวิตช์ Ethernet อุตสาหกรรม (5 พอร์ต)', ic:'⇄', pre:'SW', d:{},
+  pins:[[-2,-2,'P1'],[-1,-2,'P2'],[0,-2,'P3'],[1,-2,'P4'],[2,-2,'P5'],[-1,2,'24V'],[1,2,'0V']], box:[-2.6,-2,2.6,2]};
 T.term  = {nm:'คอมพิวเตอร์ (เทอร์มินัล RS-232)', ic:'▭', pre:'PC', d:{baud:9600, eol:'nl'},
   pins:[[-1,-2,'TX'],[0,-2,'RX'],[1,-2,'GND']], box:[-3,-2,3,2.6]};
-const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0], rs485:[4,7], rs232:[0,3], lora:[5,6]};
+const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0], rs485:[4,7], rs232:[0,3], lora:[5,6], ethsw:[5,6]};
 for (const t of DIG3) SENS[t] = [0, 2];
 const ldrR = c => c.lux <= 0 ? 2e6 : Math.min(2e6, Math.max(100, 10000*Math.pow(c.lux/10, -0.7)));
 const ntcR = c => c.R25*Math.exp(c.B*(1/(c.temp + 273.15) - 1/298.15));
@@ -1004,6 +1006,7 @@ function solveAll(){
           Y(n[1], c.kind === 'NPN' ? n[2] : n[0], (c._pw && dig3Act(c)) ? 1/5 : GOFF, 0); break;
         case 'rs485': Y(n[4], n[7], 1/16000, 0); if (c._pw) Y(n[0], n[4], 1/200, 0); break;          // RO ค้างสถานะ HIGH (idle)
         case 'rs232': Y(n[0], n[3], 1/3300, 0); Y(n[6], n[3], GW, 0); if (c._pw) Y(n[2], n[0], 1/200, 0); break;
+        case 'ethsw': Y(n[5], n[6], 1/480, 0); break;                                             // ≈ 1.2 W ที่ 24 V
         case 'lora': Y(n[5], n[6], 1/700, 0); if (c._pw){ Y(n[3], n[5], 1/1000, 0); Y(n[4], n[5], 1/1000, 0); } break;   // TXD/AUX = HIGH เมื่อว่าง
         case 'tx420':
           // ทรานสมิตเตอร์ 2 สาย: เป็นแหล่งกระแส 4–20 mA เมื่อแรงดันลูป ≥ 10 V
@@ -1422,6 +1425,7 @@ function plcScan(p, dt){
     if (p.prog.mode === 'txt') runText(prog.code, img, dt); else runLadder(p.prog.lad, img, dt, p);
     if (!img.D) img.D = Array(32).fill(0);
     for (const pt of plcPorts(p)) if (pt.on){ if (pt.mode === 'slave') plcSlave(p, pt); else plcModbus(p, pt); }
+    if (p.ethSrv !== false) plcTcpServer(p);
   } else {
     img.Q.fill(0);
     if (!p._pw){ img.I.fill(0); img.T.forEach(t => { t.acc = 0; t.q = 0; }); }
@@ -1447,9 +1451,9 @@ function hmiMbItem(h, a, val){
   if (p.k === 'D') return {sid, fn:3, addr:p.n, qty:1, key:a};
   return null;
 }
-const hmiVal = (h, a) => h.proto === 'modbus' ? (h._mbv || {})[a] : (h._link && h._link._img ? (parseAddr(a) && parseAddr(a).k === 'D' ? numA(h._link._img, a) : getA(h._link._img, a)) : undefined);
+const hmiVal = (h, a) => h.proto === 'modbus' || h.proto === 'tcp' ? (h._mbv || {})[a] : (h._link && h._link._img ? (parseAddr(a) && parseAddr(a).k === 'D' ? numA(h._link._img, a) : getA(h._link._img, a)) : undefined);
 function hmiModbus(h){
-  const st = h._mb || (h._mb = {tx:0, ok:0, err:0, to:0, last:'', lastErr:'', i:0, next:0, wait:null, tOk:-9, q:[]}), baud = +h.baud || 9600;
+  const st = h._mb || (h._mb = {tx:0, ok:0, err:0, to:0, last:'', lastErr:'', i:0, next:0, wait:null, tOk:-9, q:[]}), baud = +h.baud || 9600, tcp = h.proto === 'tcp';
   if (!h._mbv) h._mbv = {};
   // ปุ่มเปลี่ยนสถานะ → เข้าคิวเขียนก่อนการอ่าน
   const bs = hmiBtns(h);
@@ -1460,19 +1464,23 @@ function hmiModbus(h){
   if (st.wait){
     const q = h._mbrx || []; q.sort((a, b) => a.t - b.t); let s2 = '';
     while (q.length && q[0].t <= simT + 1e-9) s2 += q.shift().s;
-    if (s2){ const b = mbBytes(s2), it = st.wait.it, e = mbCheck(b, it); st.last = 'RX ' + mbHex(s2);
+    if (s2){ const b = mbBytes(s2), it = st.wait.it, e = mbCheck(b, it); st.last = tcp ? (h._lastRx || '') : 'RX ' + mbHex(s2);
       if (e){ st.err++; st.lastErr = e; }
       else { st.ok++; st.lastErr = ''; st.tOk = simT; if (it.fn === 1 || it.fn === 2) h._mbv[it.key] = b[3] & 1; else if (it.fn === 3) h._mbv[it.key] = b[3] << 8 | b[4]; }
       st.wait = null; st.next = simT + 0.02; }
-    else if (simT > st.wait.dl){ st.to++; st.lastErr = `PLC (ID ${st.wait.it.sid}) ไม่ตอบ (timeout)`; if (st.wait.it.fn === 5) st.q.unshift(st.wait.it); st.wait = null; st.next = simT + 0.05; }
+    else if (simT > st.wait.dl){ st.to++; st.lastErr = tcp ? `PLC ${h.srvIp} ไม่ตอบ (timeout)` : `PLC (ID ${st.wait.it.sid}) ไม่ตอบ (timeout)`; if (st.wait.it.fn === 5) st.q.unshift(st.wait.it); st.wait = null; st.next = simT + 0.05; }
     return;
   }
   if (simT < st.next) return;
   let it = st.q.shift();
   if (!it){ const reads = hmiLamps(h).filter(Boolean).map(l => hmiMbItem(h, l.a)).filter(Boolean); if (!reads.length) return; it = reads[st.i++ % reads.length]; }
   const b = [it.sid, it.fn, it.addr >> 8, it.addr & 255]; if (it.fn === 5) b.push(it.v ? 0xFF : 0, 0); else b.push(0, 1);
-  const req = mbFrame(b), at = Math.max(simT, h._mbBusy || 0) + req.length*10/baud; h._mbBusy = at;
-  st.tx++; st.last = 'TX ' + mbHex(req); h._mbrx = [];
+  const req = mbFrame(b); st.tx++; h._mbrx = [];
+  if (tcp){ const e = ethSend(h, h, h.srvIp, req); st.last = h._lastTx;
+    if (e){ st.to++; st.lastErr = e; if (it.fn === 5) st.q.unshift(it); st.next = simT + 0.5; return; }
+    st.wait = {it, t0:simT, dl:simT + 1}; return; }
+  const at = Math.max(simT, h._mbBusy || 0) + req.length*10/baud; h._mbBusy = at;
+  st.last = 'TX ' + mbHex(req);
   busDeliver(h, netOf(h, 2), netOf(h, 3), req, baud, at);
   st.wait = {it, t0:simT, dl:simT + req.length*10/baud + 0.3};
 }
@@ -1577,7 +1585,7 @@ function hmiLink(){
     const r = RES.comp[h.id];
     h._pw = !!r && r.pw >= 18; h._link = null; h._swap = false;
     if (!h._pw || !h._n) continue;
-    if (h.proto === 'modbus'){ hmiModbus(h); continue; }
+    if (h.proto === 'modbus' || h.proto === 'tcp'){ hmiModbus(h); continue; }
     for (const p of S.comps) if (p.t === 'plc' && p._pw && p._n){
       const net = k => RES.net ? RES.net[k] : k;
       const a = net(h._n[2]), b = net(h._n[3]), pa = net(p._n[16]), pb = net(p._n[17]);
@@ -1767,17 +1775,71 @@ const PLC_A2 = PLC_PINS.findIndex(q => q[2] === 'A2'), PLC_B2 = PLC_PINS.findInd
 // สถานะรันไทม์ของพอร์ต (rt): #1 เก็บบน PLC เอง (p._mb, p._mbs, p._mbrx …), #2 เก็บใน p._p2
 function plcPorts(p){
   return [{k:0, a:PLC_A, b:PLC_B, on:!!p.mbOn, mode:p.mbMode || 'master', id:+p.mbId || 1, baud:+p.mbBaud || 9600, list:p.mbList || '', rt:p},
-          {k:1, a:PLC_A2, b:PLC_B2, on:!!p.mb2On, mode:p.mb2Mode || 'slave', id:+p.mb2Id || 1, baud:+p.mb2Baud || 9600, list:p.mb2List || '', rt:p._p2 || (p._p2 = {})}];
+          {k:1, a:PLC_A2, b:PLC_B2, on:!!p.mb2On, mode:p.mb2Mode || 'slave', id:+p.mb2Id || 1, baud:+p.mb2Baud || 9600, list:p.mb2List || '', rt:p._p2 || (p._p2 = {})},
+          {k:2, tcp:true, on:!!p.mbtOn, mode:'master', id:1, baud:0, list:p.mbtList || '', rt:p._p3 || (p._p3 = {})}];
 }
-function mbParse(rt, txt){
+/* ---------- Ethernet + Modbus TCP ----------
+   เครือข่าย: ขา ETH ของ PLC/HMI ต่อสาย LAN เข้าสวิตช์ (ทุกพอร์ตของสวิตช์ที่มีไฟเชื่อมถึงกัน) หรือต่อตรงถึงกัน
+   IP แบบ IPv4 /24 (3 ชุดแรกต้องตรงกัน) · Modbus TCP: MBAP [TID, 0, ความยาว, Unit ID] + PDU (ไม่มี CRC) พอร์ต 502
+   ภายในแปลงเป็นเฟรมแบบ RTU (ใส่ CRC) เพื่อใช้ตัวแยกคำตอบ/สเลฟเดียวกัน */
+const PLC_ETH = PLC_PINS.findIndex(q => q[2] === 'ETH'), HMI_ETH = 4;
+const ethIdx = o => o.t === 'plc' ? PLC_ETH : o.t === 'hmi' ? HMI_ETH : -1;
+const ipOk = ip => /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(String(ip || '').trim()) && String(ip).trim().split('.').every(x => +x <= 255);
+const ipNet = ip => String(ip || '').trim().split('.').slice(0, 3).join('.');
+function ethLan(){
+  const par = new Map(), f = x => { while (par.has(x) && par.get(x) !== x) x = par.get(x); return x; }, u = (a, b) => { a = f(a); b = f(b); if (a !== b) par.set(a, b); };
+  for (const w of S.comps) if (w.t === 'ethsw' && w._pw) for (let k = 1; k < 5; k++) u(netOf(w, 0), netOf(w, k));
+  const lan = new Map(), cnt = new Map();
+  for (const o of S.comps){ const k = ethIdx(o); if (k < 0 || !o._pw) continue; const id = f(netOf(o, k)); lan.set(o, id); cnt.set(id, (cnt.get(id) || 0) + 1); }
+  return {lan, cnt, f};
+}
+// หาอุปกรณ์ปลายทางตาม IP บน LAN เดียวกัน
+function ethFind(src, ip){
+  const L = ethLan(), me = L.lan.get(src);
+  if (me == null) return {err:'ไม่มีไฟเลี้ยง'};
+  if (!ipOk(src.ip)) return {err:'IP ของเครื่องนี้ไม่ถูกต้อง'};
+  if (!ipOk(ip)) return {err:'IP ปลายทาง "' + ip + '" ไม่ถูกต้อง'};
+  if (L.cnt.get(me) < 2) return {err:'ไม่มีลิงก์ Ethernet — ต่อสาย LAN เข้าสวิตช์ (และสวิตช์มีไฟ) หรือต่อตรงกับอุปกรณ์'};
+  if (ipNet(ip) !== ipNet(src.ip)) return {err:`IP ${ip} อยู่คนละซับเน็ตกับ ${src.ip} (/24)`};
+  const d = S.comps.filter(o => o !== src && L.lan.get(o) === me && String(o.ip).trim() === String(ip).trim());
+  if (!d.length) return {err:`ไม่พบอุปกรณ์ IP ${ip} บนเครือข่าย`};
+  return {dst:d[0], dup:d.length > 1};
+}
+const tcpAdu = (tid, b) => { const pdu = b.slice(1, -2); return [tid >> 8, tid & 255, 0, 0, (pdu.length + 1) >> 8, (pdu.length + 1) & 255, b[0], ...pdu]; };
+const hexB = a => a.map(x => x.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+// ไคลเอนต์ส่งคำขอ (เฟรมแบบ RTU) ไปยัง IP → คืน '' หรือข้อความผิดพลาด · คำตอบเข้าคิว rt._mbrx เป็นเฟรมแบบ RTU
+function ethSend(rt, src, ip, req){
+  const b = mbBytes(req), tid = rt._tid = ((rt._tid || 0) + 1) & 0xFFFF, adu = tcpAdu(tid, b);
+  rt._lastTx = 'TX ' + hexB(adu); src._ethT = simT;
+  const f = ethFind(src, ip); if (f.err) return f.err;
+  if (f.dst.t !== 'plc' || f.dst.ethSrv === false) return `IP ${ip} ไม่เปิดเซิร์ฟเวอร์ Modbus TCP (พอร์ต 502)`;
+  (f.dst._tcprx || (f.dst._tcprx = [])).push({t:simT + 0.002, adu, rt, src});
+  return '';
+}
+// PLC เป็นเซิร์ฟเวอร์ Modbus TCP: ใช้แผนที่แอดเดรสเดียวกับสเลฟ RTU (ไม่สน Unit ID)
+function plcTcpServer(p){
+  const st = p._tcps || (p._tcps = {rx:0, tx:0, last:'', cl:{}}), q = p._tcprx || []; q.sort((a, b) => a.t - b.t);
+  while (q.length && q[0].t <= simT + 1e-9){
+    const e = q.shift(), a = e.adu, b = [a[6], ...a.slice(7), 0, 0];
+    st.rx++; st.cl[e.src.n || '?'] = String(e.src.ip); p._ethT = simT;
+    const R = mbServe(b, plcMbTables(p));
+    st.last = (MB_FN[R.fn] || 'ฟังก์ชัน ' + R.fn) + ' @' + R.addr + (R.ex ? ' → ข้อยกเว้น ' + R.ex : '') + ' จาก ' + e.src.ip;
+    const rsp = [a[0], a[1], 0, 0, R.r.length >> 8, R.r.length & 255, ...R.r];
+    e.rt._lastRx = 'RX ' + hexB(rsp);
+    (e.rt._mbrx || (e.rt._mbrx = [])).push({t:simT + 0.002, s:mbFrame(R.r)}); st.tx++;
+  }
+}
+function mbParse(rt, txt, tcp){
   const src = String(txt ?? rt.mbList ?? '');
   if (rt._mbp && rt._mbp.src === src) return rt._mbp;
   const list = [], err = [];
   src.split('\n').forEach((raw, li) => {
     const line = raw.replace(/(\/\/|;).*$/, '').trim(); if (!line) return;
-    const f = line.split(/[\s,]+/), sid = +f[0], fn = +f[1], addr = +f[2], qty = +f[3], reg = parseAddr(f[4]);
-    const bad = m => err.push('Modbus บรรทัด ' + (li + 1) + ': ' + m);
-    if (f.length < 5) return bad('ต้องมี 5 ช่อง: สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC');
+    const f = line.split(/[\s,]+/), bad = m => err.push('Modbus บรรทัด ' + (li + 1) + ': ' + m);
+    let ip = null;
+    if (tcp){ ip = f.shift(); if (!ipOk(ip)) return bad('ต้องขึ้นต้นด้วย IP ปลายทาง เช่น 192.168.1.20'); }
+    const sid = +f[0], fn = +f[1], addr = +f[2], qty = +f[3], reg = parseAddr(f[4]);
+    if (f.length < 5) return bad(tcp ? 'ต้องมี 6 ช่อง: IP Unit ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC' : 'ต้องมี 5 ช่อง: สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์PLC');
     if (!(sid >= 0 && sid <= 247)) return bad('แอดเดรสสเลฟต้องเป็น 0–247');
     if (!MB_FN[fn]) return bad('ฟังก์ชัน ' + f[1] + ' ไม่รองรับ (ใช้ 1 2 3 4 5 6 15 16)');
     if (!(addr >= 0 && addr <= 65535) || !(qty >= 1 && qty <= 32)) return bad('แอดเดรส/จำนวนไม่ถูกต้อง');
@@ -1785,7 +1847,7 @@ function mbParse(rt, txt){
     if (!reg || (bits ? !'MQ'.includes(reg.k) || ([1, 2].includes(fn) && reg.k === 'Q' && false) : reg.k !== 'D')) return bad(bits ? 'คอยล์ต้องจับคู่กับ M หรือ Q (เช่น M16)' : 'รีจิสเตอร์ต้องจับคู่กับ D (เช่น D0)');
     if ((fn === 5 || fn === 6) && qty !== 1) return bad('ฟังก์ชัน 5/6 เขียนได้ครั้งละ 1 ตัว (จำนวน = 1)');
     if (reg.n + qty > AREA[reg.k]) return bad(f[4] + ' + ' + qty + ' เกินพื้นที่หน่วยความจำ PLC');
-    list.push({sid, fn, addr, qty, reg});
+    list.push({sid, fn, addr, qty, reg, ip});
   });
   return (rt._mbp = {src, list, err});
 }
@@ -1804,7 +1866,7 @@ function mbRequest(p, it){
 // จุดต่อบัสของอุปกรณ์: {ab:[เส้นสาย A, B], rt: ที่เก็บคิวรับ _mbrx, baud}
 function busPorts(o){
   if (o.t === 'rs485') return o._pw ? [{ab:[netOf(o, 6), netOf(o, 5)], rt:o, mod:true}] : [];
-  if (o.t === 'plc') return o._pw ? plcPorts(o).filter(q => q.on).map(q => ({ab:[netOf(o, q.a), netOf(o, q.b)], rt:q.rt, baud:q.baud})) : [];
+  if (o.t === 'plc') return o._pw ? plcPorts(o).filter(q => q.on && !q.tcp).map(q => ({ab:[netOf(o, q.a), netOf(o, q.b)], rt:q.rt, baud:q.baud})) : [];
   if (o.t === 'hmi') return o.proto === 'modbus' && o._pw ? [{ab:[netOf(o, 2), netOf(o, 3)], rt:o, baud:+o.baud || 9600}] : [];
   return [];
 }
@@ -1880,7 +1942,7 @@ function mbHandle(p, st, s){
 }
 // มาสเตอร์: ส่งคำสั่งตามตารางทีละบรรทัด รอคำตอบ (หมดเวลา 0.3 s) แล้วเว้น 20 ms
 function plcModbus(p, pt){
-  const rt = pt.rt, P = mbParse(rt, pt.list), st = rt._mb || (rt._mb = {i:0, wait:null, next:0, tx:0, ok:0, err:0, to:0, last:'', lastErr:''});
+  const rt = pt.rt, P = mbParse(rt, pt.list, pt.tcp), st = rt._mb || (rt._mb = {i:0, wait:null, next:0, tx:0, ok:0, err:0, to:0, last:'', lastErr:''});
   if (P.err.length || !P.list.length) return;
   const baud = pt.baud;
   if (st.wait && st.wait.t0 > simT + 1e-9) st.wait = null;                          // เวลาจำลองถูกรีเซ็ต
@@ -1888,13 +1950,16 @@ function plcModbus(p, pt){
   if (st.wait){
     const q = rt._mbrx || []; q.sort((a, b) => a.t - b.t); let s2 = '';
     while (q.length && q[0].t <= simT + 1e-9) s2 += q.shift().s;
-    if (s2){ mbHandle(p, st, s2); st.wait = null; st.next = simT + 0.02; }
-    else if (simT > st.wait.dl){ st.to++; st.lastErr = `สเลฟ ${st.wait.it.sid} ไม่ตอบ (timeout)`; st.wait = null; st.next = simT + 0.02; }
+    if (s2){ mbHandle(p, st, s2); if (pt.tcp) st.last = rt._lastRx || st.last; st.wait = null; st.next = simT + 0.02; }
+    else if (simT > st.wait.dl){ st.to++; st.lastErr = pt.tcp ? `${st.wait.it.ip} ไม่ตอบ (timeout)` : `สเลฟ ${st.wait.it.sid} ไม่ตอบ (timeout)`; st.wait = null; st.next = simT + 0.02; }
     return;
   }
   if (simT < st.next) return;
   const it = P.list[st.i % P.list.length]; st.i++;
   const req = mbRequest(p, it); st.tx++; st.last = 'TX ' + mbHex(req); rt._mbrx = [];
+  if (pt.tcp){ const e = ethSend(rt, p, it.ip, req); st.last = rt._lastTx;
+    if (e){ st.to++; st.lastErr = e; st.next = simT + 0.5; return; }
+    st.wait = {it, t0:simT, dl:simT + 1}; return; }
   plcBusSend(p, pt, req);
   if (it.sid === 0){ st.next = simT + req.length*10/baud + 0.02; return; }           // กระจาย (broadcast) ไม่มีคำตอบ
   st.wait = {it, t0:simT, dl:simT + req.length*10/baud + 0.3};
@@ -2730,6 +2795,42 @@ D8 := D0
     ]};
   })},
   plc2port: {nm:'PLC 2 พอร์ต: #1 มาสเตอร์คุม Arduino (9600) + #2 สเลฟให้ HMI (ID 2, 19200) พร้อมกัน', f:() => EX.modbus.f(true)},
+  modbustcp: {nm:'Modbus TCP ผ่าน Ethernet: PLC1 (ไคลเอนต์ + เซิร์ฟเวอร์) ↔ PLC2 และ HMI ผ่านสวิตช์', f:() => build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6, curve:'C'});
+    W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[48,11]); W([8,9],[8,10],[48,10]);       // +24 V (y = 11), 0 V (y = 10)
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    // PLC1: ไคลเอนต์ Modbus TCP อ่าน/เขียน PLC2 และเป็นเซิร์ฟเวอร์ให้ HMI
+    const p1 = C('plc', 18, 15, {n:'PLC1', ip:'192.168.1.10', mbtOn:true, mbtList:`192.168.1.20 1 02 0 1 M0   // อ่านอินพุต I0 ของ PLC2 (สวิตช์ S1) → M0
+192.168.1.20 1 03 0 1 D0   // อ่าน D0 ของ PLC2 (ตัวนับ) → D0
+192.168.1.20 1 05 5 1 M5   // เขียนคอยล์ 5 (M5) ของ PLC2 ← M5 (ปุ่มบน HMI)`});
+    W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
+    W([13,17],[13,19],[11,19],[11,11]);
+    C('lamp', 14, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([14,17],[14,18]); W([14,20],[14,22],[9,22],[9,10]);
+    p1.prog = {mode:'lad', txt:`// ไฟ H1 ที่ PLC1 แสดงสถานะสวิตช์ S1 ของ PLC2 (อ่านมาทาง Modbus TCP → M0)
+Q0 := M0
+`, lad:[one('ไฟ H1 = สวิตช์ S1 ของ PLC2 (อ่านมาทาง Modbus TCP → M0)', [nc('NO','M0')], {k:'OUT', a:'Q0'})]};
+    // PLC2: เซิร์ฟเวอร์ Modbus TCP
+    const p2 = C('plc', 40, 15, {n:'PLC2', ip:'192.168.1.20'});
+    W([35,13],[35,11]); W([36,13],[36,10]); W([37,13],[37,10]);
+    C('sw', 38, 12, {r:1, n:'S1'});                                                                // I0
+    W([35,17],[35,19],[33,19],[33,11]);
+    C('lamp', 36, 19, {r:1, n:'H2', V:24, P:1.2, model:'pil24'}); W([36,17],[36,18]); W([36,20],[36,22],[30,22],[30,10]);
+    p2.prog = {mode:'txt', txt:`// ไฟ H2 ที่ PLC2 สั่งจากปุ่มบน HMI → PLC1 (M5) → Modbus TCP → PLC2 (M5)
+Q0 := M5
+// ตัวนับรอบสแกน (heartbeat) ให้ PLC1 อ่านไปแสดงที่ HMI
+D0 := D0 + 1
+`, lad:[one('ไฟ H2 = คำสั่งจาก HMI ผ่าน PLC1 (M5)', [nc('NO','M5')], {k:'OUT', a:'Q0'})]};
+    // สวิตช์ Ethernet + สาย LAN
+    C('ethsw', 32, 4, {n:'SW1'}); W([31,6],[31,11]); W([33,6],[33,10]);
+    W([24,13],[24,12],[28,12],[28,0],[30,0],[30,2]);                                               // PLC1 ETH → P1
+    W([46,13],[46,12],[47,12],[47,-1],[31,-1],[31,2]);                                              // PLC2 ETH → P2
+    // HMI: Modbus TCP ไปที่ PLC1
+    C('hmi', 40, 5, {n:'HMI1', proto:'tcp', ip:'192.168.1.50', srvIp:'192.168.1.10', b1:'M5 ไฟ PLC2', b2:'', b3:'', b4:'', l1:'M0 S1 ที่ PLC2', l2:'Q0 ไฟ H1', l3:'D0 นับ', l4:'M5 คำสั่ง'});
+    W([40,7],[40,8],[35,8],[35,0],[32,0],[32,2]);                                                   // HMI ETH → P3
+    W([38,7],[38,11]); W([39,7],[39,10]);
+  })},
   hmimodbus: {nm:'HMI คุยกับ PLC ด้วย Modbus RTU (PLC = สเลฟ ID 1) + ปั๊มน้ำ (มีฉาก 3D)', f:() => {
     const o = EX.plcpump.f();
     for (const c of o.comps){
@@ -3477,7 +3578,7 @@ function drawBlock(c, ghost){
       text(err ? 'ERR' : run ? 'RUN' : (c._pw ? 'STOP' : 'ไม่มีไฟ'), bx + 12, Y + 14, 10, err ? K.bad : run ? K.ok : K.muted, 'left', '600', true);
       for (let k = 0; k < 8; k++){ ctx.fillStyle = img.I[k] ? K.ok : K.ladoff; ctx.fillRect(X + (k - 2)*G - 4, Y - 2*G + 20, 8, 5); }
       for (let k = 0; k < 4; k++){ ctx.fillStyle = (run && img.Q[k]) ? K.warn : K.ladoff; ctx.fillRect(X + (k - 4)*G - 4, Y + 2*G - 25, 8, 5); }
-      text('RS-485 #1', X + 3.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true); text('#2', X + 5.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
+      text('RS-485 #1', X + 3.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true); text(String(c.ip || ''), X + 6*G, Y - 2*G + 22, 8, K.accent, 'right', '600', true); text('#2', X + 5.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
       [c.mbOn && (c.mbMode === 'slave' ? 'S' : 'M'), c.mb2On && (c.mb2Mode === 'slave' ? 'S' : 'M')].forEach((m, k) => { if (m) text(m + (m === 'S' ? (k ? c.mb2Id : c.mbId) : ''), X + (3.5 + 2*k)*G, Y + 2*G - 38, 9, K.accent, 'center', '700', true); });
       text('AI 4–20mA', X + 1*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
     } break;
@@ -3485,8 +3586,8 @@ function drawBlock(c, ghost){
       const L = hmiLayout(c), link = c._link;
       ctx.fillStyle = K.screen; rrect(X - 2.4*G, Y - 1.85*G, 4.8*G, 3.45*G, 4); ctx.fill();
       if (c._pw){
-        if (c.proto === 'modbus'){ const m = c._mb || {}, ok = simT - (m.tOk ?? -9) < 1;
-          text(ok ? `● Modbus ID ${c.sid} ${c.baud}` : '● Modbus ไม่ตอบ', X - 2.25*G, Y - 1.55*G, 9, ok ? '#4ade80' : '#f87171', 'left', '600', true); }
+        if (c.proto === 'modbus' || c.proto === 'tcp'){ const m = c._mb || {}, ok = simT - (m.tOk ?? -9) < 1;
+          text(ok ? (c.proto === 'tcp' ? `● TCP → ${c.srvIp}` : `● Modbus ID ${c.sid} ${c.baud}`) : (c.proto === 'tcp' ? '● TCP ไม่ตอบ' : '● Modbus ไม่ตอบ'), X - 2.25*G, Y - 1.55*G, 9, ok ? '#4ade80' : '#f87171', 'left', '600', true); }
         else text((link ? '● ' + link.n : (c._swap ? '● A/B สลับ' : '● ไม่เชื่อมต่อ')), X - 2.25*G, Y - 1.55*G, 9, link ? '#4ade80' : '#f87171', 'left', '600', true);
         hmiBtns(c).forEach((bt, i) => { if (!bt) return; const r = L.btn[i];
           ctx.fillStyle = c._press === i ? '#2563eb' : '#334155'; rrect(r.x*G, r.y*G, r.w*G, r.h*G, 4); ctx.fill();
@@ -3677,6 +3778,16 @@ function drawBlock(c, ghost){
       text(`ADDR ${c.addr} · ${c.loc} m`, bx + bw - 66, by + 48, 8.5, '#e5e7eb', 'center', '600', true);
       if (c._link) text(c._link.ok ? `RSSI ${c._link.rssi.toFixed(0)} dBm` : 'สัญญาณไม่ถึง', bx + bw - 66, by + 64, 8.5, c._link.ok ? '#86efac' : '#fca5a5', 'center', '700', true);
       if (c._err) text('! ' + c._err.slice(0, 28), X, by + bh - 24, 8, '#fca5a5', 'center', '600');
+    } break;
+    case 'ethsw': {
+      ctx.fillStyle = '#1f2937'; rrect(bx + 6, by + 16, bw - 12, bh - 32, 4); ctx.fill();
+      const L = ethLan();
+      for (let k = 0; k < 5; k++){ const px = X + (k - 2)*G, net = netOf(c, k);
+        const devs = S.comps.filter(o => L.lan.has(o) && netOf(o, ethIdx(o)) === net), other = S.comps.some(o => o !== c && o.t === 'ethsw' && [0,1,2,3,4].some(j => netOf(o, j) === net));
+        const link = c._pw && (devs.length || other), act = link && devs.some(o => simT - (o._ethT ?? -9) < 0.25);
+        ctx.fillStyle = '#0b0f17'; ctx.fillRect(px - 10, by + 22, 20, 16);
+        ctx.fillStyle = link ? '#4ade80' : '#334155'; ctx.fillRect(px - 9, by + 40, 7, 4); ctx.fillStyle = act ? '#f97316' : '#334155'; ctx.fillRect(px + 2, by + 40, 7, 4); }
+      text('Ethernet 10/100', X, Y + 12, 9, '#cbd5e1', 'center', '600', true); ctx.fillStyle = c._pw ? '#4ade80' : '#334155'; dot(bx + bw - 16, Y + 12, 3);
     } break;
     case 'term': {
       ctx.fillStyle = '#0b1220'; rrect(bx + 10, by + 22, bw - 20, bh - 40, 4); ctx.fill();
@@ -3919,8 +4030,11 @@ const F = {
   plc:[NMF,['run','สวิตช์โหมด','bool','RUN'],['mbOn','พอร์ต #1 Modbus RTU (ขา A/B)','bool','เปิด'],['mbMode','พอร์ต #1 บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mbId','พอร์ต #1 ID เมื่อเป็นสเลฟ','num',''],['mbBaud','พอร์ต #1 บอดเรต','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
     ['mbList','พอร์ต #1 ตารางคำสั่ง (มาสเตอร์) — สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 1 03 0 4 D0 (อ่าน holding 0–3 → D0–D3) · 1 15 0 2 M16 (เขียนคอยล์ 0–1 ← M16–M17) · 1 06 4 1 D8'],
     ['mb2On','พอร์ต #2 Modbus RTU (ขา A2/B2)','bool','เปิด'],['mb2Mode','พอร์ต #2 บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mb2Id','พอร์ต #2 ID เมื่อเป็นสเลฟ','num',''],['mb2Baud','พอร์ต #2 บอดเรต','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
-    ['mb2List','พอร์ต #2 ตารางคำสั่ง (มาสเตอร์)','area','รูปแบบเดียวกับพอร์ต #1']],
-  hmi:[NMF,['proto','โปรโตคอล','sel',{link:'ลิงก์ตรงกับ PLC (แบบเดิม)',modbus:'Modbus RTU (HMI = มาสเตอร์)'}],['sid','ID สเลฟของ PLC','num',''],['baud','บอดเรต (Modbus)','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],['b1','ปุ่ม 1','txt'],['b2','ปุ่ม 2','txt'],['b3','ปุ่ม 3','txt'],['b4','ปุ่ม 4','txt'],['l1','ไฟ 1','txt'],['l2','ไฟ 2','txt'],['l3','ไฟ 3','txt'],['l4','ไฟ 4','txt']],
+    ['mb2List','พอร์ต #2 ตารางคำสั่ง (มาสเตอร์)','area','รูปแบบเดียวกับพอร์ต #1'],
+    ['ip','Ethernet: IP ของ PLC','txt'],['ethSrv','Ethernet: เซิร์ฟเวอร์ Modbus TCP (พอร์ต 502)','bool','เปิด'],['mbtOn','Ethernet: ไคลเอนต์ Modbus TCP','bool','เปิด'],
+    ['mbtList','Ethernet: ตารางคำสั่งไคลเอนต์ — IP Unit ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 192.168.1.20 1 03 0 4 D0 (อ่าน D0–D3 ของ PLC อีกตัว)']],
+  ethsw:[NMF],
+  hmi:[NMF,['proto','โปรโตคอล','sel',{link:'ลิงก์ตรงกับ PLC (แบบเดิม)',modbus:'Modbus RTU (HMI = มาสเตอร์)',tcp:'Modbus TCP ผ่าน Ethernet'}],['ip','IP ของ HMI (TCP)','txt'],['srvIp','IP ของ PLC (TCP)','txt'],['sid','ID สเลฟของ PLC','num',''],['baud','บอดเรต (Modbus)','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],['b1','ปุ่ม 1','txt'],['b2','ปุ่ม 2','txt'],['b3','ปุ่ม 3','txt'],['b4','ปุ่ม 4','txt'],['l1','ไฟ 1','txt'],['l2','ไฟ 2','txt'],['l3','ไฟ 3','txt'],['l4','ไฟ 4','txt']],
   pump:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['tank','ถังน้ำ','txt'],['flow','อัตราสูบ','num','%/s']],
   tank:[NMF,['lvl','ระดับน้ำ','num','%'],['out','อัตราการใช้น้ำ','num','%/s']],
   float:[NMF,['ref','ถังน้ำ','txt'],['lvl','ระดับทำงาน','num','%']],
@@ -4023,6 +4137,7 @@ const NOTES = {
   rs485:'โมดูล RS-485 (ใช้กับ Modbus RTU ได้ — ดูตัวอย่าง "Modbus RTU"): แปลง UART (TTL) เป็นสัญญาณผลต่าง A–B บนสายคู่บิดเกลียว ส่งได้ไกล ~1200 m ต่อได้หลายตัวบนบัสเดียว (half-duplex) · DI ← TX ของบอร์ด, RO → RX ของบอร์ด, DE = HIGH ขณะส่ง, RE = LOW ขณะรับ (นิยมต่อ DE กับ RE เข้าขาเดียว) · ต่อ A–A, B–B (สลับ = ข้อมูลกลับบิต) และใส่ตัวต้านทานปลายสาย 120 Ω ที่ปลายบัสทั้งสองด้าน · MAX487 จำกัดความเร็ว 250 kbps แต่ต่อได้ 128 ตัว',
   rs232:'โมดูล MAX3232: แปลงระดับ TTL (0/3.3–5 V) ↔ RS-232 (±5–12 V) สำหรับพอร์ต COM ของคอมพิวเตอร์ เครื่องชั่ง PLC รุ่นเก่า · T1IN ← TX ของบอร์ด → T1OUT (DB9 ขา 3), R1IN (DB9 ขา 2) → R1OUT → RX ของบอร์ด · ต่อไขว้ TX → RX เสมอ (null-modem) · ห้ามต่อ RS-232 เข้าขาบอร์ดตรง ๆ',
   lora:'โมดูล LoRa แบบ UART (E32/E22 โหมดโปร่งใส): สิ่งที่ส่งเข้า RXD จะถูกส่งทางวิทยุไปออกที่ TXD ของโมดูลปลายทาง · ต้องตั้งความถี่ (CH) SF และแอดเดรสให้ตรงกัน (65535 = กระจายถึงทุกตัว) · M0 = M1 = LOW = โหมดปกติ · SF สูง = ไกลขึ้นแต่ใช้เวลาออกอากาศนานขึ้น · ระยะคำนวณจากตำแหน่งติดตั้ง (m) กำลังส่ง และสภาพพื้นที่',
+  ethsw:'สวิตช์ Ethernet อุตสาหกรรม (ราง DIN, ไฟเลี้ยง 24 VDC): ต่อขา ETH ของ PLC/HMI เข้าพอร์ตใดก็ได้ ทุกพอร์ตอยู่วงเดียวกัน (ต่อสวิตช์หลายตัวพ่วงกันได้) · ไฟเขียว = มีลิงก์, ส้ม = มีข้อมูลวิ่ง · อุปกรณ์ต้องตั้ง IP ซับเน็ตเดียวกัน (/24) และไม่ซ้ำกัน',
   term:'คอมพิวเตอร์ที่เปิดโปรแกรมเทอร์มินัลบนพอร์ต COM (RS-232) · TX/RX ระดับ RS-232 ต้องต่อผ่านโมดูล MAX3232 · พิมพ์ข้อความในช่องด้านบนแล้วกด Enter เพื่อส่ง · บอดเรตต้องตรงกับบอร์ด',
   capx:'พร็อกซิมิตี้แบบคาปาซิทีฟ 3 สาย ตรวจจับได้ทุกวัสดุ (พลาสติก ไม้ ผง ของเหลว) — นิยมใช้ตรวจระดับผ่านผนังถังที่ไม่ใช่โลหะ · ปรับความไวด้วยสกรูท้ายตัว · สายเหมือนพร็อกซิมิตี้ (น้ำตาล +V, ดำ OUT, ฟ้า 0V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
   magsw:'เซนเซอร์แม่เหล็กติดร่องกระบอกลม ตรวจตำแหน่งลูกสูบ (มีแม่เหล็กฝังอยู่) โดยไม่ต้องใช้ลิมิตสวิตช์ภายนอก — ติดที่ปลายช่วงชักทั้งสองด้านเพื่อรู้ว่ากระบอกเข้าสุด/ออกสุด · คลิกบนแผงเพื่อเลื่อนลูกสูบ',
@@ -4150,19 +4265,22 @@ function compHTML(c){
     case 'plc': { add('ไฟเลี้ยง L+/M', fmt(R.pw, 'V')); const img = c._img || newImage();
       add('อินพุต I0–I7', img.I.join('')); add('AI0 / AI1', (img.AI || [0,0]).map(v => v.toFixed(1) + '%').join(' / ')); add('เอาต์พุต Q0–Q3', img.Q.join('')); add('M0–M7', img.M.slice(0,8).join(''));
       add('D0–D7', (img.D || []).slice(0, 8).join(' · '));
-      for (const pt of plcPorts(c)) if (pt.on){ const P2 = 'พอร์ต #' + (pt.k + 1) + ' ';
+      { const L = ethLan(), me = L.lan.get(c); add('Ethernet', esc(c.ip || '—') + (me != null && L.cnt.get(me) > 1 ? ' · มีลิงก์' : ' · ไม่มีลิงก์'));
+        if (c.ethSrv !== false && c._tcps) add('เซิร์ฟเวอร์ TCP รับ / ตอบ', `${c._tcps.rx} / ${c._tcps.tx}` + (c._tcps.last ? ' · ' + esc(c._tcps.last) : '')); }
+      for (const pt of plcPorts(c)) if (pt.on){ const P2 = pt.tcp ? 'TCP ' : 'พอร์ต #' + (pt.k + 1) + ' ';
         if (pt.mode === 'slave'){ const m = pt.rt._mbs || {}; st.push(m.rx ? tag('ok', P2 + 'สเลฟ ID ' + pt.id) : tag('warn', P2 + 'สเลฟ: ยังไม่มีคำขอ'));
           add(P2 + 'สเลฟ รับ / ตอบ / CRC ผิด', `${m.rx || 0} / ${m.tx || 0} / ${m.err || 0}` + (m.last ? ' · ' + esc(m.last) : '')); }
-        else { const P = mbParse(pt.rt, pt.list), m = pt.rt._mb || {};
+        else { const P = mbParse(pt.rt, pt.list, pt.tcp), m = pt.rt._mb || {};
           if (P.err.length) st.push(tag('bad', P2 + esc(P.err[0])));
           else st.push(m.lastErr ? tag('warn', P2 + esc(m.lastErr)) : m.ok ? tag('ok', P2 + 'มาสเตอร์ สื่อสารปกติ') : tag('warn', P2 + 'มาสเตอร์ รอคำตอบ'));
           add(P2 + 'ส่ง / ตอบถูก / ผิด / ไม่ตอบ', `${m.tx || 0} / ${m.ok || 0} / ${m.err || 0} / ${m.to || 0}`);
-          P.list.forEach(it => add(`${P2}สเลฟ ${it.sid} · FC${String(it.fn).padStart(2, '0')} ${MB_FN[it.fn]}`, `@${it.addr} ×${it.qty} ${[1,2,3,4].includes(it.fn) ? '→' : '←'} ${it.reg.k}${it.reg.n}`));
+          P.list.forEach(it => add(`${P2}${it.ip ? it.ip + ' ' : ''}สเลฟ ${it.sid} · FC${String(it.fn).padStart(2, '0')} ${MB_FN[it.fn]}`, `@${it.addr} ×${it.qty} ${[1,2,3,4].includes(it.fn) ? '→' : '←'} ${it.reg.k}${it.reg.n}`));
           if (m.last) add(P2 + 'เฟรมล่าสุด', '<span class="mono">' + esc(m.last) + '</span>'); } }
       if ([c.mbOn && c.mbMode === 'slave', c.mb2On && c.mb2Mode === 'slave'].some(Boolean)) add('แผนที่แอดเดรส (สเลฟ)', 'คอยล์ 0–31 = M, 100–103 = Q · อินพุต 0–7 = I · holding 0–31 = D · input reg 0–1 = AI×10');
       const e = getProg(c).err; st.push(e.length ? tag('bad','โปรแกรมผิดพลาด') : c._run ? tag('ok','RUN') : tag('warn', c._pw ? 'STOP' : 'ไม่มีไฟเลี้ยง')); } break;
     case 'hmi': add('ไฟเลี้ยง', fmt(R.pw, 'V'));
-      if (c.proto === 'modbus'){ const m = c._mb || {}; st.push(simT - (m.tOk ?? -9) < 1 ? tag('ok','Modbus สื่อสารปกติ') : tag('warn', esc(m.lastErr || 'รอคำตอบจาก PLC')));
+      if (c.proto === 'modbus' || c.proto === 'tcp'){ const m = c._mb || {}; if (c.proto === 'tcp') add('IP เครื่องนี้ → PLC', esc(c.ip) + ' → ' + esc(c.srvIp) + ':502');
+        st.push(simT - (m.tOk ?? -9) < 1 ? tag('ok','Modbus สื่อสารปกติ') : tag('warn', esc(m.lastErr || 'รอคำตอบจาก PLC')));
         add('Modbus ส่ง / ตอบถูก / ผิด / ไม่ตอบ', `${m.tx || 0} / ${m.ok || 0} / ${m.err || 0} / ${m.to || 0}`);
         Object.entries(c._mbv || {}).forEach(([k, v]) => add('ค่า ' + esc(k), String(v)));
         if (m.last) add('เฟรมล่าสุด', '<span class="mono">' + esc(m.last) + '</span>'); }
@@ -4272,9 +4390,9 @@ function warnList(){
     if (c.t === 'psu' && c._ol) w.push(['bad', `${n} โหลดเกิน ${c.Imax} A — ตัดไฟชั่วคราว`]);
     if (c.t === 'motor3' && c._hum) w.push(['bad', `มอเตอร์ ${n} ขาดเฟส — ครางและร้อน ควรตัดไฟทันที`]);
     if (c.t === 'motor3' && c._run && c._dir < 0) w.push(['warn', `มอเตอร์ ${n} หมุนกลับทาง (ลำดับเฟสกลับ)`]);
-    if (c.t === 'hmi' && c._pw && c.proto === 'modbus' && c._mb && c._mb.tx > 3 && simT - (c._mb.tOk ?? -9) > 1)
+    if (c.t === 'hmi' && c._pw && (c.proto === 'modbus' || c.proto === 'tcp') && c._mb && c._mb.tx > 3 && simT - (c._mb.tOk ?? -9) > 1)
       w.push(['warn', `${n}: Modbus ไม่ได้รับคำตอบ — ${esc(c._mb.lastErr || '')} (ตรวจ PLC เปิด Modbus แบบสเลฟ, ID, บอด และสาย A/B)`]);
-    if (c.t === 'hmi' && c._pw && c.proto !== 'modbus' && !c._link) w.push(['warn', c._swap ? `${n}: สาย RS-485 A/B สลับกัน` : `${n} ยังไม่เชื่อมต่อ PLC`]);
+    if (c.t === 'hmi' && c._pw && c.proto === 'link' && !c._link) w.push(['warn', c._swap ? `${n}: สาย RS-485 A/B สลับกัน` : `${n} ยังไม่เชื่อมต่อ PLC`]);
     if (c.t === 'plc' && c.prog && getProg(c).err.length) w.push(['bad', `${n}: โปรแกรมมีข้อผิดพลาด`]);
     if ((c.t === 'no' || c.t === 'nc' || c.t === 'k3') && !byName[c.ref]) w.push(['warn', `หน้าสัมผัสอ้างอิง "${esc(c.ref)}" แต่ไม่มีคอยล์ชื่อนี้`]);
     if (c.t === 'xfmr' && R.Vs*R.Is > c.S*1.05) w.push(['warn', `หม้อแปลง ${n} จ่ายเกินพิกัด`]);
@@ -4295,6 +4413,9 @@ function warnList(){
     if (c.t === 'lora' && c._pw) for (const o of S.comps) if (loraPeer(o, c) && o.id < c.id){ const L = loraLink(o, c);
       if (!L.ok) w.push(['warn', `ลิงก์ LoRa ${esc(o.n || '')} ↔ ${n} ไม่ถึง: ระยะ ${fmt(L.d, 'm')} RSSI ${L.rssi.toFixed(0)} dBm ต่ำกว่าความไวรับ ${L.sens} dBm (เพิ่ม SF/กำลังส่ง หรือลดระยะ)`]); }
     if (MCU[c.t] && c._v232) w.push(['bad', `${n}: ต่อสาย RS-232 (±12 V) เข้าขาบอร์ดโดยตรง — อาจทำให้ขาเสียหาย ต้องผ่าน MAX3232`]);
+    if ((c.t === 'plc' || (c.t === 'hmi' && c.proto === 'tcp')) && c._pw){ const k = ethIdx(c), L = ethLan(), me = L.lan.get(c);
+      if (me != null && L.cnt.get(me) > 1){ if (!ipOk(c.ip)) w.push(['warn', `${n}: IP "${esc(c.ip)}" ไม่ถูกต้อง`]);
+        else if (S.comps.some(o => o !== c && o.id < c.id && L.lan.get(o) === me && String(o.ip).trim() === String(c.ip).trim())) w.push(['bad', `${n}: IP ${esc(c.ip)} ซ้ำกับอุปกรณ์อื่นบนเครือข่าย (IP conflict)`]); } }
     if (c.t === 'scope'){ const p = scopeProbe(c); if (p) [0, 1].forEach(k => { const px = c['px' + (k + 1)] || 1, lim = px === 10 ? 600 : 300, pk = Math.abs(p[k].d) + Math.SQRT2*acm(p[k]);
       if (pk > lim) w.push(['bad', `ออสซิลโลสโคป ${n}: CH${k + 1} แรงดันยอด ${fmt(pk, 'V')} เกินพิกัดโพรบ ×${px} (${lim} V)` + (px === 1 ? ' — เปลี่ยนเป็นโพรบ ×10' : '')]); }); }
     if (c.t === 'scope' && R.ig > 0.2) w.push(['bad', `ออสซิลโลสโคป ${n}: กราวด์โพรบมีกระแส ${fmt(R.ig, 'A')} ไหลลงสายดิน — คลิปกราวด์ต่อกับจุดที่มีแรงดัน (เช่นสาย L) ทำให้ลัดวงจร`]);
@@ -5655,7 +5776,7 @@ const PAL = [
   ['อิเล็กทรอนิกส์', ['led','diode','zener','npn','pnp','nmos','opto','ne555','seg7','rgb','buzzer','pot']],
   ['ไมโครคอนโทรลเลอร์', ['uno','esp32','pico']],
   ['เซนเซอร์ (บอร์ด)', ['ldr','ntc','pir','sr04','dht','soil']],
-  ['การสื่อสาร (RS-485 / RS-232 / LoRa)', ['rs485','rs232','lora','term']],
+  ['การสื่อสาร (RS-485 / RS-232 / LoRa / Ethernet)', ['rs485','rs232','lora','ethsw','term']],
   ['PLC และเซนเซอร์อุตสาหกรรม', ['plc','hmi','prox','capx','photo','magsw','ultra','curtain','gasdet','presw','flowsw','tstat','tx420']],
   ['ระบบน้ำ', ['tank','float']],
 ];
