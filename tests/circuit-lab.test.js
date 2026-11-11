@@ -157,6 +157,13 @@ const path = require('path');
     s.scopeAutoset('OSC1'); o.oscAuto = [sc.vdiv1, sc.vdiv2, sc.tdiv, sc.trig];
     s.find('U1').C = 100; s.poke(); sc.tdiv = 0.5; sc._hist = []; s.run(6); cap = s.scope('OSC1');
     o.oscRoll = [cap.roll, cap.ch[1].f, cap.ch[0].max - cap.ch[0].min];
+    // FFT: CH1 ไซน์ 50 Hz, CH2 คลื่นสี่เหลี่ยม NE555 (ฮาร์มอนิกตามอนุกรมฟูเรียร์)
+    s.load('osc'); s.run(0.5); const fsc = s.find('OSC1'); fsc.disp = 'fft'; fsc.fftch = '1';
+    let F = s.scope('OSC1').fft; o.fft1 = [F.fund.f, F.fund.v, F.peaks.length, F.thd];
+    fsc.fftch = '2'; F = s.scope('OSC1').fft; const hv = h => (F.peaks.find(p => p.h === h) || {v:0}).v;
+    o.fft2 = [F.fund.f, F.fund.v, hv(3), hv(5), F.dc, F.span];
+    // XY: วงจร RC → ผลต่างเฟส −atan(ωRC) ≈ −46°
+    s.load('oscxy'); s.run(0.3); const xc = s.scope('OSC1'); o.xy = [xc.phase, xc.xy ? xc.xy[0].length : 0];
     s.load('arduino'); s.run(1.2); o.pwmSw = scopeSwitchers().map(x => [x.f, Math.round(x.duty*100)/100]);
 
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
@@ -226,6 +233,10 @@ const path = require('path');
   checks.push(['osc: Auto Set เลือก 10 V/div, 5 V/div, 5 ms/div ทริก CH1', JSON.stringify(r.oscAuto) === '[10,5,0.005,"1"]', JSON.stringify(r.oscAuto)]);
   checks.push(['osc: โหมดเลื่อน (roll) วัดพัลส์ช้า ≈ 0.69 Hz และแถบไซน์ 33.8 Vpp', r.oscRoll[0] && Math.abs(r.oscRoll[1] - 0.69) < 0.03 && Math.abs(r.oscRoll[2] - 33.8) < 0.3, JSON.stringify(r.oscRoll)]);
   checks.push(['osc: ตรวจพบ PWM ของ Arduino 490 Hz', r.pwmSw.length === 1 && r.pwmSw[0][0] === 490, JSON.stringify(r.pwmSw)]);
+  checks.push(['FFT: ไซน์ 50 Hz → ยอดเดียว 50 Hz ≈ 11.97 Vrms, THD ≈ 0', Math.abs(r.fft1[0] - 50) < 0.2 && Math.abs(r.fft1[1] - 11.97) < 0.1 && r.fft1[2] === 1 && r.fft1[3] < 0.01, JSON.stringify(r.fft1)]);
+  // คลื่นสี่เหลี่ยม 0–8.85 V ดิวตี้ 0.524: Vn(rms) = 2A/(nπ)·|sin(nπd)|/√2 → H1 3.97, H3 1.29, H5 0.74; DC = A·d = 4.64
+  checks.push(['FFT: พัลส์ NE555 → หลัก 687 Hz 3.97 V, H3 1.29 V, H5 0.74 V, DC 4.64 V', Math.abs(r.fft2[0] - 687) < 1 && Math.abs(r.fft2[1] - 3.97) < 0.04 && Math.abs(r.fft2[2] - 1.29) < 0.03 && Math.abs(r.fft2[3] - 0.74) < 0.03 && Math.abs(r.fft2[4] - 4.64) < 0.05 && r.fft2[5] === 10000, JSON.stringify(r.fft2.map(x => +x.toFixed(3)))]);
+  checks.push(['XY: วงจร RC ผลต่างเฟส ≈ −46°', Math.abs(r.xy[0] + 46.0) < 0.3 && r.xy[1] > 1000, JSON.stringify(r.xy)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
