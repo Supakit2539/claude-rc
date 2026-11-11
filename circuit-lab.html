@@ -224,7 +224,7 @@ const MCU = {
   esp32: mkBoard({nm:'ESP32 DevKit', chip:'ESP32-WROOM', vcc:3.3, bits:12, rout:30, imax:0.04, led:2, x0:-5, col:'#1e293b',
     top:['3V3','GND','G2','G4','G5','G12','G13','G14','G15','G16','G27'],
     bot:['GND','G17','G18','G19','G21','G22','G23','G25','G32','G33','G34'],
-    adc:[2,4,12,13,14,15,25,27,32,33,34], inOnly:[34], consts:{}, uarts:{Serial1:[9,10], Serial2:[16,17]}}),
+    adc:[2,4,12,13,14,15,25,27,32,33,34], inOnly:[34], consts:{}, uarts:{Serial1:[9,10], Serial2:[16,17]}, wifi:true}),
   pico: mkBoard({nm:'Raspberry Pi Pico', chip:'RP2040', vcc:3.3, bits:10, rout:40, imax:0.012, led:25, x0:-6, col:'#166534',
     top:['3V3','GND','GP0','GP1','GP2','GP3','GP4','GP5','GP6','GP7','GP8','GP9'],
     bot:['GND','GP10','GP11','GP12','GP13','GP14','GP15','GP16',null,'GP26','GP27','GP28'],
@@ -281,7 +281,7 @@ const T = {
   tank:  {nm:'ถังน้ำ',                ic:'⊔',  pre:'TK', d:{lvl:50, out:2}, pins:[], box:[-1.6,-2.5,1.6,2.5]},
   float: {nm:'ลูกลอย',               ic:'○',  pre:'LS', d:{ref:'TK1', lvl:50}},
 };
-for (const k in MCU) T[k] = {nm:MCU[k].nm, ic:'µC', pre:'U', d:{code:BLINK}, pins:MCU[k].pins, box:MCU[k].box};
+for (const k in MCU) T[k] = {nm:MCU[k].nm, ic:'µC', pre:'U', d:MCU[k].wifi ? {code:BLINK, wdist:15} : {code:BLINK}, pins:MCU[k].pins, box:MCU[k].box};
 // เซนเซอร์ (2 ขั้ว)
 T.ldr    = {nm:'LDR (ตัวต้านทานแปรตามแสง)', ic:'☀', pre:'LDR', d:{lux:300}};
 T.ntc    = {nm:'เทอร์มิสเตอร์ NTC',          ic:'t°', pre:'TH',  d:{temp:25, R25:10000, B:3950}};
@@ -322,11 +322,13 @@ T.rs232 = {nm:'โมดูล RS-232 ↔ TTL (MAX3232)', ic:'232', pre:'MD', d:
   pins:[[-2,-2,'VCC'],[-1,-2,'T1IN'],[1,-2,'R1OUT'],[2,-2,'GND'],[-1,2,'T1OUT'],[1,2,'R1IN'],[2,2,'⏚']], box:[-2.6,-2,2.6,2]};
 T.lora  = {nm:'โมดูล LoRa UART (E32 / E22)', ic:'((·))', pre:'RF', d:{band:433, ch:23, addr:0, sf:9, pw:20, loc:0, env:'open', baud:9600},
   pins:[[-3,2,'M0'],[-2,2,'M1'],[-1,2,'RXD'],[0,2,'TXD'],[1,2,'AUX'],[2,2,'VCC'],[3,2,'GND']], box:[-3.6,-2,3.6,2]};
+T.wifiap = {nm:'Wi-Fi Access Point (2.4 GHz)', ic:'((⌂))', pre:'AP', d:{ssid:'FACTORY', pass:'12345678', ip:'192.168.1.1', pw:20},
+  pins:[[-1,2,'24V'],[0,2,'0V'],[1,2,'ETH']], box:[-2.6,-2,2.6,2]};
 T.ethsw = {nm:'สวิตช์ Ethernet อุตสาหกรรม (5 พอร์ต)', ic:'⇄', pre:'SW', d:{},
   pins:[[-2,-2,'P1'],[-1,-2,'P2'],[0,-2,'P3'],[1,-2,'P4'],[2,-2,'P5'],[-1,2,'24V'],[1,2,'0V']], box:[-2.6,-2,2.6,2]};
 T.term  = {nm:'คอมพิวเตอร์ (เทอร์มินัล RS-232)', ic:'▭', pre:'PC', d:{baud:9600, eol:'nl'},
   pins:[[-1,-2,'TX'],[0,-2,'RX'],[1,-2,'GND']], box:[-3,-2,3,2.6]};
-const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0], rs485:[4,7], rs232:[0,3], lora:[5,6], ethsw:[5,6]};
+const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0], rs485:[4,7], rs232:[0,3], lora:[5,6], ethsw:[5,6], wifiap:[0,1]};
 for (const t of DIG3) SENS[t] = [0, 2];
 const ldrR = c => c.lux <= 0 ? 2e6 : Math.min(2e6, Math.max(100, 10000*Math.pow(c.lux/10, -0.7)));
 const ntcR = c => c.R25*Math.exp(c.B*(1/(c.temp + 273.15) - 1/298.15));
@@ -1014,7 +1016,8 @@ function solveAll(){
             if (c._drv){ Y(n[6], n[4], 1/25, 0); Y(n[5], n[7], 1/25, 0); } }
           break;
         case 'rs232': Y(n[0], n[3], 1/3300, 0); Y(n[6], n[3], GW, 0); if (c._pw) Y(n[2], n[0], 1/200, 0); break;
-        case 'ethsw': Y(n[5], n[6], 1/480, 0); break;                                             // ≈ 1.2 W ที่ 24 V
+        case 'ethsw': Y(n[5], n[6], 1/480, 0); break;
+        case 'wifiap': Y(n[0], n[1], 1/240, 0); break;                                            // ≈ 2.4 W ที่ 24 V                                             // ≈ 1.2 W ที่ 24 V
         case 'lora': Y(n[5], n[6], 1/700, 0); if (c._pw){ Y(n[3], n[5], 1/1000, 0); Y(n[4], n[5], 1/1000, 0); } break;   // TXD/AUX = HIGH เมื่อว่าง
         case 'tx420':
           // ทรานสมิตเตอร์ 2 สาย: เป็นแหล่งกระแส 4–20 mA เมื่อแรงดันลูป ≥ 10 V
@@ -1504,7 +1507,7 @@ function trip(c){
 function discrete(dt){
   byName = nameMap();
   for (const c of S.comps){
-    if (MCU[c.t]){ if (dt > 0) runVm(c, dt); continue; }
+    if (MCU[c.t]){ if (dt > 0) runVm(c, dt); wifiUpkeep(c); continue; }
     if (c.t === 'term'){ termTick(c); continue; }
     busDrvTick(c);
     const r = RES.comp[c.id]; if (!r) continue;
@@ -1663,7 +1666,8 @@ function cToJs(src){
   // อ็อบเจกต์ไลบรารี: DHT dht(2, DHT22);  Servo s;
   // String ของ Arduino: s.length() → s.length, s.trim(); / toUpperCase(); แก้ค่าในตัวแปรเอง
   s = s.replace(/\.length\(\)/g, '.length').replace(/\b([A-Za-z_]\w*)\.(trim|toUpperCase|toLowerCase)\(\)\s*;/g, '$1 = $1.$2();');
-  s = s.replace(/\b(DHT|Servo|SoftwareSerial|ModbusRTUSlave)\s+([A-Za-z_]\w*)\s*(?:\(([^;]*)\))?\s*;/g, (m, cls, n, a) => 'const ' + n + ' = new ' + cls + '(' + (a || '') + ');');
+  s = s.replace(/\bconst\s+char\s*\*\s*/g, 'const ').replace(/\bchar\s*\*\s*(?=[A-Za-z_])/g, 'let ');
+  s = s.replace(/\b(DHT|Servo|SoftwareSerial|ModbusRTUSlave|IPAddress|WiFiClient|ModbusTCPClient)\s+([A-Za-z_]\w*)\s*(?:\(([^;]*)\))?\s*;/g, (m, cls, n, a) => 'const ' + n + ' = new ' + cls + '(' + (a || '') + ');');
   s = wrapInts(s);
   s = s.replace(new RegExp('^\\s*(?:static\\s+)?(?:void|' + CTYPES + ')\\s+\\w+\\s*\\([^)]*\\)\\s*;', 'gm'), '');
   const fns = [];
@@ -1792,7 +1796,9 @@ function plcPorts(p){
    IP แบบ IPv4 /24 (3 ชุดแรกต้องตรงกัน) · Modbus TCP: MBAP [TID, 0, ความยาว, Unit ID] + PDU (ไม่มี CRC) พอร์ต 502
    ภายในแปลงเป็นเฟรมแบบ RTU (ใส่ CRC) เพื่อใช้ตัวแยกคำตอบ/สเลฟเดียวกัน */
 const PLC_ETH = PLC_PINS.findIndex(q => q[2] === 'ETH'), HMI_ETH = 4;
-const ethIdx = o => o.t === 'plc' ? PLC_ETH : o.t === 'hmi' ? HMI_ETH : -1;
+const ethIdx = o => o.t === 'plc' ? PLC_ETH : o.t === 'hmi' ? HMI_ETH : o.t === 'wifiap' ? 2 : -1;
+// IP ของอุปกรณ์: บอร์ดที่ต่อ Wi-Fi ได้ IP จาก AP (runtime) นอกนั้นใช้ฟิลด์ ip
+const ipOf = o => MCU[o.t] ? (o._vm && o._vm.wifi && o._vm.wifi.st === 3 ? o._vm.wifi.ip : '') : String(o.ip || '').trim();
 const ipOk = ip => /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(String(ip || '').trim()) && String(ip).trim().split('.').every(x => +x <= 255);
 const ipNet = ip => String(ip || '').trim().split('.').slice(0, 3).join('.');
 function ethLan(){
@@ -1800,17 +1806,20 @@ function ethLan(){
   for (const w of S.comps) if (w.t === 'ethsw' && w._pw) for (let k = 1; k < 5; k++) u(netOf(w, 0), netOf(w, k));
   const lan = new Map(), cnt = new Map();
   for (const o of S.comps){ const k = ethIdx(o); if (k < 0 || !o._pw) continue; const id = f(netOf(o, k)); lan.set(o, id); cnt.set(id, (cnt.get(id) || 0) + 1); }
+  // ไคลเอนต์ Wi-Fi อยู่ใน LAN เดียวกับ AP ที่เชื่อมต่ออยู่
+  for (const o of S.comps){ const w = MCU[o.t] && o._vm && o._vm.wifi; if (!w || w.st !== 3 || !w.ap || !lan.has(w.ap)) continue;
+    const id = lan.get(w.ap); lan.set(o, id); cnt.set(id, (cnt.get(id) || 0) + 1); }
   return {lan, cnt, f};
 }
 // หาอุปกรณ์ปลายทางตาม IP บน LAN เดียวกัน
 function ethFind(src, ip){
   const L = ethLan(), me = L.lan.get(src);
   if (me == null) return {err:'ไม่มีไฟเลี้ยง'};
-  if (!ipOk(src.ip)) return {err:'IP ของเครื่องนี้ไม่ถูกต้อง'};
+  if (!ipOk(ipOf(src))) return {err:'IP ของเครื่องนี้ไม่ถูกต้อง'};
   if (!ipOk(ip)) return {err:'IP ปลายทาง "' + ip + '" ไม่ถูกต้อง'};
   if (L.cnt.get(me) < 2) return {err:'ไม่มีลิงก์ Ethernet — ต่อสาย LAN เข้าสวิตช์ (และสวิตช์มีไฟ) หรือต่อตรงกับอุปกรณ์'};
-  if (ipNet(ip) !== ipNet(src.ip)) return {err:`IP ${ip} อยู่คนละซับเน็ตกับ ${src.ip} (/24)`};
-  const d = S.comps.filter(o => o !== src && L.lan.get(o) === me && String(o.ip).trim() === String(ip).trim());
+  if (ipNet(ip) !== ipNet(ipOf(src))) return {err:`IP ${ip} อยู่คนละซับเน็ตกับ ${ipOf(src)} (/24)`};
+  const d = S.comps.filter(o => o !== src && L.lan.get(o) === me && ipOf(o) === String(ip).trim());
   if (!d.length) return {err:`ไม่พบอุปกรณ์ IP ${ip} บนเครือข่าย`};
   return {dst:d[0], dup:d.length > 1};
 }
@@ -1830,9 +1839,9 @@ function plcTcpServer(p){
   const st = p._tcps || (p._tcps = {rx:0, tx:0, last:'', cl:{}}), q = p._tcprx || []; q.sort((a, b) => a.t - b.t);
   while (q.length && q[0].t <= simT + 1e-9){
     const e = q.shift(), a = e.adu, b = [a[6], ...a.slice(7), 0, 0];
-    st.rx++; st.cl[e.src.n || '?'] = String(e.src.ip); p._ethT = simT;
+    st.rx++; st.cl[e.src.n || '?'] = ipOf(e.src); p._ethT = simT;
     const R = mbServe(b, plcMbTables(p));
-    st.last = (MB_FN[R.fn] || 'ฟังก์ชัน ' + R.fn) + ' @' + R.addr + (R.ex ? ' → ข้อยกเว้น ' + R.ex : '') + ' จาก ' + e.src.ip;
+    st.last = (MB_FN[R.fn] || 'ฟังก์ชัน ' + R.fn) + ' @' + R.addr + (R.ex ? ' → ข้อยกเว้น ' + R.ex : '') + ' จาก ' + ipOf(e.src);
     const rsp = [a[0], a[1], 0, 0, R.r.length >> 8, R.r.length & 255, ...R.r];
     e.rt._lastRx = 'RX ' + hexB(rsp);
     (e.rt._mbrx || (e.rt._mbrx = [])).push({t:simT + 0.002, s:mbFrame(R.r)}); st.tx++;
@@ -1985,6 +1994,39 @@ function plcModbus(p, pt){
   if (it.sid === 0){ st.next = simT + req.length*10/baud + 0.02; return; }           // กระจาย (broadcast) ไม่มีคำตอบ
   st.wait = {it, t0:simT, dl:simT + req.length*10/baud + 0.3};
 }
+/* ---------- Wi-Fi (ESP32) ----------
+   AP (wifiap) ต่อ LAN ด้วยขา ETH · บอร์ดเชื่อมต่อเมื่อ SSID/รหัสผ่านตรง และสัญญาณถึง (RSSI ≥ −90 dBm)
+   RSSI = กำลังส่ง − (40 dB ที่ 1 m + 30·log10 ระยะ) · ได้ IP จาก DHCP ของ AP = 3 ชุดแรกของ AP + (100 + id) */
+const wifiRssi = (ap, d) => (+ap.pw || 20) - 40 - 30*Math.log10(Math.max(1, +d || 1));
+function wifiResolve(c, w){
+  const aps = S.comps.filter(a => a.t === 'wifiap' && a._pw && a.ssid === w.ssid);
+  const inRange = aps.map(a => ({a, r:wifiRssi(a, c.wdist)})).filter(x => x.r >= -90).sort((x, y) => y.r - x.r);
+  if (!inRange.length){ w.st = 1; w.ap = null; w.why = aps.length ? 'สัญญาณอ่อนเกินไป (ไกลเกิน)' : 'ไม่พบ SSID "' + w.ssid + '"'; return; }
+  const x = inRange[0];
+  if (x.a.pass !== w.pass){ w.st = 4; w.ap = null; w.why = 'รหัสผ่าน Wi-Fi ไม่ถูกต้อง'; return; }
+  w.st = 3; w.ap = x.a; w.rssi = x.r; w.why = '';
+  if (!w.ip || ipNet(w.ip) !== ipNet(x.a.ip)) w.ip = w.static || (ipNet(x.a.ip) + '.' + (100 + c.id % 100));
+}
+// ดูแลการเชื่อมต่อทุกสเต็ป: หลุดเมื่อ AP ดับ/ออกนอกระยะ แล้วต่อใหม่อัตโนมัติทุก ~3 s (เหมือน ESP32 จริง)
+function wifiUpkeep(c){
+  const w = c._vm && c._vm.wifi; if (!w || !w.ssid) return;
+  if (w.st === 0){ if (simT - w.t >= 1.5) wifiResolve(c, w); }
+  else if (w.st === 3){ if (!w.ap || !w.ap._pw || w.ap.ssid !== w.ssid || wifiRssi(w.ap, c.wdist) < -90){ w.st = 6; w.why = 'หลุดจาก AP (ไกลเกิน/AP ดับ)'; w.ap = null; w.lost = simT; } }
+  else if (!w.off && simT - (w.lost ?? w.t) > 3){ w.st = 0; w.t = simT; w.lost = simT; }
+}
+// ไคลเอนต์ Modbus TCP แบบเรียกแล้วได้ผลทันที (บล็อก ~ไม่กี่ ms): ส่งคำขอถึง PLC ที่ IP ปลายทางแล้วคืนไบต์คำตอบ หรือ null
+function tcpCall(c, ip, unit, pdu, cli){
+  const req = mbFrame([unit, ...pdu]), f = ethFind(c, ip); c._ethT = simT;
+  if (f.err){ cli.err = f.err; return null; }
+  const p = f.dst; if (p.t !== 'plc' || p.ethSrv === false){ cli.err = `IP ${ip} ไม่เปิดเซิร์ฟเวอร์ Modbus TCP`; return null; }
+  if (!p._img){ cli.err = 'PLC ยังไม่พร้อม'; return null; }
+  const st = p._tcps || (p._tcps = {rx:0, tx:0, last:'', cl:{}}), b = mbBytes(req), R = mbServe(b, plcMbTables(p));
+  st.rx++; st.tx++; st.cl[c.n || '?'] = ipOf(c); p._ethT = simT;
+  st.last = (MB_FN[R.fn] || 'ฟังก์ชัน ' + R.fn) + ' @' + R.addr + (R.ex ? ' → ข้อยกเว้น ' + R.ex : '') + ' จาก ' + ipOf(c);
+  const tid = cli.tid = ((cli.tid || 0) + 1) & 0xFFFF; cli.last = 'TX ' + hexB(tcpAdu(tid, b)) + ' · RX ' + hexB([tid >> 8, tid & 255, 0, 0, R.r.length >> 8, R.r.length & 255, ...R.r]);
+  if (R.ex){ cli.err = 'ข้อยกเว้น ' + R.ex + ': ' + (MB_EXC[R.ex] || ''); return null; }
+  cli.err = ''; cli.ok = (cli.ok || 0) + 1; return R.r;
+}
 function mcuApi(c, vm){
   const B = MCU[c.t];
   const chk = p => { if (B.map[p] === undefined && p !== B.led) throw new Error(B.nm + ' ไม่มีขา ' + p); };
@@ -2043,6 +2085,39 @@ function mcuApi(c, vm){
     Serial: mkPort('Serial', null, null, true),
     SoftwareSerial: function(rx, tx){ return mkPort('SoftwareSerial(' + rx + ',' + tx + ')', rx, tx, false); },
     SERIAL_8N1:0x06, SERIAL_8E1:0x26, SERIAL_8O1:0x36, SERIAL_7E1:0x24,
+    // Wi-Fi + ไคลเอนต์ Modbus TCP (เฉพาะบอร์ดที่มี Wi-Fi)
+    WL_IDLE_STATUS:0, WL_NO_SSID_AVAIL:1, WL_CONNECTED:3, WL_CONNECT_FAILED:4, WL_DISCONNECTED:6, WIFI_STA:1, WIFI_AP:2,
+    IPAddress: class { constructor(a, b2, c2, d){ this.s = b2 === undefined ? String(a || '0.0.0.0') : [a, b2, c2, d].join('.'); } toString(){ return this.s; } },
+    WiFiClient: class { },
+    ...(B.wifi ? {
+    WiFi: (() => { const w = vm.wifi = {st:6, ssid:'', pass:'', t:0, ap:null, ip:'', rssi:0, why:''};
+      const ip = s2 => new A.IPAddress(s2);
+      const upd = () => wifiUpkeep(c);                                                                     // เชื่อมต่อใช้เวลา ~1.5 s
+      return { mode(){}, setHostname(){}, setAutoReconnect(){},
+        begin(ssid, pass){ w.ssid = String(ssid); w.pass = String(pass ?? ''); w.st = 0; w.t = simT; w.off = false; w.why = 'กำลังเชื่อมต่อ'; },
+        config(a){ w.static = String(a); }, disconnect(){ w.st = 6; w.ap = null; w.off = true; }, reconnect(){ w.st = 0; w.t = simT; w.off = false; },
+        status(){ upd(); return w.st === 0 ? 6 : w.st; }, isConnected(){ upd(); return w.st === 3; },
+        localIP(){ upd(); return ip(w.st === 3 ? w.ip : '0.0.0.0'); }, gatewayIP(){ return ip(w.ap ? w.ap.ip : '0.0.0.0'); },
+        RSSI(){ upd(); return w.st === 3 ? Math.round(wifiRssi(w.ap, c.wdist)) : 0; }, SSID(){ return w.ssid; } }; })(),
+    // ไลบรารี ArduinoModbus: ModbusTCPClient(client) · begin(ip, พอร์ต) · connected() · coilRead/discreteInputRead/holdingRegisterRead/inputRegisterRead · coilWrite/holdingRegisterWrite
+    ModbusTCPClient: class {
+      constructor(){ this.ip = ''; this.on = false; this.unit = 1; vm.mbtcp = this; this.ok = 0; this.err = ''; this.last = ''; }
+      begin(ip, port){ this.ip = String(ip); this.on = false; if (port != null && +port !== 502){ this.err = 'PLC ฟังพอร์ต 502'; return 0; }
+        if (!vm.wifi || vm.wifi.st !== 3){ this.err = 'ยังไม่ได้ต่อ Wi-Fi'; return 0; }
+        const f = ethFind(c, this.ip); if (f.err){ this.err = f.err; return 0; }
+        if (f.dst.t !== 'plc' || f.dst.ethSrv === false){ this.err = `IP ${this.ip} ไม่เปิดเซิร์ฟเวอร์ Modbus TCP`; return 0; }
+        this.on = true; this.err = ''; return 1; }
+      connected(){ if (this.on && (!vm.wifi || vm.wifi.st !== 3 || ethFind(c, this.ip).err)){ this.on = false; this.err = 'การเชื่อมต่อหลุด'; } return this.on ? 1 : 0; }
+      stop(){ this.on = false; } end(){ this.on = false; } lastError(){ return this.err; } setTimeout(){}
+      _x(fn, args, w){ const [id, a, v] = args.length > (w ? 2 : 1) ? args : [this.unit, ...args];
+        if (!this.connected()) return -1;
+        const pdu = fn === 5 ? [5, a >> 8, a & 255, v ? 0xFF : 0, 0] : fn === 6 ? [6, a >> 8, a & 255, (v >> 8) & 255, v & 255] : [fn, a >> 8, a & 255, 0, 1];
+        const r = tcpCall(c, this.ip, id, pdu, this); if (!r) return w ? 0 : -1;
+        if (w) return 1; return fn <= 2 ? r[3] & 1 : r[3] << 8 | r[4]; }
+      coilRead(...a){ return this._x(1, a); } discreteInputRead(...a){ return this._x(2, a); }
+      holdingRegisterRead(...a){ return this._x(3, a); } inputRegisterRead(...a){ return this._x(4, a); }
+      coilWrite(...a){ if (a.length === 2) a = [this.unit, a[0], a[1] ? 1 : 0]; return this._x(5, a, true); }
+      holdingRegisterWrite(...a){ if (a.length === 2) a = [this.unit, a[0], Math.round(+a[1] || 0) & 0xFFFF]; return this._x(6, a, true); } } } : {}),
     // ไลบรารี ModbusRTUSlave: modbus(พอร์ต, ขา DE/RE) · configureCoils/DiscreteInputs/HoldingRegisters/InputRegisters(อาร์เรย์, จำนวน) · begin(ID, บอด) · poll()
     ModbusRTUSlave: class {
       constructor(port, de){ this.port = port; this.de = de == null ? -1 : de; this.id = 1; this.t = {c:null, di:null, hr:null, ir:null}; this.st = vm.mb = {rx:0, tx:0, err:0, last:''}; }
@@ -2851,6 +2926,79 @@ D0 := D0 + 1
     C('hmi', 40, 5, {n:'HMI1', proto:'tcp', ip:'192.168.1.50', srvIp:'192.168.1.10', b1:'M5 ไฟ PLC2', b2:'', b3:'', b4:'', l1:'M0 S1 ที่ PLC2', l2:'Q0 ไฟ H1', l3:'D0 นับ', l4:'M5 คำสั่ง'});
     W([40,7],[40,8],[35,8],[35,0],[32,0],[32,2]);                                                   // HMI ETH → P3
     W([38,7],[38,11]); W([39,7],[39,10]);
+  })},
+  esp32wifi: {nm:'ESP32 ต่อ Wi-Fi คุย Modbus TCP กับ PLC (ผ่าน Wi-Fi AP → Ethernet)', f:() => build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6, curve:'C'});
+    W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[32,11]); W([8,9],[8,10],[32,10]);       // +24 V (y = 11), 0 V (y = 10)
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const plc = C('plc', 18, 15, {n:'PLC1', ip:'192.168.1.10'});
+    W([13,13],[13,11]); W([14,13],[14,10]); W([15,13],[15,10]);
+    W([13,17],[13,19],[11,19],[11,11]);
+    C('lamp', 14, 19, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([14,17],[14,18]); W([14,20],[14,22],[9,22],[9,10]);
+    plc.prog = {mode:'txt', txt:`// M5 = ปุ่มที่ ESP32 (เขียนมาทาง Modbus TCP คอยล์ 5), D10 = ค่า pot ของ ESP32 (holding register 10, 0–4095)
+// ไฟ H1 ติดเมื่อกดปุ่มที่ ESP32 หรือหมุน pot เกิน 3000
+Q0 := M5 OR D10 > 3000
+// ตัวนับรอบสแกน ให้ ESP32 อ่านไปแสดง (holding register 0)
+D0 := D0 + 1
+`, lad:[{cmt:'ไฟ H1: ปุ่มที่ ESP32 (M5) หรือ pot ของ ESP32 (D10) เกิน 3000', rows:[row([nc('NO','M5')], {k:'OUT', a:'Q0'}), row([{k:'GT', a:'D10', p:3000}], null)],
+      links:[[false,true,false,false,false,false,false,false]]}]};
+    // Wi-Fi AP ต่อสาย LAN ตรงกับ PLC
+    C('wifiap', 30, 6, {n:'AP1', ssid:'FACTORY', pass:'12345678', ip:'192.168.1.1'});
+    W([29,8],[29,11]); W([30,8],[30,10]);
+    W([24,13],[24,12],[31,12],[31,8]);
+    // ESP32 (ไร้สาย ห่าง AP 15 m)
+    C('esp32', 44, 6, {n:'U1', wdist:15, code:`// ESP32 ต่อ Wi-Fi "FACTORY" แล้วคุย Modbus TCP กับ PLC (192.168.1.10)
+// pot (G34) → D10 ของ PLC · ปุ่ม G4 → M5 (คอยล์ 5) · อ่าน Q0 (คอยล์ 100) แสดงที่ LED บนบอร์ด · อ่านตัวนับ D0
+#include <WiFi.h>
+#include <ArduinoModbus.h>
+const char* ssid = "FACTORY";
+const char* password = "12345678";
+IPAddress plc(192, 168, 1, 10);
+WiFiClient wifiClient;
+ModbusTCPClient modbus(wifiClient);
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
+  WiFi.begin(ssid, password);
+  Serial.print("กำลังต่อ Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("ได้ IP ");
+  Serial.print(WiFi.localIP());
+  Serial.print("  RSSI ");
+  Serial.println(WiFi.RSSI());
+}
+
+void loop() {
+  if (!modbus.connected()) {
+    Serial.println("เชื่อมต่อ PLC...");
+    if (!modbus.begin(plc, 502)) {
+      Serial.println(modbus.lastError());
+      delay(1000);
+      return;
+    }
+  }
+  modbus.holdingRegisterWrite(10, analogRead(34));
+  modbus.coilWrite(5, digitalRead(4) == LOW);
+  int q0 = modbus.coilRead(100);
+  digitalWrite(LED_BUILTIN, q0 == 1);
+  long cnt = modbus.holdingRegisterRead(0);
+  Serial.print("PLC D0 = ");
+  Serial.print(cnt);
+  Serial.print("  Q0 = ");
+  Serial.println(q0);
+  delay(500);
+}
+`});
+    C('pot', 49, 12, {n:'RV1', pos:30}); W([49,11],[49,8]);
+    W([39,8],[39,10],[48,10],[48,11]); W([50,11],[51,11],[51,-2],[39,-2],[39,4]);
+    C('pb', 42, 2, {r:1, n:'S1'}); W([42,4],[42,3]); W([42,1],[40,1],[40,4]);
   })},
   hmimodbus: {nm:'HMI คุยกับ PLC ด้วย Modbus RTU (PLC = สเลฟ ID 1) + ปั๊มน้ำ (มีฉาก 3D)', f:() => {
     const o = EX.plcpump.f();
@@ -3800,6 +3948,17 @@ function drawBlock(c, ghost){
       if (c._link) text(c._link.ok ? `RSSI ${c._link.rssi.toFixed(0)} dBm` : 'สัญญาณไม่ถึง', bx + bw - 66, by + 64, 8.5, c._link.ok ? '#86efac' : '#fca5a5', 'center', '700', true);
       if (c._err) text('! ' + c._err.slice(0, 28), X, by + bh - 24, 8, '#fca5a5', 'center', '600');
     } break;
+    case 'wifiap': {
+      ctx.fillStyle = '#f1f5f9'; rrect(bx + 8, by + 16, bw - 16, bh - 34, 10); ctx.fill(); ctx.strokeStyle = K.comp; ctx.lineWidth = 1.5; ctx.stroke();
+      const cl = S.comps.filter(o => MCU[o.t] && o._vm && o._vm.wifi && o._vm.wifi.ap === c && o._vm.wifi.st === 3);
+      ctx.strokeStyle = c._pw ? '#2563eb' : '#94a3b8'; ctx.lineWidth = 2; for (const r of [8, 15, 22]){ ctx.beginPath(); ctx.arc(X, by + 4, r, -2.4, -0.74); ctx.stroke(); }
+      text(String(c.ssid), X, Y - 6, 10, '#0f172a', 'center', '700'); text(String(c.ip), X, Y + 8, 8.5, '#334155', 'center', '600', true);
+      text(c._pw ? `ไคลเอนต์ ${cl.length}` : 'ไม่มีไฟ', X, Y + 21, 8.5, c._pw ? '#16a34a' : '#94a3b8', 'center', '600');
+      // เส้นประแสดงลิงก์ไร้สายถึงไคลเอนต์ + RSSI
+      ctx.save(); ctx.setLineDash([2, 6]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(37,99,235,0.6)';
+      for (const o of cl){ const ox = o.x*G, oy = o.y*G; line(X + 30, by + 4, ox, oy - 2*G); text(Math.round(wifiRssi(c, o.wdist)) + ' dBm', (X + 30 + ox)/2, (by + 4 + oy - 2*G)/2 - 8, 9, '#2563eb', 'center', '600', true); }
+      ctx.restore();
+    } break;
     case 'ethsw': {
       ctx.fillStyle = '#1f2937'; rrect(bx + 6, by + 16, bw - 12, bh - 32, 4); ctx.fill();
       const L = ethLan();
@@ -4059,7 +4218,8 @@ const F = {
   pump:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['tank','ถังน้ำ','txt'],['flow','อัตราสูบ','num','%/s']],
   tank:[NMF,['lvl','ระดับน้ำ','num','%'],['out','อัตราการใช้น้ำ','num','%/s']],
   float:[NMF,['ref','ถังน้ำ','txt'],['lvl','ระดับทำงาน','num','%']],
-  uno:[NMF], esp32:[NMF], pico:[NMF],
+  uno:[NMF], esp32:[NMF,['wdist','ระยะถึง Wi-Fi AP','num','m']], pico:[NMF],
+  wifiap:[NMF,['ssid','SSID','txt'],['pass','รหัสผ่าน','txt'],['ip','IP ของ AP (เกตเวย์)','txt'],['pw','กำลังส่ง','num','dBm']],
   pot:[NMF,['R','ความต้านทานรวม','num','Ω'],['pos','ตำแหน่งแกนหมุน','range','%']],
   ldr:[NMF,['lux','ความสว่าง','range','lx',{min:0, max:2000, step:10}]],
   ntc:[NMF,['temp','อุณหภูมิ','range','°C',{min:-20, max:120, step:1}],['R25','ความต้านทานที่ 25 °C','num','Ω'],['B','ค่า B','num','K']],
@@ -4158,6 +4318,7 @@ const NOTES = {
   rs485:'วัดแรงดันบัส: บัสว่างที่มีตัวต้านทานปลายสาย 120 Ω สองปลาย วัด A−B ได้ ≈ 0 V เป็นเรื่องปกติ (ไม่มีใครขับ) แต่ละเส้นเทียบ GND ราว 2.5 V · ไบแอส fail-safe (A ดึงขึ้น B ดึงลง) ทำให้บัสว่างเป็น "1" ชัดเจน ≈ 0.2 V · ขณะส่งตัวขับดัน A−B ±1.5–5 V · โมดูล RS-485 (ใช้กับ Modbus RTU ได้ — ดูตัวอย่าง "Modbus RTU"): แปลง UART (TTL) เป็นสัญญาณผลต่าง A–B บนสายคู่บิดเกลียว ส่งได้ไกล ~1200 m ต่อได้หลายตัวบนบัสเดียว (half-duplex) · DI ← TX ของบอร์ด, RO → RX ของบอร์ด, DE = HIGH ขณะส่ง, RE = LOW ขณะรับ (นิยมต่อ DE กับ RE เข้าขาเดียว) · ต่อ A–A, B–B (สลับ = ข้อมูลกลับบิต) และใส่ตัวต้านทานปลายสาย 120 Ω ที่ปลายบัสทั้งสองด้าน · MAX487 จำกัดความเร็ว 250 kbps แต่ต่อได้ 128 ตัว',
   rs232:'โมดูล MAX3232: แปลงระดับ TTL (0/3.3–5 V) ↔ RS-232 (±5–12 V) สำหรับพอร์ต COM ของคอมพิวเตอร์ เครื่องชั่ง PLC รุ่นเก่า · T1IN ← TX ของบอร์ด → T1OUT (DB9 ขา 3), R1IN (DB9 ขา 2) → R1OUT → RX ของบอร์ด · ต่อไขว้ TX → RX เสมอ (null-modem) · ห้ามต่อ RS-232 เข้าขาบอร์ดตรง ๆ',
   lora:'โมดูล LoRa แบบ UART (E32/E22 โหมดโปร่งใส): สิ่งที่ส่งเข้า RXD จะถูกส่งทางวิทยุไปออกที่ TXD ของโมดูลปลายทาง · ต้องตั้งความถี่ (CH) SF และแอดเดรสให้ตรงกัน (65535 = กระจายถึงทุกตัว) · M0 = M1 = LOW = โหมดปกติ · SF สูง = ไกลขึ้นแต่ใช้เวลาออกอากาศนานขึ้น · ระยะคำนวณจากตำแหน่งติดตั้ง (m) กำลังส่ง และสภาพพื้นที่',
+  wifiap:'Wi-Fi Access Point 2.4 GHz: ต่อขา ETH เข้า LAN (สวิตช์หรือ PLC) เพื่อให้อุปกรณ์ไร้สาย (ESP32) อยู่ในเครือข่ายเดียวกัน · แจก IP อัตโนมัติ (DHCP) ในซับเน็ตเดียวกับ AP · ESP32 ต้องใช้ SSID/รหัสผ่านตรงกัน และอยู่ในระยะ (ตั้ง "ระยะถึง Wi-Fi AP" ที่บอร์ด) RSSI ต่ำกว่า −90 dBm จะเชื่อมต่อไม่ได้',
   ethsw:'สวิตช์ Ethernet อุตสาหกรรม (ราง DIN, ไฟเลี้ยง 24 VDC): ต่อขา ETH ของ PLC/HMI เข้าพอร์ตใดก็ได้ ทุกพอร์ตอยู่วงเดียวกัน (ต่อสวิตช์หลายตัวพ่วงกันได้) · ไฟเขียว = มีลิงก์, ส้ม = มีข้อมูลวิ่ง · อุปกรณ์ต้องตั้ง IP ซับเน็ตเดียวกัน (/24) และไม่ซ้ำกัน',
   term:'คอมพิวเตอร์ที่เปิดโปรแกรมเทอร์มินัลบนพอร์ต COM (RS-232) · TX/RX ระดับ RS-232 ต้องต่อผ่านโมดูล MAX3232 · พิมพ์ข้อความในช่องด้านบนแล้วกด Enter เพื่อส่ง · บอดเรตต้องตรงกับบอร์ด',
   capx:'พร็อกซิมิตี้แบบคาปาซิทีฟ 3 สาย ตรวจจับได้ทุกวัสดุ (พลาสติก ไม้ ผง ของเหลว) — นิยมใช้ตรวจระดับผ่านผนังถังที่ไม่ใช่โลหะ · ปรับความไวด้วยสกรูท้ายตัว · สายเหมือนพร็อกซิมิตี้ (น้ำตาล +V, ดำ OUT, ฟ้า 0V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
@@ -4310,6 +4471,11 @@ function compHTML(c){
       const vm = c._vm, B = MCU[c.t];
       st.push(!vm ? tag('warn','ยังไม่เริ่ม') : vm.err ? tag('bad','ผิดพลาด') : tag('ok','ทำงาน'));
       add('เวลาตั้งแต่เริ่ม (millis)', vm ? Math.floor(vm.ms) + ' ms' : '—'); add('ไฟเลี้ยง', B.vcc + ' V');
+      if (vm && vm.wifi){ const w = vm.wifi;
+        st.push(w.st === 3 ? tag('ok', 'Wi-Fi ' + esc(w.ssid)) : w.st === 0 ? tag('warn','กำลังต่อ Wi-Fi') : tag(w.ssid ? 'bad' : 'warn', w.ssid ? esc(w.why || 'ไม่ได้เชื่อมต่อ') : 'Wi-Fi ปิด'));
+        if (w.st === 3) add('Wi-Fi', `${esc(w.ip)} · RSSI ${Math.round(wifiRssi(w.ap, c.wdist))} dBm · AP ${esc(w.ap.n || '')}`); }
+      if (vm && vm.mbtcp){ const m = vm.mbtcp; add('Modbus TCP → ' + esc(m.ip || '—'), (m.on ? 'เชื่อมต่อ' : 'ไม่ได้เชื่อมต่อ') + ` · ตอบแล้ว ${m.ok}` + (m.err ? ' · ' + esc(m.err) : ''));
+        if (m.last) add('เฟรมล่าสุด', '<span class="mono">' + esc(m.last) + '</span>'); }
       if (vm && vm.mb) add('Modbus สเลฟ รับ / ตอบ / CRC ผิด', `${vm.mb.rx} / ${vm.mb.tx} / ${vm.mb.err}` + (vm.mb.last ? ' · ' + esc(vm.mb.last) : ''));
       for (const pi of mcuPins(c)){
         if (pi.mode === 0 && Math.abs(pi.v) < 0.05) continue;
@@ -4438,7 +4604,7 @@ function warnList(){
     if (MCU[c.t] && c._v232) w.push(['bad', `${n}: ต่อสาย RS-232 (±12 V) เข้าขาบอร์ดโดยตรง — อาจทำให้ขาเสียหาย ต้องผ่าน MAX3232`]);
     if ((c.t === 'plc' || (c.t === 'hmi' && c.proto === 'tcp')) && c._pw){ const k = ethIdx(c), L = ethLan(), me = L.lan.get(c);
       if (me != null && L.cnt.get(me) > 1){ if (!ipOk(c.ip)) w.push(['warn', `${n}: IP "${esc(c.ip)}" ไม่ถูกต้อง`]);
-        else if (S.comps.some(o => o !== c && o.id < c.id && L.lan.get(o) === me && String(o.ip).trim() === String(c.ip).trim())) w.push(['bad', `${n}: IP ${esc(c.ip)} ซ้ำกับอุปกรณ์อื่นบนเครือข่าย (IP conflict)`]); } }
+        else if (S.comps.some(o => o !== c && o.id < c.id && L.lan.get(o) === me && ipOf(o) === ipOf(c))) w.push(['bad', `${n}: IP ${esc(c.ip)} ซ้ำกับอุปกรณ์อื่นบนเครือข่าย (IP conflict)`]); } }
     if (c.t === 'scope'){ const p = scopeProbe(c); if (p) [0, 1].forEach(k => { const px = c['px' + (k + 1)] || 1, lim = px === 10 ? 600 : 300, pk = Math.abs(p[k].d) + Math.SQRT2*acm(p[k]);
       if (pk > lim) w.push(['bad', `ออสซิลโลสโคป ${n}: CH${k + 1} แรงดันยอด ${fmt(pk, 'V')} เกินพิกัดโพรบ ×${px} (${lim} V)` + (px === 1 ? ' — เปลี่ยนเป็นโพรบ ×10' : '')]); }); }
     if (c.t === 'scope' && R.ig > 0.2) w.push(['bad', `ออสซิลโลสโคป ${n}: กราวด์โพรบมีกระแส ${fmt(R.ig, 'A')} ไหลลงสายดิน — คลิปกราวด์ต่อกับจุดที่มีแรงดัน (เช่นสาย L) ทำให้ลัดวงจร`]);
@@ -5799,7 +5965,7 @@ const PAL = [
   ['อิเล็กทรอนิกส์', ['led','diode','zener','npn','pnp','nmos','opto','ne555','seg7','rgb','buzzer','pot']],
   ['ไมโครคอนโทรลเลอร์', ['uno','esp32','pico']],
   ['เซนเซอร์ (บอร์ด)', ['ldr','ntc','pir','sr04','dht','soil']],
-  ['การสื่อสาร (RS-485 / RS-232 / LoRa / Ethernet)', ['rs485','rs232','lora','ethsw','term']],
+  ['การสื่อสาร (RS-485 / RS-232 / LoRa / Ethernet / Wi-Fi)', ['rs485','rs232','lora','ethsw','wifiap','term']],
   ['PLC และเซนเซอร์อุตสาหกรรม', ['plc','hmi','prox','capx','photo','magsw','ultra','curtain','gasdet','presw','flowsw','tstat','tx420']],
   ['ระบบน้ำ', ['tank','float']],
 ];

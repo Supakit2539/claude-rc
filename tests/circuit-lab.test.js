@@ -248,6 +248,15 @@ const path = require('path');
     { s.load('rs485'); s.run(1); const m = s.find('MD2'), V = () => { const p = s.RES.comp[m.id].pv; return [p[6].d - p[5].d, p[6].d - p[7].d]; }; let idle = null, tx = null;
       for (let i = 0; i < 30; i++){ s.step(0.05); const v = V(); if (s.find('MD1')._drv) tx = v; else idle = v; }
       o.busV = [idle, tx].map(v => v && v.map(x => +x.toFixed(2))); }
+    // ESP32 Wi-Fi + Modbus TCP: ต่อ AP ได้ IP, pot → D10, ปุ่ม → M5, อ่าน Q0 → LED, ออกนอกระยะ → หลุด แล้วต่อใหม่เอง, รหัสผิด
+    for (const md of ['txt', 'lad']){ s.load('esp32wifi'); const u = s.find('U1'), plc = s.find('PLC1'), L = n => s.RES.comp[s.find(n).id].Ir > 0.02 ? 1 : 0;
+      plc.prog.mode = md; delete plc._cp; s.run(4);
+      const e = [u._vm.err, /ได้ IP 192\.168\.1\.\d+  RSSI -55/.test(u._vm.serial), Math.abs(plc._img.D[10] - 1228) < 5, L('H1')];
+      s.find('RV1').pos = 90; s.solveNow(); s.run(1.5); e.push(plc._img.D[10] > 3000, L('H1'), u._vm.pins[2].v);
+      s.find('RV1').pos = 30; s.solveNow(); const S1 = s.find('S1'); S1._pr = true; s.poke(); s.run(1.2); e.push(plc._img.M[5], L('H1')); S1._pr = false; s.poke(); s.run(1.2); e.push(L('H1'));
+      u.wdist = 500; s.run(2); e.push(u._vm.wifi.st, /ยังไม่ได้ต่อ Wi-Fi/.test(u._vm.serial.slice(-80))); u.wdist = 15; s.run(6); e.push(u._vm.wifi.st, u._vm.mbtcp.on);
+      if (md === 'txt'){ s.find('AP1').pass = 'wrong'; mcuBoot(u); s.run(3); e.push(u._vm.wifi.st, u._vm.wifi.why); }
+      o['wifi_' + md] = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -396,6 +405,9 @@ const path = require('path');
   checks.push(['Modbus TCP: MBAP ของ TID 7 อ่าน holding 0–3 = 00 07 00 00 00 06 01 03 00 00 00 04', r.mbap === '00 07 00 00 00 06 01 03 00 00 00 04', r.mbap]);
   checks.push(['บัส RS-485 วัดแรงดันได้: ว่าง A−B ≈ 0.21 V (ไบแอส 680 Ω), A−GND ≈ 2.6 V; ขณะส่ง A−B ≈ 2.8 V',
     r.busV[0] && r.busV[1] && Math.abs(r.busV[0][0] - 0.21) < 0.05 && Math.abs(r.busV[0][1] - 2.6) < 0.2 && r.busV[1][0] > 2, JSON.stringify(r.busV)]);
+  checks.push(['ESP32 Wi-Fi + Modbus TCP: ได้ IP/RSSI −55, pot 30% → D10 ≈ 1228, 90% → H1 + LED บอร์ด, ปุ่ม → M5, ไกล 500 m → หลุด, กลับ 15 m → ต่อใหม่, รหัสผิด → WL_CONNECT_FAILED',
+    JSON.stringify(r.wifi_txt) === JSON.stringify([null, true, true, 0, true, 1, 1, 1, 1, 0, 6, true, 3, true, 4, 'รหัสผ่าน Wi-Fi ไม่ถูกต้อง']), JSON.stringify(r.wifi_txt)]);
+  checks.push(['ESP32 Wi-Fi + Modbus TCP (PLC แบบแลดเดอร์): ผลเหมือนกัน', JSON.stringify(r.wifi_lad) === JSON.stringify(r.wifi_txt.slice(0, 14)), JSON.stringify(r.wifi_lad)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
