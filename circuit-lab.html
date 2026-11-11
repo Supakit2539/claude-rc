@@ -345,7 +345,7 @@ T.motor6 = {nm:'มอเตอร์ 3 เฟส 6 ขั้ว (สตาร�
 T.cable  = {nm:'สายไฟ (ตามขนาด mm²)',          ic:'═', pre:'W', d:{A:2.5, len:20, mat:'Cu'}};
 T.capbank= {nm:'คาปาซิเตอร์แบงก์ 3 เฟส',        ic:'⫴', pre:'C', d:{kvar:5, V:400}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3']], box:[-1.6,-1,1.6,1]};
 T.scope  = {nm:'ออสซิลโลสโคป 2 แชนเนล',       ic:'∿', pre:'OSC', d:{vdiv1:5, vdiv2:5, tdiv:0.005, pos1:1.5, pos2:-2.5, cpl1:'DC', cpl2:'DC', on2:true, trig:'1', slope:'up', tlev:0, earth:true, run:true, disp:'yt', fftch:'1', fspan:'auto', fref:30,
-              math:'off', vdivm:5, posm:0, cur:'off', cch:'1', ta:3, tb:7, va:2, vb:-2},
+              math:'off', vdivm:5, posm:0, cur:'off', cch:'1', ta:3, tb:7, va:2, vb:-2, px1:1, px2:1, tmode:'auto'},
             pins:[[-1,2,'CH1'],[0,2,'CH2'],[2,2,'⏚']], box:[-2.6,-2,2.6,2]};
 T.pmeter = {nm:'พาวเวอร์มิเตอร์ 1 เฟส',         ic:'kW', pre:'PM', d:{}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'L'],[1,1,'N']], box:[-1.6,-1,1.6,1]};
 // ฟิลด์ใหม่ของอุปกรณ์เดิม (ค่าเริ่มต้น)
@@ -871,7 +871,7 @@ function solveAll(){
           for (let k = 0; k < 4; k++) Y(n[11], n[12+k], (c._run && q[k]) ? GW : GOFF, 0);
         } break;
         case 'hmi': Y(n[0], n[1], 1/240, 0); break;
-        case 'scope': Y(n[0], n[2], 1e-6, 0); Y(n[1], n[2], 1e-6, 0); if (c.earth !== false) Y(n[2], 0, 10, 0); break;   // โพรบ 1 MΩ, กราวด์โพรบต่อสายดินเครื่อง
+        case 'scope': Y(n[0], n[2], 1e-6/(c.px1 || 1), 0); Y(n[1], n[2], 1e-6/(c.px2 || 1), 0); if (c.earth !== false) Y(n[2], 0, 10, 0); break;   // โพรบ ×1 = 1 MΩ, ×10 = 10 MΩ; กราวด์โพรบต่อสายดินเครื่อง
         case 'pir': Y(n[0], n[2], 1/50000, 0); Y(n[1], c._out ? n[0] : n[2], 1/100, 0); break;
         case 'sr04': Y(n[0], n[3], 1/333, 0); Y(n[1], n[3], 1e-6, 0); Y(n[2], n[3], 1/100, 0); break;
         case 'dht': Y(n[0], n[2], 1/5000, 0); Y(n[1], n[0], 1/10000, 0); break;
@@ -2306,6 +2306,15 @@ Q2 := M0 AND NOT I3 AND NOT I5 AND NOT M3
     W([8,3],[9,3],[9,10],[14,10],[14,7]);             // CH2 (Y) ← แรงดันคร่อมตัวเก็บประจุ
     W([8,8],[8,11],[16,11],[16,7]);                   // กราวด์โพรบ
   })},
+  oscprobe: {nm:'ออสซิลโลสโคป: โพรบ ×1/×10 และทริก Single', f:() => build((C,W) => {
+    C('bat', 2, 6, {r:1, n:'B1', V:10}); W([2,5],[2,2],[9,2]); W([2,7],[2,12],[20,12]);
+    C('res', 5, 4, {r:1, n:'R1', R:1e6}); C('res', 5, 7, {r:1, n:'R2', R:1e6}); W([5,2],[5,3]); W([5,5],[5,6]); W([5,8],[5,12]);
+    C('pb', 9, 4, {r:1, n:'S1'}); C('res', 9, 6, {r:1, n:'R3', R:1e6}); C('res', 9, 9, {r:1, n:'R4', R:1e6}); W([9,2],[9,3]); W([9,7],[9,8]); W([9,10],[9,12]);
+    C('scope', 18, 6, {n:'OSC1', px1:1, px2:10, vdiv1:1, vdiv2:1, pos1:-3, pos2:-3, tdiv:0.01, trig:'2', tlev:2, tmode:'single'});
+    W([5,5],[6,5],[6,11],[17,11],[17,8]);            // CH1 ×1 ← จุดกลาง R1/R2 (โพรบ 1 MΩ ขนาน R2)
+    W([9,7],[11,7],[11,10],[18,10],[18,8]);          // CH2 ×10 ← จุดกลาง R3/R4 หลังปุ่ม S1
+    W([20,8],[20,12]);                               // กราวด์โพรบ
+  })},
   blank: {nm:'แผงว่าง', f:() => build(() => {})},
 };
 
@@ -2806,7 +2815,7 @@ function drawBlock(c, ghost){
       ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1; ctx.strokeRect(bx + 10, by + 10, sw, sh);
       const kx = bx + 20 + sw + (bw - sw - 30)/2;
       [[by + 26, '#cbd5e1'], [by + 56, SC_COL[0]], [by + 86, SC_COL[1]]].forEach(([y, col]) => { ctx.fillStyle = '#111827'; ctx.strokeStyle = col; ctx.lineWidth = 2; circ(kx, y, 9, true); });
-      ctx.fillStyle = c.run === false ? K.bad : '#4ade80'; dot(kx, by + 112, 4);
+      ctx.fillStyle = c.run === false ? K.bad : c._cap && c._cap.wait ? '#f59e0b' : '#4ade80'; dot(kx, by + 112, 4);
       text(fmtDiv(c.tdiv, 's'), bx + 12 + sw/2, by + sh + 20, 9, '#e2e8f0', 'center', '600', true);
       if (c.earth !== false) text('⏚ ต่อสายดิน', bx + bw - 10, by + sh + 20, 8, '#94a3b8', 'right', '600');
     } break;
@@ -3265,6 +3274,8 @@ function warnList(){
     if (c.t === 'nmos' && R.id > c.Imax) w.push(['bad', `MOSFET ${n}${rated} กระแสเกิน ${c.Imax} A`]);
     if (c.t === 'nmos' && c._mon && c._mg < 0.98 && R.id > 0.05) w.push(['warn', `MOSFET ${n}${rated} แรงดันเกตไม่พอ (Vgs ${fmt(R.vgs, 'V')} < ${c.Vfull} V) — นำไม่เต็มที่และร้อน`]);
     if (c.t === 'cable' && R.Ir > cableAmp(c)) w.push(['bad', `สาย ${n} ${c.A} mm² กระแส ${fmt(R.Ir, 'A')} เกินที่ทนได้ ${fmt(cableAmp(c), 'A')}`]);
+    if (c.t === 'scope'){ const p = scopeProbe(c); if (p) [0, 1].forEach(k => { const px = c['px' + (k + 1)] || 1, lim = px === 10 ? 600 : 300, pk = Math.abs(p[k].d) + Math.SQRT2*acm(p[k]);
+      if (pk > lim) w.push(['bad', `ออสซิลโลสโคป ${n}: CH${k + 1} แรงดันยอด ${fmt(pk, 'V')} เกินพิกัดโพรบ ×${px} (${lim} V)` + (px === 1 ? ' — เปลี่ยนเป็นโพรบ ×10' : '')]); }); }
     if (c.t === 'scope' && R.ig > 0.2) w.push(['bad', `ออสซิลโลสโคป ${n}: กราวด์โพรบมีกระแส ${fmt(R.ig, 'A')} ไหลลงสายดิน — คลิปกราวด์ต่อกับจุดที่มีแรงดัน (เช่นสาย L) ทำให้ลัดวงจร`]);
     if (c.t === 'human' && R.Ir > 0.01) w.push(['bad', `⚠ ไฟดูด! กระแสผ่านร่างกาย ${fmt(R.Ir, 'A')}`]);
     if (c.t === 'rcd' && c._trip === 'rcd') w.push(['warn', `เครื่องตัดไฟรั่ว ${n} ตัดไฟ — ตรวจหาจุดรั่วก่อนรีเซ็ต`]);
@@ -4146,6 +4157,9 @@ function fxPress(c){
    ============================================================ */
 let FORCE = null;
 const SC_COLS = 600, SC_V = [0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50,100,200];
+// ช่วง V/div ที่ปลายโพรบ: อินพุตเครื่อง 1 mV – 10 V/div คูณอัตราลดทอนของโพรบ (×1 / ×10)
+const scVlist = px => SC_V.filter(v => v >= 0.001*px*0.999 && v <= 10*px*1.001);
+const SC_TM = {auto:'Auto', norm:'Normal', single:'Single'};
 const SC_T = [1e-5,2e-5,5e-5,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3,1e-2,2e-2,5e-2,0.1,0.2,0.5,1,2];
 const SC_COL = ['#facc15', '#22d3ee', '#e879f9'];
 // ช่อง Math: ผลรวม/ผลต่าง/ผลคูณของ CH1 และ CH2 ณ เวลาเดียวกัน
@@ -4192,7 +4206,19 @@ function scopeRefresh(){
       FORCE = null; solveAll();
     }
   }
-  for (const c of scs) if (c.run !== false || !c._cap) c._cap = scopeCapture(c, sws);
+  for (const c of scs) if (c.run !== false || !c._cap) c._cap = scopeTrigHold(c, scopeCapture(c, sws));
+}
+// โหมดทริก: Auto = วาดเสมอ · Normal = ไม่ทริก → ค้างภาพล่าสุดที่ทริกได้ (ยังไม่เคยทริก = จอว่าง) · Single = ทริกครั้งแรกแล้วหยุด (STOP)
+function scopeTrigHold(c, cap){
+  const tm = c.tmode || 'auto';
+  if (!cap || tm === 'auto' || c.disp === 'fft' || (cap.roll && c.disp === 'xy')) return cap;
+  if (cap.trig){ cap.wait = false; if (tm === 'single'){ c.run = false; cap.done = true; } return cap; }
+  const old = c._cap;
+  if (old && old.trig && old.roll === cap.roll && tm === 'norm'){ old.wait = true; return old; }
+  cap.wait = true; cap.blank = true;
+  for (const ch of cap.ch){ ch.mn.fill(NaN); ch.mx.fill(NaN); if (ch.vc) ch.vc.fill(NaN); ch.max = ch.min = ch.avg = ch.rms = 0; ch.f = 0; ch.duty = null; }
+  if (cap.xy) cap.xy = null;
+  return cap;
 }
 function scopeCapture(c, sws){
   const base = scopeProbe(c); if (!base) return null;
@@ -4208,7 +4234,9 @@ function scopeCapture(c, sws){
   const cpl = k => c['cpl' + (k + 1)] === 'AC';
   if (!roll){
     // ฟังก์ชันรูปคลื่นตามเวลาจำลองจริง (หยุดจำลอง = ภาพนิ่ง)
-    const fn = (k, t) => { const ch = chs[k], tt = simT + t;
+    let step = null;
+    const fn = (k, t) => { if (step && t < 0){ const v = step[k]; return cpl(k) ? v - chs[k].mean : v; }
+      const ch = chs[k], tt = simT + t;
       let v = ch.sw ? ch.sw.lo + (ch.sw.hi - ch.sw.lo)*((((tt*ch.sw.f) % 1) + 1) % 1 < ch.sw.duty ? 1 : 0) : ch.d;
       if (ch.A) v += ch.A*Math.sin(2*Math.PI*ch.f*tt + ch.ph);
       return cpl(k) ? v - ch.mean : v; };
@@ -4219,6 +4247,10 @@ function scopeCapture(c, sws){
       let prev = fn(tk, 0);
       for (let n = 1; n <= N; n++){ const t = Ts*n/N, v = fn(tk, t);
         if (up ? (prev < c.tlev && v >= c.tlev) : (prev > c.tlev && v <= c.tlev)){ t0 = t; cap.trig = true; break; } prev = v; } }
+    // Normal/Single กับสัญญาณ DC: ระดับเปลี่ยนข้ามระดับทริกตั้งแต่ภาพก่อน = เหตุการณ์ขั้นบันได → วางจุดทริกที่ 1 ช่องจากซ้าย
+    if (!cap.trig && (c.tmode || 'auto') !== 'auto' && c._pd){ const a = c._pd[tk], b = chs[tk].d, up = c.slope !== 'down';
+      if (up ? (a < c.tlev && b >= c.tlev) : (a > c.tlev && b <= c.tlev)){ step = c._pd; t0 = -0.1*T; cap.trig = true; cap.tpos = 1; } }
+    c._pd = chs.map(ch => ch.d);
     cap.t0 = t0;
     const mo = scMath(c), fk = k => k === 2 ? (t => mo[1](fn(0, t), fn(1, t))) : (t => fn(k, t));
     for (const k of mo ? [0, 1, 2] : [0, 1]){ const mn = new Float32Array(SC_COLS), mx = new Float32Array(SC_COLS), vc = new Float32Array(SC_COLS), SUB = 6, F = fk(k);
@@ -4237,7 +4269,15 @@ function scopeCapture(c, sws){
     if (chs[0].A && chs[1].A){ let d = (chs[1].ph - chs[0].ph)*180/Math.PI; d = ((d + 540) % 360) - 180; cap.phase = d; }
     if (c.disp === 'fft') cap.fft = scopeFFT(c, fn, chs);
   } else {
-    const h = c._hist || [], t1 = simT, ta = t1 - T;
+    const h = c._hist || [], tm = c.tmode || 'auto';
+    let t1 = simT;
+    // Normal/Single: หาจุดตัดระดับในประวัติ แล้ววางไว้ที่ 1 ช่องจากซ้าย (ต้องบันทึกครบอีก 9 ช่องก่อน)
+    if (tm !== 'auto'){ const tk = c.trig === '2' ? 1 : 0, up = c.slope !== 'down', hit = j => { const a = h[j - 1].d[tk], b = h[j].d[tk]; return up ? (a < c.tlev && b >= c.tlev) : (a > c.tlev && b <= c.tlev); };
+      let tc = null;
+      if (tm === 'single'){ for (let j = 1; j < h.length; j++) if (h[j].t >= (c._arm || 0) && hit(j)){ tc = h[j].t; break; } }
+      else for (let j = h.length - 1; j > 0; j--) if (h[j].t + 0.9*T <= simT && hit(j)){ tc = h[j].t; break; }
+      if (tc != null && tc + 0.9*T <= simT + 1e-9){ t1 = tc + 0.9*T; cap.trig = true; cap.tpos = 1; } }
+    const ta = t1 - T;
     const mo = scMath(c);
     // ค่าของแต่ละแชนเนลจากรายการประวัติ: [DC, แอมพลิจูดยอดของ AC]
     const ev = (e, k) => { if (k < 2) return [e.d[k], e.a[k]];
@@ -4369,7 +4409,10 @@ function scopeDraw(g, X, Y, W, H, c, small){
     g.beginPath(); g.moveTo(X, y0 - (small ? 3 : 5)); g.lineTo(X + (small ? 5 : 9), y0); g.lineTo(X, y0 + (small ? 3 : 5)); g.fill();
   }
   if (!small && cap) scopeDrawCursors(g, X, Y, W, H, c);
-  if (!small && cap && !cap.roll){ const k = c.trig === '2' ? 1 : 0, pos = c['pos' + (k + 1)] || 0, y = Y + H/2 - (c.tlev/c['vdiv' + (k + 1)] + pos)*H/8;
+  if (cap && cap.tpos && cap.trig){ const x = X + cap.tpos*W/10; g.fillStyle = '#f97316'; g.beginPath(); g.moveTo(x - (small ? 3 : 5), Y); g.lineTo(x + (small ? 3 : 5), Y); g.lineTo(x, Y + (small ? 5 : 8)); g.fill(); }
+  if (cap && cap.blank && !small){ g.fillStyle = '#94a3b8'; g.font = "600 13px 'IBM Plex Sans Thai',sans-serif"; g.textAlign = 'center';
+    g.fillText(c.tmode === 'single' ? 'Single: รอทริกเกอร์ — สัญญาณต้องข้ามระดับทริก' : 'Normal: รอทริกเกอร์ — สัญญาณไม่ข้ามระดับทริก', X + W/2, Y + H/2 - 20); g.textAlign = 'left'; }
+  if (!small && cap && (!cap.roll || (c.tmode || 'auto') !== 'auto')){ const k = c.trig === '2' ? 1 : 0, pos = c['pos' + (k + 1)] || 0, y = Y + H/2 - (c.tlev/c['vdiv' + (k + 1)] + pos)*H/8;
     g.fillStyle = '#f97316'; g.beginPath(); g.moveTo(X + W, y - 5); g.lineTo(X + W - 9, y); g.lineTo(X + W, y + 5); g.fill(); }
   g.restore();
 }
@@ -4399,13 +4442,14 @@ function scopeDrawCursors(g, X, Y, W, H, c){
   g.restore();
 }
 function scopeHeadline(c){
-  const cap = c._cap, ch = k => `CH${k + 1} ${fmtDiv(c['vdiv' + (k + 1)], 'V')}/div ${c['cpl' + (k + 1)] || 'DC'}`;
+  const cap = c._cap, ch = k => `CH${k + 1} ${fmtDiv(c['vdiv' + (k + 1)], 'V')}/div ${c['cpl' + (k + 1)] || 'DC'}${(c['px' + (k + 1)] || 1) === 10 ? ' ×10' : ''}`;
+  const tm = c.tmode || 'auto', st = c.run === false ? (cap && cap.done ? 'STOP (Single)' : 'STOP') : cap && cap.wait ? 'WAIT' : tm === 'single' ? 'ARMED' : 'RUN';
   if (c.disp === 'xy') return ['XY', 'X = ' + ch(0), 'Y = ' + ch(1), cap && cap.phase != null ? 'Δφ ' + cap.phase.toFixed(1) + '°' : '', c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
   if (c.disp === 'fft') return ['FFT CH' + (c.fftch === '2' ? 2 : 1), 'ช่วง 0–' + fmt(cap && cap.fft ? cap.fft.span : 0, 'Hz'), (c.fref ?? 30) + ' dBV บนสุด · 10 dB/div', cap && cap.fft ? 'ความละเอียด ' + fmt(cap.fft.df, 'Hz') : '', 'Hann', c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
   const mo = scMath(c);
   return [ch(0), c.on2 !== false ? ch(1) : null, mo ? `M ${mo[0]} ${fmtDiv(c.vdivm, mo[2])}/div` : null, fmtDiv(c.tdiv, 's') + '/div',
-    cap && cap.roll ? 'ROLL' : `Trig CH${c.trig === '2' ? 2 : 1} ${c.slope === 'down' ? '↓' : '↑'} ${fmt(c.tlev, 'V')}` + (cap && !cap.roll ? (cap.trig ? '' : ' (ไม่ทริก)') : ''),
-    c.run === false ? 'STOP' : 'RUN'].filter(Boolean).join('   ');
+    cap && cap.roll && tm === 'auto' ? 'ROLL' : `${SC_TM[tm]} CH${c.trig === '2' ? 2 : 1} ${c.slope === 'down' ? '↓' : '↑'} ${fmt(c.tlev, 'V')}` + (cap && !cap.roll && tm === 'auto' && !cap.trig ? ' (ไม่ทริก)' : ''),
+    st].filter(Boolean).join('   ');
 }
 function scopeMeasHTML(c){
   const cap = c._cap; if (!cap) return '';
@@ -4421,6 +4465,7 @@ function scopeCurHTML(c, row){
   return `<div><b style="color:#fb923c">เคอร์เซอร์แรงดัน</b> <span class="sub">สเกล ${v.nm}</span>` + row('A', fv(v.vA, v.u)) + row('B', fv(v.vB, v.u)) + row('ΔV', fv(v.dv, v.u)) + `</div>`;
 }
 function scopeMeasBody(c, cap, row){
+  if (cap.blank) return `<div class="sub">รอทริกเกอร์ (${SC_TM[c.tmode] || ''}) — ยังไม่มีภาพที่จับได้ ตรวจแชนเนล/ระดับ/ขอบทริก หรือเปลี่ยนเป็น Auto</div>`;
   if (c.disp === 'fft' && cap.fft){ const F = cap.fft;
     return `<div><b style="color:${SC_COL[F.k]}">FFT CH${F.k + 1}</b> <span class="sub">ยอดความถี่ (Vrms / dBV)</span>` +
       F.peaks.map(p => row((p.h > 1 ? 'H' + p.h + ' ' : p === F.fund ? 'หลัก ' : '') + fmt(p.f, 'Hz'), fmt(p.v, 'V') + ' / ' + dBV(p.v).toFixed(1))).join('') + `</div>` +
@@ -4441,32 +4486,37 @@ function scopeAutoset(c){
   // สองแชนเนล: CH1 ครึ่งบน CH2 ครึ่งล่าง (สูงราว 3.5 ช่อง) · แชนเนลเดียว: กลางจอ (สูงราว 6 ช่อง)
   const both = c.on2 !== false && cap.ch[1].max - cap.ch[1].min > 0.01;
   [0, 1].forEach(k => { const m = cap.ch[k], pp = Math.max(m.max - m.min, 0.002), tg = pp/(both ? 3.5 : 6);
-    c['vdiv' + (k + 1)] = SC_V.find(v => v >= tg) || SC_V[SC_V.length - 1];
+    const vl = scVlist(c['px' + (k + 1)] || 1); c['vdiv' + (k + 1)] = vl.find(v => v >= tg) || vl[vl.length - 1];
     const mid = (m.max + m.min)/2; c['pos' + (k + 1)] = Math.max(-4, Math.min(4, Math.round((both ? (k ? -2 : 2) : 0)*2 - mid/c['vdiv' + (k + 1)]*2)/2));
     if (m.f && (!per || 1/m.f > per)) { per = 1/m.f; c.trig = String(k + 1); c.tlev = Math.round(mid*100)/100; } });
   if (per){ c.tdiv = SC_T.find(t => t*10 >= per*2.5) || 0.05; if (c.tdiv >= 0.1) c.tdiv = 0.05; } else c.tdiv = 0.2;
   scopeRefresh(); commit();
 }
 function scopeOpen(c){ scopeWin = c.id; scopeUI(); }
+// เตรียมจับภาพ Single: ล้างภาพ รอเหตุการณ์หลังเวลานี้
+function scopeArm(c){ c._arm = simT; c._cap = null; c._pd = null; c.run = true; }
 function scopeUI(){
   const el = $('#scopewin'), c = S.comps.find(x => x.id === scopeWin && x.t === 'scope');
   if (!c){ el.hidden = true; scopeWin = null; return; }
   el.hidden = false;
   const sel = (key, list, f) => `<select data-sc="${key}">${list.map(v => `<option value="${v}" ${String(c[key]) === String(v) ? 'selected' : ''}>${f(v)}</option>`).join('')}</select>`;
-  const vlist = sel => SC_V.map(v => v);
+  const vlist = k => { const l = scVlist(c['px' + k] || 1), v = c['vdiv' + k]; return l.includes(v) ? l : [...l, v].sort((a, b) => a - b); };
   el.innerHTML = `<div class="swh"><b>ออสซิลโลสโคป ${esc(c.n || '')}</b><span class="sub" id="schead"></span><span style="flex:1"></span>
-      <button class="btn ${c.run === false ? '' : 'on'}" data-sa="run">${c.run === false ? '▶ RUN' : '■ STOP'}</button><button class="btn" data-sa="auto">Auto Set</button><button class="btn" data-sa="close" title="ปิด">✕</button></div>
+      <button class="btn ${c.run === false ? '' : 'on'}" data-sa="run">${c.run === false ? '▶ RUN' : '■ STOP'}</button><button class="btn ${c.tmode === 'single' && c.run !== false ? 'on' : ''}" data-sa="single" title="จับภาพครั้งเดียวเมื่อทริก แล้วหยุด">SINGLE</button><button class="btn" data-sa="auto">Auto Set</button><button class="btn" data-sa="close" title="ปิด">✕</button></div>
     <canvas id="scv"></canvas>
     <div class="swc">
-      <label><span style="color:${SC_COL[0]}">CH1 V/div</span>${sel('vdiv1', vlist(), v => fmtDiv(v, 'V'))}</label>
+      <label><span style="color:${SC_COL[0]}">CH1 V/div</span>${sel('vdiv1', vlist(1), v => fmtDiv(v, 'V'))}</label>
       <label>CH1 ตำแหน่ง (div)<input type="range" min="-4" max="4" step="0.5" data-sc="pos1" value="${c.pos1}"></label>
       <label>CH1 Coupling${sel('cpl1', ['DC','AC'], v => v)}</label>
+      <label>CH1 โพรบ${sel('px1', [1, 10], v => '×' + v + (v === 10 ? ' (10 MΩ)' : ' (1 MΩ)'))}</label>
       <label>Time/div${sel('tdiv', SC_T, v => fmtDiv(v, 's') + (v >= 0.1 ? ' (roll)' : ''))}</label>
-      <label><span style="color:${SC_COL[1]}">CH2 V/div</span>${sel('vdiv2', vlist(), v => fmtDiv(v, 'V'))}</label>
+      <label><span style="color:${SC_COL[1]}">CH2 V/div</span>${sel('vdiv2', vlist(2), v => fmtDiv(v, 'V'))}</label>
       <label>CH2 ตำแหน่ง (div)<input type="range" min="-4" max="4" step="0.5" data-sc="pos2" value="${c.pos2}"></label>
       <label>CH2 Coupling${sel('cpl2', ['DC','AC'], v => v)}</label>
+      <label>CH2 โพรบ${sel('px2', [1, 10], v => '×' + v + (v === 10 ? ' (10 MΩ)' : ' (1 MΩ)'))}</label>
       <label>แสดง CH2<select data-sc="on2"><option value="1" ${c.on2 !== false ? 'selected' : ''}>เปิด</option><option value="0" ${c.on2 === false ? 'selected' : ''}>ปิด</option></select></label>
       <label>ทริกเกอร์${sel('trig', ['1','2'], v => 'CH' + v)}</label>
+      <label>โหมดทริก${sel('tmode', ['auto','norm','single'], v => ({auto:'Auto (วาดเสมอ)', norm:'Normal (รอทริก)', single:'Single (ครั้งเดียว)'})[v])}</label>
       <label>ขอบ${sel('slope', ['up','down'], v => v === 'up' ? 'ขาขึ้น ↑' : 'ขาลง ↓')}</label>
       <label>ระดับทริก (V)<input type="text" inputmode="decimal" data-sc="tlev" value="${c.tlev}"></label>
       <label>โหมดแสดงผล${sel('disp', ['yt','xy','fft'], v => ({yt:'Y–T (ปกติ)', xy:'XY (ลิสซาจูส)', fft:'FFT (สเปกตรัม)'})[v])}</label>
@@ -4497,12 +4547,15 @@ function scopeLive(){
   el.addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (!b) return; const c = S.comps.find(x => x.id === scopeWin);
     if (b.dataset.sa === 'close'){ scopeWin = null; el.hidden = true; return; }
     if (!c) return;
-    if (b.dataset.sa === 'run'){ c.run = c.run === false; if (c.run) c._hist = []; commit(); scopeUI(); }
+    if (b.dataset.sa === 'run'){ c.run = c.run === false; if (c.run){ if (c.tmode === 'single') scopeArm(c); else c._hist = []; } commit(); scopeUI(); }
+    if (b.dataset.sa === 'single'){ c.tmode = 'single'; c.run = true; scopeArm(c); commit(); scopeUI(); }
     if (b.dataset.sa === 'auto'){ scopeAutoset(c); scopeUI(); } });
   const upd = (e, done) => { const t = e.target, k = t.dataset.sc, c = S.comps.find(x => x.id === scopeWin); if (!k || !c) return;
-    if (k === 'on2') c.on2 = t.value === '1'; else if (['vdiv1','vdiv2','tdiv','pos1','pos2','fref','vdivm','posm'].includes(k)) c[k] = +t.value;
+    if (k === 'px1' || k === 'px2'){ const n = +t.value, o = c[k] || 1, vk = 'vdiv' + k[2]; c[k] = n; c[vk] = Math.min(Math.max(c[vk]*n/o, 0.001*n), 10*n); needSolve = true; solveNow(); }
+    else if (k === 'tmode'){ c.tmode = t.value; if (t.value === 'single'){ c.run = true; scopeArm(c); } }
+    else if (k === 'on2') c.on2 = t.value === '1'; else if (['vdiv1','vdiv2','tdiv','pos1','pos2','fref','vdivm','posm'].includes(k)) c[k] = +t.value;
     else if (k === 'tlev'){ const v = parseSI(t.value); if (!isFinite(v)) return; c.tlev = v; } else c[k] = t.value;
-    scopeRefresh(); scopeLive(); if (done) commit(); if (done && (k === 'math' || k === 'cur')) scopeUI(); };
+    scopeRefresh(); scopeLive(); if (done) commit(); if (done && ['math','cur','px1','px2','tmode'].includes(k)) scopeUI(); };
   // ลากเคอร์เซอร์บนจอ
   el.addEventListener('pointerdown', e => { if (e.target.id !== 'scv') return; const c = S.comps.find(x => x.id === scopeWin); if (!c || c.cur === 'off' || c.disp === 'xy') return;
     const cv2 = e.target, r = cv2.getBoundingClientRect(), vert = c.cur === 'time' || c.disp === 'fft';
@@ -4759,7 +4812,7 @@ function frame(now){
 
 window.__sim = {
   get S(){ return S; }, get RES(){ return RES; }, EX, FXS, setView, flit,
-  scope: n => { const c = S.comps.find(x => x.n === n); scopeRefresh(); return c && c._cap; }, scopeCursor: n => scopeCursorVals(S.comps.find(x => x.n === n)), scopeAutoset: n => scopeAutoset(S.comps.find(x => x.n === n)),
+  scope: n => { const c = S.comps.find(x => x.n === n); scopeRefresh(); return c && c._cap; }, scopeArm: n => scopeArm(S.comps.find(x => x.n === n)), scopeCursor: n => scopeCursorVals(S.comps.find(x => x.n === n)), scopeAutoset: n => scopeAutoset(S.comps.find(x => x.n === n)),
   load: x => (typeof x === 'string' && EX[x]) ? loadEx(x) : (load(x), cur = ser(), refreshUI()),
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },

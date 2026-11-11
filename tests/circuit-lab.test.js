@@ -171,6 +171,16 @@ const path = require('path');
     // เคอร์เซอร์: เวลา 2→6 div ที่ 5 ms/div = 20 ms (50 Hz); แรงดัน CH2 (5 V/div, ตำแหน่ง −3) A=2, B=−2 div → 25 V, 5 V
     { s.load('osc'); s.run(0.3); const c = s.S.comps.find(x => x.t === 'scope'); c.cur = 'time'; c.ta = 2; c.tb = 6; s.scope(c.n); const t = s.scopeCursor(c.n);
       c.cur = 'volt'; c.cch = '2'; c.va = 2; c.vb = -2; const v = s.scopeCursor(c.n); o.cur = [t.dt, t.inv, v.vA, v.vB, v.dv]; }
+    // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
+    // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
+    { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
+      S1._pr = true; s.poke(); s.run(0.2); cp = s.scope('OSC1');
+      o.probe = [w0[0], w0[1], cp.trig, c.run, cp.ch[0].vc[200], cp.ch[1].vc[30], cp.ch[1].vc[200]];
+      S1._pr = false; s.poke(); c.tmode = 'norm'; c.tdiv = 0.2; c._hist = []; s.scopeArm('OSC1'); s.run(1);
+      S1._pr = true; s.poke(); s.run(0.5); S1._pr = false; s.poke(); s.run(2.5); cp = s.scope('OSC1');
+      o.norm = [cp.trig, cp.ch[1].mx[30], cp.ch[1].mx[90], cp.ch[1].mx[400]];
+      s.load('osc'); s.find('T1').V2 = 230; s.find('T1').S = 2000; s.solveNow(); const wa = warnList().some(x => x[1].includes('เกินพิกัดโพรบ ×1'));
+      s.find('OSC1').px1 = 10; s.solveNow(); o.prwarn = [wa, warnList().some(x => x[1].includes('เกินพิกัดโพรบ'))]; }
     s.load('arduino'); s.run(1.2); o.pwmSw = scopeSwitchers().map(x => [x.f, Math.round(x.duty*100)/100]);
 
     o.mcuErr = ['arduino','esp32','pico','ardsense','espgarden','counter','motor'].map(k => (s.load(k), s.run(0.3), s.find('U1')._vm.err)).filter(Boolean);
@@ -246,6 +256,9 @@ const path = require('path');
   checks.push(['XY: วงจร RC ผลต่างเฟส ≈ −46°', Math.abs(r.xy[0] + 46.0) < 0.3 && r.xy[1] > 1000, JSON.stringify(r.xy)]);
   checks.push(['Math CH1−CH2: แรงดันคร่อม R Vpp ≈ 24.4 V, 8.64 Vrms 50 Hz (FFT และโหมดเลื่อนตรงกัน)', Math.abs(r.math[0] - 24.42) < 0.2 && Math.abs(r.math[1] - 8.63) < 0.08 && r.math[2] === 50 && Math.abs(r.math[3] - 50) < 0.2 && Math.abs(r.math[4] - 8.63) < 0.08 && Math.abs(r.math[5] - 24.42) < 0.2, JSON.stringify(r.math.map(x => +x.toFixed(3)))]);
   checks.push(['เคอร์เซอร์: Δt = 20 ms (1/Δt = 50 Hz), แรงดัน A 25 V B 5 V ΔV −20 V', Math.abs(r.cur[0] - 0.02) < 1e-9 && Math.abs(r.cur[1] - 50) < 1e-6 && r.cur[2] === 25 && r.cur[3] === 5 && r.cur[4] === -20, JSON.stringify(r.cur)]);
+  checks.push(['โพรบ: ×1 อ่าน 3.33 V (โหลด 1 MΩ), ×10 อ่าน 4.76 V; Single รอทริกแล้วจับขั้นบันได + STOP', r.probe[0] === true && r.probe[1] === true && r.probe[2] && r.probe[3] === false && Math.abs(r.probe[4] - 3.33) < 0.02 && Math.abs(r.probe[5]) < 0.05 && Math.abs(r.probe[6] - 4.75) < 0.03, JSON.stringify(r.probe)]);
+  checks.push(['ทริก Normal (โหมดเลื่อน): ค้างพัลส์ 0.5 s ที่ 1 ช่องจากซ้าย', r.norm[0] && r.norm[1] < 0.05 && Math.abs(r.norm[2] - 4.75) < 0.03 && r.norm[3] < 0.05, JSON.stringify(r.norm)]);
+  checks.push(['โพรบ: วัด 322 Vpk ด้วย ×1 เตือนเกินพิกัด, ×10 ไม่เตือน', r.prwarn[0] && !r.prwarn[1], JSON.stringify(r.prwarn)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
