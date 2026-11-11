@@ -2877,10 +2877,12 @@ function draw(now){
   // สายไฟ
   ctx.lineCap = 'round';
   const deg = new Map(), kk = (x,y) => x + ',' + y;
+  const hops = wireHops();
   S.wires.forEach((w, i) => {
     const s = sel && sel.k === 'w' && sel.i === i;
     if (s){ ctx.strokeStyle = K.sel; ctx.lineWidth = 7; ctx.globalAlpha = 0.35; line(w.x1*G, w.y1*G, w.x2*G, w.y2*G); ctx.globalAlpha = 1; }
-    ctx.strokeStyle = wireColor(i, w); ctx.lineWidth = 3; line(w.x1*G, w.y1*G, w.x2*G, w.y2*G);
+    ctx.strokeStyle = wireColor(i, w); ctx.lineWidth = 3;
+    if (hops[i]) hopLine(w, hops[i]); else line(w.x1*G, w.y1*G, w.x2*G, w.y2*G);
     for (const k of [kk(w.x1,w.y1), kk(w.x2,w.y2)]) deg.set(k, (deg.get(k)||0) + 1);
   });
   for (const c of S.comps) for (const p of pinsOf(c)){ const k = kk(p[0],p[1]); if (deg.has(k)) deg.set(k, deg.get(k) + 1); }
@@ -2913,6 +2915,29 @@ function draw(now){
   if ((tool === 'wire' || (drag && drag.k === 'wire')) && mouse.in){
     ctx.strokeStyle = K.sel; ctx.lineWidth = 1.5; circ(Math.round(mouse.gx)*G, Math.round(mouse.gy)*G, 6, false);
   }
+}
+// จุดที่สายผ่านโดยไม่ต่อ: ปลายสาย/ขั้วอื่นอยู่กลางเส้น หรือสายแนวตั้งตัดผ่านสายแนวนอน → วาดสะพานโค้ง (hop)
+function wireNodes(){ const n = new Set(); for (const w of S.wires){ n.add(w.x1 + ',' + w.y1); n.add(w.x2 + ',' + w.y2); }
+  for (const c of S.comps) for (const p of pinsOf(c)) n.add(p[0] + ',' + p[1]); return n; }
+function wireHops(){
+  const nodes = wireNodes(), vcov = new Set(), out = {};
+  for (const w of S.wires) if (w.x1 === w.x2 && w.y1 !== w.y2){ const a = Math.min(w.y1, w.y2), b = Math.max(w.y1, w.y2); for (let y = a; y <= b; y++) vcov.add(w.x1 + ',' + y); }
+  S.wires.forEach((w, i) => {
+    const h = w.y1 === w.y2, v = w.x1 === w.x2; if (h === v) return;
+    const n = Math.abs(h ? w.x2 - w.x1 : w.y2 - w.y1), sx = Math.sign(w.x2 - w.x1), sy = Math.sign(w.y2 - w.y1), L = [];
+    for (let k = 1; k < n; k++){ const x = w.x1 + sx*k, y = w.y1 + sy*k, key = x + ',' + y; if (nodes.has(key) || (h && vcov.has(key))) L.push(k); }
+    if (L.length) out[i] = L; });
+  return out;
+}
+function hopLine(w, L){
+  const r = 6, sx = Math.sign(w.x2 - w.x1), sy = Math.sign(w.y2 - w.y1), h = w.y1 === w.y2;
+  ctx.beginPath(); ctx.moveTo(w.x1*G, w.y1*G);
+  for (const k of L){ const px = (w.x1 + sx*k)*G, py = (w.y1 + sy*k)*G;
+    ctx.lineTo(px - sx*r, py - sy*r);
+    // โค้งขึ้นด้านบน (สายแนวนอน) หรือไปทางซ้าย (สายแนวตั้ง)
+    if (h) ctx.arc(px, py, r, sx > 0 ? Math.PI : 0, sx > 0 ? 0 : Math.PI, sx < 0);
+    else ctx.arc(px, py, r, sy > 0 ? -Math.PI/2 : Math.PI/2, sy > 0 ? Math.PI/2 : -Math.PI/2, sy > 0); }
+  ctx.lineTo(w.x2*G, w.y2*G); ctx.stroke();
 }
 function compBox(c){
   if (isTwo(c)){ const p = pinsOf(c); return [Math.min(p[0][0],p[1][0]) - 0.45, Math.min(p[0][1],p[1][1]) - 0.45, Math.max(p[0][0],p[1][0]) + 0.45, Math.max(p[0][1],p[1][1]) + 0.45]; }
@@ -2984,7 +3009,10 @@ function hitHmi(gx, gy){
 function wirePts(d){
   const {x, y, ex, ey} = d;
   if (x === ex || y === ey) return [[x,y],[ex,ey]];
-  return d.ax === 'v' ? [[x,y],[x,ey],[ex,ey]] : [[x,y],[ex,y],[ex,ey]];
+  // มุมหักต้องไม่ไปตกบนจุดต่อ/ขั้วที่มีอยู่ (จะกลายเป็นต่อโดยไม่ตั้งใจ) — ถ้าชนให้หักอีกทาง
+  let v = d.ax === 'v'; const nodes = wireNodes(), cn = v => v ? x + ',' + ey : ex + ',' + y;
+  if (nodes.has(cn(v)) && !nodes.has(cn(!v))) v = !v;
+  return v ? [[x,y],[x,ey],[ex,ey]] : [[x,y],[ex,y],[ex,ey]];
 }
 
 /* ============================================================
