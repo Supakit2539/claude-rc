@@ -7449,19 +7449,24 @@ function anCSV(){ const r = AN.res; if (!r) return '';
   if (r.kind === 'ac') return ['f (Hz),' + r.sel.map(p => `|${p.id}| (dB),${p.id} phase (deg)`).join(','), ...r.xs.map((f, i) => [f, ...r.sel.flatMap((p, k) => [20*Math.log10(Math.max(r.mag[k][i], 1e-30)), r.ph[k][i]])].map(v => +v.toPrecision(8)).join(','))].join('\n');
   const xl = r.kind === 'dc' ? (AN.dc.param === 'temp' ? 'T (°C)' : AN.dc.comp + '.' + AN.dc.param) : 't (s)';
   return [xl + ',' + r.sel.map(p => `${p.id} (${p.u})`).join(','), ...r.xs.map((x, i) => [x, ...r.ys.map(y => y[i])].map(v => +v.toPrecision(8)).join(','))].join('\n'); }
-function anSave(name, data, type){
-  try { const a = document.createElement('a'); a.href = typeof data === 'string' && data.startsWith('data:') ? data : URL.createObjectURL(new Blob([data], {type})); a.download = name; document.body.appendChild(a); a.click(); a.remove(); } catch (e){}
+// บันทึกไฟล์: ในหน้าแชร์ของ Claude ใช้ความสามารถ downloads (ผู้ชมยืนยันก่อน) · เปิดไฟล์ตรง (file://) ใช้ลิงก์ดาวน์โหลดปกติ
+async function anSave(name, data, type){
+  const blob = typeof data === 'string' && data.startsWith('data:') ? await (await fetch(data)).blob() : new Blob([data], {type});
+  const say = m => { const el = $('#anmsg'); if (el) el.innerHTML = AN.res ? anMsg() + ' · ' + m : m; };
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e){ dl = null; }
+  if (dl){ try { await dl.save({filename:name, data:blob}); say('บันทึก ' + esc(name) + ' แล้ว'); } catch (e){ say(e && e.code === 'declined' ? 'ยกเลิกการบันทึก' : 'บันทึกไฟล์ไม่ได้ในมุมมองนี้ — ใช้ปุ่มคัดลอกแทน'); } return; }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); say('บันทึก ' + esc(name) + ' แล้ว'); } catch (e){}
 }
 (function anEvents(){
   const el = $('#anwin');
   el.addEventListener('click', e => { const b = e.target.closest('[data-aa]'); if (!b) return; const a = b.dataset.aa;
     if (a === 'close') el.hidden = true;
     if (a === 'run') anRun();
-    if (a === 'csv'){ const t = anCSV(); if (!t) return; anSave('circuit-lab-' + AN.kind + '.csv', '﻿' + t, 'text/csv'); try { navigator.clipboard.writeText(t); } catch (e2){} $('#anmsg').innerHTML += ' · ส่งออก CSV แล้ว (คัดลอกลงคลิปบอร์ดด้วย)'; }
+    if (a === 'csv'){ const t = anCSV(); if (!t) return; try { navigator.clipboard.writeText(t); } catch (e2){} anSave('circuit-lab-' + AN.kind + '.csv', '\ufeff' + t, 'text/csv'); }
     if (a === 'png'){ const c2 = $('#anv'); if (c2) anSave('circuit-lab-' + AN.kind + '.png', c2.toDataURL('image/png')); }
     if (a === 'net'){ const box = $('#annet'), t = spNetlist(); box.hidden = !box.hidden;
-      box.innerHTML = `<div class="swh" style="cursor:default"><b>Netlist SPICE</b><span class="anhint">ตรวจผลกับ ngspice / LTspice ได้ (ลอจิก/ไทเมอร์ไม่รวม)</span><span style="flex:1"></span><button class="btn" data-aa="netdl">ดาวน์โหลด .cir</button><button class="btn" data-aa="netcp">คัดลอก</button></div><textarea readonly spellcheck="false">${esc(t)}</textarea>`; }
-    if (a === 'netdl') anSave('circuit-lab.cir', spNetlist(), 'text/plain');
+      box.innerHTML = `<div class="swh" style="cursor:default"><b>Netlist SPICE</b><span class="anhint">ตรวจผลกับ ngspice / LTspice ได้ (ลอจิก/ไทเมอร์ไม่รวม)</span><span style="flex:1"></span><button class="btn" data-aa="netdl">บันทึกไฟล์</button><button class="btn" data-aa="netcp">คัดลอก</button></div><textarea readonly spellcheck="false">${esc(t)}</textarea>`; }
+    if (a === 'netdl') anSave('circuit-lab-netlist.txt', spNetlist(), 'text/plain');
     if (a === 'netcp'){ try { navigator.clipboard.writeText(spNetlist()); b.textContent = 'คัดลอกแล้ว'; } catch (e2){} } });
   const upd = e => { const t = e.target, k = t.dataset.an, p = t.dataset.pr;
     if (p){ AN.probes = t.checked ? [...new Set([...AN.probes, p])] : AN.probes.filter(x => x !== p); if (AN.res && AN.res.kind !== 'op') anRun(); return; }
