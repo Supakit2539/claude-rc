@@ -244,6 +244,10 @@ const path = require('path');
       s.S.comps = s.S.comps.filter(c => c.t !== 'ethsw'); s.solveNow(); s.run(1.5); e.push(/ไม่มีลิงก์/.test(p1._p3._mb.lastErr));
       o['tcp_' + md] = e; }
     { const a = tcpAdu(7, mbBytes(mbFrame([1, 3, 0, 0, 0, 4]))); o.mbap = hexB(a); }
+    // แรงดันบัส RS-485: ว่าง (ไบแอส 680 Ω) ≈ 0.21 V, ขณะส่ง ≈ 2.8 V, แต่ละเส้นเทียบ GND ≈ 2.5 V
+    { s.load('rs485'); s.run(1); const m = s.find('MD2'), V = () => { const p = s.RES.comp[m.id].pv; return [p[6].d - p[5].d, p[6].d - p[7].d]; }; let idle = null, tx = null;
+      for (let i = 0; i < 30; i++){ s.step(0.05); const v = V(); if (s.find('MD1')._drv) tx = v; else idle = v; }
+      o.busV = [idle, tx].map(v => v && v.map(x => +x.toFixed(2))); }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -390,6 +394,8 @@ const path = require('path');
   for (const md of ['lad', 'txt']) checks.push([`Modbus TCP (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): S1 ที่ PLC2 → H1 ที่ PLC1, ตัวนับ D0 ถึง HMI, ปุ่ม HMI → PLC1 → PLC2 ไฟ H2, ซับเน็ตผิด/IP ซ้ำ/ไม่มีลิงก์ แจ้งเตือน`,
     JSON.stringify(r['tcp_' + md]) === JSON.stringify([0, true, true, 1, 1, 1, 1, 0, true, true, true]), JSON.stringify(r['tcp_' + md])]);
   checks.push(['Modbus TCP: MBAP ของ TID 7 อ่าน holding 0–3 = 00 07 00 00 00 06 01 03 00 00 00 04', r.mbap === '00 07 00 00 00 06 01 03 00 00 00 04', r.mbap]);
+  checks.push(['บัส RS-485 วัดแรงดันได้: ว่าง A−B ≈ 0.21 V (ไบแอส 680 Ω), A−GND ≈ 2.6 V; ขณะส่ง A−B ≈ 2.8 V',
+    r.busV[0] && r.busV[1] && Math.abs(r.busV[0][0] - 0.21) < 0.05 && Math.abs(r.busV[0][1] - 2.6) < 0.2 && r.busV[1][0] > 2, JSON.stringify(r.busV)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
