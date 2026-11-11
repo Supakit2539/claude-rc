@@ -179,6 +179,17 @@ const path = require('path');
       e.push(P(), s.find('SQ2').act, H1(), !s.find('KU')._on); s.run(8); e.push(P(), s.find('SQ3').act);
       press('F1'); s.run(12); e.push(P(), s.find('SQ1').act, !s.find('KD')._on);
       o['elev_' + md] = e; }
+    // เซนเซอร์อุตสาหกรรม (indsense) ทั้งแลดเดอร์และข้อความ: หลอด H1–H4 = ปั๊ม, เตือน, ฮีตเตอร์, พร้อมป้อน
+    for (const md of ['lad', 'txt']){ s.load('indsense'); const plc = s.find('PLC1'); plc.prog.mode = md; delete plc._cp; s.run(0.5);
+      const L = () => ['H1','H2','H3','H4'].map(n => s.RES.comp[s.find(n).id].Ir > 0.02 ? 1 : 0).join(''), set = (n, k, v) => { s.find(n)[k] = v; s.solveNow(); s.run(0.3); return L(); };
+      const e = [L()];
+      e.push(set('BF1', 'pv', 0)); s.run(3.5); e.push(L()); set('BF1', 'pv', 3);                     // ไม่มีน้ำไหล → เตือนหลัง 3 s
+      e.push(set('BP1', 'pv', 3), set('BP1', 'pv', 2), set('BP1', 'pv', 1.3));                        // ตัด 2.8 bar, ค้าง (ดิฟ), ต่อ 1.4 bar
+      e.push(set('LC1', 'det', true)); set('LC1', 'det', false);                                        // บังม่านแสง → หยุดทุกอย่าง + เตือน
+      e.push(set('GD1', 'lel', 30)); set('GD1', 'lel', 0);
+      e.push(set('UB1', 'dist', 50)); set('UB1', 'dist', 150);
+      e.push(set('BT1', 'pv', 70), set('CX1', 'det', true));
+      o['ind_' + md] = e; }
     // โพรบ ×1/×10: ตัวแบ่ง 1 MΩ/1 MΩ จาก 10 V → ×1 (1 MΩ ขนาน) 3.33 V, ×10 (10 MΩ ขนาน) 4.76 V
     // Single: รอทริก (จอว่าง) → กด S1 → จับขั้นบันไดที่ 1 ช่องแล้ว STOP; Normal ในโหมดเลื่อนค้างพัลส์ไว้
     { s.load('oscprobe'); s.run(0.2); const c = s.find('OSC1'), S1 = s.find('S1'); let cp = s.scope('OSC1'); const w0 = [cp.blank, c.run];
@@ -304,6 +315,8 @@ const path = require('path');
   for (const md of ['lad', 'txt']){ const e = r['elev_' + md];
     checks.push([`ลิฟต์ 3 ชั้น (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): ขึ้นไปชั้น 3 แวะชั้น 2 ที่เรียกระหว่างทาง (ประตูเปิด) แล้วลงชั้น 1`,
       e[0] && Math.abs(e[1] - 1.5) < 0.07 && e[2] && e[3] && e[4] && Math.abs(e[5] - 3) < 0.07 && e[6] && Math.abs(e[7]) < 0.07 && e[8] && e[9], JSON.stringify(e.map(v => typeof v === 'number' ? +v.toFixed(2) : v))]); }
+  for (const md of ['lad', 'txt']) checks.push([`เซนเซอร์อุตสาหกรรม (${md === 'lad' ? 'แลดเดอร์' : 'ข้อความ'}): โฟลว์/ความดัน (ดิฟเฟอเรนเชียล)/ม่านแสง/แก๊ส/อัลตราโซนิก/เทอร์โมสตัท/คาปาซิทีฟ`,
+    JSON.stringify(r['ind_' + md]) === JSON.stringify(['1011','1011','1111','0011','0011','1011','0100','0101','1010','1001','1000']), JSON.stringify(r['ind_' + md])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

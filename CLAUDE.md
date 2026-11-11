@@ -33,6 +33,11 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      `SENS[t] = [ขาไฟเลี้ยง, ขากราวด์]` ใช้ตรวจไฟเลี้ยง (`c._pw`); ค่าสิ่งแวดล้อม (lux, temp, dist, moist, det ฯลฯ) เป็นฟิลด์ที่บันทึกได้
      โมดูลดิจิทัลต่อขา OUT ไปขาไฟเลี้ยง/กราวด์ด้วย 100 Ω; แอนะล็อกเป็นวงจรแบ่งแรงดัน; `prox`/`photo` PNP/NPN สวิตช์ OUT ไป +V/0V
      `tx420` เป็นแหล่งกระแส 4–20 mA (`txI`) เมื่อแรงดันลูป ≥ 10 V (สถานะพีชคณิต `c._on`)
+   - เซนเซอร์อุตสาหกรรมดิจิทัล 3 สาย (`DIG3`): `prox`, `photo`, `capx` คาปาซิทีฟ, `magsw` แม่เหล็กกระบอกลม, `ultra` อัลตราโซนิก (`dist` ≤ `sp`), `curtain` ม่านแสง (OSSD ON เมื่อไม่ถูกบัง),
+     `gasdet` (`lel` ≥ `sp`) — ใช้ stamp เดียวกัน (OUT → +V หรือ 0V ตาม `kind`), สถานะจาก `dig3Act(c)` × ไฟเลี้ยง ≥ 10 V (`c._pw`)
+   - สวิตช์กระบวนการ 2 ขั้ว (`PSW`): `presw`, `flowsw`, `tstat` — `pv` ถึง `sp` → `c._st` ทำงาน, คืนเมื่อ ≤ `sp − hys` (`pswAct`), หน้าสัมผัส `mode` NO/NC (`pswClosed`)
+   - `MODELS` มีรุ่นจริงของ prox (M8–M30), photo (diffuse/BGS/retro/through-beam), capx, magsw, ultra, curtain (Type 2/4), gasdet, presw, flowsw, tstat, tx420 (PT100/TC-K/ความดัน/ระดับ/การไหล/โหลดเซลล์/%RH), limit
+     (ตัวอย่างที่สร้างด้วย `build` ไม่เรียก `applyModel` — ใส่ค่าสเปกเองถ้าต้องการ)
    - อิเล็กทรอนิกส์: 2 ขั้ว `diode`, `zener`, `dcm`; บล็อก `npn`, `pnp`, `nmos`, `reg` (78xx), `opto`, `ne555`, `seg7`, `rgb`, `spdt`
      รอยต่อ PN แบบ piecewise ใน `JUNC[t](c)` = `[ขาแอโนด, ขาแคโทด, Vf, R]` ต่อรอยต่อ ใช้ตัวแปรกระแส 1 ตัว (`NV`), สถานะใน `c._js[i]`
      (diode 1, zener 2 = ตรง + ซีเนอร์, seg7 8, rgb 3, opto 1) · ทรานซิสเตอร์ BJT: สถานะ `c._bj` = off/act/sat, ตัวแปร 2 ตัว (Ib, Ic)
@@ -78,7 +83,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -151,6 +156,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - arduino: pot 70% → A0 ≈ 716, LED (PWM) หรี่ลงเมื่อหมุน pot ลง · esp32: กดปุ่มครั้งเดียว → LED ติด นับ 1 ครั้ง · pico: ไฟแดง ≈3.5 mA แล้วเปลี่ยนเป็นเขียว
 - ardsense: บรรทัดแรกของ Serial = `T=25C H=60% แสง=936 ระยะ=100cm PIR=0` · espgarden: ดินแห้ง → เซอร์โว 90°, ชื้น → 0°
 - plcsense: ทรานสมิตเตอร์ 40% → AI0 ≈ 40, พร็อกซิมิตี้ → Q0, ลิมิตสวิตช์ตัด Q0, AI0 > 75 → Q2
+- indsense: H1–H4 = 1011 → ไม่มีน้ำไหล 3 s → เตือน; ความดัน 3 bar ตัด, 2 bar ค้าง, 1.3 bar ต่อ; บังม่านแสง → 0100; แก๊ส → 0101; วัตถุใกล้ UB1 → H4 ดับ; ร้อน → H3 ดับ (แลดเดอร์/ข้อความ)
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด

@@ -296,7 +296,25 @@ T.prox  = {nm:'พร็อกซิมิตี้เซนเซอร์ 24 V
 T.photo = {nm:'โฟโตอิเล็กทริกเซนเซอร์ 24 V',  ic:'◉→', pre:'PE', d:{kind:'PNP', det:false}, pins:P3('+V','OUT','0V'), box:[-1.4,-1.8,1.4,1]};
 T.tx420 = {nm:'ทรานสมิตเตอร์ 4–20 mA',       ic:'mA', pre:'TT', d:{q:'T', unit:'°C', min:0, max:150, pct:40}, pins:[[-1,1,'+'],[1,1,'−']], box:[-1.6,-1.4,1.6,1]};
 // [ขาไฟเลี้ยง, ขากราวด์] ของโมดูลเซนเซอร์
-const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0], prox:[0,2], photo:[0,2]};
+// เซนเซอร์อุตสาหกรรมเพิ่มเติม — ดิจิทัล 3 สาย (+V, OUT, 0V) แบบ PNP/NPN ใช้โมเดลเดียวกับพร็อกซิมิตี้
+const BX3 = [-1.4,-1.8,1.4,1];
+T.capx    = {nm:'พร็อกซิมิตี้แบบคาปาซิทีฟ 24 V',      ic:'⊏≈', pre:'CX', d:{kind:'PNP', det:false}, pins:P3('+V','OUT','0V'), box:BX3};
+T.magsw   = {nm:'เซนเซอร์แม่เหล็กกระบอกลม 24 V',     ic:'⊂⊃', pre:'BG', d:{kind:'PNP', det:true}, pins:P3('+V','OUT','0V'), box:BX3};
+T.ultra   = {nm:'อัลตราโซนิกเซนเซอร์ (สวิตช์ระยะ) 24 V', ic:')))', pre:'UB', d:{kind:'PNP', dist:150, sp:50}, pins:P3('+V','OUT','0V'), box:BX3};
+T.curtain = {nm:'ม่านแสงนิรภัย (Safety light curtain)', ic:'⦀', pre:'LC', d:{kind:'PNP', det:false}, pins:P3('+V','OSSD','0V'), box:BX3};
+T.gasdet  = {nm:'เครื่องตรวจจับแก๊สติดไฟ 24 V',      ic:'⚠', pre:'GD', d:{kind:'PNP', lel:0, sp:20}, pins:P3('+V','OUT','0V'), box:BX3};
+// สวิตช์กระบวนการ 2 ขั้ว: หน้าสัมผัสเปลี่ยนเมื่อค่าที่วัด (pv) ถึงจุดตั้ง (sp) และคืนเมื่อลดลงต่ำกว่า sp − hys (ดิฟเฟอเรนเชียล)
+T.presw   = {nm:'เพรสเชอร์สวิตช์ (สวิตช์ความดัน)',    ic:'P',  pre:'BP', d:{mode:'NC', pv:2, sp:4, hys:1}};
+T.flowsw  = {nm:'โฟลว์สวิตช์ (สวิตช์การไหล)',          ic:'F',  pre:'BF', d:{mode:'NO', pv:5, sp:1, hys:0.3}};
+T.tstat   = {nm:'เทอร์โมสตัท (สวิตช์อุณหภูมิ)',         ic:'°C', pre:'BT', d:{mode:'NC', pv:20, sp:60, hys:5}};
+const DIG3 = ['prox','photo','capx','magsw','ultra','curtain','gasdet'], PSW = ['presw','flowsw','tstat'];
+const PSWU = {presw:'bar', flowsw:'m³/h', tstat:'°C'};
+// เซนเซอร์ "ทำงาน" (ก่อนคิดไฟเลี้ยง): ม่านแสงทำงานเมื่อไม่มีสิ่งกีดขวาง (OSSD ON = ปลอดภัย)
+const dig3Act = c => c.t === 'ultra' ? c.dist <= c.sp : c.t === 'gasdet' ? c.lel >= c.sp : c.t === 'curtain' ? !c.det : !!c.det;
+function pswAct(c){ if (c.pv >= c.sp) c._st = true; else if (c.pv <= c.sp - Math.abs(c.hys || 0)) c._st = false; return !!c._st; }
+const pswClosed = c => (c.mode === 'NC') !== pswAct(c);
+const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0]};
+for (const t of DIG3) SENS[t] = [0, 2];
 const ldrR = c => c.lux <= 0 ? 2e6 : Math.min(2e6, Math.max(100, 10000*Math.pow(c.lux/10, -0.7)));
 const ntcR = c => c.R25*Math.exp(c.B*(1/(c.temp + 273.15) - 1/298.15));
 const txI  = c => (4 + 16*Math.max(0, Math.min(100, c.pct))/100)/1000;
@@ -593,6 +611,75 @@ const MODELS = {
   ],
   cable: [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95].map(a => ({id:'thw' + a, nm:`สาย THW (IEC 01) ${a} mm²`, sh:a + 'mm²', p:{A:a, mat:'Cu'},
     spec:{'กระแสที่ทนได้ (ในท่อ, ประมาณ)':(CABLE[a]) + ' A', 'ความต้านทาน':(17.5/a).toFixed(2) + ' mΩ/m'}})),
+  prox: [
+    {id:'m8', nm:'พร็อกซิมิตี้เหนี่ยวนำ M8 ระยะ 1.5 mm PNP NO', sh:'M8 1.5mm', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ (Sn)':'1.5 mm (ฝังเรียบ)', 'ไฟเลี้ยง':'10–30 VDC', 'กระแสเอาต์พุต':'≤ 200 mA', 'ความถี่สวิตช์':'3 kHz', 'ป้องกัน':'IP67'}},
+    {id:'m12', nm:'พร็อกซิมิตี้เหนี่ยวนำ M12 ระยะ 4 mm PNP NO', sh:'M12 4mm', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ (Sn)':'4 mm (ไม่ฝังเรียบ)', 'ไฟเลี้ยง':'10–30 VDC', 'กระแสเอาต์พุต':'≤ 200 mA', 'ความถี่สวิตช์':'1 kHz'}},
+    {id:'m18', nm:'พร็อกซิมิตี้เหนี่ยวนำ M18 ระยะ 8 mm PNP NO', sh:'M18 8mm', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ (Sn)':'8 mm (เหล็ก St37)', 'ตัวคูณวัสดุ':'อะลูมิเนียม ×0.4, ทองเหลือง ×0.5', 'ไฟเลี้ยง':'10–30 VDC'}},
+    {id:'m18n', nm:'พร็อกซิมิตี้เหนี่ยวนำ M18 ระยะ 8 mm NPN NO', sh:'M18 NPN', p:{kind:'NPN'}, spec:{'ระยะตรวจจับ (Sn)':'8 mm', 'เอาต์พุต':'NPN (sink) — COM ของอินพุตต่อ +24 V'}},
+    {id:'m30', nm:'พร็อกซิมิตี้เหนี่ยวนำ M30 ระยะ 15 mm PNP NO', sh:'M30 15mm', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ (Sn)':'15 mm (ไม่ฝังเรียบ)', 'ไฟเลี้ยง':'10–30 VDC', 'ความถี่สวิตช์':'300 Hz'}},
+  ],
+  photo: [
+    {id:'dif', nm:'โฟโตเซนเซอร์แบบกระจายแสง (diffuse) 100 mm PNP', sh:'Diffuse', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ':'100 mm (กระดาษขาว)', 'แหล่งแสง':'LED แดง', 'เวลาตอบสนอง':'0.5 ms', 'โหมด':'Light-ON / Dark-ON เลือกได้'}},
+    {id:'bgs', nm:'โฟโตเซนเซอร์ตัดฉากหลัง (BGS) 300 mm PNP', sh:'BGS', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ':'20–300 mm ปรับได้', 'จุดเด่น':'ไม่สนสีวัตถุและฉากหลัง'}},
+    {id:'retro', nm:'โฟโตเซนเซอร์สะท้อนกลับ (retro-reflective) 3 m PNP', sh:'Retro 3m', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ':'0.1–3 m (ใช้แผ่นสะท้อน)', 'ตัวกรอง':'โพลาไรซ์ (ตรวจวัตถุมันวาวได้)'}},
+    {id:'thru', nm:'โฟโตเซนเซอร์ลำแสงตรง (through-beam) 10 m PNP', sh:'Thru 10m', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ':'10 m (ตัวส่ง + ตัวรับ)', 'วัตถุเล็กสุด':'Ø 7 mm ทึบแสง'}},
+    {id:'thrun', nm:'โฟโตเซนเซอร์ลำแสงตรง 10 m NPN', sh:'Thru NPN', p:{kind:'NPN'}, spec:{'ระยะตรวจจับ':'10 m', 'เอาต์พุต':'NPN (sink)'}},
+  ],
+  capx: [
+    {id:'c18', nm:'คาปาซิทีฟ M18 ระยะ 8 mm (ปรับได้) PNP', sh:'M18 8mm', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ (Sn)':'1–8 mm ปรับด้วยโพเทนชิโอมิเตอร์', 'วัสดุ':'โลหะ พลาสติก ไม้ ของเหลว ผง', 'ไฟเลี้ยง':'10–30 VDC'}},
+    {id:'c30', nm:'คาปาซิทีฟ M30 ระยะ 20 mm ตรวจระดับผ่านผนังถัง PNP', sh:'M30 ระดับ', p:{kind:'PNP'}, spec:{'ระยะตรวจจับ (Sn)':'2–20 mm', 'งาน':'ตรวจระดับของเหลว/เม็ดพลาสติกผ่านผนังถังที่ไม่ใช่โลหะ (หนา ≤ 10 mm)'}},
+    {id:'c30n', nm:'คาปาซิทีฟ M30 ระยะ 20 mm NPN', sh:'M30 NPN', p:{kind:'NPN'}, spec:{'ระยะตรวจจับ (Sn)':'2–20 mm', 'เอาต์พุต':'NPN (sink)'}},
+  ],
+  magsw: [
+    {id:'tslot', nm:'เซนเซอร์กระบอกลมแบบร่อง T (ฮอลล์) PNP 3 สาย', sh:'T-slot PNP', p:{kind:'PNP'}, spec:{'ติดตั้ง':'ร่อง T ของกระบอกลม', 'ตรวจจับ':'แม่เหล็กบนลูกสูบ', 'ไฟเลี้ยง':'10–30 VDC', 'กระแสเอาต์พุต':'≤ 100 mA'}},
+    {id:'cslot', nm:'เซนเซอร์กระบอกลมแบบร่อง C (ฮอลล์) NPN 3 สาย', sh:'C-slot NPN', p:{kind:'NPN'}, spec:{'ติดตั้ง':'ร่อง C', 'เอาต์พุต':'NPN (sink)'}},
+    {id:'reed', nm:'รีดสวิตช์กระบอกลม 3 สาย (มี LED) PNP', sh:'Reed', p:{kind:'PNP'}, spec:{'ชนิด':'หน้าสัมผัสรีดในหลอดแก้ว', 'แรงดัน':'5–240 V AC/DC', 'กระแส':'≤ 100 mA', 'หมายเหตุ':'อายุสั้นกว่าแบบฮอลล์ ห้ามต่อโหลดคาปาซิทีฟ'}},
+  ],
+  ultra: [
+    {id:'u18', nm:'อัลตราโซนิก M18 ระยะ 3–30 cm PNP', sh:'M18 30cm', p:{kind:'PNP', sp:15}, spec:{'ช่วงวัด':'30–300 mm', 'บอดโซน':'0–30 mm', 'ความถี่คลื่น':'390 kHz', 'งาน':'ตรวจวัตถุโปร่งใส ขวดใส ของเหลว'}},
+    {id:'u30', nm:'อัลตราโซนิก M30 ระยะ 20–200 cm PNP', sh:'M30 2m', p:{kind:'PNP', sp:100}, spec:{'ช่วงวัด':'200–2000 mm', 'บอดโซน':'0–200 mm', 'ความถี่คลื่น':'180 kHz'}},
+    {id:'u30l', nm:'อัลตราโซนิก M30 ระยะ 35–400 cm สำหรับตรวจระดับ PNP', sh:'M30 4m', p:{kind:'PNP', sp:50}, spec:{'ช่วงวัด':'350–4000 mm', 'งาน':'ระดับน้ำ/ไซโลจากด้านบน (ระยะสั้น = ระดับสูง)'}},
+  ],
+  curtain: [
+    {id:'t4f', nm:'ม่านแสงนิรภัย Type 4 ความละเอียด 14 mm (ป้องกันนิ้ว)', sh:'14mm Type4', p:{kind:'PNP'}, spec:{'มาตรฐาน':'IEC 61496 Type 4, PL e', 'ความละเอียด':'14 mm', 'ระยะตรวจจับ':'0.2–6 m', 'เอาต์พุต':'OSSD PNP 2 ช่อง', 'เวลาตอบสนอง':'≤ 15 ms'}},
+    {id:'t4h', nm:'ม่านแสงนิรภัย Type 4 ความละเอียด 30 mm (ป้องกันมือ)', sh:'30mm Type4', p:{kind:'PNP'}, spec:{'มาตรฐาน':'IEC 61496 Type 4, PL e', 'ความละเอียด':'30 mm', 'ระยะตรวจจับ':'0.2–12 m'}},
+    {id:'t2b', nm:'ม่านแสงนิรภัย Type 2 สำหรับตรวจลำตัว (2 ลำแสง)', sh:'Body Type2', p:{kind:'PNP'}, spec:{'มาตรฐาน':'IEC 61496 Type 2, PL c', 'ลำแสง':'2 ลำ (ห่าง 500 mm)', 'งาน':'ทางเข้าพื้นที่อันตราย'}},
+  ],
+  gasdet: [
+    {id:'lpg', nm:'เครื่องตรวจจับแก๊ส LPG แบบแคทาลิติก เตือน 20 %LEL', sh:'LPG 20%', p:{kind:'PNP', sp:20}, spec:{'ช่วงวัด':'0–100 %LEL', 'เซนเซอร์':'แคทาลิติกบีด', 'ไฟเลี้ยง':'24 VDC', 'เอาต์พุต':'รีเลย์/ทรานซิสเตอร์ + 4–20 mA'}},
+    {id:'ch4', nm:'เครื่องตรวจจับแก๊สมีเทน (NG) อินฟราเรด เตือน 10 %LEL', sh:'CH4 IR 10%', p:{kind:'PNP', sp:10}, spec:{'ช่วงวัด':'0–100 %LEL', 'เซนเซอร์':'อินฟราเรด (NDIR) ไม่เสื่อมเพราะพิษ', 'ป้องกัน':'Ex d IIC T6'}},
+  ],
+  presw: [
+    {id:'pump', nm:'สวิตช์แรงดันปั๊มน้ำ 1.4–2.8 bar (ตัดที่ 2.8 ต่อที่ 1.4)', sh:'1.4–2.8 bar', p:{mode:'NC', sp:2.8, hys:1.4}, spec:{'ช่วงตั้ง':'cut-in 1.4 bar / cut-out 2.8 bar', 'หน้าสัมผัส':'NC 16 A 230 V', 'เกลียวต่อ':'1/4"'}},
+    {id:'air', nm:'สวิตช์แรงดันคอมเพรสเซอร์ 6–8 bar', sh:'6–8 bar', p:{mode:'NC', sp:8, hys:2}, spec:{'ช่วงตั้ง':'cut-in 6 bar / cut-out 8 bar', 'หน้าสัมผัส':'NC', 'มี':'วาล์วระบายลมขณะสตาร์ท'}},
+    {id:'ind', nm:'เพรสเชอร์สวิตช์อุตสาหกรรม 1–10 bar ปรับได้ SPDT', sh:'1–10 bar', p:{mode:'NO', sp:5, hys:0.5}, spec:{'ช่วงตั้ง':'1–10 bar', 'ดิฟเฟอเรนเชียล':'0.3–1.5 bar ปรับได้', 'หน้าสัมผัส':'SPDT 15 A'}},
+    {id:'low', nm:'สวิตช์แรงดันต่ำกันปั๊มทำงานแห้ง 0.5 bar', sh:'Low 0.5 bar', p:{mode:'NO', sp:0.5, hys:0.2}, spec:{'จุดตั้ง':'0.5 bar', 'งาน':'แรงดันต่ำกว่าจุดตั้ง = ไม่มีน้ำ → หยุดปั๊ม'}},
+  ],
+  flowsw: [
+    {id:'pad', nm:'โฟลว์สวิตช์แบบใบพาย (paddle) ท่อ 1"', sh:'Paddle 1"', p:{mode:'NO', sp:1.2, hys:0.3}, spec:{'ท่อ':'1"–8" (ตัดใบพายตามขนาด)', 'จุดตั้งต่ำสุด':'≈ 1.2 m³/h (ท่อ 1")', 'หน้าสัมผัส':'SPDT 15 A'}},
+    {id:'th', nm:'โฟลว์สวิตช์แบบความร้อน (thermal dispersion)', sh:'Thermal', p:{mode:'NO', sp:0.5, hys:0.1}, spec:{'หลักการ':'อัตราการระบายความร้อนของหัววัด', 'จุดเด่น':'ไม่มีชิ้นส่วนเคลื่อนที่ ตรวจของเหลวและอากาศ'}},
+  ],
+  tstat: [
+    {id:'cap', nm:'เทอร์โมสตัทกระเปาะ+แคปิลลารี 30–110 °C', sh:'30–110 °C', p:{mode:'NC', sp:60, hys:4}, spec:{'ช่วงตั้ง':'30–110 °C', 'ดิฟเฟอเรนเชียล':'≈ 4 K', 'หน้าสัมผัส':'SPDT 16 A 250 V', 'งาน':'ควบคุมฮีตเตอร์ (NC ตัดเมื่อร้อนถึงจุดตั้ง)'}},
+    {id:'bim', nm:'เทอร์โมสตัทไบเมทัล 85 °C NC (ตัดความร้อนเกิน)', sh:'85 °C NC', p:{mode:'NC', sp:85, hys:15}, spec:{'จุดตัด':'85 °C ±5', 'คืนตัว':'≈ 70 °C', 'งาน':'ป้องกันความร้อนเกินของมอเตอร์/ฮีตเตอร์'}},
+    {id:'cab', nm:'สวิตช์อุณหภูมิตู้ควบคุม 0–60 °C (NO สั่งพัดลม)', sh:'ตู้ NO', p:{mode:'NO', sp:35, hys:7}, spec:{'ช่วงตั้ง':'0–60 °C', 'ติดตั้ง':'ราง DIN', 'งาน':'อุณหภูมิในตู้ถึงจุดตั้ง → สั่งพัดลมระบาย'}},
+  ],
+  tx420: [
+    {id:'pt100', nm:'ทรานสมิตเตอร์อุณหภูมิ PT100 0–150 °C', sh:'PT100', p:{q:'T', unit:'°C', min:0, max:150}, spec:{'เซนเซอร์':'PT100 Class A (100 Ω ที่ 0 °C)', 'เอาต์พุต':'4–20 mA 2 สาย', 'ไฟเลี้ยงลูป':'10–30 VDC'}},
+    {id:'tc', nm:'ทรานสมิตเตอร์เทอร์โมคัปเปิล Type K 0–1000 °C', sh:'TC-K', p:{q:'T', unit:'°C', min:0, max:1000}, spec:{'เซนเซอร์':'เทอร์โมคัปเปิล Type K (NiCr-NiAl)', 'ชดเชย':'จุดต่อเย็นในตัว'}},
+    {id:'pres', nm:'ทรานสมิตเตอร์ความดัน 0–10 bar', sh:'0–10 bar', p:{q:'P', unit:'bar', min:0, max:10}, spec:{'ความแม่นยำ':'±0.5% FS', 'เกลียวต่อ':'G1/4', 'ไดอะแฟรม':'สเตนเลส 316L'}},
+    {id:'lvl', nm:'ทรานสมิตเตอร์ระดับแบบจุ่ม (hydrostatic) 0–5 m', sh:'ระดับ 5 m', p:{q:'L', unit:'m', min:0, max:5}, spec:{'หลักการ':'ความดันน้ำที่ก้นถัง', 'สาย':'มีท่ออากาศชดเชยบรรยากาศ'}},
+    {id:'ulv', nm:'ทรานสมิตเตอร์ระดับอัลตราโซนิก 0–8 m', sh:'ระดับ US 8 m', p:{q:'L', unit:'m', min:0, max:8}, spec:{'หลักการ':'เวลาสะท้อนคลื่นเสียงจากผิวน้ำ', 'บอดโซน':'0.3 m'}},
+    {id:'flow', nm:'มาตรวัดการไหลแม่เหล็กไฟฟ้า 0–100 m³/h', sh:'Flow 100', p:{q:'F', unit:'m³/h', min:0, max:100}, spec:{'ท่อ':'DN80', 'ของไหล':'ต้องนำไฟฟ้า ≥ 5 µS/cm', 'ความแม่นยำ':'±0.5%'}},
+    {id:'load', nm:'ทรานสมิตเตอร์โหลดเซลล์ 0–500 kg', sh:'500 kg', p:{q:'W', unit:'kg', min:0, max:500}, spec:{'โหลดเซลล์':'2 mV/V สเตรนเกจ', 'งาน':'ชั่งถัง/ไซโล'}},
+    {id:'rh', nm:'ทรานสมิตเตอร์ความชื้น 0–100 %RH', sh:'%RH', p:{q:'H', unit:'%RH', min:0, max:100}, spec:{'เซนเซอร์':'คาปาซิทีฟ', 'ความแม่นยำ':'±2 %RH'}},
+  ],
+  limit: [
+    {id:'roll', nm:'ลิมิตสวิตช์ก้านลูกกลิ้ง (roller lever) 1NO+1NC', sh:'ก้านลูกกลิ้ง', p:{}, spec:{'หน้าสัมผัส':'1NO + 1NC 10 A', 'แรงกด':'≈ 9 N', 'ป้องกัน':'IP65'}},
+    {id:'plng', nm:'ลิมิตสวิตช์ลูกกลิ้งกด (roller plunger)', sh:'ลูกกลิ้งกด', p:{}, spec:{'หน้าสัมผัส':'1NO + 1NC', 'ระยะกด':'1.7 mm ก่อนทำงาน'}},
+    {id:'wob', nm:'ลิมิตสวิตช์ก้านสปริง (wobble stick)', sh:'ก้านสปริง', p:{}, spec:{'ทำงาน':'ทุกทิศทาง', 'งาน':'ชิ้นงานเข้ามาได้หลายทิศ'}},
+    {id:'micro', nm:'ไมโครสวิตช์ก้านลูกกลิ้ง', sh:'ไมโคร', p:{}, spec:{'หน้าสัมผัส':'SPDT 5 A', 'ขนาด':'เล็ก (ภายในเครื่องจักร)'}},
+  ],
   capbank: [2.5, 5, 10, 25, 50].map(q => ({id:'cb' + q, nm:`คาปาซิเตอร์แบงก์ ${q} kvar 400 V`, sh:q + 'kvar', p:{kvar:q, V:400}})),
 };
 function applyModel(c, id){
@@ -708,6 +795,7 @@ function admit(c, isAC, w){
     case 'ldr':   return [1/ldrR(c), 0];
     case 'ntc':   return [1/ntcR(c), 0];
     case 'limit': return [((c.mode === 'NC') !== !!c.act) ? GW : GOFF, 0];
+    case 'presw': case 'flowsw': case 'tstat': return [pswClosed(c) ? GW : GOFF, 0];
     case 'buzzer':return [1/150, 0];
     case 'dcm':   return [(1 - 0.85*Math.min(1, c._sp || 0))/Math.max(c.R, 0.1), 0];   // แรงเคลื่อนย้อนกลับลดกระแสเมื่อหมุน
   }
@@ -885,9 +973,9 @@ function solveAll(){
         case 'soil': { const f = Math.max(0.02, Math.min(0.98, 1 - 0.75*c.moist/100));
           Y(n[0], n[1], 1/20000, 0); Y(n[2], n[0], 1/(10000*(1 - f)), 0); Y(n[2], n[1], 1/(10000*f), 0); } break;
         case 'servo': Y(n[1], n[0], 1/50, 0); Y(n[2], n[0], 1e-5, 0); break;
-        case 'prox': case 'photo':
-          Y(n[0], n[2], 1/2400, 0);
-          Y(n[1], c.kind === 'NPN' ? n[2] : n[0], (c._pw && c.det) ? 1/5 : GOFF, 0); break;
+        case 'prox': case 'photo': case 'capx': case 'magsw': case 'ultra': case 'curtain': case 'gasdet':
+          Y(n[0], n[2], c.t === 'curtain' ? 1/250 : c.t === 'gasdet' ? 1/400 : 1/2400, 0);
+          Y(n[1], c.kind === 'NPN' ? n[2] : n[0], (c._pw && dig3Act(c)) ? 1/5 : GOFF, 0); break;
         case 'tx420':
           // ทรานสมิตเตอร์ 2 สาย: เป็นแหล่งกระแส 4–20 mA เมื่อแรงดันลูป ≥ 10 V
           Y(n[0], n[1], 1e-6, 0);
@@ -1310,7 +1398,7 @@ function discrete(dt){
     const r = RES.comp[c.id]; if (!r) continue;
     if (SENS[c.t] && r.pv){
       const [vi, gi] = SENS[c.t], v = r.pv[vi].d - r.pv[gi].d;
-      const ok = v >= (c.t === 'prox' || c.t === 'photo' ? 10 : 3);
+      const ok = v >= (DIG3.includes(c.t) ? 10 : 3);
       if (ok !== !!c._pw){ c._pw = ok; needSolve = true; }
       if (c.t === 'pir'){ c._t = Math.max(0, (c._t||0) - dt); const o = c._pw && c._t > 0; if (o !== !!c._out){ c._out = o; needSolve = true; } }
       if (c.t === 'servo') c._tgt = servoTarget(c);
@@ -1996,6 +2084,49 @@ void loop() {
           links:[]},
       ]};
   })},
+  indsense: {nm:'PLC + เซนเซอร์อุตสาหกรรม: คาปาซิทีฟ แม่เหล็ก ม่านแสง อัลตราโซนิก แก๊ส ความดัน การไหล อุณหภูมิ', f:() => build((C,W) => {
+    C('src1', 2, 1, {n:'การไฟฟ้า', model:'th230'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6, curve:'C'});
+    W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
+    C('psu', 7, 8, {n:'PS1', model:'p24_25'}); W([6,9],[6,11],[37,11]); W([8,9],[8,10],[38,10]);       // +24 V (y = 11), 0 V (y = 10)
+    const plc = C('plc', 30, 21, {n:'PLC1'});
+    W([25,19],[25,11]); W([26,19],[26,10]); W([27,19],[27,10]);                                       // L+, M, COM (PNP: COM → 0 V)
+    // เซนเซอร์ 3 สาย I0–I4: +V → +24 V, 0V → 0 V, OUT เดินลงไปที่อินพุต (แต่ละเส้นคนละแถว)
+    [['capx','CX1',{model:'c30'}], ['magsw','BG1',{model:'tslot'}], ['curtain','LC1',{model:'t4h'}], ['ultra','UB1',{model:'u30', sp:100}], ['gasdet','GD1',{model:'lpg'}]].forEach(([t, n, p], k) => {
+      const X = 11 + 3*k; C(t, X, 7, Object.assign({n}, p));
+      W([X - 1, 8],[X - 1, 11]); W([X + 1, 8],[X + 1, 10]); W([X, 8],[X, 13 + k],[28 + k, 13 + k],[28 + k, 19]); });
+    // สวิตช์กระบวนการ 2 ขั้ว I5–I7: +24 V → หน้าสัมผัส → อินพุต
+    C('presw', 33, 13, {r:1, n:'BP1', model:'pump', mode:'NC', sp:2.8, hys:1.4, pv:2}); C('flowsw', 34, 15, {r:1, n:'BF1', model:'pad', mode:'NO', sp:1.2, hys:0.3, pv:3}); C('tstat', 35, 17, {r:1, n:'BT1', model:'cap', mode:'NC', sp:60, hys:4, pv:25});
+    [[33,13],[34,15],[35,17]].forEach(([x, y]) => { W([x, y - 1],[x, 11]); W([x, y + 1],[x, 19]); });
+    // เอาต์พุต: C → +24 V, Q0–Q3 → หลอด → 0 V
+    W([25,23],[24,23],[24,11]);
+    C('lamp', 26, 25, {r:1, n:'H1', V:24, P:1.2, model:'pil24'}); W([26,23],[26,24]); W([26,26],[26,29]);     // ปั๊มทำงาน
+    C('lamp', 27, 28, {r:1, n:'H2', V:24, P:1.2, model:'pil24'}); W([27,23],[27,27]);                       // สัญญาณเตือน
+    C('lamp', 28, 25, {r:1, n:'H3', V:24, P:1.2, model:'pil24'}); W([28,23],[28,24]); W([28,26],[28,29]);   // ฮีตเตอร์
+    C('lamp', 29, 28, {r:1, n:'H4', V:24, P:1.2, model:'pil24'}); W([29,23],[29,27]);                       // พร้อมป้อนชิ้นงาน
+    W([26,29],[38,29],[38,10]);
+    const row = (cells, out) => ({cells:cells.concat(Array(LC - cells.length).fill(null)), out});
+    const one = (cmt, cells, out) => ({cmt, rows:[row(cells, out)], links:[]});
+    plc.prog = {mode:'lad', txt:`// I0 CX1 คาปาซิทีฟ (ถังวัตถุดิบเต็ม), I1 BG1 กระบอกลมหดสุด, I2 LC1 ม่านแสง (ON = ปลอดภัย), I3 UB1 อัลตราโซนิก (มีวัตถุใกล้)
+// I4 GD1 แก๊สรั่ว, I5 BP1 เพรสเชอร์สวิตช์ (NC: ความดันต่ำ), I6 BF1 โฟลว์สวิตช์ (มีน้ำไหล), I7 BT1 เทอร์โมสตัท (NC: ยังไม่ร้อน)
+// ปั๊ม (H1): ความดันต่ำ ม่านแสงปลอดภัย และไม่มีแก๊สรั่ว
+Q0 := I5 AND I2 AND NOT I4
+// ปั๊มทำงานแต่ไม่มีน้ำไหลนาน 3 วินาที = ทำงานแห้ง
+T0 := TON(Q0 AND NOT I6, 3)
+// สัญญาณเตือน (H2): แก๊สรั่ว หรือ ปั๊มทำงานแห้ง หรือ มีคนบังม่านแสง
+Q1 := I4 OR T0 OR NOT I2
+// ฮีตเตอร์ (H3): เทอร์โมสตัทยังไม่ถึงจุดตั้ง และม่านแสงปลอดภัย
+Q2 := I7 AND I2 AND NOT I4
+// พร้อมป้อนชิ้นงาน (H4): กระบอกลมหดสุด ไม่มีวัตถุขวาง และถังวัตถุดิบยังไม่เต็ม
+Q3 := I1 AND NOT I3 AND NOT I0 AND I2
+`, lad:[
+      one('ปั๊ม (H1): ความดันต่ำ (BP1) ม่านแสงปลอดภัย (LC1) ไม่มีแก๊ส (GD1)', [nc('NO','I5'), nc('NO','I2'), nc('NC','I4')], {k:'OUT', a:'Q0'}),
+      one('ปั๊มทำงานแต่ไม่มีน้ำไหล (BF1) นาน 3 วินาที = ทำงานแห้ง', [nc('NO','Q0'), nc('NC','I6')], {k:'TON', a:'T0', p:3}),
+      {cmt:'สัญญาณเตือน (H2): แก๊สรั่ว หรือ ปั๊มทำงานแห้ง หรือ ม่านแสงถูกบัง', rows:[row([nc('NO','I4')], {k:'OUT', a:'Q1'}), row([nc('NO','T0')], null), row([nc('NC','I2')], null)],
+        links:[[false,true,false,false,false,false,false,false], [false,true,false,false,false,false,false,false]]},
+      one('ฮีตเตอร์ (H3): เทอร์โมสตัท (BT1) ยังไม่ถึงจุดตั้ง และปลอดภัย', [nc('NO','I7'), nc('NO','I2'), nc('NC','I4')], {k:'OUT', a:'Q2'}),
+      one('พร้อมป้อนชิ้นงาน (H4): กระบอกหดสุด (BG1) ไม่มีวัตถุขวาง (UB1) ถังไม่เต็ม (CX1)', [nc('NO','I1'), nc('NC','I3'), nc('NC','I0'), nc('NO','I2')], {k:'OUT', a:'Q3'}),
+    ]};
+  })},
   semi: {nm:'สารกึ่งตัวนำ: 7805, ทรานซิสเตอร์สวิตช์, ซีเนอร์', f:() => build((C,W) => {
     C('bat', 1, 5, {r:1, n:'B1', V:12});
     W([1,4],[1,2],[16,2]); W([1,6],[1,13],[16,13]);
@@ -2556,6 +2687,17 @@ function drawTwo(c, ghost){
       if (c.t === 'ntc'){ line(-12,10,12,-10); line(-12,10,-17,10); }
       else { ctx.strokeStyle = K.warn; for (const dx of [-6, 4]){ line(dx - 8, -20, dx - 2, -10); line(dx - 2, -10, dx - 6, -12); line(dx - 2, -10, dx - 2, -14); } }
       break;
+    case 'presw': case 'flowsw': case 'tstat': {
+      const cl = pswClosed(c);
+      lead(12); ctx.fillStyle = K.comp; dot(-12,0,2.5);
+      ctx.strokeStyle = cl ? K.ok : K.comp; ctx.lineWidth = 2.5; line(-12,0, cl ? 12 : 10, cl ? 0 : -12);
+      ctx.strokeStyle = K.comp; ctx.lineWidth = 2; line(12,0,12,c.mode === 'NC' ? 8 : -5);
+      ctx.lineWidth = 1.2; ctx.setLineDash([3,3]); line(0, cl ? 0 : -6, 0, -15); ctx.setLineDash([]);
+      ctx.fillStyle = c._st ? K.accent : K.compfill; ctx.lineWidth = 1.5;
+      if (c.t === 'presw'){ ctx.beginPath(); ctx.moveTo(-9,-15); ctx.lineTo(9,-15); ctx.lineTo(0,-27); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else if (c.t === 'tstat'){ circ(0,-21,6,true); }
+      else { ctx.beginPath(); ctx.rect(-9,-26,18,10); ctx.fill(); ctx.stroke(); line(-6,-21,5,-21); line(5,-21,2,-24); line(5,-21,2,-18); }
+    } break;
     case 'limit': {
       const cl = (c.mode === 'NC') !== !!c.act;
       lead(12); ctx.fillStyle = K.comp; dot(-12,0,2.5);
@@ -2608,6 +2750,7 @@ function valText(c){
     case 'ldr': return c.lux + ' lx';
     case 'ntc': return c.temp + ' °C';
     case 'limit': return c.mode + (c.act ? ' · กด' : '');
+    case 'presw': case 'flowsw': case 'tstat': { const u = PSWU[c.t]; return `${+(+c.pv).toFixed(2)} ${u} · ตั้ง ${c.sp}`; }
     case 'diode': return (modelOf(c) || {}).sh || 'Vf ' + c.Vf + ' V';
     case 'cable': return c.A + ' mm² · ' + c.len + ' m';
     case 'human': return fmt(c.R, 'Ω');
@@ -2621,7 +2764,7 @@ function readText(c, R){
   if (!R) return '';
   if (c.t === 'vm') return fmt(R.Vr, 'V');
   if (c.t === 'am') return fmt(R.Ir, 'A');
-  if (['sw','pb','pbnc','no','nc','float','mcb','fuse','estop','limit'].includes(c.t)) return '';
+  if (['sw','pb','pbnc','no','nc','float','mcb','fuse','estop','limit','presw','flowsw','tstat'].includes(c.t)) return '';
   return R.Ir > 1e-5 ? fmt(R.Ir, 'A') : '';
 }
 function labelTwo(c){
@@ -2770,13 +2913,26 @@ function drawBlock(c, ghost){
       ctx.fillStyle = '#f8fafc'; dot(cx, cy, 5); ctx.lineWidth = 2;
       text(Math.round(c._ang ?? 90) + '°', X + 15, Y - 15, 10, '#f8fafc', 'center', '600', true);
     } break;
-    case 'prox': case 'photo': {
-      const on = c._pw && c.det;
+    case 'prox': case 'photo': case 'capx': case 'magsw': case 'ultra': case 'curtain': case 'gasdet': {
+      const on = c._pw && dig3Act(c), cap = {prox:'#2563eb', photo:'#334155', capx:'#0d9488', magsw:'#7c3aed', ultra:'#0891b2', curtain:'#ca8a04', gasdet:'#dc2626'}[c.t];
       ctx.fillStyle = '#94a3b8'; ctx.fillRect(X - 14, by + 4, 28, 36);
-      ctx.fillStyle = c.t === 'prox' ? '#2563eb' : '#334155'; ctx.fillRect(X - 14, by + 4, 28, 7);
+      ctx.fillStyle = cap; ctx.fillRect(X - 14, by + 4, 28, 7);
+      // ภาพประกอบเฉพาะชนิด วาดในพื้นที่ว่างใต้ตัวเซนเซอร์ (ไม่ทับชื่อ)
+      const ey = by + 48;
+      if (c.t === 'capx'){ text('CAP', X - 2, by + 17, 8, '#0f172a', 'center', '700', true); ctx.strokeStyle = K.muted; ctx.lineWidth = 1; ctx.strokeRect(X - 18, ey, 36, 34);
+        ctx.fillStyle = '#38bdf8'; const lv = c.det ? 26 : 8; ctx.fillRect(X - 17, ey + 34 - lv, 34, lv); }
+      if (c.t === 'magsw'){ ctx.fillStyle = '#cbd5e1'; ctx.fillRect(X - 30, ey + 8, 60, 16); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1; ctx.strokeRect(X - 30, ey + 8, 60, 16);
+        const px = c.det ? X - 4 : X - 26; ctx.fillStyle = '#475569'; ctx.fillRect(px, ey + 9, 8, 14); ctx.fillStyle = '#ef4444'; ctx.fillRect(px + 2, ey + 9, 4, 14);
+        ctx.fillStyle = '#94a3b8'; ctx.fillRect(px + 8, ey + 14, 30, 4); }
+      if (c.t === 'ultra'){ ctx.strokeStyle = on ? '#0891b2' : K.muted; ctx.lineWidth = 1.5; for (const r of [6, 12, 18]){ ctx.beginPath(); ctx.arc(X, by + 40, r, 0.74, 2.4); ctx.stroke(); }
+        text(c.dist + ' cm', X, ey + 30, 9, K.text, 'center', '600', true); }
+      if (c.t === 'curtain'){ for (const dx of [-26, 26]){ ctx.fillStyle = '#ca8a04'; ctx.fillRect(X + dx - 3, ey - 4, 6, 40); }
+        ctx.strokeStyle = c.det ? K.bad : '#f87171'; ctx.lineWidth = 1; ctx.setLineDash([3,3]); for (let y = ey; y < ey + 34; y += 6) line(X - 23, y, X + 23, y); ctx.setLineDash([]);
+        if (c.det){ ctx.fillStyle = K.bad; ctx.fillRect(X - 5, ey - 2, 10, 36); } }
+      if (c.t === 'gasdet') text(c.lel + ' %LEL', X, ey + 16, 10, c.lel >= c.sp ? K.bad : K.text, 'center', '700', true);
       ctx.fillStyle = on ? '#f97316' : '#475569'; dot(X + 9, by + 34, 3.5);
       if (c.t === 'photo'){ ctx.strokeStyle = on ? K.muted : K.bad; ctx.setLineDash([4,3]); ctx.lineWidth = 1.5; line(X, by + 4, X, by - 26); ctx.setLineDash([]); }
-      if (c.det){ ctx.fillStyle = c.t === 'prox' ? '#64748b' : '#a16207'; ctx.fillRect(X - 12, by - 16, 24, 10); }
+      if (c.det && (c.t === 'prox' || c.t === 'photo')){ ctx.fillStyle = c.t === 'prox' ? '#64748b' : '#a16207'; ctx.fillRect(X - 12, by - 16, 24, 10); }
       text(c.kind, X - 4, by + 26, 8.5, '#0f172a', 'center', '600', true);
     } break;
     case 'rcd': {
@@ -3133,6 +3289,14 @@ const F = {
   servo:[NMF],
   prox:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['det','วัตถุโลหะ','bool','อยู่หน้าเซนเซอร์']],
   photo:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['det','วัตถุ','bool','บังลำแสง']],
+  capx:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['det','วัตถุ (ทุกวัสดุ รวมของเหลว)','bool','อยู่หน้าเซนเซอร์']],
+  magsw:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['det','ลูกสูบ (แม่เหล็ก)','bool','อยู่ตรงเซนเซอร์']],
+  ultra:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['dist','ระยะวัตถุ','range','cm',{min:3,max:400,step:1}],['sp','ระยะตั้งสวิตช์ (ON เมื่อใกล้กว่า)','num','cm']],
+  curtain:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['det','สิ่งกีดขวาง','bool','บังลำแสง (OSSD ตัด)']],
+  gasdet:[NMF,['kind','ชนิดเอาต์พุต','sel',{PNP:'PNP (จ่าย +24 V)',NPN:'NPN (ดึงลง 0 V)'}],['lel','ความเข้มข้นแก๊ส','range','%LEL',{min:0,max:100,step:1}],['sp','จุดเตือน','num','%LEL']],
+  presw:[NMF,['mode','หน้าสัมผัส','sel',{NO:'NO (ปิดเมื่อถึงจุดตั้ง)',NC:'NC (เปิดเมื่อถึงจุดตั้ง)'}],['pv','ความดันในระบบ','range','bar',{min:0,max:12,step:0.1}],['sp','จุดตั้ง (cut-out)','num','bar'],['hys','ดิฟเฟอเรนเชียล','num','bar']],
+  flowsw:[NMF,['mode','หน้าสัมผัส','sel',{NO:'NO (ปิดเมื่อถึงจุดตั้ง)',NC:'NC (เปิดเมื่อถึงจุดตั้ง)'}],['pv','อัตราการไหล','range','m³/h',{min:0,max:20,step:0.1}],['sp','จุดตั้ง','num','m³/h'],['hys','ดิฟเฟอเรนเชียล','num','m³/h']],
+  tstat:[NMF,['mode','หน้าสัมผัส','sel',{NO:'NO (ปิดเมื่อถึงจุดตั้ง)',NC:'NC (เปิดเมื่อถึงจุดตั้ง)'}],['pv','อุณหภูมิ','range','°C',{min:-20,max:150,step:1}],['sp','จุดตั้ง','num','°C'],['hys','ดิฟเฟอเรนเชียล','num','K']],
   diode:[NMF,['Vf','แรงดันตกคร่อม','num','V'],['Imax','กระแสสูงสุด','num','A']],
   zener:[NMF,['Vz','แรงดันซีเนอร์','num','V'],['Pmax','กำลังสูงสุด','num','W']],
   rcd:[NMF,['In','พิกัดกระแส','num','A'],['IdN','กระแสรั่วที่ตัด (IΔn)','num','A'],['oc','ป้องกันกระแสเกิน (RCBO)','bool','มี'],['on','สถานะ','bool','ON']],
@@ -3156,7 +3320,7 @@ const F = {
   seg7:[NMF,['Rs','ตัวต้านทานจำกัดกระแสในโมดูล','num','Ω']],
   rgb:[NMF,['Rs','ตัวต้านทานจำกัดกระแสในโมดูล','num','Ω']],
   spdt:[NMF,['pos','ตำแหน่ง','sel',{A:'ต่อขา A',B:'ต่อขา B'}]],
-  tx420:[NMF,['q','ปริมาณที่วัด','sel',{T:'อุณหภูมิ',P:'ความดัน',L:'ระดับ'}],['unit','หน่วย','txt'],['min','ค่าที่ 4 mA','num',''],['max','ค่าที่ 20 mA','num',''],['pct','ค่าที่วัด','range','% ของช่วง']],
+  tx420:[NMF,['q','ปริมาณที่วัด','sel',{T:'อุณหภูมิ',P:'ความดัน',L:'ระดับ',F:'อัตราการไหล',W:'น้ำหนัก',H:'ความชื้น'}],['unit','หน่วย','txt'],['min','ค่าที่ 4 mA','num',''],['max','ค่าที่ 20 mA','num',''],['pct','ค่าที่วัด','range','% ของช่วง']],
 };
 const NOTES = {
   res:'กฎของโอห์ม V = I × R — กระแสผ่านตัวต้านทานแปรผันตามแรงดันที่ตกคร่อม',
@@ -3204,6 +3368,14 @@ const NOTES = {
   soil:'เซนเซอร์ความชื้นดินแบบแอนะล็อก: ดินแห้ง → แรงดัน AO สูง, ดินเปียก → แรงดันต่ำ · อ่านด้วย analogRead',
   servo:'เซอร์โวหมุนไปยังมุม 0–180° ตามคำสั่ง · ในโค้ดใช้ Servo s; s.attach(ขา); s.write(มุม) · ต่อสาย GND, VCC และ SIG เข้าขาของบอร์ด',
   prox:'พร็อกซิมิตี้เซนเซอร์แบบเหนี่ยวนำ 3 สาย (น้ำตาล +V, ดำ OUT, ฟ้า 0V) ตรวจจับโลหะโดยไม่สัมผัส · PNP จ่าย +24 V ให้อินพุต PLC (COM ต่อ 0 V) · NPN ดึงสัญญาณลง 0 V (COM ต้องต่อ +24 V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
+  capx:'พร็อกซิมิตี้แบบคาปาซิทีฟ 3 สาย ตรวจจับได้ทุกวัสดุ (พลาสติก ไม้ ผง ของเหลว) — นิยมใช้ตรวจระดับผ่านผนังถังที่ไม่ใช่โลหะ · ปรับความไวด้วยสกรูท้ายตัว · สายเหมือนพร็อกซิมิตี้ (น้ำตาล +V, ดำ OUT, ฟ้า 0V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
+  magsw:'เซนเซอร์แม่เหล็กติดร่องกระบอกลม ตรวจตำแหน่งลูกสูบ (มีแม่เหล็กฝังอยู่) โดยไม่ต้องใช้ลิมิตสวิตช์ภายนอก — ติดที่ปลายช่วงชักทั้งสองด้านเพื่อรู้ว่ากระบอกเข้าสุด/ออกสุด · คลิกบนแผงเพื่อเลื่อนลูกสูบ',
+  ultra:'อัลตราโซนิกเซนเซอร์แบบสวิตช์ระยะ: ปล่อยคลื่นเสียงแล้ววัดเวลาสะท้อน เอาต์พุต ON เมื่อวัตถุอยู่ใกล้กว่าระยะที่ตั้ง · ตรวจวัตถุโปร่งใสและของเหลวได้ ไม่สนสี · มีบอดโซนใกล้หน้าเซนเซอร์ · คลิกบนแผงเพื่อเลื่อนวัตถุเข้า/ออก',
+  curtain:'ม่านแสงนิรภัย (IEC 61496): ลำแสงหลายลำระหว่างเสาส่ง–รับ ถ้ามีสิ่งใดบัง เอาต์พุตความปลอดภัย OSSD จะตัดทันที ใช้หยุดเครื่องจักรเมื่อคนเข้าพื้นที่อันตราย · OSSD ON = ปลอดภัย (fail-safe: สายขาด/ไฟดับ = หยุด) · งานจริงต้องต่อผ่านรีเลย์นิรภัยหรือ Safety PLC · คลิกบนแผงเพื่อบัง/เอาออก',
+  gasdet:'เครื่องตรวจจับแก๊สติดไฟวัดเป็น %LEL (ร้อยละของขีดต่ำสุดที่ติดไฟได้) เอาต์พุต ON เมื่อถึงจุดเตือน (ทั่วไป 10–20 %LEL) ใช้สั่งพัดลมระบาย ตัดวาล์วแก๊ส และส่งเสียงเตือน · คลิกบนแผงเพื่อจำลองแก๊สรั่ว',
+  presw:'เพรสเชอร์สวิตช์: หน้าสัมผัสเปลี่ยนเมื่อความดันถึงจุดตั้ง (cut-out) และคืนเมื่อความดันลดลงเท่าค่าดิฟเฟอเรนเชียล (cut-in = จุดตั้ง − ดิฟ) · ใช้ NC ควบคุมปั๊มน้ำ/คอมเพรสเซอร์ให้หยุดเมื่อแรงดันพอ · คลิกบนแผงเพื่อสลับความดันสูง/ต่ำ',
+  flowsw:'โฟลว์สวิตช์: ตรวจว่ามีของไหลไหลในท่อ (ใบพายถูกดันหรือหัววัดความร้อน) ใช้ป้องกันปั๊มทำงานแห้ง/ยืนยันว่าน้ำหล่อเย็นไหล · NO ปิดเมื่อการไหลถึงจุดตั้ง · คลิกบนแผงเพื่อสลับมี/ไม่มีการไหล',
+  tstat:'เทอร์โมสตัท: หน้าสัมผัสเปลี่ยนเมื่ออุณหภูมิถึงจุดตั้งและคืนเมื่อเย็นลงเท่าค่าดิฟเฟอเรนเชียล · NC ใช้ควบคุมฮีตเตอร์ (ร้อนพอแล้วตัด) · NO ใช้สั่งพัดลมระบายความร้อน · คลิกบนแผงเพื่อสลับร้อน/เย็น',
   photo:'โฟโตอิเล็กทริกเซนเซอร์ตรวจจับวัตถุที่บังลำแสง · สายและชนิด PNP/NPN เหมือนพร็อกซิมิตี้ · คลิกบนแผงเพื่อบัง/เปิดลำแสง',
   diode:'ไดโอดให้กระแสไหลทางเดียวจากแอโนด (ขั้วแรก) ไปแคโทด (ขีด) แรงดันตกคร่อม ≈ 0.7 V · ใช้กันต่อกลับขั้ว และเป็นไดโอดกันไฟย้อน (flyback) คร่อมมอเตอร์/คอยล์ · จำลองเฉพาะไฟ DC',
   zener:'ซีเนอร์ไดโอดต่อกลับขั้ว (แคโทดไปทาง +) จะคุมแรงดันคร่อมให้คงที่เท่า Vz เมื่อมีตัวต้านทานจำกัดกระแสอนุกรม · ต่อตามขั้วทำงานเหมือนไดโอดธรรมดา',
@@ -3295,6 +3467,9 @@ function compHTML(c){
   if ((c.t === 'motor1' || c.t === 'pump') && R.Ir > 0) add('กระแสพิกัด', fmt(c.P*1000/(c.eff*c.pf*c.V), 'A'));
   if (c.t === 'dcm') st.push((c._sp || 0) > 0.05 ? tag('ok', 'หมุน ' + Math.round(c._sp*100) + '%' + ((c._dir || 1) < 0 ? ' (กลับทาง)' : '')) : tag('warn','หยุด'));
   if (c.t === 'buzzer') st.push(c._snd ? tag('ok','ดัง ♪') : tag('warn','เงียบ'));
+  if (PSW.includes(c.t)){ const u = PSWU[c.t], cl = pswClosed(c);
+    st.push(c._st ? tag('warn','ถึงจุดตั้งแล้ว') : tag('ok','ต่ำกว่าจุดตั้ง')); st.push(cl ? tag('ok','หน้าสัมผัสปิด') : tag('warn','หน้าสัมผัสเปิด'));
+    add('ค่าที่วัด', (+c.pv).toFixed(2) + ' ' + u); add('ทำงานเมื่อ ≥', c.sp + ' ' + u); add('คืนตัวเมื่อ ≤', +(c.sp - Math.abs(c.hys)).toFixed(2) + ' ' + u); }
   if (isTwo(c)){
     const ac = R.ac;
     add('แรงดันคร่อม' + (ac ? ' (RMS)' : ''), fmt(R.Vr, 'V'));
@@ -3328,7 +3503,7 @@ function compHTML(c){
         add(pi.label + ' <span class="u">' + md + '</span>', fmt(pi.v, 'V') + (pi.mode === 1 && Math.abs(pi.i) > 1e-4 ? ' · ' + fmt(Math.abs(pi.i), 'A') : ''));
       }
     } break;
-    case 'pir': case 'sr04': case 'dht': case 'soil': case 'servo': case 'prox': case 'photo': {
+    case 'pir': case 'sr04': case 'dht': case 'soil': case 'servo': case 'prox': case 'photo': case 'capx': case 'magsw': case 'ultra': case 'curtain': case 'gasdet': {
       st.push(c._pw ? tag('ok','มีไฟเลี้ยง') : tag('warn','ไม่มีไฟเลี้ยง'));
       const [vi, gi] = SENS[c.t]; add('ไฟเลี้ยง', fmt(R.pv[vi].d - R.pv[gi].d, 'V'));
       if (c.t === 'pir'){ add('เอาต์พุต', c._out ? 'HIGH' : 'LOW'); if (c._t > 0) add('เวลาค้างเหลือ', c._t.toFixed(1) + ' s'); }
@@ -3336,7 +3511,12 @@ function compHTML(c){
       if (c.t === 'dht'){ add('อุณหภูมิ', c.temp + ' °C'); add('ความชื้น', c.hum + ' %'); }
       if (c.t === 'soil') add('แรงดัน AO', fmt(R.pv[2].d - R.pv[1].d, 'V'));
       if (c.t === 'servo') add('มุม', Math.round(c._ang ?? 90) + '°' + (c._tgt == null ? ' (ไม่มีสัญญาณ)' : ''));
-      if (c.t === 'prox' || c.t === 'photo'){ add('ตรวจพบวัตถุ', c.det ? 'ใช่' : 'ไม่'); add('แรงดัน OUT เทียบ 0V', fmt(R.pv[1].d - R.pv[2].d, 'V')); }
+      if (DIG3.includes(c.t)){
+        if (c.t === 'curtain') add('ลำแสง', c.det ? 'ถูกบัง → OSSD OFF (หยุดเครื่อง)' : 'ปลอดสิ่งกีดขวาง → OSSD ON');
+        else if (c.t === 'ultra') add('ระยะวัตถุ / จุดตั้ง', c.dist + ' / ' + c.sp + ' cm');
+        else if (c.t === 'gasdet') add('ความเข้มข้น / จุดเตือน', c.lel + ' / ' + c.sp + ' %LEL');
+        else add(c.t === 'magsw' ? 'ลูกสูบอยู่ที่เซนเซอร์' : 'ตรวจพบวัตถุ', c.det ? 'ใช่' : 'ไม่');
+        add('เอาต์พุต', c._pw && dig3Act(c) ? 'ON' : 'OFF'); add('แรงดัน OUT เทียบ 0V', fmt(R.pv[1].d - R.pv[2].d, 'V')); }
     } break;
     case 'rcd': add('กระแสผ่าน', fmt(R.I, 'A')); add('กระแสรั่ว (L + N)', fmt(R.idiff, 'A')); add('ตัดเมื่อรั่ว ≥', fmt(c.IdN, 'A'));
       st.push(c.on ? tag('ok','ON') : c._trip === 'rcd' ? tag('bad','ตัดเพราะไฟรั่ว') : c._trip ? tag('bad','ตัดเพราะกระแสเกิน') : tag('warn','OFF')); break;
@@ -4769,7 +4949,7 @@ const PAL = [
   ['อิเล็กทรอนิกส์', ['led','diode','zener','npn','pnp','nmos','opto','ne555','seg7','rgb','buzzer','pot']],
   ['ไมโครคอนโทรลเลอร์', ['uno','esp32','pico']],
   ['เซนเซอร์ (บอร์ด)', ['ldr','ntc','pir','sr04','dht','soil']],
-  ['PLC และเซนเซอร์อุตสาหกรรม', ['plc','hmi','prox','photo','tx420']],
+  ['PLC และเซนเซอร์อุตสาหกรรม', ['plc','hmi','prox','capx','photo','magsw','ultra','curtain','gasdet','presw','flowsw','tstat','tx420']],
   ['ระบบน้ำ', ['tank','float']],
 ];
 let placeM = '';
@@ -4900,7 +5080,10 @@ function endDrag(){
     else if (c.t === 'swint'){ c.pos = c.pos === 'X' ? 'S' : 'X'; commit(); }
     else if (c.t === 'sel3'){ c.pos = {'0':'1', '1':'2', '2':'0'}[c.pos] || '0'; commit(); }
     else if (c.t === 'pir'){ c._t = c.hold; needSolve = true; }
-    else if (c.t === 'prox' || c.t === 'photo'){ c.det = !c.det; commit(); }
+    else if (['prox','photo','capx','magsw','curtain'].includes(c.t)){ c.det = !c.det; commit(); }
+    else if (c.t === 'ultra'){ c.dist = c.dist <= c.sp ? Math.round(c.sp*3) : Math.max(3, Math.round(c.sp/2)); commit(); }
+    else if (c.t === 'gasdet'){ c.lel = c.lel >= c.sp ? 0 : Math.min(100, c.sp + 15); commit(); }
+    else if (PSW.includes(c.t)){ const h = Math.abs(c.hys) || 0.1*Math.abs(c.sp) || 1; c.pv = +(c._st ? c.sp - h*1.5 : c.sp + h*0.5).toFixed(2); commit(); }
     else if (c.t === 'limit'){ c.act = !c.act; commit(); }
     else if (c.t === 'scope') scopeOpen(c);
     else if (c.t === 'spdt'){ c.pos = c.pos === 'A' ? 'B' : 'A'; commit(); }
