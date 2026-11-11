@@ -491,6 +491,31 @@ const path = require('path');
     lg.osc[0] >= 4 && nr(lg.osc[1], 1.03, 0.12) && nr(lg.osc[2], 3.54, 0.15) && nr(lg.osc[3], -3.54, 0.15), JSON.stringify(lg.osc)]);
   checks.push(['ออปแอมป์ (solver DC): ขยายไม่กลับเฟส ×11 (0.6 V → 6.6 V) · ชมิตต์ทริกเกอร์มีฮิสเทอรีซิส 52% ค้างค่าเดิม',
     !lg.ni[0] && nr(lg.ni[1], 6.6, 0.05) && JSON.stringify(lg.sch) === '[0,0,10,10,0]', JSON.stringify([lg.ni, lg.sch])]);
+  const ic = await page.evaluate(() => { const s = __sim, o = {}, R = n => s.RES.comp[s.find(n).id];
+    s.load('chaser'); s.run(0.3); const seq = []; let okLed = true;
+    for (let k = 0; k < 60; k++){ s.run(0.1); const n = s.find('U2')._cnt | 0; seq.push(n);
+      for (let i = 0; i < 10; i++) if (!!s.find('D' + (i + 1))._on !== (i === n)) okLed = false; }
+    o.chase = [Math.max(...seq), seq.some((v, i) => i && v === 0 && seq[i - 1] === 9), okLed, warnList().length];
+    s.load('cnt7seg'); s.run(0.3); const SEG = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7C, 0x07, 0x7F, 0x67]; let okSeg = true, wrap = false, prev = -1;
+    for (let k = 0; k < 24; k++){ s.run(0.5); const n = s.find('U2')._cnt | 0, js = s.find('DS1')._js || [];
+      for (let i = 0; i < 7; i++) if (!!js[i] !== !!((SEG[n] >> i) & 1)) okSeg = false; if (prev === 9 && n === 0) wrap = true; prev = n; }
+    o.c7 = [okSeg, wrap, warnList().length];
+    s.load('shift595'); s.run(0.2); o.sh = [];
+    for (let k = 0; k < 6; k++){ s.run(0.5); o.sh.push((s.find('U2')._lt | 0) + '/' + [7,6,5,4,3,2,1,0].map(i => s.find('D' + (i + 1))._on ? 1 : 0).join('')); }
+    s.load('lm317'); s.run(0.2); o.lm = [R('V1').v.d]; s.find('RV1').pos = 60; s.poke(); s.run(0.2); o.lm.push(R('V1').v.d);
+    s.find('RV1').pos = 100; s.poke(); s.run(0.3); o.lm.push(R('V1').v.d, s.find('U1')._rs); s.find('B1').V = 0; s.poke(); s.run(0.3); o.lm.push(R('V1').v.d);
+    s.load('tempalarm'); s.run(0.2); o.ta = [R('V1').v.d, !!s.find('D1')._on]; s.find('U1').temp = 35; s.poke(); s.run(0.2); o.ta.push(R('V1').v.d, !!s.find('D1')._on);
+    return o; });
+  checks.push(['CD4017 ไฟวิ่ง: นับ 0→9 แล้ววนกลับ, LED ติดทีละดวงตรงกับค่านับ, ไม่มีคำเตือน',
+    ic.chase[0] === 9 && ic.chase[1] && ic.chase[2] && ic.chase[3] === 0, JSON.stringify(ic.chase)]);
+  checks.push(['CD4518 → CD4511 → 7 ส่วน: ทุกค่านับแสดงส่วน a–g ถูกต้อง (6/9 ไม่มีหาง) และ 9 → 0',
+    ic.c7[0] && ic.c7[1] && ic.c7[2] === 0, JSON.stringify(ic.c7)]);
+  checks.push(['Arduino shiftOut → 74HC595: ตัวจับ = 1, 2, 3… และ LED Q7…Q0 ตรงกับเลขฐานสอง',
+    JSON.stringify(ic.sh) === JSON.stringify(['1/00000001','2/00000010','3/00000011','4/00000100','5/00000101','6/00000110']), JSON.stringify(ic.sh)]);
+  checks.push(['LM317: R2 = 730 Ω → 5.08 V, 1530 Ω → 9.26 V, 2330 Ω → dropout 13.0 V (15 − 2), ไม่มีไฟเข้า → 0 V',
+    nr(ic.lm[0], 5.08, 0.03) && nr(ic.lm[1], 9.26, 0.05) && nr(ic.lm[2], 13.0, 0.05) && ic.lm[3] === 'do' && Math.abs(ic.lm[4]) < 0.05, JSON.stringify(ic.lm)]);
+  checks.push(['LM35 + คอมพาราเตอร์: 25 °C → 0.25 V LED ดับ, 35 °C → 0.35 V LED ติด',
+    nr(ic.ta[0], 0.25, 0.005) && !ic.ta[1] && nr(ic.ta[2], 0.35, 0.005) && ic.ta[3], JSON.stringify(ic.ta)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

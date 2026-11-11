@@ -376,9 +376,46 @@ const LFAM = {
   '4000':{nm:'CD4000 (CMOS 3–18 V)', vmin:3, vmax:18, roH:500, roL:400, th:[0.5, 0.5], st:[0.6, 0.35], iq:1e-5},
   LS:  {nm:'74LS (TTL 5 V)', vmin:4.5, vmax:5.5, roH:120, roL:20, ttl:true, th:[1.4, 1.4], st:[1.6, 0.8], iq:2e-3},
 };
+// ---------- ไอซีลอจิกหลายขา (ตัวนับ/ชิฟต์รีจิสเตอร์/ถอดรหัส) ----------
+// DIG[t] = {vcc, gnd, ins:[ดัชนีขาเข้า], outs:[ดัชนีขาออก], roH?, run(c, b บิตขาเข้า, r ขอบขาขึ้น) → บิตขาออก (−1 = Hi-Z)}
+const bitsRow = (lb, x0, y) => lb.map((l, k) => [x0 + k, y, l]);
+T.cd4017 = {nm:'ตัวนับทศวรรษ CD4017 (10 ขาออก)', ic:'4017', pre:'U', d:{fam:'4000'},
+  pins:[[-5,-2,'CLK'],[-4,-2,'EN'],[-3,-2,'RST'],[5,-2,'VCC'],[6,-2,'GND'], ...bitsRow(['Q0','Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','CO'], -5, 1)], box:[-5.6,-2,6.6,1]};
+T.hc595  = {nm:'ชิฟต์รีจิสเตอร์ 74HC595 (8 บิต)', ic:'595', pre:'U', d:{fam:'HC'},
+  pins:[[-4,-2,'SER'],[-3,-2,'SRCLK'],[-2,-2,'RCLK'],[-1,-2,'OE̅'],[0,-2,'MR̅'],[5,-2,'VCC'],[6,-2,'GND'], ...bitsRow(['Q0','Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q7S'], -4, 1)], box:[-4.6,-2,6.6,1]};
+T.cnt4   = {nm:'ตัวนับ 4 บิต (CD4518 BCD / CD4520)', ic:'CNT', pre:'U', d:{fam:'4000', mode:'bcd'},
+  pins:[[-2,-2,'CLK'],[-1,-2,'EN'],[0,-2,'RST'],[1,-2,'VCC'],[2,-2,'GND'], ...bitsRow(['Q0','Q1','Q2','Q3'], -2, 1)], box:[-2.6,-2,2.6,1]};
+T.cd4511 = {nm:'ถอดรหัส BCD → 7 ส่วน CD4511', ic:'4511', pre:'U', d:{fam:'4000'},
+  pins:[...bitsRow(['a','b','c','d','e','f','g'], -3, -2), ...bitsRow(['A','B','C','D','LT̅','BI̅','LE','VCC','GND'], -4, 1)], box:[-4.6,-2,4.6,1]};   // ขาออกด้านบน (วาง seg7 เหนือไอซีได้ตรง)
+const irange = (a, n) => Array.from({length:n}, (_, k) => a + k);
+const SEG4511 = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7C, 0x07, 0x7F, 0x67];   // 4511: เลข 6/9 ไม่มีหาง
+const DIG = {
+  cd4017: {vcc:3, gnd:4, ins:[0,1,2], outs:irange(5, 11), run(c, b, r){
+    if (b[2]) c._cnt = 0; else if (r[0] && !b[1]) c._cnt = ((c._cnt | 0) + 1) % 10;
+    const n = c._cnt | 0; return [...irange(0, 10).map(k => +(k === n)), +(n < 5)]; }},
+  hc595: {vcc:5, gnd:6, ins:[0,1,2,3,4], outs:irange(7, 9), run(c, b, r){
+    let sr = c._sr | 0, lt = c._lt | 0;
+    if (r[2]) lt = sr;                                           // RCLK: คัดลอกรีจิสเตอร์เลื่อน → ตัวจับ (ค่าก่อนเลื่อนถ้าขอบมาพร้อมกัน)
+    if (!b[4]) sr = 0; else if (r[1]) sr = ((sr << 1) | b[0]) & 255;   // MR̅ = LOW ล้าง · SRCLK เลื่อน SER เข้า Q0
+    c._sr = sr; c._lt = lt;
+    return [...irange(0, 8).map(k => b[3] ? -1 : (lt >> k) & 1), (sr >> 7) & 1]; }},
+  cnt4: {vcc:3, gnd:4, ins:[0,1,2], outs:irange(5, 4), run(c, b, r){
+    const m = c.mode === 'bin' ? 16 : 10;
+    if (b[2]) c._cnt = 0; else if (r[0] && b[1]) c._cnt = ((c._cnt | 0) + 1) % m;
+    return irange(0, 4).map(k => ((c._cnt | 0) >> k) & 1); }},
+  cd4511: {vcc:14, gnd:15, ins:irange(7, 7), outs:irange(0, 7), roH:60, run(c, b){
+    if (!b[4]) return Array(7).fill(1);                          // LT̅ = LOW: ทดสอบทุกส่วน
+    if (!b[5]) return Array(7).fill(0);                          // BI̅ = LOW: ดับ
+    if (!b[6]) c._lt = b[0] | b[1] << 1 | b[2] << 2 | b[3] << 3; // LE = LOW: ผ่าน, HIGH: จำค่าเดิม
+    const v = c._lt | 0, s = v < 10 ? SEG4511[v] : 0; return irange(0, 7).map(k => (s >> k) & 1); }},
+};
+// ---------- ไอซีแอนะล็อก ----------
+T.lm317 = {nm:'เร็กกูเลเตอร์ปรับค่า LM317', ic:'317', pre:'U', d:{Vref:1.25, drop:2, Imax:1.5}, pins:[[-1,1,'IN'],[0,1,'ADJ'],[1,1,'OUT']], box:[-1.4,-1.4,1.4,1]};
+T.lm35  = {nm:'เซนเซอร์อุณหภูมิ LM35 (10 mV/°C)', ic:'°C', pre:'U', d:{temp:25, off:0, sl:0.01, vmin:4, vmax:30}, pins:[[-1,1,'+VS'],[0,1,'OUT'],[1,1,'GND']], box:[-1.4,-1.4,1.4,1]};
+Object.assign(NV, {lm317:1});
 const GFN = {AND:(a, b) => a & b, OR:(a, b) => a | b, NOT:a => a ^ 1, NAND:(a, b) => (a & b) ^ 1, NOR:(a, b) => (a | b) ^ 1, XOR:(a, b) => a ^ b, XNOR:(a, b) => (a ^ b) ^ 1};
 const famOf = c => LFAM[c.fam] || LFAM.HC;
-const NLT = new Set(['gate', 'dff', 'opamp']);
+const NLT = new Set(['gate', 'dff', 'opamp', ...Object.keys(DIG)]);
 // เกณฑ์อินพุต: [ขึ้นเป็น HIGH เมื่อ ≥, ลงเป็น LOW เมื่อ ≤] (มีฮิสเทอรีซิสเล็กน้อยกันแกว่ง; ชมิตต์ทริกเกอร์กว้างกว่า)
 function lthr(c, vcc){ const f = famOf(c), s = c.st ? f.st : f.th, k = f.ttl ? 1 : vcc;
   return c.st ? [s[0]*k, s[1]*k] : [s[0]*k + 0.01*k, s[1]*k - 0.01*k]; }
@@ -386,6 +423,13 @@ function lthr(c, vcc){ const f = famOf(c), s = c.st ? f.st : f.th, k = f.ttl ? 1
 // md = {ac, w} (phasor) หรือ {h} (สเต็ปเวลา transient)
 function nlStamp(c, n, add, rhs, md){
   const Yp = (a, b, g) => { add(a, a, g, 0); add(b, b, g, 0); add(a, b, -g, 0); add(b, a, -g, 0); };
+  if (DIG[c.t]){ const D = DIG[c.t], f = famOf(c), vc = n[D.vcc], gd = n[D.gnd], ob = c._ob || [];
+    Yp(vc, gd, f.iq*2/5);
+    for (const k of D.ins){ Yp(n[k], gd, 1e-9); if (f.ttl) Yp(n[k], vc, 1/20000); }
+    D.outs.forEach((k, i) => { const o = n[k], q = ob[i];
+      if (!c._pw || q === -1 || q == null){ Yp(o, gd, 1e-9); return; }
+      Yp(o, q ? vc : gd, 1/(q ? (D.roH || f.roH) : (D.roL || f.roL))); });
+    return; }
   if (c.t === 'gate' || c.t === 'dff'){
     const f = famOf(c), dff = c.t === 'dff', vc = n[dff ? 4 : 3], gd = n[dff ? 5 : 4], ins = dff ? [n[0], n[1]] : [n[0], n[1]];
     Yp(vc, gd, f.iq*(dff ? 2 : 1)/5);
@@ -417,6 +461,16 @@ function opE(c, V, h){ const n = c._n, mid = (V(n[3]) + V(n[4]))/2, vd = V(n[1])
 // ปรับสถานะ (คืน true ถ้าเปลี่ยน) — edge = อนุญาตให้ D-FF จับขอบสัญญาณนาฬิกา
 function nlUpdate(c, V, h, edge){
   const n = c._n; let ch = false;
+  if (DIG[c.t]){ const D = DIG[c.t], gd = V(n[D.gnd]), vcc = V(n[D.vcc]) - gd, f = famOf(c);
+    const pw = c._pw ? vcc >= f.vmin*0.9 : vcc >= f.vmin; if (pw !== !!c._pw){ c._pw = pw; ch = true; }
+    if (!c._ib || c._ib.length !== D.ins.length) c._ib = D.ins.map(() => 0);
+    const [hi, lo] = lthr(c, vcc);
+    D.ins.forEach((k, i) => { const v = V(n[k]) - gd; if (!c._ib[i] && v >= hi) c._ib[i] = 1; else if (c._ib[i] && v <= lo) c._ib[i] = 0; });
+    if (!pw) return ch;
+    const pb = c._pb || c._ib, r = c._ib.map((b, i) => edge && b && !pb[i] ? 1 : 0);
+    const ob = D.run(c, c._ib, r); if (edge) c._pb = c._ib.slice();
+    if (!c._ob || ob.some((v, i) => v !== c._ob[i])){ c._ob = ob; ch = true; }
+    return ch; }
   if (c.t === 'gate' || c.t === 'dff'){
     const dff = c.t === 'dff', gd = V(n[dff ? 5 : 4]), vcc = V(n[dff ? 4 : 3]) - gd, f = famOf(c);
     const pw = c._pw ? vcc >= f.vmin*0.9 : vcc >= f.vmin; if (pw !== !!c._pw){ c._pw = pw; ch = true; }
@@ -454,6 +508,7 @@ function opUnstable(c, N, solve, gr){ if (c.t !== 'opamp' || c.oc || !c._pw || (
   c._os = c._last === 'hi' ? 'lo' : 'hi'; c._last = c._os; return true; }
 // ผลสำหรับแผงขวา
 function nlRes(c, R){ const n = c._n, V = k => (RES.nvv[k] || {d:0}).d;
+  if (DIG[c.t]){ const D = DIG[c.t], gd = V(n[D.gnd]); R.vcc = V(n[D.vcc]) - gd; R.vin = D.ins.map(k => V(n[k]) - gd); R.vout = D.outs.map(k => V(n[k]) - gd); return; }
   if (c.t === 'opamp'){ R.vs = V(n[3]) - V(n[4]); R.vd = V(n[1]) - V(n[0]); R.vo = V(n[2]); R.vin = [V(n[0]), V(n[1])]; R.io = c._io || 0; return; }
   const dff = c.t === 'dff', gd = V(n[dff ? 5 : 4]); R.vcc = V(n[dff ? 4 : 3]) - gd; R.vin = [V(n[0]) - gd, V(n[1]) - gd]; R.vout = V(n[2]) - gd; }
 // กระแสที่ไหลออกจากขา OUT (A)
@@ -820,6 +875,22 @@ const MODELS = {
   ],
   capbank: [2.5, 5, 10, 25, 50].map(q => ({id:'cb' + q, nm:`คาปาซิเตอร์แบงก์ ${q} kvar 400 V`, sh:q + 'kvar', p:{kvar:q, V:400}})),
 };
+Object.assign(MODELS, {
+  cd4017: [{id:'cd4017', nm:'CD4017 ตัวนับทศวรรษ (CMOS 3–18 V)', sh:'CD4017', p:{fam:'4000'}, spec:{'ขาออก':'Q0–Q9 ติดทีละขา + CO', 'ใช้':'ไฟวิ่ง, ตัวนับ, ซีเควนเซอร์'}},
+           {id:'hc4017', nm:'74HC4017 (CMOS 2–6 V)', sh:'74HC4017', p:{fam:'HC'}, spec:{'ไฟเลี้ยง':'2–6 V (ใช้กับ 5 V/3.3 V)'}}],
+  hc595: [{id:'hc595', nm:'74HC595 ชิฟต์รีจิสเตอร์ + ตัวจับ 8 บิต', sh:'74HC595', p:{fam:'HC'}, spec:{'ใช้':'เพิ่มขาออก Arduino (3 ขา → 8 ขา, ต่อพ่วงได้)', 'ขาออก':'±6 mA ต่อขา (รวม ≤ 70 mA)'}},
+          {id:'ls595', nm:'74LS595 (TTL 5 V)', sh:'74LS595', p:{fam:'LS'}}],
+  cnt4: [{id:'cd4518', nm:'CD4518 ตัวนับ BCD 0–9', sh:'CD4518', p:{mode:'bcd', fam:'4000'}, spec:{'ใช้':'นับหลักหน่วย/สิบ ต่อ CD4511 แสดงตัวเลข'}},
+         {id:'cd4520', nm:'CD4520 ตัวนับฐานสอง 0–15', sh:'CD4520', p:{mode:'bin', fam:'4000'}, spec:{'ใช้':'หารความถี่ ÷2 ÷4 ÷8 ÷16'}},
+         {id:'hc4520', nm:'74HC4520 ตัวนับฐานสอง (2–6 V)', sh:'74HC4520', p:{mode:'bin', fam:'HC'}}],
+  cd4511: [{id:'cd4511', nm:'CD4511 ถอดรหัส BCD → 7 ส่วน (แคโทดร่วม)', sh:'CD4511', p:{fam:'4000'}, spec:{'ขาออก':'จ่าย ≈ 25 mA ต่อส่วน', 'ฟังก์ชัน':'LT̅ ทดสอบ, BI̅ ดับ, LE จับค่า'}},
+           {id:'hc4511', nm:'74HC4511 (2–6 V)', sh:'74HC4511', p:{fam:'HC'}}],
+  lm317: [{id:'lm317t', nm:'LM317T 1.5 A (TO-220)', sh:'LM317T', p:{Vref:1.25, drop:2, Imax:1.5}, spec:{'Vin สูงสุด':'40 V', 'Vout':'1.25–37 V'}},
+          {id:'lm317l', nm:'LM317L 100 mA (TO-92)', sh:'LM317L', p:{Vref:1.25, drop:1.7, Imax:0.1}},
+          {id:'lm1117adj', nm:'AMS1117-ADJ LDO 1 A', sh:'1117', p:{Vref:1.25, drop:1.1, Imax:1}, spec:{'Vin สูงสุด':'15 V', 'จุดเด่น':'แรงดันตกต่ำ (LDO)'}}],
+  lm35: [{id:'lm35dz', nm:'LM35DZ 0–100 °C (10 mV/°C)', sh:'LM35', p:{off:0, sl:0.01, vmin:4, vmax:30}, spec:{'ความแม่นยำ':'±0.5 °C ที่ 25 °C', 'ไฟเลี้ยง':'4–30 V'}},
+         {id:'tmp36', nm:'TMP36 (0.5 V + 10 mV/°C)', sh:'TMP36', p:{off:0.5, sl:0.01, vmin:2.7, vmax:5.5}, spec:{'ไฟเลี้ยง':'2.7–5.5 V (ใช้กับ 3.3 V ได้)', 'ช่วง':'−40…125 °C'}}],
+});
 // ลอจิกไอซี (1 เกตจากในแพ็กเกจ) และออปแอมป์
 Object.assign(MODELS, {
   gate: [
@@ -1198,7 +1269,17 @@ function solveAll(){
           else if (c._fast){ const [th, tl] = timing555(c), d = th/(th + tl); Y(o, vc, 0.1*d, 0); Y(o, g, 0.1*(1 - d), 0); }
           else Y(o, c._q ? vc : g, 0.1, 0);
         } break;
-        case 'gate': case 'dff': case 'opamp': nlStamp(c, n, (r, k, re, im) => { if (r && k) M(r-1, k-1, re, im); }, (r, v) => { if (r && !ac) zr[r-1] += v; }, {ac, w}); break;
+        case 'gate': case 'dff': case 'opamp': case 'cd4017': case 'hc595': case 'cnt4': case 'cd4511': nlStamp(c, n, (r, k, re, im) => { if (r && k) M(r-1, k-1, re, im); }, (r, v) => { if (r && !ac) zr[r-1] += v; }, {ac, w}); break;
+        case 'lm317': {                                  // สถานะ _rs: reg = V(OUT) − V(ADJ) = 1.25 V · do (dropout) = V(IN) − V(OUT) = drop · off · กระแสขาออกมาจาก IN · กระแส ADJ 50 µA
+          const ip = n[0], a = n[1], op = n[2], rs = c._rs || 'reg';
+          if (rs === 'off') M(j, j, 1, 0);
+          else { if (op){ M(op - 1, j, 1, 0); M(j, op - 1, 1, 0); } if (ip) M(ip - 1, j, -1, 0); M(j, j, -0.05, 0);
+            if (rs === 'do'){ if (ip) M(j, ip - 1, -1, 0); zr[j] += ac ? 0 : -c.drop; }
+            else { if (a) M(j, a - 1, -1, 0); zr[j] += ac ? 0 : c.Vref; } }
+          Y(ip, op, 1e-6, 0); if (!ac){ if (a) zr[a-1] += 50e-6; if (ip) zr[ip-1] -= 50e-6; } } break;
+        case 'lm35': { const vs = n[0], o = n[1], g = n[2]; Y(vs, g, 1/80000, 0);
+          if (c._pw){ const Vo = Math.max(0, c.off + c.sl*c.temp), go = 0.01; Y(o, g, go, 0); if (!ac){ if (o) zr[o-1] += Vo*go; if (g) zr[g-1] -= Vo*go; } }
+          else Y(o, g, 1e-6, 0); } break;
         case 'spdt': Y(n[0], n[1], c.pos === 'A' ? GW : GOFF, 0); Y(n[0], n[2], c.pos === 'B' ? GW : GOFF, 0); break;
         case 'pot': { const a = Math.max(1, c.R*c.pos/100), b = Math.max(1, c.R*(1 - c.pos/100));
           Y(n[0], n[1], 1/a, 0); Y(n[1], n[2], 1/b, 0); } break;
@@ -1298,8 +1379,10 @@ function solveAll(){
           for (let k = 0; k < 3; k++){ const v = acm(sub(R.pv[k], R.pv[(k + 1)%3])); Q += w*Cp*v*v; }
           R.Q = -Q; R.I = Q/(SQ3*Math.max(1, acm(sub(R.pv[0], R.pv[1])))); } break;
         case 'reg': R.vin = R.pv[0].d - R.pv[1].d; R.vout = R.pv[2].d - R.pv[1].d; R.iout = -xd[j]; break;
+        case 'lm317': R.vio = R.pv[0].d - R.pv[2].d; R.vref = R.pv[2].d - R.pv[1].d; R.iout = -xd[j]; break;
+        case 'lm35': R.vs = R.pv[0].d - R.pv[2].d; R.vout = R.pv[1].d - R.pv[2].d; break;
         case 'ne555': R.vcc = R.pv[0].d - R.pv[1].d; R.vout = R.pv[2].d - R.pv[1].d; break;
-        case 'gate': case 'dff': case 'opamp': nlRes(c, R); break;
+        case 'gate': case 'dff': case 'opamp': case 'cd4017': case 'hc595': case 'cnt4': case 'cd4511': nlRes(c, R); break;
         case 'hmi': R.pw = R.pv[0].d - R.pv[1].d; break;
         case 'scope': R.ig = c.earth !== false ? rms(R.pv[2])*10 : 0; break;
       }
@@ -1334,9 +1417,16 @@ function solveAll(){
           if (Math.abs(g - old) > 0.01){ c._mg = old + (g - old)*0.7; ch = true; }
           c._mon = (c._mg || 0) > 0.02;
         } break;
-        case 'gate': case 'dff': case 'opamp': if (trOn) break;
+        case 'gate': case 'dff': case 'opamp': case 'cd4017': case 'hc595': case 'cnt4': case 'cd4511': if (trOn) break;
           if (opUnstable(c, N, dz => rsolve(d.Ar, dz, N), c.A)){ ch = true; break; }
           if (nlUpdate(c, k => RES.nvv[k].d, 0, !FORCE)) ch = true; break;
+        case 'lm317': { const rs = c._rs || 'reg', vin = R.pv[0].d, va = R.pv[1].d, vo = R.pv[2].d; let ns = rs;
+          if (rs === 'reg' && vin - vo < c.drop - 0.01) ns = 'do';
+          else if (rs === 'do' && vo - va > c.Vref + 0.005) ns = 'reg';
+          else if (rs === 'do' && R.iout < -1e-6) ns = 'off';                       // ไฟเข้าไม่พอจะจ่ายเลย
+          else if (rs === 'off' && vin - va > c.drop + c.Vref) ns = 'reg';
+          if (ns !== rs){ c._rs = ns; ch = true; } } break;
+        case 'lm35': { const pw = c._pw ? R.vs >= c.vmin*0.95 : R.vs >= c.vmin; if (pw !== !!c._pw){ c._pw = pw; ch = true; } } break;
         case 'reg': { const t = Math.max(0, Math.min(c.V, R.vin - (c.drop ?? 2)));
           if (Math.abs(t - (c._vs || 0)) > 0.01){ c._vs = t; ch = true; } } break;
         case 'led':
@@ -2260,7 +2350,10 @@ function mcuApi(c, vm){
     pinMode(p, m){ chk(p); if (m === 1 && B.inOnly && B.inOnly.includes(p)) throw new Error('ขา ' + p + ' ของ ' + B.nm + ' เป็นอินพุตอย่างเดียว');
       const st = pin(p); if (st.mode !== m){ st.mode = m; st.v = 0; st.pwm = null; needSolve = vm.dirty = true; } },
     digitalWrite(p, v){ chk(p); const st = pin(p), nv = v ? 1 : 0; if (st.mode !== 1) return;
-      if (st.v !== nv || st.pwm != null){ st.v = nv; st.pwm = null; needSolve = vm.dirty = true; } },
+      if (st.v !== nv || st.pwm != null){ st.v = nv; st.pwm = null; needSolve = vm.dirty = true;
+        if (S.comps.some(o => DIG[o.t] || o.t === 'dff')){ vm.dirty = false; solveAll(); } } },   // ไอซีที่จับขอบสัญญาณนาฬิกา: แก้วงจรทันทีทุกครั้งที่ขาเปลี่ยน
+    MSBFIRST:1, LSBFIRST:0,
+    shiftOut(dp, cp, order, val){ for (let i = 0; i < 8; i++){ const b = order ? (val >> (7 - i)) & 1 : (val >> i) & 1; A.digitalWrite(dp, b); A.digitalWrite(cp, 1); A.digitalWrite(cp, 0); } },
     digitalRead(p){ chk(p); const st = pin(p); if (st.mode === 1 || p === B.led && B.map[p] === undefined) return st.v; return volt(p) > B.vcc*0.5 ? 1 : 0; },
     analogRead(p){ if (!B.adc.includes(p)) throw new Error('ขา ' + p + ' ของ ' + B.nm + ' อ่านค่าแอนะล็อกไม่ได้');
       return Math.round(Math.max(0, Math.min(B.vcc, volt(p)))/B.vcc*(2**B.bits - 1)); },
@@ -2439,7 +2532,7 @@ function spDirty(c){ if (Math.abs((c._sp || 0) - (c._spS || 0)) > 0.02){ c._spS 
    แยกตัวประกอบ LU แคชตามสถานะไดโอด · เก็บรูปคลื่นแรงดันทุกโหนดย้อนหลัง 1 s ให้สโคป (TR.tw)
    ============================================================ */
 const TR_OK = new Set(['res','lamp','sw','pb','pbnc','fuse','mcb','am','vm','cap','ind','human','cable','ldr','ntc','buzzer','limit','estop',
-  'diode','zener','led','bridge','bat','acs','src1','xfmr','scope','gnd','spdt','pot','gate','dff','opamp']);
+  'diode','zener','led','bridge','bat','acs','src1','xfmr','scope','gnd','spdt','pot','gate','dff','opamp','cd4017','hc595','cnt4','cd4511']);
 const TR = {active:false, tw:null, sig:''};
 function trApplicable(){
   let dyn = false, ac = false, jn = false;
@@ -2508,7 +2601,7 @@ function trRun(dt){
     }
   }
   const cache = new Map();
-  const nkey = () => juns.map(J => J.c._tj[J.i] ? '1' : '0').join('') + '|' + nls.map(c => (c._pw ? 'p' : 'o') + (c.t === 'opamp' ? (c._os || 'lin') + (c._sk ? 's' : '') : (c._q | 0))).join(',');
+  const nkey = () => juns.map(J => J.c._tj[J.i] ? '1' : '0').join('') + '|' + nls.map(c => (c._pw ? 'p' : 'o') + (c.t === 'opamp' ? (c._os || 'lin') + (c._sk ? 's' : '') : DIG[c.t] ? (c._ob || []).join('') : (c._q | 0))).join(',');
   const noop = () => {}, mdT = {h:hh};
   const getLU = key => { let F = cache.get(key); if (F) return F;
     const A = base.slice(); juns.forEach((J, i) => Y(J.a, J.k, key[i] === '1' ? 1/J.R : GOFF, A));
@@ -3451,6 +3544,86 @@ void loop() {
     C('scope', 31, 3, {n:'OSC1', vdiv1:2, pos1:0, vdiv2:5, pos2:0, tdiv:0.2, trig:'2'});
     W([30,5],[30,15],[7,15],[7,7],[9,7]); W([31,5],[31,6],[22,6]); W([33,5],[33,13],[28,13]);
   })},
+  chaser: {nm:'ไฟวิ่ง 10 ดวง: NE555 (≈ 2 Hz) → ตัวนับทศวรรษ CD4017', f:() => build((C,W) => {
+    C('bat', 1, 8, {r:1, n:'B1', V:9});
+    W([1,7],[1,1],[18,1]); W([1,9],[1,14],[18,14]);
+    C('cd4017', 12, 6, {n:'U2', fam:'4000', model:'cd4017'});
+    W([17,4],[17,1]); W([18,4],[18,14]); W([8,4],[8,3],[18,3],[18,4]); W([9,4],[9,3]);     // EN, RST → GND
+    for (let k = 0; k < 10; k++){ const x = 7 + k; C('led', x, 9, {r:1, n:'D' + (k + 1), col:k < 5 ? 'red' : 'yellow'}); W([x,7],[x,8]); W([x,10],[x,11]); }
+    W([7,11],[16,11]); C('res', 12, 13, {r:1, n:'R3', R:220}); W([12,11],[12,12]);
+    C('ne555', 4, 10, {n:'U1', R1:10000, R2:68000, C:4.7});
+    W([3,11],[3,12],[2,12],[2,1]); W([4,11],[4,14]); W([5,11],[5,12],[6,12],[6,4],[7,4]);
+  })},
+  cnt7seg: {nm:'นับ 0–9 ด้วยไอซี: NE555 → CD4518 (BCD) → CD4511 → ตัวเลข 7 ส่วน', f:() => build((C,W) => {
+    C('bat', 1, 16, {r:1, n:'B1', V:9});
+    W([1,15],[27,15]); W([1,17],[27,17]);                                              // VCC / GND
+    C('ne555', 3, 10, {n:'U1', R1:10000, R2:68000, C:10});
+    W([2,11],[2,15]); W([3,11],[3,17]); W([4,11],[5,11],[5,6],[7,6]);
+    C('cnt4', 9, 8, {n:'U2', mode:'bcd', fam:'4000', model:'cd4518'});
+    W([8,6],[8,4],[10,4],[10,6]); W([8,4],[6,4],[6,15]);                                 // EN, VCC
+    W([9,6],[9,5],[11,5],[11,6]); W([11,5],[13,5],[13,17]);                              // RST, GND
+    for (let k = 0; k < 4; k++) W([7+k,9],[7+k,13-k],[18+k,13-k],[18+k,9]);              // Q0–Q3 → A–D
+    C('cd4511', 22, 8, {n:'U3', fam:'4000', model:'cd4511'});
+    W([22,9],[22,15]); W([23,9],[23,15]); W([25,9],[25,15]); W([24,9],[24,17]); W([26,9],[26,17]);   // LT̅ BI̅ VCC · LE GND
+    C('seg7', 22, 4, {n:'DS1', Rs:330});
+    for (let k = 0; k < 7; k++) W([19+k,6],[19+k,5]);
+    W([18,5],[17,5],[17,17]);                                                           // COM → GND
+  })},
+  shift595: {nm:'Arduino + 74HC595: นับเลขฐานสองบน LED 8 ดวงด้วย 3 ขา (shiftOut)', f:() => build((C,W) => {
+    C('uno', 8, 10, {n:'U1', code:`// เพิ่มขาออกด้วย 74HC595: DATA = D11, CLOCK = D12, LATCH = D8
+const int DATA = 11, CLOCK = 12, LATCH = 8;
+int n = 0;
+
+void setup() {
+  pinMode(DATA, OUTPUT);
+  pinMode(CLOCK, OUTPUT);
+  pinMode(LATCH, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  digitalWrite(LATCH, LOW);              // เลื่อนข้อมูลเข้า (ขาออกยังคงค่าเดิม)
+  shiftOut(DATA, CLOCK, MSBFIRST, n);    // ส่ง 8 บิต บิตสูงก่อน
+  digitalWrite(LATCH, HIGH);             // ขอบขึ้น → อัปเดต Q0–Q7 พร้อมกัน
+  Serial.println(n);
+  n = (n + 1) % 256;
+  delay(500);
+}
+`});
+    C('hc595', 24, 6, {n:'U2', fam:'HC', model:'hc595'});
+    W([4,12],[4,16],[31,16]);                                                          // GND
+    W([2,12],[2,18],[32,18],[32,2],[24,2]); W([24,4],[24,2]); W([29,4],[29,2]);          // 5V → MR̅, VCC
+    W([30,4],[30,3],[31,3],[31,16]);
+    W([23,4],[23,3],[19,3],[19,16]);                                                    // OE̅ → GND
+    W([11,8],[11,5],[20,5],[20,4]); W([12,8],[12,6],[21,6],[21,4]); W([8,8],[8,1],[22,1],[22,4]);   // SER, SRCLK, RCLK
+    for (let k = 0; k < 8; k++){ const x = 20 + k; C('led', x, 9, {r:1, n:'D' + (k + 1), col:'green'}); W([x,7],[x,8]);
+      C('res', x, 13, {r:1, n:'R' + (k + 1), R:330}); W([x,10],[x,12]); W([x,14],[x,16]); }
+  })},
+  lm317: {nm:'LM317 เร็กกูเลเตอร์ปรับค่า: 15 V → 5 V (Vout = 1.25 × (1 + R2/R1), หมุน RV1 ปรับแรงดัน)', f:() => build((C,W) => {
+    C('bat', 1, 8, {r:1, n:'B1', V:15});
+    W([1,7],[1,6],[5,6],[5,5]); W([1,9],[1,15],[14,15]);
+    C('lm317', 6, 4, {n:'U1', Vref:1.25, drop:2, Imax:1.5, model:'lm317t'});
+    W([7,5],[7,6],[10,6]); W([6,5],[6,8]);
+    C('res', 8, 8, {n:'R1', R:240}); W([6,8],[7,8]); W([9,8],[10,8],[10,6]);
+    C('res', 6, 10, {r:1, n:'R2', R:330}); W([6,8],[6,9]); W([6,11],[6,12]);
+    C('pot', 7, 13, {n:'RV1', R:2000, pos:20}); W([7,12],[7,11],[8,11],[8,12]); W([8,12],[8,15]);
+    C('res', 12, 10, {r:1, n:'RL', R:100, Pr:2}); W([10,6],[12,6],[12,9]); W([12,11],[12,15]);
+    C('vm', 14, 10, {r:1, n:'V1', mode:'dc'}); W([12,6],[14,6],[14,9]); W([14,11],[14,15]);
+  })},
+  tempalarm: {nm:'เตือนอุณหภูมิ: LM35 → คอมพาราเตอร์ LM358 (เกณฑ์ 0.30 V = 30 °C) → LED · เลื่อนอุณหภูมิที่ U1', f:() => build((C,W) => {
+    C('bat', 1, 8, {r:1, n:'B1', V:5});
+    W([1,7],[1,1],[20,1]); W([1,9],[1,15],[20,15]);
+    C('lm35', 4, 5, {n:'U1', temp:25, off:0, sl:0.01, vmin:4, vmax:30, model:'lm35dz'});
+    W([3,6],[3,7],[2,7],[2,1]); W([5,6],[5,7],[6,7],[6,15]);
+    W([4,6],[4,10],[9,10],[9,7],[10,7]);
+    C('vm', 4, 13, {r:1, n:'V1', mode:'dc'}); W([4,10],[4,12]); W([4,14],[4,15]);
+    C('res', 8, 3, {r:1, n:'Ra', R:47000}); W([8,1],[8,2]); W([8,4],[8,5],[10,5]);
+    C('res', 8, 7, {r:1, n:'Rb', R:3000}); W([8,5],[8,6]); W([8,8],[8,15]);
+    C('opamp', 12, 6, {n:'U2', model:'lm358', A:100000, gbw:1, ro:75, hd:1.5, ld:0.02, iq:0.5, vmin:3, vmax:32, isc:40, oc:false});
+    W([12,4],[12,1]); W([12,8],[12,15]);
+    W([14,6],[16,6]); C('led', 16, 8, {r:1, n:'D1', col:'red'}); W([16,6],[16,7]);
+    C('res', 16, 12, {r:1, n:'R1', R:220}); W([16,9],[16,11]); W([16,13],[16,15]);
+  })},
   semi: {nm:'สารกึ่งตัวนำ: 7805, ทรานซิสเตอร์สวิตช์, ซีเนอร์', f:() => build((C,W) => {
     C('bat', 1, 5, {r:1, n:'B1', V:12});
     W([1,4],[1,2],[16,2]); W([1,6],[1,13],[16,13]);
@@ -4369,6 +4542,32 @@ function drawBlock(c, ghost){
       ctx.strokeStyle = K.ok; ctx.lineWidth = 2.5; line(X - G, Y, X + G - 4, c.pos === 'A' ? Y - G + 4 : Y + G - 4);
       text('A', X + 0.75*G, Y - 0.55*G, 9, K.muted, 'center', '600', true); text('B', X + 0.75*G, Y + 0.55*G, 9, K.muted, 'center', '600', true);
     } break;
+    case 'cd4017': case 'hc595': case 'cnt4': case 'cd4511': {
+      const D = DIG[c.t], ob = c._ob || [], pw = !!c._pw, pp = pinsOf(c);
+      // ตัวไอซี (DIP) กลางกล่อง
+      const cx0 = bx + 14, cw = bw - 28, cy0 = by + 22, ch2 = bh - 44;
+      ctx.fillStyle = '#1f2937'; rrect(cx0, cy0, cw, ch2, 3); ctx.fill();
+      ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.arc(cx0, cy0 + ch2/2, 5, -Math.PI/2, Math.PI/2); ctx.fill();
+      const md2 = modelOf(c), nm2 = md2 && md2.sh ? md2.sh : {cd4017:'CD4017', hc595:'74HC595', cnt4:c.mode === 'bin' ? 'CD4520' : 'CD4518', cd4511:'CD4511'}[c.t];
+      text(nm2, cx0 + 16, cy0 + ch2/2, 11, '#e5e7eb', 'left', '700', true);
+      let info = '';
+      if (!pw) info = 'ไม่มีไฟเลี้ยง';
+      else if (c.t === 'cd4017') info = 'นับ ' + (c._cnt | 0);
+      else if (c.t === 'cnt4') info = 'นับ ' + (c._cnt | 0) + ' (' + ((c._cnt | 0).toString(2).padStart(4, '0')) + ')';
+      else if (c.t === 'hc595') info = 'SR ' + (c._sr | 0).toString(2).padStart(8, '0') + ' → ' + (c._lt | 0).toString(2).padStart(8, '0');
+      else if (c.t === 'cd4511') info = 'BCD ' + (c._lt | 0);
+      text(info, cx0 + cw - 8, cy0 + ch2/2, 9, pw ? '#fbbf24' : '#94a3b8', 'right', '600', true);
+      // สถานะขาออก
+      D.outs.forEach((k, i) => { const q = ob[i]; ctx.fillStyle = !pw || q == null ? K.ladoff : q === -1 ? K.muted : q ? K.bad : K.accent; dot(pp[k][0]*G, by + bh - 20, 3); });
+      const ib = c._ib || []; D.ins.forEach((k, i) => { ctx.fillStyle = !pw ? K.ladoff : ib[i] ? K.bad : K.accent; dot(pp[k][0]*G, by + 20, 2.5); });
+    } break;
+    case 'lm317': case 'lm35': {
+      const R2 = RES.comp[c.id] || {};
+      ctx.fillStyle = c.t === 'lm317' ? '#334155' : '#111827';
+      if (c.t === 'lm317') ctx.fillRect(X - 26, by + 3, 52, 12); else { ctx.beginPath(); ctx.arc(X, Y - 6, 18, Math.PI, 0); ctx.lineTo(X + 18, Y + 6); ctx.lineTo(X - 18, Y + 6); ctx.closePath(); ctx.fill(); }
+      if (c.t === 'lm317'){ text('LM317', X, Y - 10, 12, K.text, 'center', '600', true); text(c._rs === 'do' ? 'dropout' : fmt(R2.vref, 'V') + ' ref', X, Y + 5, 9, K.accent, 'center', '600', true); }
+      else { const md2 = modelOf(c); text(md2 && md2.sh ? md2.sh : 'LM35', X, Y - 6, 9, '#e5e7eb', 'center', '700', true); text(c.temp + ' °C', X + 34, Y - 18, 10, K.bad, 'center', '700', true); }
+    } break;
     case 'gate': case 'dff': case 'opamp': {
       const pw = !!c._pw, hiC = K.bad, loC = K.accent, lvl = q => !pw ? K.comp : q ? hiC : loC;
       const pl = (s, x, y, al) => text(s, x, y, 8, K.muted, al || 'center', '600', true);
@@ -4697,6 +4896,12 @@ const F = {
   acs:[NMF,['V','แรงดัน (RMS)','num','V'],['f','ความถี่','num','Hz'],['ph','มุมเฟส','num','°']],
   cap:[NMF,['C','ความจุ','num','µF'],['Vr','พิกัดแรงดัน','num','V'],['pol','ชนิดมีขั้ว (อิเล็กโทรไลต์)','bool','มีขั้ว']], ind:[NMF,['Lh','ความเหนี่ยวนำ','num','H'],['R','ความต้านทานขดลวด','num','Ω']],
   am:[NMF,['mode','โหมดวัด','sel',{rms:'True RMS (AC+DC)',dc:'DC (ค่าเฉลี่ย)',ac:'AC (RMS ส่วนกระเพื่อม)'}]], vm:[NMF,['mode','โหมดวัด','sel',{rms:'True RMS (AC+DC)',dc:'DC (ค่าเฉลี่ย)',ac:'AC (RMS ส่วนกระเพื่อม)'}]], gnd:[],
+  cd4017:[NMF,['fam','ตระกูลไอซี','sel',{'4000':'CD4000 (CMOS 3–18 V)',HC:'74HC (CMOS 2–6 V)'}]],
+  hc595:[NMF,['fam','ตระกูลไอซี','sel',{HC:'74HC (CMOS 2–6 V)',LS:'74LS (TTL 5 V)'}]],
+  cnt4:[NMF,['mode','การนับ','sel',{bcd:'BCD 0–9 (CD4518)',bin:'ฐานสอง 0–15 (CD4520)'}],['fam','ตระกูลไอซี','sel',{'4000':'CD4000 (CMOS 3–18 V)',HC:'74HC (CMOS 2–6 V)'}]],
+  cd4511:[NMF,['fam','ตระกูลไอซี','sel',{'4000':'CD4000 (CMOS 3–18 V)',HC:'74HC (CMOS 2–6 V)'}]],
+  lm317:[NMF,['Vref','แรงดันอ้างอิง OUT–ADJ','num','V'],['drop','แรงดันตกต่ำสุด (dropout)','num','V'],['Imax','กระแสสูงสุด','num','A']],
+  lm35:[NMF,['temp','อุณหภูมิ','range','°C',{min:0, max:150, step:1}],['off','แรงดันที่ 0 °C','num','V'],['sl','ความชัน','num','V/°C'],['vmin','ไฟเลี้ยงต่ำสุด','num','V'],['vmax','ไฟเลี้ยงสูงสุด','num','V']],
   gate:[NMF,['fn','ฟังก์ชัน','sel',{AND:'AND',OR:'OR',NOT:'NOT (อินเวอร์เตอร์)',NAND:'NAND',NOR:'NOR',XOR:'XOR',XNOR:'XNOR'}],
     ['fam','ตระกูลไอซี','sel',{HC:'74HC (CMOS 2–6 V)','4000':'CD4000 (CMOS 3–18 V)',LS:'74LS (TTL 5 V)'}],['st','ชมิตต์ทริกเกอร์','bool','อินพุตมีฮิสเทอรีซิส']],
   dff:[NMF,['fam','ตระกูลไอซี','sel',{HC:'74HC (CMOS 2–6 V)','4000':'CD4000 (CMOS 3–18 V)',LS:'74LS (TTL 5 V)'}]],
@@ -4823,6 +5028,12 @@ const NOTES = {
   soil:'เซนเซอร์ความชื้นดินแบบแอนะล็อก: ดินแห้ง → แรงดัน AO สูง, ดินเปียก → แรงดันต่ำ · อ่านด้วย analogRead',
   servo:'เซอร์โวหมุนไปยังมุม 0–180° ตามคำสั่ง · ในโค้ดใช้ Servo s; s.attach(ขา); s.write(มุม) · ต่อสาย GND, VCC และ SIG เข้าขาของบอร์ด',
   prox:'พร็อกซิมิตี้เซนเซอร์แบบเหนี่ยวนำ 3 สาย (น้ำตาล +V, ดำ OUT, ฟ้า 0V) ตรวจจับโลหะโดยไม่สัมผัส · PNP จ่าย +24 V ให้อินพุต PLC (COM ต่อ 0 V) · NPN ดึงสัญญาณลง 0 V (COM ต้องต่อ +24 V) · คลิกบนแผงเพื่อวาง/เอาวัตถุออก',
+  cd4017:'CD4017 ตัวนับทศวรรษ: ทุกขอบขาขึ้นของ CLK (EN = LOW) ขาออก Q0→Q9 ติดทีละขาวนไป · RST = HIGH กลับไป Q0 · CO = HIGH เมื่อนับ 0–4 (ต่อเข้า CLK ตัวถัดไปเพื่อนับหลักสิบ) · ต่อ Qn เข้า RST = นับแค่ n · ใช้กับ NE555 ทำไฟวิ่ง',
+  hc595:'74HC595 ชิฟต์รีจิสเตอร์ 8 บิต: ขอบขึ้นของ SRCLK เลื่อนบิตจาก SER เข้า Q0 (บิตเดิมเลื่อนไป Q1…) · ขอบขึ้นของ RCLK (latch) คัดลอกไปขาออก Q0–Q7 พร้อมกัน · OE̅ = LOW เปิดขาออก, MR̅ = HIGH (LOW = ล้าง) · Q7S ต่อ SER ของตัวถัดไปเพื่อเพิ่มขา · Arduino ใช้ shiftOut(dataPin, clockPin, MSBFIRST, ค่า) แล้วสั่ง latch',
+  cnt4:'ตัวนับ 4 บิต: นับขึ้นทุกขอบขาขึ้นของ CLK เมื่อ EN = HIGH · RST = HIGH ล้างเป็น 0 · โหมด BCD (CD4518) นับ 0–9, ฐานสอง (CD4520) นับ 0–15 · ขาออก Q0 (บิตต่ำ) – Q3 ต่อเข้า CD4511 เพื่อแสดงตัวเลข',
+  cd4511:'CD4511 ถอดรหัส BCD (A = บิตต่ำ … D) เป็นส่วน a–g สำหรับตัวเลข 7 ส่วนแคโทดร่วม · LT̅ = LOW ทดสอบไฟทุกส่วน, BI̅ = LOW ดับ (ปกติต่อ VCC ทั้งคู่) · LE = HIGH จำค่าเดิม (ปกติต่อ GND) · ค่า 10–15 ดับ · ขาออกจ่ายกระแสได้ราว 25 mA (ต้องมีตัวต้านทานต่อส่วน — seg7 ในแผงมีในตัว)',
+  lm317:'LM317 เร็กกูเลเตอร์ปรับค่า: รักษาแรงดัน OUT − ADJ = 1.25 V · ต่อ R1 (240 Ω) จาก OUT ไป ADJ และ R2 จาก ADJ ลงกราวด์ → Vout = 1.25 × (1 + R2/R1) · ใช้ pot เป็น R2 เพื่อปรับแรงดัน · ต้องการ Vin ≥ Vout + 2 V · กระแส ADJ ≈ 50 µA',
+  lm35:'LM35 เซนเซอร์อุณหภูมิ: ขา OUT ให้ 10 mV/°C (25 °C = 0.25 V) ไฟเลี้ยง 4–30 V · TMP36 ให้ 0.5 V ที่ 0 °C + 10 mV/°C ใช้ไฟ 2.7–5.5 V · อ่านด้วย analogRead แล้วแปลง: °C = V × 100 · เลื่อนแถบอุณหภูมิในแผงขวาเพื่อจำลอง',
   gate:'ลอจิกเกต: อินพุต A, B เป็น HIGH เมื่อแรงดันเทียบ GND เกินครึ่งหนึ่งของ VCC (CMOS) หรือ ≈ 1.4 V (TTL) · ขาออก Y เป็นแหล่ง VCC/0 V ผ่านความต้านทานขาออก (74HC ≈ 50 Ω ขับ LED + R ได้) · ต้องต่อ VCC/GND · อินพุต CMOS ห้ามปล่อยลอย (ใส่ pull-up/pull-down 10 kΩ) · ชมิตต์ทริกเกอร์ (74HC14) มีเกณฑ์ขึ้น/ลงต่างกัน ใช้ทำออสซิลเลเตอร์ RC ได้',
   dff:'D ฟลิปฟล็อป: ตอนขอบขาขึ้นของ CLK จะจำค่า D ไว้ที่ Q (Q̄ = กลับค่า) และคงค่าไว้จนขอบถัดไป · ต่อ Q̄ กลับเข้า D = หารความถี่ด้วย 2 (toggle) · ต่อหลายตัวเป็นตัวนับ/ชิฟต์รีจิสเตอร์ได้',
   opamp:'ออปแอมป์: ขาออก = A × (V+ − V−) จนติดราง · มีป้อนกลับลบ (R จาก OUT ไป −) → ขยายตามอัตราส่วน R: ไม่กลับเฟส 1 + Rf/R1, กลับเฟส −Rf/R1, บัฟเฟอร์ = ต่อ OUT เข้า − · ไม่มีป้อนกลับ = คอมพาราเตอร์ (ขาออกติด V+ หรือ V−) · ป้อนกลับบวก = ชมิตต์ทริกเกอร์/ออสซิลเลเตอร์ · GBW จำกัดอัตราขยายที่ความถี่สูง (จำลองในโหมดตามเวลาและ AC) · LM358 ลงถึง 0 V ได้ แต่ขึ้นได้แค่ V+ − 1.5 V · LM393 ขาออก open collector ต้องมีตัวต้านทาน pull-up',
@@ -5037,6 +5248,21 @@ function compHTML(c){
     case 'seg7': add('ส่วนที่ติด', 'abcdefg.'.split('').filter((_, k) => c._js && c._js[k]).join(' ') || '—'); break;
     case 'rgb': ['แดง','เขียว','น้ำเงิน'].forEach((nm, k) => add('กระแส' + nm, fmt(R.jI[k], 'A'))); break;
     case 'spdt': add('ตำแหน่ง', 'COM–' + c.pos); break;
+    case 'cd4017': case 'hc595': case 'cnt4': case 'cd4511': { const D = DIG[c.t], f = famOf(c), ib = c._ib || [], ob = c._ob || [], pl = T[c.t].pins;
+      st.push(!c._pw ? tag('bad', 'ไฟเลี้ยงไม่พอ (≥ ' + f.vmin + ' V)') : tag('ok', 'ทำงาน'));
+      add('ไฟเลี้ยง VCC', fmt(R.vcc, 'V')); add('ตระกูล', f.nm);
+      if (c.t === 'cd4017') add('ค่านับ', (c._cnt | 0) + ' → Q' + (c._cnt | 0) + ' ติด');
+      if (c.t === 'cnt4') add('ค่านับ', (c._cnt | 0) + ' = ' + (c._cnt | 0).toString(2).padStart(4, '0') + ' (Q3…Q0)');
+      if (c.t === 'hc595'){ add('รีจิสเตอร์เลื่อน (Q7…Q0)', (c._sr | 0).toString(2).padStart(8, '0')); add('ตัวจับขาออก (Q7…Q0)', (c._lt | 0).toString(2).padStart(8, '0') + ' = ' + (c._lt | 0)); if (ib[3]) add('ขาออก', 'Hi-Z (OE̅ = HIGH)'); }
+      if (c.t === 'cd4511') add('ค่า BCD ที่จับไว้', c._lt | 0);
+      add('ขาเข้า', D.ins.map((k, i) => pl[k][2] + '=' + (ib[i] | 0)).join(' · '));
+      add('ขาออก', D.outs.map((k, i) => pl[k][2] + '=' + (ob[i] === -1 ? 'Z' : ob[i] | 0)).join(' · ')); } break;
+    case 'lm317': st.push(c._rs === 'off' ? tag('bad', 'ไม่มีไฟเข้า') : c._rs === 'do' ? tag('warn', 'แรงดันขาเข้าไม่พอ (dropout)') : tag('ok', 'คุมแรงดันได้'));
+      add('OUT − ADJ', fmt(R.vref, 'V')); add('ขาเข้า − ขาออก', fmt(R.vio, 'V')); add('กระแสขาออก', fmt(R.iout, 'A')); add('ความร้อนที่ตัวไอซี', fmt(Math.max(0, R.vio*R.iout), 'W'));
+      add('สูตร', 'Vout = 1.25 × (1 + R2/R1) + 50 µA × R2'); break;
+    case 'lm35': st.push(c._pw ? tag('ok', 'ทำงาน') : tag('bad', 'ไฟเลี้ยงไม่พอ (≥ ' + c.vmin + ' V)'));
+      add('อุณหภูมิ', c.temp + ' °C'); add('แรงดันขาออก', fmt(R.vout, 'V')); add('ไฟเลี้ยง', fmt(R.vs, 'V'));
+      add('แปลงกลับ', '°C = (V − ' + c.off + ') ÷ ' + c.sl); break;
     case 'gate': case 'dff': { const f = famOf(c), ib = c._ib || [0, 0];
       st.push(!c._pw ? tag('bad', 'ไฟเลี้ยงไม่พอ (≥ ' + f.vmin + ' V)') : tag('ok', c.t === 'dff' ? 'Q = ' + (c._q | 0) : 'Y = ' + (c._q | 0) + ' (' + ((c._q | 0) ? 'HIGH' : 'LOW') + ')'));
       add('ไฟเลี้ยง VCC', fmt(R.vcc, 'V')); add('ตระกูล', f.nm + (c.st ? ' · ชมิตต์ทริกเกอร์' : ''));
@@ -5127,6 +5353,13 @@ function warnList(){
     if (c.t === 'k3' && (c._ov || 0) > 5) w.push(['warn', `คอนแทกเตอร์ ${esc(c.ref)} กระแสเกินพิกัด AC-3 ${c.In} A`]);
     if (c.t === 'diode' && R.Ir > c.Imax) w.push(['bad', `ไดโอด ${n}${rated} กระแสเกิน ${c.Imax} A`]);
     if (c.t === 'zener' && R.Vr*R.Ir > c.Pmax) w.push(['bad', `ซีเนอร์ ${n} กินกำลังเกิน ${c.Pmax} W`]);
+    if (DIG[c.t]){ const f = famOf(c), D = DIG[c.t], pl = T[c.t].pins;
+      if (R.vcc > f.vmax + 0.3) w.push(['bad', `ไอซี ${n} ไฟเลี้ยง ${fmt(R.vcc, 'V')} เกินพิกัด ${f.vmax} V — ไอซีเสีย`]);
+      else if (!c._pw && Math.abs(R.vcc || 0) > 0.5) w.push(['warn', `ไอซี ${n} ไฟเลี้ยงต่ำเกินไป (ต้อง ≥ ${f.vmin} V)`]);
+      if (c._pw && !f.ttl) D.ins.forEach(k => { if (!nodeLinked(c, k)) w.push(['warn', `${n} ขา ${pl[k][2]} ลอย — อินพุต CMOS ต้องต่อ HIGH/LOW (เช่น EN/RST ลง GND, OE̅ ลง GND, MR̅ ขึ้น VCC)`]); }); }
+    if (c.t === 'lm317'){ if (R.iout > c.Imax) w.push(['bad', `${n} จ่ายกระแสเกิน ${c.Imax} A`]); if (R.vio*R.iout > 2) w.push(['warn', `${n} ร้อน ${fmt(R.vio*R.iout, 'W')} — ต้องติดแผ่นระบายความร้อน`]);
+      if (c._rs === 'do') w.push(['warn', `${n} แรงดันขาเข้าไม่พอ — ต้องสูงกว่าขาออก ≥ ${c.drop} V`]); }
+    if (c.t === 'lm35'){ if (!c._pw && Math.abs(R.vs || 0) > 0.5) w.push(['warn', `${n} ไฟเลี้ยงต่ำเกินไป (ต้อง ≥ ${c.vmin} V)`]); if (R.vs > c.vmax + 0.3) w.push(['bad', `${n} ไฟเลี้ยงเกินพิกัด ${c.vmax} V`]); }
     if (c.t === 'gate' || c.t === 'dff'){ const f = famOf(c);
       if (R.vcc > f.vmax + 0.3) w.push(['bad', `ไอซีลอจิก ${n} ไฟเลี้ยง ${fmt(R.vcc, 'V')} เกินพิกัด ${f.vmax} V — ไอซีเสีย`]);
       else if (!c._pw && Math.abs(R.vcc || 0) > 0.5) w.push(['warn', `ไอซีลอจิก ${n} ไฟเลี้ยงต่ำเกินไป (ต้อง ≥ ${f.vmin} V)`]);
@@ -6552,6 +6785,7 @@ const PAL = [
   ['เซนเซอร์ (บอร์ด)', ['ldr','ntc','pir','sr04','dht','soil']],
   ['เรียงกระแส / จำลองตามเวลา', ['diode','bridge','cap','ind','zener','led']],
   ['ลอจิกเกต / ออปแอมป์', ['gate','dff','opamp']],
+  ['ไอซี (ตัวนับ / ชิฟต์รีจิสเตอร์ / เร็กกูเลเตอร์ / เซนเซอร์)', ['cd4017','cnt4','cd4511','hc595','ne555','reg','lm317','lm35']],
   ['การสื่อสาร (RS-485 / RS-232 / LoRa / Ethernet / Wi-Fi)', ['rs485','rs232','lora','ethsw','wifiap','term']],
   ['PLC และเซนเซอร์อุตสาหกรรม', ['plc','hmi','prox','capx','photo','magsw','ultra','curtain','gasdet','presw','flowsw','tstat','tx420']],
   ['ระบบน้ำ', ['tank','float']],

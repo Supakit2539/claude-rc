@@ -50,6 +50,12 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      ออปแอมป์: E = กลางไฟเลี้ยง + A·(V+ − V−) ผ่าน `ro` (AC: A/(1 + jf/fp), transient: ขั้วเดียวแบบ implicit, ตอนอิ่มตัวตั้ง `_x` ที่ราง กัน wind-up)
      ป้อนกลับบวก: `opUnstable` แก้ซ้ำด้วยการรบกวน e0 = 1 → dE/de0 < 0 = สมดุลไม่เสถียร → ดีดไปรางตรงข้ามกับ `_last` (ชมิตต์ทริกเกอร์/ออสซิลเลเตอร์ทำงานได้ทั้ง DC และตามเวลา)
      เมื่อโหมดตามเวลาทำงาน (`trOn`) solver ปกติไม่แตะสถานะเหล่านี้ · FORCE ของสโคปไม่ทำให้ D-FF จับขอบ · `nodeLinked` ใช้เตือนอินพุตลอย
+   - **ไอซีลอจิกหลายขา** (`DIG[t] = {vcc, gnd, ins, outs, roH?, run(c, b, r)}` → บิตขาออก, −1 = Hi-Z; อยู่ใน `NLT` จึงใช้ `nlStamp`/`nlUpdate`/`nlRes` ร่วม,
+     ขอบขาขึ้น `r` จาก `c._pb`, ขาออกใน `c._ob`): `cd4017` (CLK EN RST → Q0–Q9 CO, `_cnt`), `hc595` (SER SRCLK RCLK OE̅ MR̅ → Q0–Q7 Q7S, `_sr`/`_lt`),
+     `cnt4` (CD4518 BCD / CD4520 ฐานสอง ตาม `mode`, CLK EN RST → Q0–Q3), `cd4511` (ขาออก a–g ด้านบน — วาง seg7 ไว้เหนือไอซีต่อตรงได้; A–D LT̅ BI̅ LE ด้านล่าง, `_lt`, เลข 6/9 ไม่มีหาง)
+     ไมโครคอนโทรลเลอร์ `digitalWrite` แก้วงจรทันทีเมื่อมีไอซีจับขอบ (DIG/dff) เพื่อไม่พลาดขอบนาฬิกา · `shiftOut(data, clock, MSBFIRST|LSBFIRST, ค่า)`
+   - ไอซีแอนะล็อก: `lm317` (IN ADJ OUT, NV 1, สถานะ `_rs` = reg: V(OUT) − V(ADJ) = `Vref` / do: V(IN) − V(OUT) = `drop` / off; กระแส ADJ 50 µA; รุ่น LM317T/LM317L/AMS1117-ADJ),
+     `lm35` (+VS OUT GND; Norton `off + sl·temp` ผ่าน 100 Ω เมื่อไฟเลี้ยง ≥ `vmin`; รุ่น LM35DZ/TMP36)
    - โมดูลสื่อสาร (บล็อก, อยู่ใน `SENS` เพื่อตรวจไฟเลี้ยง `c._pw`): `rs485` (RO RE DE DI / VCC B A GND; รุ่น MAX485/MAX487/MAX3485 ต่างกันที่ `vmin`, `maxbd`),
      `rs232` (MAX3232: T1IN→T1OUT, R1IN→R1OUT, ขั้ว DB9), `lora` (E32/E22 UART โปร่งใส: M0 M1 RXD TXD AUX VCC GND; `band`, `ch`, `addr`, `sf`, `pw` dBm, `loc` m, `env`, `baud`),
      `term` (คอมพิวเตอร์ + เทอร์มินัล RS-232: TX RX GND, `baud`, `eol`; ช่องพิมพ์ส่งในแผงขวา → `termSend`, หน้าจอ `c._log`)
@@ -128,7 +134,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -222,6 +228,8 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
   · halfwave: 0–16.27 V เฉลี่ย ≈ 5.06 V, ใส่ C → 15.63–16.27 V · rccharge (τ 4.7 s): ชาร์จ τ → 5.66 V, คายประจุ τ → 3.22 V
 - logic: AND/OR/XOR/NOT ตามตารางความจริง (0001/0111/0110/1100) · flipflop: Q สลับทุกขอบขึ้นของ CLK (74HC14 RC ≈ 1 Hz)
 - opamp: ×−10 → ±7.07 V 1 kHz, Vs 1.5 V → ตัดยอด ±9.92 V · opamposc: คาบ ≈ 1.05 s, ตัวเก็บประจุ ±3.54 V · DC: ไม่กลับเฟส ×11 (0.6 → 6.6 V), ชมิตต์มีฮิสเทอรีซิส
+- chaser: CD4017 นับ 0→9 วนกลับ LED ติดทีละดวง · cnt7seg: CD4518 → CD4511 แสดงส่วน a–g ถูกทุกค่า, 9 → 0 · shift595: shiftOut → ตัวจับ 1, 2, 3… LED ตรงเลขฐานสอง
+- lm317: 5.08 V / 9.26 V / dropout 13.0 V / ไม่มีไฟเข้า 0 V · tempalarm: 25 °C → 0.25 V LED ดับ, 35 °C → ติด
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -244,7 +252,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - โรงงาน 3D: เครื่องจักรเพิ่ม (โต๊ะหมุน, แขนปัด, สายพานโค้ง), กล่องเอียงตามทางลาด, แขนหยิบวางต่างระดับ, เงาบนชิ้นงาน (shadow map), ตัวนับ (CTU) ใน PLC, เซนเซอร์แอนะล็อกในฉาก
 - ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, ตัวถอดรหัส I2C/SPI (ยังไม่มีอุปกรณ์ I2C/SPI), อินเวอร์เตอร์, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
 - โหมดตามเวลา: ขยายให้ครอบคลุมทรานซิสเตอร์/MOSFET/78xx/NE555/MCU PWM, 3 เฟส, ความเหนี่ยวนำแม่เหล็กหม้อแปลง
-- MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), สลูว์เรตออปแอมป์, ตัวนับ/ชิฟต์รีจิสเตอร์ (74HC595, CD4017), เกต 3–4 อินพุต
+- MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), สลูว์เรตออปแอมป์, เกต 3–4 อินพุต, ไอซีเพิ่ม (ULN2003, 74HC138, L293D, LCD I2C), ขา PRE/CLR ของ D-FF
 - ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น
