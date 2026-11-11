@@ -454,6 +454,43 @@ const path = require('path');
     nr(tr.half[0], 16.27, 0.2) && tr.half[1] < 0.3 && nr(tr.half[2], 5.06, 0.15) && nr(tr.half2[0], 16.27, 0.2) && nr(tr.half2[1], 15.63, 0.2), JSON.stringify([tr.half, tr.half2])]);
   checks.push(['RC ชาร์จ/ดิสชาร์จ (τ = 4.7 s): ชาร์จ τ → ≈ 5.66 V, คายประจุ τ → ≈ 3.22 V',
     nr(tr.rc1, 5.66, 0.1) && nr(tr.rc3, 3.22, 0.1), JSON.stringify([tr.rc1, tr.rc3])]);
+  const lg = await page.evaluate(() => { const s = __sim, o = {}, R = n => s.RES.comp[s.find(n).id];
+    s.load('logic'); s.run(0.2); o.tt = [];
+    for (const [a, b] of [[0,0],[0,1],[1,0],[1,1]]){ s.find('S1').on = !!a; s.find('S2').on = !!b; s.poke(); s.run(0.1);
+      o.tt.push(['U1','U2','U3','U4'].map(n => s.find(n)._q | 0).join('') + '/' + ['D1','D2','D3','D4'].map(n => s.find(n)._on ? 1 : 0).join('')); }
+    s.load('flipflop'); s.run(1); let ck = s.find('U1')._q | 0, q = s.find('U2')._q | 0, rise = 0, tog = 0;
+    for (let k = 0; k < 120; k++){ s.run(0.05); const c2 = s.find('U1')._q | 0, q2 = s.find('U2')._q | 0; if (c2 && !ck) rise++; if (q2 !== q) tog++; ck = c2; q = q2; }
+    o.ff = [s.RES.trans, rise, tog];
+    s.load('opamp'); s.run(0.3); const tr0 = s.RES.trans; let cap = s.scope('OSC1'); o.op = [tr0, cap.ch[1].max, cap.ch[1].min, cap.ch[1].f];
+    s.find('Vs').V = 1.5; s.poke(); s.run(0.3); cap = s.scope('OSC1'); o.clip = [cap.ch[1].max, cap.ch[1].min, s.find('U1')._os];
+    s.load('opamposc'); s.run(1.5); let st = s.find('U1')._os === 'hi', sw = [];
+    for (let k = 0; k < 120; k++){ s.run(0.05); const n2 = s.find("U1")._os === "hi"; if (n2 && !st) sw.push(k*0.05); st = n2; }   // ขอบขึ้นของขาออก
+    cap = s.scope('OSC1'); o.osc = [sw.length, sw.length > 1 ? (sw[sw.length - 1] - sw[0])/(sw.length - 1) : 0, cap.ch[0].max, cap.ch[0].min];
+    // DC: ขยายไม่กลับเฟส ×11 และชมิตต์ทริกเกอร์ (ไม่มีตัวเก็บประจุ → solver ปกติ)
+    const base = (C, W) => { C('bat',2,6,{r:1,n:'B1',V:12}); W([2,5],[2,1],[15,1]); W([2,7],[2,13],[22,13]);
+      C('opamp',14,6,{n:'U1',A:100000,gbw:1,ro:75,hd:1.5,ld:0.02,iq:0.5,vmin:3,vmax:32,isc:40,oc:false}); W([14,4],[15,4],[15,1]); W([14,8],[14,13]); };
+    s.load(build((C, W) => { base(C, W); C('pot',8,9,{n:'RV1',R:10000,pos:95}); W([7,8],[7,1]); W([9,8],[9,13]); W([8,8],[8,7],[12,7]);
+      W([12,5],[11,5],[11,2],[12,2]); C('res',13,2,{n:'Rf',R:100000}); W([14,2],[17,2],[17,6]); W([16,6],[17,6],[20,6]);
+      W([11,5],[10,5],[10,10]); C('res',10,11,{r:1,n:'R1',R:10000}); W([10,12],[10,13]);
+      C('vm',20,9,{r:1,n:'V1'}); W([20,6],[20,8]); W([20,10],[20,13]); }));
+    s.run(0.1); o.ni = [s.RES.trans, R('V1').v.d];
+    s.load(build((C, W) => { base(C, W); C('pot',8,9,{n:'RV1',R:10000,pos:30}); W([7,8],[7,1]); W([9,8],[9,13]); W([8,8],[8,5],[12,5]);
+      C('res',10,3,{r:1,n:'Ra',R:10000}); W([10,2],[10,1]); W([10,4],[10,7],[12,7]);
+      C('res',11,10,{r:1,n:'Rb',R:10000}); W([11,9],[11,7]); W([11,11],[11,13]);
+      C('res',17,9,{n:'Rh',R:100000}); W([16,9],[11,9]); W([18,9],[18,6]); W([16,6],[22,6]);
+      C('vm',22,9,{r:1,n:'V1'}); W([22,6],[22,8]); W([22,10],[22,13]); }));
+    o.sch = []; for (const pos of [30, 52, 56, 52, 45]){ s.find('RV1').pos = pos; s.poke(); s.run(0.1); o.sch.push(Math.round(R('V1').v.d)); }
+    return o; });
+  checks.push(['ลอจิกเกต (74HC): AND/OR/XOR/NOT ตามตารางความจริง และ LED ตรงกับขาออก',
+    JSON.stringify(lg.tt) === JSON.stringify(['0001/0001','0111/0111','0110/0110','1100/1100']), JSON.stringify(lg.tt)]);
+  checks.push(['74HC14 ออสซิลเลเตอร์ RC + D ฟลิปฟล็อป: Q สลับทุกขอบขาขึ้นของ CLK (หาร 2), ≈ 1 Hz',
+    lg.ff[0] && lg.ff[1] >= 5 && lg.ff[1] <= 7 && lg.ff[2] === lg.ff[1], JSON.stringify(lg.ff)]);
+  checks.push(['ออปแอมป์ขยายกลับเฟส ×10: 0.5 V RMS → ±7.07 V 1 kHz; 1.5 V RMS → ตัดยอด ±9.9 V',
+    lg.op[0] && nr(lg.op[1], 7.07, 0.1) && nr(lg.op[2], -7.07, 0.1) && nr(lg.op[3], 1000, 20) && nr(lg.clip[0], 9.92, 0.1) && nr(lg.clip[1], -9.92, 0.1), JSON.stringify([lg.op, lg.clip])]);
+  checks.push(['ออปแอมป์ออสซิลเลเตอร์ (ชมิตต์ + RC): คาบ ≈ 2.2RC ≈ 1.03 s, ตัวเก็บประจุแกว่ง ±3.5 V',
+    lg.osc[0] >= 4 && nr(lg.osc[1], 1.03, 0.12) && nr(lg.osc[2], 3.54, 0.15) && nr(lg.osc[3], -3.54, 0.15), JSON.stringify(lg.osc)]);
+  checks.push(['ออปแอมป์ (solver DC): ขยายไม่กลับเฟส ×11 (0.6 V → 6.6 V) · ชมิตต์ทริกเกอร์มีฮิสเทอรีซิส 52% ค้างค่าเดิม',
+    !lg.ni[0] && nr(lg.ni[1], 6.6, 0.05) && JSON.stringify(lg.sch) === '[0,0,10,10,0]', JSON.stringify([lg.ni, lg.sch])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

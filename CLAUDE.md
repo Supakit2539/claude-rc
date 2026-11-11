@@ -43,6 +43,13 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      (diode 1, zener 2 = ตรง + ซีเนอร์, seg7 8, rgb 3, opto 1) · ทรานซิสเตอร์ BJT: สถานะ `c._bj` = off/act/sat, ตัวแปร 2 ตัว (Ib, Ic)
      MOSFET: สวิตช์ตาม Vgs ≥ Vth (`c._mon`) · 78xx: แหล่งแรงดัน `c._vs` = min(V, Vin − 2) ดึงกระแสจากขา IN · NE555: สลับ OUT ใน `discrete` ตาม `timing555()`, ถ้าคาบ < 0.1 s ใช้ค่าเฉลี่ย
      ทุกตัวจำลองเฉพาะไฟ DC
+   - **ลอจิก/ออปแอมป์** (บล็อก 4×4 ช่อง, `nolab` = วาดป้ายขาเอง, ชุด `NLT`): `gate` (A B Y VCC GND; `fn` AND/OR/NOT/NAND/NOR/XOR/XNOR ตาม `GFN`, `fam` HC/4000/LS ตาม `LFAM`, `st` ชมิตต์),
+     `dff` (D CLK Q Q̄ VCC GND; ขอบขาขึ้น, `c._ck`), `opamp` (IN− IN+ OUT V+ V−; `A`, `gbw` MHz, `ro`, `hd`/`ld` สวิงห่างราง, `vmin`/`vmax`, `iq`, `isc` mA, `oc` = คอมพาราเตอร์ open collector)
+     ฟังก์ชันร่วมของทั้ง solver ปกติและ `trRun`: `nlStamp(c, n, add, rhs, md)` (md = {ac, w} หรือ {h}), `nlUpdate(c, V, h, edge)` (สถานะ `_pw`, `_ib` บิตอินพุตพร้อมฮิสเทอรีซิส `lthr`, `_q`;
+     ออปแอมป์ `_os` lin/hi/lo, `_sk` ทิศกระแสขาออก → รางที่จ่าย, `_x` สถานะขั้ว GBW), `nlRes` · ขาออกเกต = Norton ไป VCC/GND ผ่าน `roH`/`roL`; อินพุต CMOS 1 GΩ, TTL pull-up 20 kΩ
+     ออปแอมป์: E = กลางไฟเลี้ยง + A·(V+ − V−) ผ่าน `ro` (AC: A/(1 + jf/fp), transient: ขั้วเดียวแบบ implicit, ตอนอิ่มตัวตั้ง `_x` ที่ราง กัน wind-up)
+     ป้อนกลับบวก: `opUnstable` แก้ซ้ำด้วยการรบกวน e0 = 1 → dE/de0 < 0 = สมดุลไม่เสถียร → ดีดไปรางตรงข้ามกับ `_last` (ชมิตต์ทริกเกอร์/ออสซิลเลเตอร์ทำงานได้ทั้ง DC และตามเวลา)
+     เมื่อโหมดตามเวลาทำงาน (`trOn`) solver ปกติไม่แตะสถานะเหล่านี้ · FORCE ของสโคปไม่ทำให้ D-FF จับขอบ · `nodeLinked` ใช้เตือนอินพุตลอย
    - โมดูลสื่อสาร (บล็อก, อยู่ใน `SENS` เพื่อตรวจไฟเลี้ยง `c._pw`): `rs485` (RO RE DE DI / VCC B A GND; รุ่น MAX485/MAX487/MAX3485 ต่างกันที่ `vmin`, `maxbd`),
      `rs232` (MAX3232: T1IN→T1OUT, R1IN→R1OUT, ขั้ว DB9), `lora` (E32/E22 UART โปร่งใส: M0 M1 RXD TXD AUX VCC GND; `band`, `ch`, `addr`, `sf`, `pw` dBm, `loc` m, `env`, `baud`),
      `term` (คอมพิวเตอร์ + เทอร์มินัล RS-232: TX RX GND, `baud`, `eol`; ช่องพิมพ์ส่งในแผงขวา → `termSend`, หน้าจอ `c._log`)
@@ -109,7 +116,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - **ไฟฟ้าบนบัส RS-485**: อินพุตตัวรับดึง A/B ไปราว Vcc/2 (12 kΩ, MAX487 48 kΩ), ตัวขับทำงานช่วงส่ง (`busDrive` → `_drvUntil`/`_drv`, `busDrvTick` ใน discrete): A → Vcc, B → GND ผ่าน 25 Ω,
      ไบแอส fail-safe ของโมดูล `bias` = none/20k/680 · PLC/HMI ใช้ `busStamp` (อ้างอิง M/0V) — บัสว่างที่มีปลายสาย 120 Ω สองปลายวัด A−B ≈ 0 V เป็นเรื่องปกติ
      โมดูลเซนเซอร์ถูกค้นด้วย `sensorAt(ชนิด, ขาของเซนเซอร์, ขาบอร์ด)` ผ่าน `RES.net`; เซอร์โวหาขาที่ควบคุมด้วย `servoTarget()`
-   - **จำลองตามเวลา (transient)** `trRun(dt)` — ใช้แทนผล phasor เมื่อ `trApplicable()`: อุปกรณ์ทุกตัวอยู่ใน `TR_OK` และ (มี `cap`/`ind` หรือ มีแหล่ง AC + รอยต่อ PN)
+   - **จำลองตามเวลา (transient)** `trRun(dt)` — ใช้แทนผล phasor เมื่อ `trApplicable()`: อุปกรณ์ทุกตัวอยู่ใน `TR_OK` และ (มี `cap`/`ind` หรือ มีแหล่ง AC + รอยต่อ PN/ลอจิก/ออปแอมป์)
      สเต็ปย่อย ≈ 100 µs (≥ 200 จุด/คาบ), ตัวเก็บประจุ/ขดลวดแบบ BDF2 (Gear อันดับ 2, สถานะ `_vc`/`_il`), รอยต่อ PN แบบ piecewise (`trJ`, LED = Vf + 1 Ω) วนหาสถานะ ≤ 25 รอบ,
      LU หนาแน่น (`luFactor`/`luSolve`) แคชตามชุดสถานะรอยต่อ · บัฟเฟอร์รูปคลื่นทุกโหนด 1 s (`TR.tw`, อ่านด้วย `trNodeAt(k, t)`)
      ผลใน RES จากคาบเต็มล่าสุด: `v.d` = ค่าเฉลี่ย, `v.r/v.i` = ฮาร์มอนิกหลัก (DFT), `Vr` = True RMS, `Vdc`/`Vac`; `bridge` มี `Vdc`, `Vrip`, `Idc`; `RES.trans = true`
@@ -121,7 +128,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -213,6 +220,8 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - esp32wifi (PLC แบบข้อความ/แลดเดอร์): ได้ IP + RSSI −55, pot 30% → D10 ≈ 1228, 90% → H1 + LED บนบอร์ด (Q0), ปุ่ม → M5, ไกล 500 m → หลุด, กลับ 15 m → ต่อใหม่เอง, รหัสผิด → WL_CONNECT_FAILED
 - rectifier (ตามเวลา): C 1000 µF → V1 ≈ 14.36 V DC, ริปเปิล ≈ 1.27 Vpp 100 Hz; ปลด S1 → เฉลี่ย ≈ 9.0 V กระเพื่อม 0–15.1 V
   · halfwave: 0–16.27 V เฉลี่ย ≈ 5.06 V, ใส่ C → 15.63–16.27 V · rccharge (τ 4.7 s): ชาร์จ τ → 5.66 V, คายประจุ τ → 3.22 V
+- logic: AND/OR/XOR/NOT ตามตารางความจริง (0001/0111/0110/1100) · flipflop: Q สลับทุกขอบขึ้นของ CLK (74HC14 RC ≈ 1 Hz)
+- opamp: ×−10 → ±7.07 V 1 kHz, Vs 1.5 V → ตัดยอด ±9.92 V · opamposc: คาบ ≈ 1.05 s, ตัวเก็บประจุ ±3.54 V · DC: ไม่กลับเฟส ×11 (0.6 → 6.6 V), ชมิตต์มีฮิสเทอรีซิส
 - semi: 7805 = 5.00 V, ซีเนอร์ ≈ 5.11 V, S1 เปิด → NPN อิ่มตัว LED ≈ 8.5 mA · timer555: ≈ 1 Hz · counter: 1.5 s → เลข 1 · motor: กดปุ่ม → กระแสสตาร์ทสูงแล้วลดลง < 0.15 A เมื่อหมุน
 - stardelta: สตาร์ท ≈ 34 A, สตาร์ ≈ 4.8 A, หลัง 5 s เดลต้า ≈ 14.3 A, เฟสขาด → คราง + อุปกรณ์ป้องกันตัด, E-Stop → K1 หลุด
 - factory: กด START → สายพานวิ่ง; ผ่านไป 60 s `FXS.cnt` = โลหะ ≥ 5, ชิ้นงานอื่น ≥ 5, `miss` = 0, `wrong` = 0; กด STOP → สายพานหยุด
@@ -235,7 +244,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - โรงงาน 3D: เครื่องจักรเพิ่ม (โต๊ะหมุน, แขนปัด, สายพานโค้ง), กล่องเอียงตามทางลาด, แขนหยิบวางต่างระดับ, เงาบนชิ้นงาน (shadow map), ตัวนับ (CTU) ใน PLC, เซนเซอร์แอนะล็อกในฉาก
 - ออสซิลโลสโคป: FFT แบบ dB/Vrms สลับได้และหน้าต่างอื่น, สวิตชิ่งเร็วในโหมดเลื่อน, ตัวถอดรหัส I2C/SPI (ยังไม่มีอุปกรณ์ I2C/SPI), อินเวอร์เตอร์, โพรบดิฟเฟอเรนเชียล/โพรบกระแส
 - โหมดตามเวลา: ขยายให้ครอบคลุมทรานซิสเตอร์/MOSFET/78xx/NE555/MCU PWM, 3 เฟส, ความเหนี่ยวนำแม่เหล็กหม้อแปลง
-- MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), ออปแอมป์
+- MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), สลูว์เรตออปแอมป์, ตัวนับ/ชิฟต์รีจิสเตอร์ (74HC595, CD4017), เกต 3–4 อินพุต
 - ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), จอ LCD I2C, Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น
