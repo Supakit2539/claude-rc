@@ -138,7 +138,15 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 .swh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);cursor:move;flex-wrap:wrap}
 #scv{width:100%;height:300px;display:block;flex:none;touch-action:none}
 #trwin{position:absolute;left:10px;bottom:10px;width:min(760px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:6;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
-#trwin[hidden],#exwin[hidden],#rpt[hidden]{display:none}
+#trwin[hidden],#exwin[hidden],#rpt[hidden],#acpop[hidden]{display:none}
+#acpop{position:absolute;z-index:20;min-width:300px;max-width:min(460px,92vw);max-height:270px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.3);font-size:12.5px;padding:3px}
+#acpop .it{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;padding:5px 8px;border-radius:6px;cursor:pointer;align-items:baseline}
+#acpop .it.on{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+#acpop .it code{font:600 12.5px 'IBM Plex Mono',monospace;color:var(--text)}#acpop .it code u{text-decoration:none;color:var(--accent)}
+#acpop .k{font:600 10px 'IBM Plex Mono',monospace;color:var(--accent-text);background:var(--accent);border-radius:4px;padding:1px 5px;justify-self:end}
+#acpop .k.v{background:var(--ok)}#acpop .k.c{background:var(--muted)}#acpop .k.m{background:#9333ea}#acpop .k.s{background:var(--warn)}
+#acpop .d{grid-column:1/3;color:var(--muted);font-size:11.5px}#acpop .sg{grid-column:1/3;font:11px 'IBM Plex Mono',monospace;color:var(--muted)}
+#acpop .ft{padding:4px 8px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);margin-top:2px}
 #exwin{position:absolute;right:10px;top:10px;width:min(860px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:8;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
 #exwin textarea{width:100%;font:12px 'IBM Plex Mono',monospace;resize:vertical}
 #exv{width:100%;height:260px;display:block;flex:none}
@@ -6231,7 +6239,8 @@ function mcuStruct(c){
   const ta = $('#mcode'); ta.value = c.code || '';
   ta.oninput = () => { c.code = ta.value; c._dirty = true; mcuMon(c); };
   ta.onchange = () => commit();
-  ta.onkeydown = e => { if (e.key === 'Tab'){ e.preventDefault(); const a = ta.selectionStart; ta.setRangeText('  ', a, ta.selectionEnd, 'end'); ta.oninput(); } };
+  ta.onkeydown = e => { if (acKey(ta, e)) return; if (e.key === 'Tab'){ e.preventDefault(); if (!e.shiftKey && acNextArg(ta)) return; const a = ta.selectionStart; ta.setRangeText('  ', a, ta.selectionEnd, 'end'); ta.oninput(); } };
+  acAttach(ta, c);
   $('#mup').onclick = () => { c.code = ta.value; c._dirty = false; mcuBoot(c); commit(); };
   $('#mrst').onclick = () => { mcuBoot(c); mcuMon(c, true); };
   $('#mclr').onclick = () => { if (c._vm) c._vm.serial = ''; mcuMon(c, true); };
@@ -6249,6 +6258,171 @@ function mcuMon(c, force){
   $('#ladmsg').innerHTML = vm && vm.err ? `<div class="e">${esc(vm.err)}</div>` :
     (c._dirty ? '<span style="color:var(--warn)">แก้ไขโค้ดแล้ว — กด "อัปโหลด ▶" เพื่อให้บอร์ดใช้โค้ดใหม่</span>' :
     'เขียนแบบ Arduino: setup(), loop(), pinMode, digitalWrite/Read, analogRead/Write, delay, millis, Serial.print · โปรแกรมเดินเมื่อกด ▶ รัน · ตัวเลขทุกชนิดเป็นทศนิยมแบบ JavaScript');
+}
+/* ---------- เติมคำสั่งอัตโนมัติในตัวเขียนโค้ด Arduino ----------
+   พิมพ์ตัวอักษรแรก → ป๊อปอัปคำสั่ง/ค่าคงที่/ไลบรารี/ตัวแปรของผู้ใช้ · พิมพ์ "ชื่อ." → เมธอดตามชนิดออบเจ็กต์ (Serial, Servo, DHT, lcd, WiFi, String …)
+   ↑↓ เลือก · Enter/Tab ใส่ · Esc ปิด · Ctrl+Space เปิดเอง · หลังใส่ฟังก์ชันจะเลือกอาร์กิวเมนต์แรกไว้ กด Tab ไปอาร์กิวเมนต์ถัดไป
+   รายการ: [ชื่อที่แสดง, ข้อความที่ใส่, ชนิด f=ฟังก์ชัน c=ค่าคงที่ k=คำสงวน/ชนิดข้อมูล s=โครงโค้ด, คำอธิบาย, (บอร์ด)] */
+const AC_CORE = [
+  ['pinMode', 'pinMode(13, OUTPUT);', 'f', 'ตั้งโหมดขา: OUTPUT, INPUT, INPUT_PULLUP'],
+  ['digitalWrite', 'digitalWrite(13, HIGH);', 'f', 'สั่งขาเป็น HIGH (Vcc) หรือ LOW (0 V)'],
+  ['digitalRead', 'digitalRead(2)', 'f', 'อ่านขาดิจิทัล → HIGH/LOW (1/0)'],
+  ['analogRead', 'analogRead(A0)', 'f', 'อ่านแรงดันแอนะล็อก → 0–1023 (Uno) / 0–4095 (ESP32, Pico)'],
+  ['analogWrite', 'analogWrite(9, 128);', 'f', 'PWM 0–255 (Uno 490/980 Hz, ESP32/Pico 1 kHz)'],
+  ['delay', 'delay(1000);', 'f', 'หน่วงเวลาเป็นมิลลิวินาที'],
+  ['delayMicroseconds', 'delayMicroseconds(10);', 'f', 'หน่วงเวลาเป็นไมโครวินาที'],
+  ['millis', 'millis()', 'f', 'เวลาตั้งแต่เริ่มโปรแกรม (ms) — ใช้จับเวลาแบบไม่หยุดรอ'],
+  ['micros', 'micros()', 'f', 'เวลาตั้งแต่เริ่มโปรแกรม (µs)'],
+  ['map', 'map(x, 0, 1023, 0, 255)', 'f', 'แปลงช่วงค่า: map(ค่า, ต่ำเดิม, สูงเดิม, ต่ำใหม่, สูงใหม่)'],
+  ['constrain', 'constrain(x, 0, 255)', 'f', 'จำกัดค่าให้อยู่ในช่วง ต่ำ–สูง'],
+  ['min', 'min(a, b)', 'f', 'ค่าที่น้อยกว่า'], ['max', 'max(a, b)', 'f', 'ค่าที่มากกว่า'], ['abs', 'abs(x)', 'f', 'ค่าสัมบูรณ์'],
+  ['pow', 'pow(x, 2)', 'f', 'ยกกำลัง'], ['sqrt', 'sqrt(x)', 'f', 'รากที่สอง'], ['sin', 'sin(x)', 'f', 'ไซน์ (เรเดียน)'], ['cos', 'cos(x)', 'f', 'โคไซน์ (เรเดียน)'],
+  ['round', 'round(x)', 'f', 'ปัดเศษ'], ['floor', 'floor(x)', 'f', 'ปัดลง'], ['ceil', 'ceil(x)', 'f', 'ปัดขึ้น'],
+  ['random', 'random(0, 100)', 'f', 'สุ่มจำนวนเต็ม random(ต่ำ, สูง) (ไม่รวมค่าสูง)'], ['randomSeed', 'randomSeed(analogRead(A5));', 'f', 'ตั้งค่าเริ่มของตัวสุ่ม'],
+  ['tone', 'tone(8, 1000);', 'f', 'ส่งคลื่นสี่เหลี่ยมความถี่ (Hz) ไปขา เช่น บัซเซอร์'], ['noTone', 'noTone(8);', 'f', 'หยุดเสียง'],
+  ['pulseIn', 'pulseIn(echoPin, HIGH)', 'f', 'วัดความกว้างพัลส์ (µs) เช่น ECHO ของ HC-SR04 → ระยะ = µs / 58'],
+  ['shiftOut', 'shiftOut(dataPin, clockPin, MSBFIRST, value);', 'f', 'เลื่อนบิตออกทีละบิต (74HC595)'],
+  ['Serial', 'Serial', 'm', 'พอร์ตอนุกรม/Serial Monitor — พิมพ์จุดเพื่อดูคำสั่ง'],
+  ['Serial.begin', 'Serial.begin(9600);', 'f', 'เริ่มพอร์ตอนุกรมที่บอดเรต'], ['Serial.println', 'Serial.println("สวัสดี");', 'f', 'พิมพ์ข้อความแล้วขึ้นบรรทัดใหม่'],
+  ['Serial.print', 'Serial.print(x);', 'f', 'พิมพ์ข้อความ/ตัวเลข'], ['Serial.available', 'Serial.available()', 'f', 'จำนวนไบต์ที่รอให้อ่าน'],
+  ['Serial.readStringUntil', "Serial.readStringUntil('\\n')", 'f', 'อ่านข้อความจนถึงอักขระที่กำหนด'],
+  ['HIGH', 'HIGH', 'c', 'ลอจิก 1 (Vcc)'], ['LOW', 'LOW', 'c', 'ลอจิก 0 (0 V)'], ['INPUT', 'INPUT', 'c', 'โหมดอินพุต (ขาลอย)'], ['OUTPUT', 'OUTPUT', 'c', 'โหมดเอาต์พุต'],
+  ['INPUT_PULLUP', 'INPUT_PULLUP', 'c', 'อินพุตพร้อมตัวต้านทานดึงขึ้นภายใน (กดปุ่มลงกราวด์ = LOW)'], ['LED_BUILTIN', 'LED_BUILTIN', 'c', 'LED บนบอร์ด'],
+  ['MSBFIRST', 'MSBFIRST', 'c', 'บิตสูงก่อน (shiftOut)'], ['LSBFIRST', 'LSBFIRST', 'c', 'บิตต่ำก่อน (shiftOut)'], ['PI', 'PI', 'c', '3.14159…'],
+  ['HEX', 'HEX', 'c', 'พิมพ์เป็นเลขฐานสิบหก: Serial.println(x, HEX)'], ['BIN', 'BIN', 'c', 'พิมพ์เป็นเลขฐานสอง'], ['true', 'true', 'c', 'จริง'], ['false', 'false', 'c', 'เท็จ'],
+  ...['A0','A1','A2','A3','A4','A5'].map(a => [a, a, 'c', 'ขาแอนะล็อก ' + a + ' (Uno)']),
+  ...['int','long','float','double','bool','byte','char','String','unsigned long','const int','void'].map(k => [k, k + ' ', 'k', 'ชนิดข้อมูล']),
+  ['if', 'if (x > 0) {\n  \n}', 's', 'ทำเมื่อเงื่อนไขเป็นจริง'], ['else', 'else {\n  \n}', 's', 'กรณีอื่น'],
+  ['for', 'for (int i = 0; i < 10; i++) {\n  \n}', 's', 'วนซ้ำตามจำนวนรอบ'], ['while', 'while (x < 10) {\n  \n}', 's', 'วนซ้ำขณะเงื่อนไขจริง'],
+  ['switch', 'switch (x) {\n  case 1:\n    break;\n  default:\n    break;\n}', 's', 'เลือกทำตามค่า'], ['return', 'return ', 'k', 'คืนค่าจากฟังก์ชัน'], ['break', 'break;', 'k', 'ออกจากลูป/switch'],
+  ['setup', 'void setup() {\n  \n}', 's', 'ทำครั้งเดียวตอนเริ่ม'], ['loop', 'void loop() {\n  \n}', 's', 'ทำซ้ำไม่รู้จบ'],
+  ['blink', 'unsigned long last = 0;\nvoid loop() {\n  if (millis() - last >= 500) {\n    last = millis();\n    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));\n  }\n}', 's', 'โครงกะพริบด้วย millis() (ไม่ใช้ delay)'],
+  ['#include', '#include <Servo.h>', 's', 'ใช้ไลบรารี'],
+  ['Servo', 'Servo servo;', 'k', 'ไลบรารีเซอร์โว (#include <Servo.h>)'], ['DHT', 'DHT dht(2, DHT22);', 'k', 'เซนเซอร์อุณหภูมิ/ความชื้น DHT11/DHT22 (#include <DHT.h>)'],
+  ['DHT22', 'DHT22', 'c', 'ชนิดเซนเซอร์ DHT22'], ['DHT11', 'DHT11', 'c', 'ชนิดเซนเซอร์ DHT11'],
+  ['LiquidCrystal_I2C', 'LiquidCrystal_I2C lcd(0x27, 16, 2);', 'k', 'จอ LCD I2C (แอดเดรส, คอลัมน์, แถว)'], ['Wire', 'Wire', 'm', 'บัส I2C'],
+  ['SoftwareSerial', 'SoftwareSerial mySerial(10, 11);', 'k', 'พอร์ตอนุกรมเสริม (RX, TX)'],
+  ['ModbusRTUSlave', 'ModbusRTUSlave modbus(Serial, 2);', 'k', 'สเลฟ Modbus RTU (พอร์ต, ขา DE)'],
+  ['WiFi', 'WiFi', 'm', 'Wi-Fi (ESP32)', 'esp32'], ['WL_CONNECTED', 'WL_CONNECTED', 'c', 'สถานะเชื่อมต่อ Wi-Fi แล้ว', 'esp32'],
+  ['ModbusTCPClient', 'ModbusTCPClient mb(client);', 'k', 'ไคลเอนต์ Modbus TCP (ESP32)', 'esp32'], ['WiFiClient', 'WiFiClient client;', 'k', 'ไคลเอนต์ TCP', 'esp32'],
+  ['IPAddress', 'IPAddress plc(192, 168, 1, 10);', 'k', 'ที่อยู่ IP', 'esp32'],
+];
+const AC_MEM = {
+  Serial:[['begin', 'begin(9600)', 'เริ่มพอร์ตที่บอดเรต (ESP32: begin(baud, SERIAL_8N1, rx, tx))'], ['print', 'print(x)', 'พิมพ์'], ['println', 'println(x)', 'พิมพ์แล้วขึ้นบรรทัดใหม่'], ['write', 'write(b)', 'ส่ง 1 ไบต์'],
+    ['available', 'available()', 'จำนวนไบต์ที่รออ่าน'], ['read', 'read()', 'อ่าน 1 อักขระ (−1 = ไม่มี)'], ['peek', 'peek()', 'ดูอักขระถัดไปโดยไม่อ่านออก'], ['readString', 'readString()', 'อ่านข้อความทั้งหมด'],
+    ['readStringUntil', "readStringUntil('\\n')", 'อ่านจนถึงอักขระที่กำหนด'], ['parseInt', 'parseInt()', 'อ่านเป็นจำนวนเต็ม'], ['parseFloat', 'parseFloat()', 'อ่านเป็นทศนิยม'], ['flush', 'flush()', 'รอส่งข้อมูลให้หมด']],
+  Servo:[['attach', 'attach(9)', 'ผูกกับขา PWM'], ['write', 'write(90)', 'หมุนไปที่มุม 0–180°'], ['writeMicroseconds', 'writeMicroseconds(1500)', 'กำหนดความกว้างพัลส์ µs'], ['read', 'read()', 'มุมล่าสุด'], ['detach', 'detach()', 'ปลดขา']],
+  DHT:[['begin', 'begin()', 'เริ่มเซนเซอร์'], ['readTemperature', 'readTemperature()', 'อุณหภูมิ °C'], ['readHumidity', 'readHumidity()', 'ความชื้น %RH']],
+  LiquidCrystal_I2C:[['init', 'init()', 'เริ่มจอ'], ['backlight', 'backlight()', 'เปิดไฟพื้นหลัง'], ['noBacklight', 'noBacklight()', 'ปิดไฟพื้นหลัง'], ['clear', 'clear()', 'ล้างจอ'], ['home', 'home()', 'เคอร์เซอร์กลับมุมซ้ายบน'],
+    ['setCursor', 'setCursor(0, 0)', 'ตั้งเคอร์เซอร์ (คอลัมน์, แถว)'], ['print', 'print("Hello")', 'แสดงข้อความ/ตัวเลข'], ['write', 'write(c)', 'แสดง 1 อักขระ']],
+  Wire:[['begin', 'begin()', 'เริ่มบัส I2C'], ['beginTransmission', 'beginTransmission(0x27)', 'เริ่มส่งไปแอดเดรส'], ['endTransmission', 'endTransmission()', 'จบการส่ง → 0 = มีอุปกรณ์ตอบ, 2 = ไม่พบ'], ['write', 'write(b)', 'ส่ง 1 ไบต์']],
+  WiFi:[['begin', 'begin("ssid", "password")', 'เชื่อมต่อ Access Point'], ['status', 'status()', 'สถานะ (WL_CONNECTED เมื่อพร้อม)'], ['localIP', 'localIP()', 'IP ที่ได้รับ'], ['RSSI', 'RSSI()', 'ความแรงสัญญาณ dBm'], ['disconnect', 'disconnect()', 'ตัดการเชื่อมต่อ']],
+  ModbusTCPClient:[['begin', 'begin(plc, 502)', 'เชื่อมต่อเซิร์ฟเวอร์ Modbus TCP'], ['connected', 'connected()', 'ยังเชื่อมต่ออยู่หรือไม่'], ['holdingRegisterRead', 'holdingRegisterRead(0)', 'อ่าน holding register'],
+    ['holdingRegisterWrite', 'holdingRegisterWrite(0, value)', 'เขียน holding register'], ['inputRegisterRead', 'inputRegisterRead(0)', 'อ่าน input register'], ['coilRead', 'coilRead(0)', 'อ่านคอยล์'], ['coilWrite', 'coilWrite(0, 1)', 'เขียนคอยล์'],
+    ['discreteInputRead', 'discreteInputRead(0)', 'อ่านอินพุตดิจิทัล'], ['lastError', 'lastError()', 'ข้อความผิดพลาดล่าสุด']],
+  ModbusRTUSlave:[['configureCoils', 'configureCoils(coils, 2)', 'ตารางคอยล์ (bool[])'], ['configureDiscreteInputs', 'configureDiscreteInputs(inputs, 2)', 'ตารางอินพุตดิจิทัล'], ['configureHoldingRegisters', 'configureHoldingRegisters(holding, 4)', 'ตาราง holding register'],
+    ['configureInputRegisters', 'configureInputRegisters(input, 2)', 'ตาราง input register'], ['begin', 'begin(1, 9600)', 'เริ่มสเลฟ (ID, บอด)'], ['poll', 'poll()', 'ตอบคำขอ — เรียกทุกครั้งใน loop()']],
+  String:[['length', 'length()', 'ความยาว'], ['trim', 'trim()', 'ตัดช่องว่างหัวท้าย (แก้ในตัว)'], ['toUpperCase', 'toUpperCase()', 'เป็นตัวพิมพ์ใหญ่ (แก้ในตัว)'], ['toInt', 'toInt()', 'แปลงเป็นจำนวนเต็ม'], ['toFloat', 'toFloat()', 'แปลงเป็นทศนิยม'],
+    ['equals', 'equals("ON")', 'เท่ากับข้อความหรือไม่'], ['indexOf', 'indexOf(",")', 'ตำแหน่งที่พบ (−1 = ไม่พบ)'], ['substring', 'substring(0, 3)', 'ตัดข้อความ'], ['startsWith', 'startsWith("P=")', 'ขึ้นต้นด้วย'], ['charAt', 'charAt(0)', 'อักขระที่ตำแหน่ง']],
+};
+AC_MEM.SoftwareSerial = AC_MEM.Serial.concat([['listen', 'listen()', 'ให้พอร์ตนี้รับข้อมูล']]);
+const AC_CLS = ['Servo','DHT','LiquidCrystal_I2C','SoftwareSerial','ModbusTCPClient','ModbusRTUSlave','String','WiFiClient','IPAddress'];
+// ตัวแปร/ฟังก์ชัน/ออบเจ็กต์ที่ผู้ใช้ประกาศในโค้ด
+function acUser(code){
+  const vars = new Map(), fns = new Set(), objs = new Map([['Serial','Serial'],['Serial1','Serial'],['Serial2','Serial'],['WiFi','WiFi'],['Wire','Wire']]);
+  code = code.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const m of code.matchAll(/\b(?:const\s+)?(?:unsigned\s+)?(int|long|float|double|bool|boolean|byte|char|String|uint8_t|uint16_t|uint32_t|int16_t|word|short)\s+([A-Za-z_]\w*)\s*(\[|=|;|,|\))/g)) if (m[3] !== '(') vars.set(m[2], m[1]);
+  for (const m of code.matchAll(/\b(void|int|long|float|double|bool|String|byte)\s+([A-Za-z_]\w*)\s*\(/g)) if (!['setup','loop'].includes(m[2])) fns.add(m[2]);
+  for (const m of code.matchAll(new RegExp('\\b(' + AC_CLS.join('|') + ')\\s+([A-Za-z_]\\w*)', 'g'))) objs.set(m[2], m[1]);
+  for (const [n, t] of vars) if (t === 'String') objs.set(n, 'String');
+  return {vars, fns, objs};
+}
+const AC = {ta:null, list:[], i:0, from:0, c:null};
+function acCtx(ta){ const pos = ta.selectionStart, txt = ta.value, ls = txt.lastIndexOf('\n', pos - 1) + 1, line = txt.slice(ls, pos);
+  if (/\/\//.test(line) || (line.match(/"/g) || []).length % 2 || (line.match(/'/g) || []).length % 2) return null;      // อยู่ในคอมเมนต์/สตริง
+  const m = /([A-Za-z_][\w]*)\.([A-Za-z_]\w*)?$/.exec(line); if (m) return {obj:m[1], pre:m[2] || '', from:pos - (m[2] || '').length};
+  const w = /(#?[A-Za-z_][\w]*)$/.exec(line); if (w) return {pre:w[1], from:pos - w[1].length};
+  return null; }
+function acItems(ctx, c){
+  const U = acUser(AC.ta ? AC.ta.value : ''), board = c ? c.t : '', pre = ctx.pre.toLowerCase(), out = [];
+  if (ctx.obj){ const cls = U.objs.get(ctx.obj); const ms = AC_MEM[cls] || [];
+    for (const [nm, ins, d] of ms) out.push({nm, ins, k:'f', d, sig:cls + '.' + ins});
+  } else {
+    for (const [nm, ins, k, d, b] of AC_CORE){ if (b && b !== board) continue; out.push({nm, ins, k, d}); }
+    for (const [n, t] of U.vars) out.push({nm:n, ins:n, k:'v', d:'ตัวแปร ' + t});
+    for (const n of U.fns) out.push({nm:n, ins:n + '()', k:'f', d:'ฟังก์ชันของคุณ'});
+    for (const [n, t] of U.objs) if (!['Serial','Serial1','Serial2','WiFi','Wire'].includes(n) && t !== 'String') out.push({nm:n, ins:n, k:'m', d:'ออบเจ็กต์ ' + t + ' — พิมพ์จุดเพื่อดูคำสั่ง'});
+    if (board && MCU[board] && MCU[board].uarts) for (const u of Object.keys(MCU[board].uarts)) if (!out.some(o => o.nm === u)) out.push({nm:u, ins:u, k:'m', d:'พอร์ตอนุกรมฮาร์ดแวร์'});
+  }
+  const seen = new Set(), a = [], b2 = [];
+  for (const o of out){ const key = o.nm + '|' + o.ins; if (seen.has(key)) continue; seen.add(key); const l = o.nm.toLowerCase();
+    if (!pre || l.startsWith(pre)) a.push(o); else if (pre.length >= 2 && l.includes(pre)) b2.push(o); }
+  const r = a.concat(b2); if (r.length === 1 && r[0].nm === ctx.pre && r[0].ins === ctx.pre) return [];      // พิมพ์ครบแล้ว
+  return r.slice(0, 40);
+}
+// พิกัดเคอร์เซอร์ใน textarea (เทียบกล่องของ textarea) ด้วย div จำลองรูปแบบเดียวกัน
+function acCaret(ta, pos){
+  const cs = getComputedStyle(ta), d = document.createElement('div');
+  for (const p of ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','paddingTop','paddingLeft','paddingRight','paddingBottom','borderTopWidth','borderLeftWidth','tabSize','boxSizing','whiteSpace','wordWrap'])
+    d.style[p] = cs[p];
+  Object.assign(d.style, {position:'absolute', visibility:'hidden', whiteSpace:'pre-wrap', wordWrap:'break-word', width:ta.clientWidth + 'px', top:'0', left:'0', overflow:'hidden'});
+  d.textContent = ta.value.slice(0, pos); const sp = document.createElement('span'); sp.textContent = '​'; d.appendChild(sp); document.body.appendChild(d);
+  const r = {x:sp.offsetLeft - ta.scrollLeft, y:sp.offsetTop - ta.scrollTop, h:sp.offsetHeight || parseFloat(cs.lineHeight) || 16}; d.remove(); return r;
+}
+function acShow(ta, c, force){
+  const ctx = acCtx(ta); if (!ctx || (!ctx.obj && !force && ctx.pre.length < 1)){ acHide(); return; }
+  const list = acItems(ctx, c); if (!list.length){ acHide(); return; }
+  AC.ta = ta; AC.c = c; AC.list = list; AC.from = ctx.from; AC.i = Math.min(AC.i, list.length - 1); if (AC.pre !== ctx.pre) AC.i = 0; AC.pre = ctx.pre;
+  let pop = $('#acpop'); if (!pop){ pop = document.createElement('div'); pop.id = 'acpop'; pop.hidden = true; document.body.appendChild(pop);
+    pop.addEventListener('mousedown', e => { e.preventDefault(); const it = e.target.closest('.it'); if (it){ AC.i = +it.dataset.i; acAccept(); } }); }
+  const KN = {f:'ฟังก์ชัน', c:'ค่าคงที่', k:'ชนิด', s:'โครง', v:'ตัวแปร', m:'ออบเจ็กต์'}, hl = nm => { const n = ctx.pre.length; return nm.toLowerCase().startsWith(ctx.pre.toLowerCase()) && n ? `<u>${esc(nm.slice(0, n))}</u>${esc(nm.slice(n))}` : esc(nm); };
+  pop.innerHTML = list.map((o, i) => `<div class="it ${i === AC.i ? 'on' : ''}" data-i="${i}"><code>${hl(o.nm)}</code><span class="k ${o.k}">${KN[o.k] || ''}</span>${o.d ? `<span class="d">${esc(o.d)}</span>` : ''}${o.ins !== o.nm && i === AC.i ? `<span class="sg">${esc(o.ins.split('\n')[0])}${o.ins.includes('\n') ? ' …' : ''}</span>` : ''}</div>`).join('')
+    + '<div class="ft">↑↓ เลือก · Enter / Tab ใส่ · Esc ปิด · Ctrl+Space เปิดรายการ</div>';
+  const R = ta.getBoundingClientRect(), cp = acCaret(ta, ctx.from), top = R.top + window.scrollY + cp.y + cp.h + 4, left = R.left + window.scrollX + cp.x;
+  pop.hidden = false; const ph = pop.offsetHeight, pw = pop.offsetWidth;
+  pop.style.left = Math.max(4, Math.min(innerWidth - pw - 6, left)) + 'px';
+  pop.style.top = (top + ph > innerHeight + window.scrollY - 4 ? Math.max(4, R.top + window.scrollY + cp.y - ph - 4) : top) + 'px';
+  const on = pop.querySelector('.it.on'); if (on) on.scrollIntoView({block:'nearest'});
+}
+function acHide(){ const p = $('#acpop'); if (p) p.hidden = true; AC.list = []; }
+const acOpen = () => { const p = $('#acpop'); return p && !p.hidden && AC.list.length; };
+function acAccept(){
+  const ta = AC.ta, o = AC.list[AC.i]; if (!ta || !o) return; let ins = o.ins;
+  const ls = ta.value.lastIndexOf('\n', AC.from - 1) + 1, ind = (/^[ \t]*/.exec(ta.value.slice(ls)) || [''])[0];
+  ins = ins.replace(/\n/g, '\n' + ind);                                              // ย่อหน้าตามบรรทัดปัจจุบัน
+  let end = ta.selectionEnd; while (end < ta.value.length && /\w/.test(ta.value[end])) end++;   // แทนคำที่เหลือหลังเคอร์เซอร์ด้วย
+  ta.setRangeText(ins, AC.from, end, 'end'); const st = AC.from;
+  acHide();
+  // เลือกอาร์กิวเมนต์แรก (เช่น 13 ใน digitalWrite(13, HIGH)) · โครงโค้ดหลายบรรทัด → วางเคอร์เซอร์ในบรรทัดว่างแรก
+  const pi = ins.indexOf('(');
+  if (o.k === 's' && ins.includes('\n')){ const k = ins.search(/\n\s*\n|\{\n\s*$/); const blank = /\n([ \t]+)\n/.exec(ins); if (blank){ const p2 = st + blank.index + 1 + blank[1].length; ta.setSelectionRange(p2, p2); } }
+  else if (pi >= 0 && ins[pi + 1] !== ')'){ const a = st + pi + 1; let b = a, dep = 0; while (b < ta.value.length){ const ch = ta.value[b]; if ((ch === ',' || ch === ')') && !dep) break; if (ch === '(') dep++; if (ch === ')') dep--; b++; } ta.setSelectionRange(a, b); }
+  ta.focus(); ta.dispatchEvent(new Event('input'));
+}
+// Tab ภายในวงเล็บ → เลือกอาร์กิวเมนต์ถัดไป
+function acNextArg(ta){
+  const v = ta.value, p = ta.selectionEnd, ls = v.lastIndexOf('\n', p - 1) + 1, le = v.indexOf('\n', p) < 0 ? v.length : v.indexOf('\n', p);
+  const before = v.slice(ls, p), open = (before.match(/\(/g) || []).length - (before.match(/\)/g) || []).length; if (open <= 0) return false;
+  let i = p; while (i < le && v[i] !== ',' && v[i] !== ')') i++; if (i >= le || v[i] !== ',') return false;
+  let a = i + 1; while (a < le && v[a] === ' ') a++; let b = a, dep = 0; while (b < le){ const ch = v[b]; if ((ch === ',' || ch === ')') && !dep) break; if (ch === '(') dep++; if (ch === ')') dep--; b++; }
+  ta.setSelectionRange(a, b); return true;
+}
+function acKey(ta, e){
+  if ((e.ctrlKey || e.metaKey) && e.key === ' '){ e.preventDefault(); acShow(ta, AC.c, true); return true; }
+  if (!acOpen()) return false;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); AC.i = (AC.i + (e.key === 'ArrowDown' ? 1 : AC.list.length - 1)) % AC.list.length; acShow(ta, AC.c, true); return true; }
+  if (e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); acAccept(); return true; }
+  if (e.key === 'Escape'){ e.preventDefault(); acHide(); return true; }
+  return false;
+}
+function acAttach(ta, c){
+  AC.c = c; AC.ta = ta;
+  ta.addEventListener('input', e => { if (e.isTrusted === false && !e.inputType) return; const ch = e.data;
+    if (e.inputType && e.inputType.startsWith('delete')){ if (acOpen()) acShow(ta, c); return; }
+    if (ch && /[\w.#]/.test(ch)) acShow(ta, c); else acHide(); });
+  ta.addEventListener('blur', () => setTimeout(acHide, 120));
+  ta.addEventListener('scroll', () => { if (acOpen()) acShow(ta, c, true); });
+  ta.addEventListener('click', () => acHide());
 }
 function ladMon(force){
   const tg = drawerTarget(); if (ladOpen && tg && MCU[tg.t]){ mcuMon(tg); return; }

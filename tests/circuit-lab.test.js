@@ -687,6 +687,21 @@ const path = require('path');
     && exr.restore && exr.csv > 9000 && exr.rep[0] >= 2 && exr.rep.slice(1).every(Boolean), JSON.stringify([exr.runs, exr.restore, exr.csv, exr.rep])]);
   checks.push(['ทดลองชุดกวาดฟิลด์อุปกรณ์ TK1.out = 2:1:4 พร้อมเหตุการณ์ @1 PLC1.D1 = 50 → ความถี่ VFD ≈ 16.7/25/33.3 Hz (ใช้น้ำมาก ปั๊มเร็วขึ้น) และค่าเดิมคืน',
     exr.f.length === 3 && nr(exr.f[0], 16.7, 1) && nr(exr.f[1], 25, 1) && nr(exr.f[2], 33.3, 1) && exr.lv2 === 3, JSON.stringify([exr.f, exr.lv2])]);
+  { await page.setViewportSize({width:1400, height:900});
+    await page.evaluate(() => { __sim.load('arduino'); const c = __sim.S.comps.find(x => x.t === 'uno'); ladPid = c.id; ladOpen = true; ladStruct(); });
+    await page.waitForTimeout(200); await page.click('#mcode'); await page.keyboard.press('Control+End'); await page.keyboard.press('Enter');
+    const items = () => page.evaluate(() => { const p = document.querySelector('#acpop'); return p && !p.hidden ? [...p.querySelectorAll('.it code')].map(x => x.textContent) : null; });
+    const r = {}; await page.keyboard.type('d'); r.d = (await items() || []).slice(0, 2);
+    await page.keyboard.type('igitalW'); await page.keyboard.press('Enter');
+    r.sel = await page.evaluate(() => { const t = document.querySelector('#mcode'); return t.value.slice(t.selectionStart, t.selectionEnd); });
+    await page.keyboard.type('9'); await page.keyboard.press('Tab'); await page.keyboard.type('LOW');
+    await page.keyboard.press('Escape'); await page.keyboard.press('End'); await page.keyboard.press('Enter'); await page.keyboard.type('Servo sv;'); await page.keyboard.press('Enter'); await page.keyboard.type('sv.');
+    r.mem = await items(); await page.keyboard.press('Escape');
+    r.code = await page.evaluate(() => { const t = document.querySelector('#mcode').value.split('\n'); return t.slice(-3, -1).join('|'); });
+    r.inStr = await page.evaluate(() => { const t = document.querySelector('#mcode'); t.value += '\nSerial.println("di'; t.setSelectionRange(t.value.length, t.value.length); return !!acCtx(t); });
+    await page.evaluate(() => { ladOpen = false; ladStruct(); });
+    checks.push(['ตัวเขียนโค้ด Arduino: พิมพ์ d → ป๊อปอัป digitalWrite/digitalRead, Enter ใส่ digitalWrite(13, HIGH); เลือกขา, Tab ไปอาร์กิวเมนต์ถัดไป, "sv." → เมธอด Servo, ไม่เด้งในสตริง',
+      JSON.stringify(r.d) === '["digitalWrite","digitalRead"]' && r.sel === '13' && r.code === 'digitalWrite(9, LOW);|Servo sv;' && r.mem && r.mem.includes('attach') && r.mem.includes('write') && r.inStr === false, JSON.stringify(r)]); }
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

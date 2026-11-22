@@ -154,6 +154,10 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
 10. **ตัวเขียนโปรแกรม** — ลิ้นชักด้านล่าง `#lad` ใช้ร่วมกันระหว่าง PLC และไมโครคอนโทรลเลอร์ (`drawerTarget()` เลือกเป้าหมาย):
     PLC ใช้ `ladStruct()` สร้างโครง, `rungSVG()` วาดรัง, `ladMon()` อัปเดตสด; ไมโครคอนโทรลเลอร์ใช้ `mcuStruct()` (โค้ด + Serial Monitor) และ `mcuMon()`
+    **เติมคำสั่งอัตโนมัติ** (`acAttach` บน `#mcode`, ป๊อปอัป `#acpop` ใน body): พิมพ์ตัวอักษร/`#` → `AC_CORE` (ฟังก์ชัน Arduino, ค่าคงที่, ชนิดข้อมูล, โครง if/for/setup/blink, ไลบรารี; ตัวที่มี `'esp32'` แสดงเฉพาะ ESP32)
+    + ตัวแปร/ฟังก์ชัน/ออบเจ็กต์ที่ผู้ใช้ประกาศ (`acUser`); "ชื่อ." → เมธอดตามชนิด (`AC_MEM`: Serial, Servo, DHT, LiquidCrystal_I2C, Wire, WiFi, ModbusTCPClient, ModbusRTUSlave, String, SoftwareSerial)
+    ไม่เด้งในคอมเมนต์/สตริง (`acCtx`) · ↑↓ Enter/Tab Esc Ctrl+Space (`acKey`) · ใส่ฟังก์ชันแล้วเลือกอาร์กิวเมนต์แรก, Tab ในวงเล็บ → อาร์กิวเมนต์ถัดไป (`acNextArg`) · ตำแหน่งเคอร์เซอร์ `acCaret` (div จำลอง)
+    เพิ่มฟังก์ชันใหม่ใน `mcuApi` แล้วควรเพิ่มใน `AC_CORE`/`AC_MEM` ด้วย
 
 11. **โรงงาน 3D** — ฉากประกอบจากชิ้นเครื่องจักรที่ผู้ใช้จัดวางเอง วาดด้วย WebGL โดยตรงใน `#fx` ไม่ใช้ไลบรารี (ออกแบบฉากเอง)
     - state: `S.fac = {items:[{id, k, x, z, r, …}], btn:[ชื่อปุ่มกดบนแผง]}` (บันทึก/undo ได้) · `k` คือชนิดใน `FKIND`
@@ -326,6 +330,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - pidtank (แลดเดอร์/ข้อความ): ระดับ 60% ≈ 25 Hz ปั๊ม < 250 W, ใช้น้ำ 4.5 %/s → ≈ 37.6 Hz ระดับคง 60% · Modbus (PLC มาสเตอร์ → VFD) ได้ผลเดียวกัน
 - ค่าวัด (ระบบอันดับหนึ่ง τ = 1 s): rise 2.20 s, settling 3.91 s, IAE 1 · ทดลองชุด pidtank Kp 1/2/4/8 → overshoot ≈ 36/19/4/0% ทุกรอบเข้า 60% วงจรคืนเดิม
   · กวาด TK1.out = 2:1:4 → VFD ≈ 16.7/25/33.3 Hz
+- ตัวเขียนโค้ด: พิมพ์ d → digitalWrite/digitalRead, Enter → digitalWrite(13, HIGH); เลือก 13, Tab → HIGH, "sv." (Servo sv;) → attach/write, ไม่เด้งในสตริง
 - CTU นับ 3 → C0, RST ล้าง · แลดเดอร์ CTU + MOV `(AI0+10)*2` = 30 · AQ0 := (CV0 + 1) * 10 = 40
 
 ## งานที่วางแผนไว้
