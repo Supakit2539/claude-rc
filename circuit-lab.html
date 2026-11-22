@@ -10,6 +10,7 @@
 <style>
 :root{
   --bg:#eef0f3; --panel:#ffffff; --panel2:#f3f5f8; --line:#d6dbe3; --text:#1c2230; --muted:#667085;
+  --vlab:#b45309; --ilab:#2563eb; --plab:#be185d;
   --accent:#2563eb; --accent-text:#ffffff; --board:#fafbfc; --grid:#c9d0da;
   --comp:#1f2937; --compfill:#ffffff; --wire:#7b8494; --sel:#7c3aed;
   --l1:#8b5a2b; --l2:#111827; --l3:#8a93a3; --nwire:#2f6fd6; --dcp:#dc2626; --dcn:#1f2937;
@@ -20,7 +21,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0f1218; --panel:#171b23; --panel2:#1f2430; --line:#2c3341; --text:#e5e9f0; --muted:#98a2b3;
-    --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
+    --vlab:#fbbf24; --ilab:#60a5fa; --plab:#f472b6; --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
     --comp:#d6dbe4; --compfill:#1b2029; --wire:#6b7484; --sel:#a78bfa;
     --l1:#c08850; --l2:#d1d5db; --l3:#7d8696; --nwire:#5b9bff; --dcp:#f87171; --dcn:#cbd5e1;
     --flow:#fbbf24; --ok:#4ade80; --okbg:#14321f; --warn:#fbbf24; --warnbg:#3a2c0b; --bad:#f87171; --badbg:#3b1414;
@@ -30,7 +31,7 @@
 }
 :root[data-theme="dark"]{
   --bg:#0f1218; --panel:#171b23; --panel2:#1f2430; --line:#2c3341; --text:#e5e9f0; --muted:#98a2b3;
-  --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
+  --vlab:#fbbf24; --ilab:#60a5fa; --plab:#f472b6; --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
   --comp:#d6dbe4; --compfill:#1b2029; --wire:#6b7484; --sel:#a78bfa;
   --l1:#c08850; --l2:#d1d5db; --l3:#7d8696; --nwire:#5b9bff; --dcp:#f87171; --dcn:#cbd5e1;
   --flow:#fbbf24; --ok:#4ade80; --okbg:#14321f; --warn:#fbbf24; --warnbg:#3a2c0b; --bad:#f87171; --badbg:#3b1414;
@@ -96,6 +97,9 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 .pop[hidden]{display:none}
 .pop button{background:none;border:0;text-align:left;padding:8px 10px;border-radius:6px;cursor:pointer;font:inherit;color:inherit}
 .pop button:hover{background:var(--panel2)}
+.pop label{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer}
+.pop label:hover{background:var(--panel2)}
+.pop .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
 #modal{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px}
 #modal[hidden]{display:none}
 #modal .mbody{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;width:min(560px,100%);max-height:90vh;overflow:auto}
@@ -256,13 +260,22 @@ button,select,.pi,summary{touch-action:manipulation}
   <button class="btn" id="bAn" title="วิเคราะห์วงจรแบบ SPICE: จุดทำงาน, กวาด DC, AC (Bode), ชั่วคราว, ฟูเรียร์">วิเคราะห์</button>
   <button class="btn run" id="bRun" title="รัน/หยุดการจำลอง (Space)"></button>
   <select id="spd" title="ความเร็วจำลอง"><option value="1" selected>×1</option><option value="5">×5</option><option value="20">×20</option></select>
-  <button class="btn" id="bVal" title="แสดงค่าบนแผง">ค่า</button>
+  <button class="btn" id="bVal" title="แสดงค่า/แรงดัน/กระแสที่สัญลักษณ์อุปกรณ์">ค่า ▾</button>
   <button class="btn" id="bTheme" title="สลับธีม">ธีม</button>
 </header>
 <div id="fmenu" class="pop" hidden>
   <button data-f="save">💾 บันทึกเป็นไฟล์ (.json)</button><button data-f="open">📂 เปิดไฟล์…</button>
   <button data-f="share">🔗 แชร์ (โค้ด/ลิงก์)</button><button data-f="import">📥 นำเข้าโค้ด/ข้อความ</button>
   <button data-f="png">🖼 ส่งออกภาพวงจร (PNG)</button><button data-f="paste">📋 วาง (Ctrl+V)</button><button data-f="new">✚ วงจรใหม่</button>
+</div>
+<div id="vmenu" class="pop" hidden>
+  <label><input type="checkbox" data-d="on"> <b>แสดงป้ายค่าบนแผง</b></label>
+  <label><input type="checkbox" data-d="val"> ค่าพิกัด (Ω, F, V …)</label>
+  <label><input type="checkbox" data-d="v"> <span class="sw" style="background:var(--vlab)"></span>แรงดันคร่อม (V)</label>
+  <label><input type="checkbox" data-d="i"> <span class="sw" style="background:var(--ilab)"></span>กระแส (A)</label>
+  <label><input type="checkbox" data-d="p"> <span class="sw" style="background:var(--plab)"></span>กำลัง (W)</label>
+  <label><input type="checkbox" data-d="pin"> แรงดันที่ขาบล็อก (เทียบกราวด์)</label>
+  <div class="anhint" style="padding:4px 10px">เลือกเฉพาะอุปกรณ์: เลือกอุปกรณ์แล้วตั้ง "ป้ายค่าบนสัญลักษณ์" ในแผงขวา</div>
 </div>
 <input type="file" id="fopen" accept=".json,application/json" hidden>
 <div id="modal" hidden><div class="mbody"></div></div>
@@ -4245,12 +4258,21 @@ Q2 := M0 AND NOT I3 AND NOT I5 AND NOT M3
 const $ = s => document.querySelector(s);
 const cv = $('#cv'), ctx = cv.getContext('2d');
 let K = {}, dpr = 1, view = {x:80, y:80, z:1}, showVal = true;
+// ป้ายค่าบนสัญลักษณ์: ค่ารวมทั้งแผง (DISP) + ตั้งรายอุปกรณ์ c.vshow = '' ตามค่ารวม | vi | v | i | p | all | pin | none
+const DISP = {val:true, v:false, i:true, p:false, pin:false};
+try { const d = JSON.parse(localStorage.getItem('circuit-lab-disp') || 'null'); if (d){ Object.assign(DISP, d); if (d.on != null) showVal = !!d.on; } } catch (e){}
+const VSHOW = [['','ตามค่ารวมของแผง'],['vi','แรงดัน + กระแส'],['v','แรงดัน'],['i','กระแส'],['p','กำลัง'],['all','V, I, P (+ แรงดันขา)'],['pin','แรงดันที่ขา'],['none','ไม่แสดง']];
+function dispFor(c){ const m = c.vshow || '';
+  if (m === 'none') return {};
+  if (m) return {val:showVal && DISP.val, v:m === 'vi' || m === 'v' || m === 'all', i:m === 'vi' || m === 'i' || m === 'all', p:m === 'p' || m === 'all', pin:m === 'pin' || m === 'all', own:true};
+  return showVal ? {val:DISP.val, v:DISP.v, i:DISP.i, p:DISP.p, pin:DISP.pin} : {}; }
+function dispSave(){ try { localStorage.setItem('circuit-lab-disp', JSON.stringify(Object.assign({on:showVal}, DISP))); } catch (e){} }
 let tool = 'sel', placeT = null, ghostR = 0, sel = null, drag = null, mouse = {gx:0, gy:0, in:false};
 const LEDC = {red:'#ef4444', green:'#22c55e', blue:'#3b82f6', yellow:'#eab308', white:'#f1f5f9'};
 
 function readColors(){
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['bg','panel','panel2','text','muted','accent','board','grid','comp','compfill','wire','sel','l1','l2','l3','nwire','dcp','dcn','flow','ok','warn','bad','lamp','water','waterbg','screen','screentext','ladon','ladoff','line','sky2'])
+  for (const k of ['bg','panel','panel2','text','muted','accent','board','grid','comp','compfill','wire','sel','l1','l2','l3','nwire','dcp','dcn','flow','ok','warn','bad','lamp','water','waterbg','screen','screentext','ladon','ladoff','line','sky2','vlab','ilab','plab'])
     K[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize(){
@@ -4478,11 +4500,20 @@ function readText(c, R){
   if (['sw','pb','pbnc','no','nc','float','mcb','fuse','estop','limit','presw','flowsw','tstat'].includes(c.t)) return '';
   return R.Ir > 1e-5 ? fmt(R.Ir, 'A') : '';
 }
+function measText(c, R, d){
+  if (!R) return [];
+  const out = [], ac = R.ac, sw = ['sw','pb','pbnc','no','nc','float','mcb','fuse','estop','limit','presw','flowsw','tstat'].includes(c.t);
+  if (d.v && c.t !== 'vm' && c.t !== 'am') out.push([fmt(tiny(R.Vr || 0, 5e-4), 'V') + (ac ? '~' : ''), K.vlab]);
+  if (d.i && c.t !== 'am' && c.t !== 'vm' && (d.own || (!sw && R.Ir > 1e-5))) out.push([fmt(tiny(R.Ir || 0, 1e-7), 'A') + (ac ? '~' : ''), K.ilab]);
+  if (d.p && R.P != null && c.t !== 'vm' && c.t !== 'am') out.push([fmt(tiny(Math.abs(R.P), 1e-6), 'W'), K.plab]);
+  return out;
+}
 function labelTwo(c){
-  const R = RES.comp[c.id], vert = (c.r & 1) === 1, cx = c.x*G, cy = c.y*G;
+  const R = RES.comp[c.id], vert = (c.r & 1) === 1, cx = c.x*G, cy = c.y*G, d = dispFor(c);
   const nm = (c.t === 'no' || c.t === 'nc') ? c.ref : c.n;
   const meter = c.t === 'am' || c.t === 'vm';
-  const lines = [[nm, K.text, '600', false], [showVal ? valText(c) : '', K.muted, '400', true], [showVal || meter ? readText(c, R) : '', K.accent, '600', true]].filter(l => l[0]);
+  const lines = [[nm, K.text, '600', false], [d.val ? valText(c) : '', K.muted, '400', true], [meter ? readText(c, R) : '', K.accent, '600', true]]
+    .concat(measText(c, R, d).map(m => [m[0], m[1], '600', true])).filter(l => l[0]);
   if (vert){
     let y = cy - (lines.length - 1)*7;
     for (const l of lines){ text(l[0], cx + 19, y, 11, l[1], 'left', l[2], l[3]); y += 14; }
@@ -4491,6 +4522,33 @@ function labelTwo(c){
     let y = cy - top - (lines.length - 1)*13;
     for (const l of lines){ text(l[0], cx, y, 11, l[1], 'center', l[2], l[3]); y += 13; }
   }
+  if (d.pin) for (const p of pinsOf(c)) pinVLabel(c, p, cx, cy);
+}
+// แรงดันโหนดเทียบกราวด์ที่ขาอุปกรณ์ (DC หรือ RMS รวม AC)
+// จุดอ้างอิง: มีกราวด์/ไฟบ้าน → โหนด 0; ไม่มี → ขั้วลบของแบตเตอรี่/COM ของเครื่องกำเนิดสัญญาณตัวแรก
+function vRefNode(){ if (RES._vref != null) return RES._vref; const m = RES.nodeAt || RES.nm; let k = 0;
+  if (m && !S.comps.some(c => ['gnd','src1','src3'].includes(c.t) || (c.t === 'scope' && c.earth))){ const c = S.comps.find(c => c.t === 'bat' || c.t === 'fgen');
+    if (c){ const p = pinsOf(c)[1]; k = m.get(p[0] + ',' + p[1]) || 0; } }
+  return RES._vref = k; }
+function nodeVAt(x, y){ const m = RES.nodeAt || RES.nm; if (!m || !RES.nvv) return null; const k = m.get(x + ',' + y); if (k == null) return null;
+  const Z = {d:0, r:0, i:0}, v = RES.nvv[k] || Z, o = RES.nvv[vRefNode()] || Z, d = (v.d || 0) - (o.d || 0), ac = Math.hypot((v.r || 0) - (o.r || 0), (v.i || 0) - (o.i || 0));
+  return {d, ac, rms:Math.sqrt(d*d + ac*ac)}; }
+const tiny = (x, e) => Math.abs(x) < e ? 0 : x;
+function pinVLabel(c, p, cx, cy){
+  const v = nodeVAt(p[0], p[1]); if (!v) return;
+  const s = v.ac > 1e-3*Math.max(1, Math.abs(v.d)) ? fmt(v.rms, 'V') + '~' : fmt(tiny(v.d, 5e-4), 'V');
+  let dx = p[0]*G - cx, dy = p[1]*G - cy; const hz = Math.abs(dx) > Math.abs(dy)*1.3;
+  const X = p[0]*G + (hz ? Math.sign(dx || 1)*6 : 4), Y = p[1]*G + (hz ? -9 : Math.sign(dy || 1)*12);
+  ctx.font = "600 9.5px 'IBM Plex Mono',monospace"; const w = ctx.measureText(s).width + 6, al = hz ? (dx >= 0 ? 'left' : 'right') : 'left';
+  const bx = al === 'left' ? X - 1 : X - w + 1;
+  ctx.fillStyle = K.board; ctx.globalAlpha = 0.85; ctx.fillRect(bx, Y - 7, w, 14); ctx.globalAlpha = 1;
+  text(s, al === 'left' ? X + 2 : X - 2, Y, 9.5, K.vlab, al, '600', true);
+}
+function labelBlock(c){
+  const d = dispFor(c); if (!d.pin) return;
+  const cx = c.x*G, cy = c.y*G;
+  if (d.pin) for (const p of pinsOf(c)) pinVLabel(c, p, cx, cy);
+  // บล็อกมีหลายขา: แสดงเป็นแรงดันที่ขา (กระแส/กำลังดูได้ในแผงขวา)
 }
 
 function hmiLayout(c){
@@ -4995,7 +5053,7 @@ function draw(now){
   // มัลติมิเตอร์จิ้มวัด
   if (PROBE.a || PROBE.b) probeDraw();
   drawFlow(now/1000);
-  for (const c of S.comps) if (isTwo(c)) labelTwo(c);
+  for (const c of S.comps) isTwo(c) ? labelTwo(c) : labelBlock(c);
   // ขั้วที่ยังไม่ได้ต่อ
   for (const c of S.comps) for (const p of pinsOf(c)) if (!deg.has(kk(p[0],p[1]))){
     let shared = 0; for (const d of S.comps) if (d !== c) for (const q of pinsOf(d)) if (q[0] === p[0] && q[1] === p[1]) shared++;
@@ -5381,6 +5439,7 @@ function renderInsp(){
     if (md && md.spec) s += `<table class="rd spec">${Object.entries(md.spec).map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>`;
   }
   s += (F[c.t] || []).map(f => fieldHTML(c, f)).join('');
+  s += `<div class="fld wide"><label>ป้ายค่าบนสัญลักษณ์</label><select data-vshow="1">${VSHOW.map(o => `<option value="${o[0]}" ${(c.vshow || '') === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></div>`;
   const acts = [];
   if (c.t === 'lamp' && c._blown) acts.push(['replace','เปลี่ยนหลอดใหม่']);
   if (c.t === 'led' && c._blown) acts.push(['replace','เปลี่ยน LED ใหม่']);
@@ -8272,6 +8331,7 @@ $('#ihead').addEventListener('input', e => {
   needSolve = true;
 });
 $('#ihead').addEventListener('change', e => {
+  if (e.target.dataset.vshow && sel && sel.k === 'c'){ if (e.target.value) sel.c.vshow = e.target.value; else delete sel.c.vshow; commit(); return; }
   if (e.target.dataset.model && sel && sel.k === 'c'){ applyModel(sel.c, e.target.value); delete sel.c._cp; needSolve = true; commit(); return; }
   if (e.target.dataset.k) commit();
 });
@@ -8308,7 +8368,12 @@ $('#bPal').onclick = () => drawer($('#main').classList.contains('palopen') ? nul
 $('#bInsp').onclick = () => drawer($('#main').classList.contains('inspopen') ? null : 'insp');
 document.addEventListener('click', e => { const b = e.target.closest('[data-dclose]'); if (b) drawer(null); });
 $('#bAn').onclick = () => { const w = $('#anwin'); if (w.hidden) anOpen(); else w.hidden = true; };
-$('#bVal').onclick = () => { showVal = !showVal; refreshUI(); };
+$('#bVal').onclick = e => { const m = $('#vmenu'); if (!m.hidden){ m.hidden = true; return; } const r = e.currentTarget.getBoundingClientRect();
+  m.querySelectorAll('[data-d]').forEach(x => x.checked = x.dataset.d === 'on' ? showVal : !!DISP[x.dataset.d]);
+  m.style.left = Math.max(6, Math.min(innerWidth - 290, r.right - 280)) + 'px'; m.style.top = (r.bottom + 4) + 'px'; m.hidden = false; };
+$('#vmenu').onchange = e => { const k = e.target.dataset.d; if (!k) return; if (k === 'on') showVal = e.target.checked; else { DISP[k] = e.target.checked; if (e.target.checked) showVal = true; }
+  $('#vmenu').querySelector('[data-d=on]').checked = showVal; dispSave(); refreshUI(); };
+document.addEventListener('pointerdown', e => { const m = $('#vmenu'); if (!m.hidden && !e.target.closest('#vmenu,#bVal')) m.hidden = true; });
 $('#bTheme').onclick = () => {
   const r = document.documentElement, t = r.dataset.theme;
   const dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;

@@ -236,6 +236,9 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
     ผลใน `r.mc` วาดเส้นจางซ้อน + สถิติ (`mcMetric`, `mcStats`: ค่ากลาง ± σ, ต่ำสุด–สูงสุด ของ −3 dB/ยอด/ค่าเฉลี่ย)
 21. **แบบฝึกหัด** (ปุ่ม "แบบฝึกหัด"): `EXER` = led, div, par, stair, reg, rc — แต่ละข้อมี `start` (วงจรเริ่ม), `sol` (เฉลย), `check()` → [ผ่าน, ข้อความ]
     `exStart(id, sol?)`, การ์ด `#task` (`exCard`), `exCheck()`; ข้อที่ผ่านแล้วเก็บใน localStorage `circuit-lab-ex`
+22. **ป้ายค่าบนสัญลักษณ์** — ปุ่ม "ค่า ▾" (`#vmenu`): ค่ารวมทั้งแผง `showVal` + `DISP = {val, v, i, p, pin}` (บันทึกใน localStorage `circuit-lab-disp`)
+    รายอุปกรณ์ `c.vshow` (บันทึกในวงจร, ตาม `VSHOW`: '' ตามค่ารวม | vi | v | i | p | all | pin | none) → `dispFor(c)`; 2 ขั้ว: `measText` (V สี `--vlab`, I `--ilab`, P `--plab`, `~` = RMS)
+    บล็อก: แรงดันที่ขา `pinVLabel` ผ่าน `nodeVAt` เทียบ `vRefNode()` (กราวด์/ไฟบ้าน → โหนด 0, ไม่มี → ขั้วลบแบตเตอรี่/COM fgen ตัวแรก) · ค่าจิ๋วปัดเป็น 0 (`tiny`)
 
 ## ข้อตกลง
 - สีทั้งหมดเป็น CSS token บน `:root` และรองรับ dark mode (`prefers-color-scheme` + `data-theme`); canvas อ่านค่าผ่าน `readColors()` เก็บใน `K`
@@ -295,6 +298,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - แก้ไข: เลือก 4 อุปกรณ์ 8 สาย → คัดลอก/วาง ได้ชื่อไม่ซ้ำ 0.25 A, undo/redo, ย้ายทั้งชุดกระแสเดิม · โค้ดแชร์ `CL1.` ถอดกลับตรง · PNG
 - ป้ายชื่อสาย VCC/GND → 9 mA (สด + SPICE), มิเตอร์จิ้ม 9.00 V · 100 Ω 0.25 W ที่ 9 V → ไหม้ · อิเล็กโทรไลต์กลับขั้ว → ระเบิด
 - lcdi2c: "TEMP 27.9 C" / "ADC  57", 40 °C → "TEMP 40.1 C" · แบบฝึกหัด 6 ข้อ: เริ่มต้นไม่ผ่าน เฉลยผ่าน · Monte Carlo RC −3 dB ≈ 159 Hz σ 4–8 Hz
+- ป้ายค่า: mixed R1 = 5.45 V / 54.5 mA / 297 mW · semi แรงดันขา 7805 = 12 / 0 / 5 V
 
 ## งานที่วางแผนไว้
 - ซอฟต์สตาร์ทเตอร์/อินเวอร์เตอร์ (VFD), มอเตอร์สเต็ปเปอร์, เครื่องกำเนิดไฟฟ้า, หม้อแปลง 3 เฟส, กราวด์และระบบ TN/TT

@@ -392,7 +392,7 @@ const path = require('path');
     Math.abs(mv[0] - 0.25) < 0.002 && Math.abs(mv[1] - 0.25) < 0.002 && mv[2] < 1e-3 && Math.abs(mv[3] - 0.25) < 0.002 && Math.abs(mv[4] - 0.5) < 0.002 && mv[5] === true, JSON.stringify(mv.map(v => typeof v === 'number' ? +v.toFixed(4) : v))]);
   // ลากสายผ่านมุม/จุดต่อของสายอื่นกลางเส้น → ไม่ต่อกัน; ปลายสายตกกลางสายอื่น → ต่อ (T)
   // วงจร: B1 10 V → R1 100 Ω ปิดวงจรเอง และสายแนวตั้งของ B2 มีจุดหักที่ y = 6 — สายใหม่แนวนอน y = 6 ผ่านทั้งสองจุดหัก
-  await page.evaluate(() => { window.__sim.load({comps:[{id:1, t:'bat', x:4, y:3, r:1, V:10, n:'B1'}, {id:2, t:'res', x:4, y:9, r:1, R:100, n:'R1'}, {id:3, t:'bat', x:8, y:3, r:1, V:5, n:'B2'}, {id:4, t:'res', x:8, y:9, r:1, R:100, n:'R2'}],
+  await page.evaluate(() => { window.__sim.load({comps:[{id:1, t:'bat', x:4, y:3, r:1, V:10, n:'B1'}, {id:2, t:'res', x:4, y:9, r:1, R:100, Pr:5, n:'R1'}, {id:3, t:'bat', x:8, y:3, r:1, V:5, n:'B2'}, {id:4, t:'res', x:8, y:9, r:1, R:100, Pr:5, n:'R2'}],
     wires:[{x1:4, y1:4, x2:4, y2:6}, {x1:4, y1:6, x2:4, y2:8}, {x1:8, y1:4, x2:8, y2:6}, {x1:8, y1:6, x2:8, y2:8}, {x1:4, y1:10, x2:4, y2:12}, {x1:4, y1:12, x2:3, y2:12}, {x1:3, y1:12, x2:3, y2:2}, {x1:3, y1:2, x2:4, y2:2},
       {x1:8, y1:10, x2:8, y2:12}, {x1:8, y1:12, x2:9, y2:12}, {x1:9, y1:12, x2:9, y2:2}, {x1:9, y1:2, x2:8, y2:2}], nid:5}); });
   await page.waitForTimeout(100);
@@ -628,6 +628,14 @@ const path = require('path');
   checks.push(['แบบฝึกหัด 6 ข้อ: วงจรเริ่มต้นไม่ผ่าน และเฉลยผ่านทุกข้อ', ed.ex === '-P-P-P-P-P-P', ed.ex]);
   checks.push(['Monte Carlo (R ±5%, C ±10%, 41 รอบ): RC −3 dB เฉลี่ย ≈ 159 Hz, σ ≈ 4–8 Hz, ค่าอุปกรณ์คืนค่าเดิม',
     ed.mc[0] === 40 && nr(ed.mc[1], 159.5, 4) && ed.mc[2] > 4 && ed.mc[2] < 8 && ed.mc[3] === 1000 && ed.mc[4] === 1, JSON.stringify(ed.mc)]);
+  const disp = await page.evaluate(() => { const s = __sim, o = {};
+    s.load('mixed'); s.run(0.3); const r1 = s.find('R1'), save = Object.assign({}, DISP);
+    Object.assign(DISP, {val:true, v:true, i:true, p:true}); showVal = true; o.all = measText(r1, s.RES.comp[r1.id], dispFor(r1)).map(m => m[0]);
+    showVal = false; o.off = measText(r1, s.RES.comp[r1.id], dispFor(r1)).length; r1.vshow = 'v'; o.own = measText(r1, s.RES.comp[r1.id], dispFor(r1)).map(m => m[0]);
+    o.saved = JSON.parse(ser()).comps.find(c => c.n === 'R1').vshow; Object.assign(DISP, save); showVal = true;
+    s.load('semi'); s.run(0.5); const u = s.S.comps.find(c => c.t === 'reg'); o.pins = pinsOf(u).map(p => +nodeVAt(p[0], p[1]).d.toFixed(2)); return o; });
+  checks.push(['ป้ายค่าบนสัญลักษณ์: R1 แสดง 5.45 V / 54.5 mA / 297 mW, ปิดรวมแล้วตั้งเฉพาะตัว (บันทึกได้) · แรงดันขา 7805 = 12/0/5 V',
+    JSON.stringify(disp.all) === '["5.45 V","54.5 mA","297 mW"]' && disp.off === 0 && JSON.stringify(disp.own) === '["5.45 V"]' && disp.saved === 'v' && JSON.stringify(disp.pins) === '[12,0,5]', JSON.stringify(disp)]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
