@@ -702,6 +702,28 @@ const path = require('path');
     await page.evaluate(() => { ladOpen = false; ladStruct(); });
     checks.push(['ตัวเขียนโค้ด Arduino: พิมพ์ d → ป๊อปอัป digitalWrite/digitalRead, Enter ใส่ digitalWrite(13, HIGH); เลือกขา, Tab ไปอาร์กิวเมนต์ถัดไป, "sv." → เมธอด Servo, ไม่เด้งในสตริง',
       JSON.stringify(r.d) === '["digitalWrite","digitalRead"]' && r.sel === '13' && r.code === 'digitalWrite(9, LOW);|Servo sv;' && r.mem && r.mem.includes('attach') && r.mem.includes('write') && r.inStr === false, JSON.stringify(r)]); }
+  const lint = await page.evaluate(() => { const s = __sim, o = {};
+    o.clean = []; for (const k in EX){ let d; try { d = EX[k].f(); } catch (e){ continue; } for (const c of d.comps || []) if (c.code){ if (cToJs(c.code).split('\n').length !== c.code.split('\n').length) o.clean.push(k + ':lines'); if (s.codeLint(c.code, c).length) o.clean.push(k); } }
+    const bad = 'Servo sv;\nconst int LED = 9, BTN = 2;\nvoid setup() {\n  pinmode(LED, OUTPUT);\n  Serial.begin(9600)\n  sv.atach(3);\n}\nvoid loop() {\n  if (v = 1) digitalWrite(LED, HIHG);\n  Serial.println("ok");\n}';
+    o.bad = s.codeLint(bad, {t:'uno'}).map(q => q.line + q.sev);
+    o.syn = s.codeLint('void setup(){}\nvoid loop(){\n  int x = 5 +* 3;\n}', {t:'uno'}).map(q => q.line + ':' + /ไวยากรณ์/.test(q.msg));
+    o.br = s.codeLint('void setup(){\n  if (x > 1 {\n  }\n}\nvoid loop(){}', {t:'uno'}).map(q => q.line);
+    o.str = s.codeLint('void setup(){\n  Serial.println("abc);\n}\nvoid loop(){}', {t:'uno'}).map(q => q.line + q.msg.slice(0, 7));
+    o.nosetup = s.codeLint('void loop(){}', {t:'uno'}).length;
+    o.tok = s.edTokens('void loop(){ digitalWrite(13, HIGH); // c\n}').filter(t => t[0]).map(t => t[0] + ':' + t[1].trim()).join(' ');
+    // หน้าจอ: ชั้นระบายสีตรงกับ textarea และแสดงจุดแดง/รายการปัญหา
+    s.load('arduino'); const c = s.S.comps.find(x => x.t === 'uno'); c.code = bad; ladPid = c.id; ladOpen = true; ladStruct();
+    const ta = document.querySelector('#mcode'), pre = document.querySelector('#chl'); o.ui = [document.querySelectorAll('#cgut .e').length, document.querySelectorAll('#ladmsg .prob a').length, pre.querySelectorAll('.sq').length >= 4];
+    const pos = ta.value.indexOf('HIHG'), cp = acCaret(ta, pos), li = ta.value.slice(0, pos).split('\n').length - 1, col = pos - ta.value.lastIndexOf('\n', pos - 1) - 1;
+    const tw = document.createTreeWalker(pre.children[li], NodeFilter.SHOW_TEXT); let n, acc = 0, rr = null;
+    while ((n = tw.nextNode())){ if (n.parentElement.closest('.lens')) continue; if (acc + n.textContent.length >= col){ const r = document.createRange(); r.setStart(n, col - acc); r.setEnd(n, col - acc); rr = r.getBoundingClientRect(); break; } acc += n.textContent.length; }
+    const pR = pre.getBoundingClientRect(); o.align = [Math.abs(cp.x - (rr.left - pR.left)) < 2, Math.abs(cp.y - (rr.top - pR.top)) < 2];
+    ladOpen = false; ladStruct(); return o; });
+  checks.push(['ตัวตรวจโค้ด: ตัวอย่างทุกตัวไม่มีคำเตือนผิด + เลขบรรทัด cToJs คงเดิม · จับ pinmode/ขาด ;/atach/HIHG/= ในเงื่อนไข, ไวยากรณ์ +* บรรทัด 3, วงเล็บไม่ปิด, สตริงไม่ปิด, ไม่มี setup',
+    lint.clean.length === 0 && JSON.stringify(lint.bad) === '["4e","5e","6e","9e","9w"]' && JSON.stringify(lint.syn) === '["3:true"]' && JSON.stringify(lint.br) === '[2]'
+    && lint.str.length === 1 && lint.str[0].startsWith('2') && lint.nosetup === 1, JSON.stringify(lint)]);
+  checks.push(['ระบายสีโค้ด: โทเคน ชนิด/ฟังก์ชัน/ตัวเลข/ค่าคงที่/คอมเมนต์ · ชั้นสีตรงกับเคอร์เซอร์ textarea · จุดแดงที่เลขบรรทัด, ขีดเส้นหยัก, รายการปัญหาคลิกได้',
+    lint.tok === 'ht:void hf:digitalWrite hn:13 hc:HIGH hm:// c' && lint.ui[0] === 4 && lint.ui[1] === 5 && lint.ui[2] && lint.align.every(Boolean), JSON.stringify([lint.tok, lint.ui, lint.align])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

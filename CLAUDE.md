@@ -158,6 +158,11 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
     + ตัวแปร/ฟังก์ชัน/ออบเจ็กต์ที่ผู้ใช้ประกาศ (`acUser`); "ชื่อ." → เมธอดตามชนิด (`AC_MEM`: Serial, Servo, DHT, LiquidCrystal_I2C, Wire, WiFi, ModbusTCPClient, ModbusRTUSlave, String, SoftwareSerial)
     ไม่เด้งในคอมเมนต์/สตริง (`acCtx`) · ↑↓ Enter/Tab Esc Ctrl+Space (`acKey`) · ใส่ฟังก์ชันแล้วเลือกอาร์กิวเมนต์แรก, Tab ในวงเล็บ → อาร์กิวเมนต์ถัดไป (`acNextArg`) · ตำแหน่งเคอร์เซอร์ `acCaret` (div จำลอง)
     เพิ่มฟังก์ชันใหม่ใน `mcuApi` แล้วควรเพิ่มใน `AC_CORE`/`AC_MEM` ด้วย
+    **ระบายสี + ตรวจโค้ด**: `.cedit` = เลขบรรทัด `#cgut` + `<pre id="chl">` ใต้ textarea โปร่งใส (ฟอนต์/padding/การตัดบรรทัดเดียวกัน, `edScroll` เลื่อนตาม, padding ขวาชดเชยสกรอลบาร์)
+    `edTokens` → คลาส hk/ht/hf/hc/hs/hn/hm/hp/ho (สี CSS `--hkw` …) · `edRender` วาดทุกครั้งที่พิมพ์, `edLintSoon` ตรวจหลังหยุดพิมพ์ 350 ms → `c._lint`
+    `codeLint(code, c)` → [{line, sev e/w, msg, col, len}]: สตริง/คอมเมนต์ไม่ปิด (`edClean`), วงเล็บไม่คู่, ขาด ; (ฮิวริสติก), ฟังก์ชัน/เมธอด/ค่าคงที่ไม่รู้จัก + แนะนำชื่อใกล้ (`edNear`, Damerau ≤ 1–2; รู้จักจาก `AC_CORE`, คีย์ของ `mcuApi`, `AC_MEM_X`),
+    = ในเงื่อนไข (เตือน), ไม่มี setup/loop, แล้วจึงคอมไพล์จริง → SyntaxError หาบรรทัดด้วย `edSyntaxLine` (สคริปต์ทดลอง + lineno) — **`cToJs` ต้องรักษาจำนวนบรรทัด** (คอมเมนต์ /* */ เก็บ \n, regex ใช้ `^[ \t]*`)
+    แสดง: จุดแดง/เหลืองที่เลขบรรทัด (คลิกไปบรรทัด), พื้นหลังบรรทัด, ขีดหยัก `.sq`, ข้อความท้ายบรรทัด `.lens`, รายการใน `#ladmsg` (`data-goto`) · อัปโหลดเมื่อมีข้อผิดพลาด → ถามยืนยัน
 
 11. **โรงงาน 3D** — ฉากประกอบจากชิ้นเครื่องจักรที่ผู้ใช้จัดวางเอง วาดด้วย WebGL โดยตรงใน `#fx` ไม่ใช้ไลบรารี (ออกแบบฉากเอง)
     - state: `S.fac = {items:[{id, k, x, z, r, …}], btn:[ชื่อปุ่มกดบนแผง]}` (บันทึก/undo ได้) · `k` คือชนิดใน `FKIND`
@@ -331,6 +336,7 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ค่าวัด (ระบบอันดับหนึ่ง τ = 1 s): rise 2.20 s, settling 3.91 s, IAE 1 · ทดลองชุด pidtank Kp 1/2/4/8 → overshoot ≈ 36/19/4/0% ทุกรอบเข้า 60% วงจรคืนเดิม
   · กวาด TK1.out = 2:1:4 → VFD ≈ 16.7/25/33.3 Hz
 - ตัวเขียนโค้ด: พิมพ์ d → digitalWrite/digitalRead, Enter → digitalWrite(13, HIGH); เลือก 13, Tab → HIGH, "sv." (Servo sv;) → attach/write, ไม่เด้งในสตริง
+- ตัวตรวจโค้ด: ตัวอย่างทุกตัวไม่มีคำเตือน · จับ pinmode→pinMode, ขาด ;, atach→attach, HIHG→HIGH, = ในเงื่อนไข, +* บรรทัด 3, วงเล็บ/สตริงไม่ปิด · ชั้นสีตรงเคอร์เซอร์ (< 2 px)
 - CTU นับ 3 → C0, RST ล้าง · แลดเดอร์ CTU + MOV `(AI0+10)*2` = 30 · AQ0 := (CV0 + 1) * 10 = 40
 
 ## งานที่วางแผนไว้

@@ -11,6 +11,7 @@
 :root{
   --bg:#eef0f3; --panel:#ffffff; --panel2:#f3f5f8; --line:#d6dbe3; --text:#1c2230; --muted:#667085;
   --vlab:#b45309; --ilab:#2563eb; --plab:#be185d;
+  --hkw:#7c3aed; --hty:#0369a1; --hfn:#0f766e; --hct:#c2410c; --hstr:#15803d; --hnum:#b45309; --hcom:#8a94a3; --hpp:#a21caf; --hobj:#1d4ed8; --hbad:#dc2626; --hwarn:#d97706;
   --accent:#2563eb; --accent-text:#ffffff; --board:#fafbfc; --grid:#c9d0da;
   --comp:#1f2937; --compfill:#ffffff; --wire:#7b8494; --sel:#7c3aed;
   --l1:#8b5a2b; --l2:#111827; --l3:#8a93a3; --nwire:#2f6fd6; --dcp:#dc2626; --dcn:#1f2937;
@@ -21,7 +22,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0f1218; --panel:#171b23; --panel2:#1f2430; --line:#2c3341; --text:#e5e9f0; --muted:#98a2b3;
-    --vlab:#fbbf24; --ilab:#60a5fa; --plab:#f472b6; --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
+    --vlab:#fbbf24; --ilab:#60a5fa; --plab:#f472b6; --hkw:#c4b5fd; --hty:#7dd3fc; --hfn:#5eead4; --hct:#fdba74; --hstr:#86efac; --hnum:#fcd34d; --hcom:#6b7685; --hpp:#f0abfc; --hobj:#93c5fd; --hbad:#f87171; --hwarn:#fbbf24; --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
     --comp:#d6dbe4; --compfill:#1b2029; --wire:#6b7484; --sel:#a78bfa;
     --l1:#c08850; --l2:#d1d5db; --l3:#7d8696; --nwire:#5b9bff; --dcp:#f87171; --dcn:#cbd5e1;
     --flow:#fbbf24; --ok:#4ade80; --okbg:#14321f; --warn:#fbbf24; --warnbg:#3a2c0b; --bad:#f87171; --badbg:#3b1414;
@@ -31,7 +32,7 @@
 }
 :root[data-theme="dark"]{
   --bg:#0f1218; --panel:#171b23; --panel2:#1f2430; --line:#2c3341; --text:#e5e9f0; --muted:#98a2b3;
-  --vlab:#fbbf24; --ilab:#60a5fa; --plab:#f472b6; --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
+  --vlab:#fbbf24; --ilab:#60a5fa; --plab:#f472b6; --hkw:#c4b5fd; --hty:#7dd3fc; --hfn:#5eead4; --hct:#fdba74; --hstr:#86efac; --hnum:#fcd34d; --hcom:#6b7685; --hpp:#f0abfc; --hobj:#93c5fd; --hbad:#f87171; --hwarn:#fbbf24; --accent:#60a5fa; --accent-text:#0b1220; --board:#12161d; --grid:#2a313d;
   --comp:#d6dbe4; --compfill:#1b2029; --wire:#6b7484; --sel:#a78bfa;
   --l1:#c08850; --l2:#d1d5db; --l3:#7d8696; --nwire:#5b9bff; --dcp:#f87171; --dcn:#cbd5e1;
   --flow:#fbbf24; --ok:#4ade80; --okbg:#14321f; --warn:#fbbf24; --warnbg:#3a2c0b; --bad:#f87171; --badbg:#3b1414;
@@ -176,6 +177,22 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 .rung{margin:2px 0 8px}
 #ladbody.mcu{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:8px;overflow:hidden}
 #ladbody.mcu textarea{height:100%}
+.cedit{position:relative;display:flex;min-height:0;height:100%;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg)}
+.cgut{flex:none;min-width:38px;overflow:hidden;background:var(--panel2);color:var(--muted);font:13px/1.5 'IBM Plex Mono',monospace;text-align:right;padding:6px 6px 6px 14px;user-select:none;cursor:pointer}
+.cgut div{position:relative}.cgut div.e::before,.cgut div.w::before{content:'';position:absolute;left:-10px;top:calc(.75em - 4px);width:8px;height:8px;border-radius:50%;background:var(--hbad)}.cgut div.w::before{background:var(--hwarn)}
+.cgut div.e,.cgut div.w{color:var(--text);font-weight:600}
+.cwrap{position:relative;flex:1;min-width:0}
+#ladbody .cwrap pre,#ladbody .cwrap textarea{position:absolute;inset:0;margin:0;padding:6px 8px;font:13px/1.5 'IBM Plex Mono',monospace;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;tab-size:2;border:0;border-radius:0;letter-spacing:0;box-sizing:border-box;width:100%;height:100%;min-height:0}
+#ladbody .cwrap pre{overflow:hidden;color:var(--text);pointer-events:none}
+#ladbody .cwrap textarea{background:transparent;color:transparent;caret-color:var(--text);resize:none;outline:none;overflow:auto;-webkit-text-fill-color:transparent}
+#ladbody .cwrap textarea::selection{background:color-mix(in srgb,var(--accent) 28%,transparent);-webkit-text-fill-color:transparent}
+.cwrap pre .l{position:relative}.cwrap pre .l.e{background:color-mix(in srgb,var(--hbad) 10%,transparent)}.cwrap pre .l.w{background:color-mix(in srgb,var(--hwarn) 10%,transparent)}
+.cwrap pre .lens{position:absolute;right:2px;top:0;font:italic 11.5px/1.75 'IBM Plex Sans Thai',sans-serif;color:var(--hbad);background:color-mix(in srgb,var(--bg) 88%,transparent);padding:0 6px;border-radius:4px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cwrap pre .l.w .lens{color:var(--hwarn)}
+.cwrap .sq{text-decoration:underline wavy var(--hbad);text-decoration-skip-ink:none;text-underline-offset:3px}.cwrap .l.w .sq{text-decoration-color:var(--hwarn)}
+.hk{color:var(--hkw);font-weight:600}.ht{color:var(--hty);font-weight:600}.hf{color:var(--hfn)}.hc{color:var(--hct)}.hs{color:var(--hstr)}.hn{color:var(--hnum)}.hm{color:var(--hcom);font-style:italic}.hp{color:var(--hpp)}.ho{color:var(--hobj);font-weight:600}
+#ladmsg .prob{display:flex;flex-wrap:wrap;gap:2px 14px}#ladmsg .prob a{cursor:pointer;text-decoration:none;color:var(--hbad)}#ladmsg .prob a.w{color:var(--hwarn)}#ladmsg .prob a:hover{text-decoration:underline}
+@media (pointer:coarse){#ladbody .cwrap pre,#ladbody .cwrap textarea,.cgut{font-size:16px !important}}
 .serial{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .serial .cap{font-size:12px;color:var(--muted);padding:3px 8px;background:var(--panel2);border-bottom:1px solid var(--line)}
 .serial pre{flex:1;margin:0;padding:6px 8px;overflow:auto;background:var(--screen);color:var(--screentext);font:12px/1.45 'IBM Plex Mono',monospace;white-space:pre-wrap}
@@ -2248,17 +2265,17 @@ function servoTarget(sv){
 function cToJs(src){
   const strs = [];
   let s = String(src || '').replace(/\r/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, x => x.replace(/[^\n]/g, ' '))     // คงจำนวนบรรทัด (ตัวตรวจโค้ดชี้บรรทัดได้ตรง)
     .replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, x => { strs.push(x); return '__S' + (strs.length - 1) + '__'; })
     .replace(/\/\/.*$/gm, '');
-  s = s.replace(/^\s*#include.*$/gm, '').replace(/^\s*#define\s+(\w+)\s+(.+)$/gm, 'const $1 = $2;');
+  s = s.replace(/^[ \t]*#include.*$/gm, '').replace(/^[ \t]*#define\s+(\w+)\s+(.+)$/gm, 'const $1 = $2;');
   // อ็อบเจกต์ไลบรารี: DHT dht(2, DHT22);  Servo s;
   // String ของ Arduino: s.length() → s.length, s.trim(); / toUpperCase(); แก้ค่าในตัวแปรเอง
   s = s.replace(/\.length\(\)/g, '.length').replace(/\b([A-Za-z_]\w*)\.(trim|toUpperCase|toLowerCase)\(\)\s*;/g, '$1 = $1.$2();');
   s = s.replace(/\bconst\s+char\s*\*\s*/g, 'const ').replace(/\bchar\s*\*\s*(?=[A-Za-z_])/g, 'let ');
   s = s.replace(/\b(DHT|Servo|SoftwareSerial|ModbusRTUSlave|IPAddress|WiFiClient|ModbusTCPClient|LiquidCrystal_I2C)\s+([A-Za-z_]\w*)\s*(?:\(([^;]*)\))?\s*;/g, (m, cls, n, a) => 'const ' + n + ' = new ' + cls + '(' + (a || '') + ');');
   s = wrapInts(s);
-  s = s.replace(new RegExp('^\\s*(?:static\\s+)?(?:void|' + CTYPES + ')\\s+\\w+\\s*\\([^)]*\\)\\s*;', 'gm'), '');
+  s = s.replace(new RegExp('^[ \\t]*(?:static\\s+)?(?:void|' + CTYPES + ')\\s+\\w+\\s*\\([^)]*\\)\\s*;', 'gm'), '');
   const fns = [];
   s = s.replace(new RegExp('\\b(?:static\\s+)?(?:void|' + CTYPES + ')\\s*\\*?\\s+([A-Za-z_]\\w*)\\s*\\(([^)]*)\\)\\s*\\{', 'g'), (m, name, ps) => {
     fns.push(name);
@@ -6234,20 +6251,25 @@ function mcuStruct(c){
     <button class="btn" id="mrst" title="เริ่มโปรแกรมใหม่ (กดปุ่ม RESET)">รีเซ็ต</button>
     <button class="btn" id="mclr">ล้าง Serial</button>
     <span style="flex:1"></span><span id="lstat" class="mono"></span><button class="btn" id="lclose">ปิด</button></div>
-    <div id="ladbody" class="mcu"><textarea id="mcode" spellcheck="false"></textarea><div class="serial"><div class="cap">Serial Monitor</div><pre id="mser"></pre><div class="sin"><input id="msin" placeholder="ส่งข้อความเข้าบอร์ด (Serial) แล้วกด Enter"><button class="btn" id="msend">ส่ง</button></div></div></div>
+    <div id="ladbody" class="mcu"><div class="cedit"><div class="cgut" id="cgut"></div><div class="cwrap"><pre id="chl" aria-hidden="true"></pre><textarea id="mcode" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="soft"></textarea></div></div><div class="serial"><div class="cap">Serial Monitor</div><pre id="mser"></pre><div class="sin"><input id="msin" placeholder="ส่งข้อความเข้าบอร์ด (Serial) แล้วกด Enter"><button class="btn" id="msend">ส่ง</button></div></div></div>
     <div id="ladmsg"></div>`;
   const ta = $('#mcode'); ta.value = c.code || '';
-  ta.oninput = () => { c.code = ta.value; c._dirty = true; mcuMon(c); };
+  ta.oninput = () => { c.code = ta.value; c._dirty = true; edRender(ta, c); edLintSoon(ta, c); mcuMon(c); };
+  ta.addEventListener('scroll', () => edScroll(ta));
+  $('#cgut').onclick = e => { const d = e.target.closest('[data-ln]'); if (d) edGoto(ta, +d.dataset.ln); };
   ta.onchange = () => commit();
   ta.onkeydown = e => { if (acKey(ta, e)) return; if (e.key === 'Tab'){ e.preventDefault(); if (!e.shiftKey && acNextArg(ta)) return; const a = ta.selectionStart; ta.setRangeText('  ', a, ta.selectionEnd, 'end'); ta.oninput(); } };
   acAttach(ta, c);
-  $('#mup').onclick = () => { c.code = ta.value; c._dirty = false; mcuBoot(c); commit(); };
+  $('#mup').onclick = () => { c.code = ta.value; c._lint = codeLint(c.code, c); edRender(ta, c); const ne = c._lint.filter(q => q.sev === 'e');
+    if (ne.length && !confirm(`พบข้อผิดพลาด ${ne.length} จุด (บรรทัด ${ne.slice(0, 5).map(q => q.line).join(', ')}) — ยังต้องการอัปโหลดหรือไม่?`)){ edGoto(ta, ne[0].line); mcuMon(c, true); return; }
+    c._dirty = false; mcuBoot(c); commit(); };
   $('#mrst').onclick = () => { mcuBoot(c); mcuMon(c, true); };
   $('#mclr').onclick = () => { if (c._vm) c._vm.serial = ''; mcuMon(c, true); };
   const msend = () => { const i = $('#msin'), vm = c._vm; if (!i.value || !vm || !vm.uarts.Serial) return; vm.uarts.Serial.q.push({t:simT, s:i.value + '\n'}); vm.out('› ' + i.value + '\n'); i.value = ''; mcuMon(c, true); };
   $('#msend').onclick = msend; $('#msin').onkeydown = e => { if (e.key === 'Enter') msend(); };
   $('#lclose').onclick = () => { ladOpen = false; ladStruct(); };
   $('#lplc').onchange = e => { ladPid = +e.target.value; ladSel = {ri:0, row:0, col:0}; ladStruct(); };
+  c._lint = codeLint(c.code || '', c); edRender(ta, c); requestAnimationFrame(() => edRender(ta, c));
   mcuMon(c, true);
 }
 function mcuMon(c, force){
@@ -6255,7 +6277,8 @@ function mcuMon(c, force){
   const t = vm ? vm.serial : '';
   if (force || ser.textContent !== t){ const atEnd = ser.scrollTop + ser.clientHeight >= ser.scrollHeight - 4; ser.textContent = t; if (atEnd || force) ser.scrollTop = ser.scrollHeight; }
   $('#lstat').innerHTML = !vm ? 'พร้อม' : vm.err ? '<span style="color:var(--bad)">ERROR</span>' : '<span style="color:var(--ok)">RUN</span> ' + (vm.ms/1000).toFixed(1) + ' s';
-  $('#ladmsg').innerHTML = vm && vm.err ? `<div class="e">${esc(vm.err)}</div>` :
+  const P = c._lint || [];
+  $('#ladmsg').innerHTML = P.length ? `<div class="prob">${P.slice(0, 8).map(q => `<a class="${q.sev}" data-goto="${q.line}">${q.sev === 'e' ? '✖' : '▲'} บรรทัด ${q.line}: ${esc(q.msg)}</a>`).join('')}${P.length > 8 ? `<span>… อีก ${P.length - 8} รายการ</span>` : ''}</div>` + (vm && vm.err ? `<div class="e">${esc(vm.err)}</div>` : '') : vm && vm.err ? `<div class="e">${esc(vm.err)}</div>` :
     (c._dirty ? '<span style="color:var(--warn)">แก้ไขโค้ดแล้ว — กด "อัปโหลด ▶" เพื่อให้บอร์ดใช้โค้ดใหม่</span>' :
     'เขียนแบบ Arduino: setup(), loop(), pinMode, digitalWrite/Read, analogRead/Write, delay, millis, Serial.print · โปรแกรมเดินเมื่อกด ▶ รัน · ตัวเลขทุกชนิดเป็นทศนิยมแบบ JavaScript');
 }
@@ -6332,6 +6355,9 @@ function acUser(code){
   const vars = new Map(), fns = new Set(), objs = new Map([['Serial','Serial'],['Serial1','Serial'],['Serial2','Serial'],['WiFi','WiFi'],['Wire','Wire']]);
   code = code.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of code.matchAll(/\b(?:const\s+)?(?:unsigned\s+)?(int|long|float|double|bool|boolean|byte|char|String|uint8_t|uint16_t|uint32_t|int16_t|word|short)\s+([A-Za-z_]\w*)\s*(\[|=|;|,|\))/g)) if (m[3] !== '(') vars.set(m[2], m[1]);
+  // ประกาศหลายตัวในบรรทัดเดียว: const int A = 1, B = 2;
+  for (const m of code.matchAll(/\b(?:const\s+)?(?:unsigned\s+)?(int|long|float|double|bool|boolean|byte|char|String|uint8_t|uint16_t|uint32_t|int16_t|word|short)\s+([^;(){}]+);/g))
+    for (const part of m[2].split(',')){ const q = /^\s*\**\s*([A-Za-z_]\w*)/.exec(part); if (q && !vars.has(q[1])) vars.set(q[1], m[1]); }
   for (const m of code.matchAll(/\b(void|int|long|float|double|bool|String|byte)\s+([A-Za-z_]\w*)\s*\(/g)) if (!['setup','loop'].includes(m[2])) fns.add(m[2]);
   for (const m of code.matchAll(new RegExp('\\b(' + AC_CLS.join('|') + ')\\s+([A-Za-z_]\\w*)', 'g'))) objs.set(m[2], m[1]);
   for (const [n, t] of vars) if (t === 'String') objs.set(n, 'String');
@@ -6424,6 +6450,126 @@ function acAttach(ta, c){
   ta.addEventListener('scroll', () => { if (acOpen()) acShow(ta, c, true); });
   ta.addEventListener('click', () => acHide());
 }
+/* ---------- ระบายสีโค้ด + ตรวจบรรทัดที่ผิด ----------
+   ชั้น <pre id="chl"> อยู่ใต้ textarea (ข้อความโปร่งใส) ใช้ฟอนต์/ระยะเดียวกัน เลื่อนตามกัน · เลขบรรทัด + จุดแดง/เหลืองใน #cgut (คลิก = ไปบรรทัดนั้น)
+   codeLint(code, c) → [{line, sev:'e'|'w', msg, col, len}]: สตริง/คอมเมนต์ไม่ปิด, วงเล็บไม่คู่, ขาด ;, ฟังก์ชัน/เมธอด/ค่าคงที่ที่ไม่รู้จัก (แนะนำชื่อใกล้เคียง),
+   = ในเงื่อนไข, ไม่มี setup/loop และไวยากรณ์จากการคอมไพล์จริง (หาบรรทัดด้วยสคริปต์ทดลอง เพราะ cToJs รักษาเลขบรรทัด) */
+const ED_KW = new Set(['if','else','for','while','do','switch','case','default','break','continue','return','goto','sizeof','new','delete','true','false','NULL','nullptr','static','volatile','const','struct','enum','typedef','class','public','private']);
+const ED_TY = new Set(['void','int','long','float','double','bool','boolean','byte','char','short','unsigned','signed','word','String','uint8_t','uint16_t','uint32_t','int8_t','int16_t','int32_t','size_t','auto']);
+const ED_OBJ = new Set(['Serial','Serial1','Serial2','WiFi','Wire','Servo','DHT','LiquidCrystal_I2C','SoftwareSerial','ModbusRTUSlave','ModbusTCPClient','WiFiClient','IPAddress']);
+let ED_FN = null, ED_CT = null;
+function edKnown(){
+  if (ED_FN) return; ED_FN = new Set(); ED_CT = new Set();
+  for (const [nm, , k] of AC_CORE){ if (nm.includes('.') || nm.includes(' ')) continue; if (k === 'f') ED_FN.add(nm); else if (k === 'c') ED_CT.add(nm); }
+  try { const api = mcuApi({t:'esp32', id:-1}, {pins:{}, uarts:{}, servos:{}, tones:{}, out(){}, serial:'', ms:0});
+    for (const k of Object.keys(api)){ if (typeof api[k] === 'function' && /^[a-z_]/.test(k)) ED_FN.add(k); else if (/^[A-Z0-9_]+$/.test(k)) ED_CT.add(k); } } catch (e){}
+  ['Math','String','isnan','isinf','lowByte','highByte','bitRead','bitWrite','bitSet','bitClear','bit','char','int','float','long','byte','word','sq','F','yield','attachInterrupt','detachInterrupt','digitalPinToInterrupt','interrupts','noInterrupts','printf','sprintf','strlen','strcmp','atoi','atof','dtostrf'].forEach(x => ED_FN.add(x));
+  ['RISING','FALLING','CHANGE','DHT11','DHT21','DHT22','SERIAL_8N1','SERIAL_8E1','SERIAL_8O1','SERIAL_7E1','WIFI_STA','WIFI_AP','LED_BUILTIN','NULL','OCT','DEC'].forEach(x => ED_CT.add(x));
+}
+const AC_MEM_X = {LiquidCrystal_I2C:['cursor','noCursor','blink','noBlink','display','noDisplay','createChar','setBacklight','begin','scrollDisplayLeft','scrollDisplayRight'], Wire:['requestFrom','setClock','read','available','end'],
+  WiFi:['SSID','gatewayIP','setHostname','setAutoReconnect','mode','reconnect','isConnected','macAddress'], Serial:['end','availableForWrite','setTimeout','readBytes','readBytesUntil','find'], Servo:['attached'],
+  SoftwareSerial:['isListening','end'], ModbusTCPClient:['end','stop','setTimeout'], DHT:[], ModbusRTUSlave:[]};
+function edLev(a, b){ a = a.toLowerCase(); b = b.toLowerCase(); if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({length:a.length + 1}, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) { d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1)); if (i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1); } return d[a.length][b.length]; }
+function edNear(w, pool){ let best = null, bd = 3; for (const x of pool){ const d = x.toLowerCase() === w.toLowerCase() ? 0 : edLev(w, x); if (d < bd){ bd = d; best = x; } } return bd <= (w.length <= 4 ? 1 : 2) ? best : null; }
+// แทนสตริง/คอมเมนต์ด้วยช่องว่าง (ความยาวเท่าเดิม) และเก็บตำแหน่งสตริงที่ไม่ปิด
+function edClean(code){ let o = '', i = 0, st = 0, unterm = [], bcStart = -1; const n = code.length;
+  while (i < n){ const ch = code[i], nx = code[i + 1];
+    if (ch === '/' && nx === '/'){ while (i < n && code[i] !== '\n'){ o += ' '; i++; } continue; }
+    if (ch === '/' && nx === '*'){ bcStart = i; o += '  '; i += 2; while (i < n && !(code[i] === '*' && code[i + 1] === '/')){ o += code[i] === '\n' ? '\n' : ' '; i++; } if (i < n){ o += '  '; i += 2; bcStart = -1; } continue; }
+    if (ch === '"' || ch === "'"){ const q = ch, s0 = i; o += q; i++; let ok = false; while (i < n && code[i] !== '\n'){ if (code[i] === '\\'){ o += '  '; i += 2; continue; } if (code[i] === q){ ok = true; break; } o += ' '; i++; }
+      if (ok){ o += q; i++; } else unterm.push([s0, q]); continue; }
+    o += ch; i++; }
+  return {o, unterm, bcStart}; }
+function codeLint(code, c){
+  edKnown(); code = String(code || ''); const P = [], lines = code.split('\n'), starts = [0]; for (let i = 0; i < code.length; i++) if (code[i] === '\n') starts.push(i + 1);
+  const lineOf = pos => { let lo = 0, hi = starts.length - 1; while (lo < hi){ const m = (lo + hi + 1) >> 1; if (starts[m] <= pos) lo = m; else hi = m - 1; } return lo; };
+  const add = (pos, sev, msg, len) => { const l = lineOf(pos); if (!P.some(q => q.line === l + 1 && q.msg === msg)) P.push({line:l + 1, sev, msg, col:pos - starts[l], len:len || 1}); };
+  const {o:cl, unterm, bcStart} = edClean(code);
+  for (const [p0, q] of unterm) add(p0, 'e', q === '"' ? 'ข้อความ (") ไม่ได้ปิด' : "อักขระ (') ไม่ได้ปิด", 1);
+  if (bcStart >= 0) add(bcStart, 'e', 'คอมเมนต์ /* ไม่ได้ปิดด้วย */', 2);
+  // วงเล็บ
+  const PAIR = {')':'(', ']':'[', '}':'{'}, NAME = {'(':'วงเล็บ (', '[':'วงเล็บ [', '{':'ปีกกา {'}, stack = [], lineDepth = new Int16Array(lines.length);
+  for (let i = 0; i < cl.length; i++){ const ch = cl[i];
+    if (ch === '(' || ch === '[' || ch === '{') stack.push([ch, i]);
+    else if (PAIR[ch]){ const top = stack[stack.length - 1]; if (top && top[0] === PAIR[ch]) stack.pop(); else if (top && top[0] !== '{' && ch === '}') { add(top[1], 'e', `${NAME[top[0]]} ไม่ได้ปิดก่อน }`); stack.pop(); if (stack.length && stack[stack.length - 1][0] === '{') stack.pop(); }
+      else add(i, 'e', `${ch} เกินมา ไม่มีตัวเปิดที่คู่กัน`); }
+    if (ch === '\n' || i === cl.length - 1){ const l = lineOf(i); lineDepth[l] = stack.filter(x => x[0] !== '{').length; } }
+  for (const [ch, i] of stack) add(i, 'e', `${NAME[ch]} ไม่ได้ปิด`);
+  { const bad = new Set(unterm.map(u => lineOf(u[0]) + 1)); for (let k = P.length - 1; k >= 0; k--) if (bad.has(P[k].line) && /วงเล็บ|ปีกกา|เกินมา/.test(P[k].msg)) P.splice(k, 1); }
+  const cls = cl.split('\n');
+  // ขาด ;
+  const nextNon = l => { for (let k = l + 1; k < cls.length; k++){ const t = cls[k].trim(); if (t) return t; } return ''; };
+  cls.forEach((ln, l) => { const t = ln.trim(); if (!t || t[0] === '#' || lineDepth[l] > 0) return;
+    if (/[;{},(\[:&|+\-*/=<>?!\\.]$/.test(t) || /^(else|do)$/.test(t) || /^}\s*(else\b.*)?$/.test(t)) return;
+    if (/^(if|for|while|switch|else\s+if)\b/.test(t) && /\)$/.test(t)) return;                       // if (...) ตามด้วยคำสั่งบรรทัดถัดไป
+    if (/^(case\b|default\b)/.test(t)) return;
+    const nx = nextNon(l); if (nx[0] === '{' || /^};?/.test(nx) && /^[\w"'.\s,-]+$/.test(t)) return;      // หัวฟังก์ชัน / รายการค่าในปีกกา
+    if (/\b(?:void|int|long|float|bool|String|byte|double)\s+\w+\s*\([^)]*\)$/.test(t)) return;
+    add(starts[l] + ln.length - (ln.length - ln.trimEnd().length) - 1, 'e', 'ขาดเครื่องหมาย ; ท้ายบรรทัด', 1); });
+  // ฟังก์ชัน/ค่าคงที่ที่ไม่รู้จัก
+  const U = acUser(code), defs = new Set([...code.matchAll(/#define\s+(\w+)/g)].map(m => m[1])), userFn = new Set(U.fns);
+  for (const m of code.replace(/\/\/.*$/gm, '').matchAll(/\b(?:void|int|long|float|double|bool|boolean|String|byte|char|word|unsigned\s+\w+|uint\w+)\s+([A-Za-z_]\w*)\s*\(/g)) userFn.add(m[1]);
+  const fnPool = [...ED_FN, ...userFn], ctPool = [...ED_CT, ...defs, ...[...U.vars.keys()].filter(x => /^[A-Z]/.test(x))];
+  for (const m of cl.matchAll(/(^|[^.\w])([A-Za-z_]\w*)\s*\(/g)){ const nm = m[2], pos = m.index + m[1].length;
+    if (ED_KW.has(nm) || ED_TY.has(nm) || ED_OBJ.has(nm) || ED_FN.has(nm) || userFn.has(nm) || defs.has(nm) || U.objs.has(nm) || U.vars.has(nm)) continue;
+    if (/^(?:DHT|Servo|LiquidCrystal_I2C|SoftwareSerial|ModbusRTUSlave|ModbusTCPClient|IPAddress|WiFiClient)\s+$/.test(cl.slice(Math.max(0, pos - 24), pos).replace(/^.*?(\w+\s+)$/s, '$1'))) continue;   // DHT dht(2, DHT22)
+    const near = edNear(nm, fnPool); add(pos, 'e', `ไม่รู้จักฟังก์ชัน ${nm}()` + (near ? ` — หมายถึง ${near}() ?` : ''), nm.length); }
+  for (const m of cl.matchAll(/\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\s*\(/g)){ const cl2 = U.objs.get(m[1]); if (!cl2 || cl2 === 'String' || !AC_MEM[cl2]) continue;
+    const ok = AC_MEM[cl2].map(x => x[0]).concat(AC_MEM_X[cl2] || []); if (ok.includes(m[2])) continue;
+    const near = edNear(m[2], ok); add(m.index + m[1].length + 1, 'e', `${cl2} ไม่มีคำสั่ง ${m[2]}()` + (near ? ` — หมายถึง ${near}() ?` : ''), m[2].length); }
+  for (const m of cl.matchAll(/(^|[^.\w])([A-Z][A-Z0-9_]{2,})\b(?!\s*\()/g)){ const nm = m[2]; if (ED_CT.has(nm) || defs.has(nm) || U.vars.has(nm) || U.objs.has(nm) || ED_OBJ.has(nm)) continue;
+    const near = edNear(nm, ctPool); if (near) add(m.index + m[1].length, 'e', `ไม่รู้จัก ${nm} — หมายถึง ${near} ?`, nm.length); }
+  for (const m of cl.matchAll(/\b(if|while)\s*\(([^()]*?[^=!<>])=(?!=)([^()]*)\)/g)) add(m.index, 'w', 'ใช้ = (กำหนดค่า) ในเงื่อนไข — ตั้งใจเปรียบเทียบด้วย == หรือไม่?', m[1].length);
+  if (!/\bvoid\s+setup\s*\(/.test(cl)) add(0, 'e', 'ต้องมีฟังก์ชัน void setup()', 1);
+  if (!/\bvoid\s+loop\s*\(/.test(cl)) add(0, 'e', 'ต้องมีฟังก์ชัน void loop()', 1);
+  // ไวยากรณ์จากการแปลงจริง (เมื่อการตรวจข้างต้นไม่พบข้อผิดพลาด)
+  if (!P.some(q => q.sev === 'e')){ let js = null;
+    try { js = cToJs(code); new Function('"use strict";\n' + js); }
+    catch (e){ if (js != null){ const l = edSyntaxLine(js); P.push({line:l || 1, sev:'e', msg:'ไวยากรณ์ผิด: ' + e.message + (l ? '' : ' (ไม่ทราบบรรทัดแน่ชัด)'), col:0, len:0}); } } }
+  return P.sort((a, b) => a.line - b.line || (a.sev === 'e' ? -1 : 1));
+}
+// หาเลขบรรทัดของ SyntaxError: ใส่โค้ดในสคริปต์ทดลองแล้วอ่าน lineno จากเหตุการณ์ error (ไม่ได้รันโค้ด — ห่อในฟังก์ชันที่ไม่ถูกเรียก)
+function edSyntaxLine(js){ let ln = null; const h = e => { if (e.lineno){ ln = e.lineno - 1; e.preventDefault(); } };
+  try { window.addEventListener('error', h); const sc = document.createElement('script'); sc.textContent = '(function(){\n' + js + '\n});'; document.head.appendChild(sc); sc.remove(); } catch (e){}
+  window.removeEventListener('error', h); return ln; }
+// ระบายสี: โทเคนทีละบรรทัด
+function edTokens(code){
+  const re = /(\/\/[^\n]*)|(\/\*[\s\S]*?(?:\*\/|$))|("(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?)|(^[ \t]*#\s*\w+[^\n]*)|(\b0[xX][0-9a-fA-F]+\b|\b\d+(?:\.\d+)?(?:[eE][-+]?\d+)?[fFuUlL]*\b)|([A-Za-z_]\w*)/gm;
+  const out = []; let last = 0, m, U = acUser(code); edKnown();
+  while ((m = re.exec(code))){ if (m.index > last) out.push(['', code.slice(last, m.index)]);
+    let k = '';
+    if (m[1] || m[2]) k = 'hm'; else if (m[3]) k = 'hs'; else if (m[4]) k = 'hp'; else if (m[5]) k = 'hn';
+    else { const w = m[6], nx = code.slice(re.lastIndex).match(/^\s*\(/);
+      k = ED_KW.has(w) ? 'hk' : ED_TY.has(w) ? 'ht' : ED_OBJ.has(w) || U.objs.has(w) ? 'ho' : (ED_CT.has(w) || /^A\d$/.test(w)) && !nx ? 'hc' : nx && (ED_FN.has(w) || U.fns.has(w)) ? 'hf' : nx && code[m.index - 1] === '.' ? 'hf' : ''; }
+    out.push([k, m[0]]); last = re.lastIndex; if (m[0] === '') re.lastIndex++; }
+  if (last < code.length) out.push(['', code.slice(last)]);
+  return out;
+}
+function edRender(ta, c){
+  const pre = $('#chl'), gut = $('#cgut'); if (!pre || !ta) return;
+  const code = ta.value, P = (c && c._lint) || [], byLine = new Map(); for (const q of P) if (!byLine.has(q.line) || q.sev === 'e' && byLine.get(q.line).sev !== 'e') byLine.set(q.line, q);
+  const lines = [[]]; for (const [k, t] of edTokens(code)){ const parts = t.split('\n'); parts.forEach((pt, i) => { if (i) lines.push([]); if (pt) lines[lines.length - 1].push([k, pt]); }); }
+  let h = ''; lines.forEach((toks, i) => { const q = byLine.get(i + 1); let off = 0, body = '';
+    for (const [k, t] of toks){ let seg = t;
+      if (q && q.len && q.col < off + t.length && q.col + q.len > off){ const a = Math.max(0, q.col - off), b = Math.min(t.length, q.col + q.len - off);
+        seg = esc(t.slice(0, a)) + '<span class="sq">' + esc(t.slice(a, b)) + '</span>' + esc(t.slice(b)); } else seg = esc(t);
+      body += k ? `<span class="${k}">${seg}</span>` : seg; off += t.length; }
+    if (q && q.len && q.col >= off) body += '<span class="sq"> </span>';
+    h += `<div class="l${q ? ' ' + q.sev : ''}">${body || ' '}${q ? `<span class="lens">${esc(q.msg)}</span>` : ''}</div>`; });
+  pre.style.paddingRight = (8 + Math.max(0, ta.offsetWidth - ta.clientWidth)) + 'px';
+  pre.innerHTML = h + '<div class="l"> </div>';
+  const rows = pre.children; let g = '';
+  for (let i = 0; i < lines.length; i++){ const q = byLine.get(i + 1), hh = rows[i] ? rows[i].offsetHeight : 0; g += `<div data-ln="${i + 1}" class="${q ? q.sev : ''}" style="height:${hh}px" title="${q ? esc(q.msg) : ''}">${i + 1}</div>`; }
+  gut.innerHTML = g + '<div style="height:40px"></div>'; edScroll(ta);
+}
+function edScroll(ta){ const pre = $('#chl'), gut = $('#cgut'); if (pre){ pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; } if (gut) gut.scrollTop = ta.scrollTop; }
+let edT = 0;
+function edLintSoon(ta, c){ clearTimeout(edT); edT = setTimeout(() => { if (!ta.isConnected) return; c._lint = codeLint(ta.value, c); edRender(ta, c); mcuMon(c, true); }, 350); }
+function edGoto(ta, line){ const L = ta.value.split('\n'); let p = 0; for (let i = 0; i < line - 1 && i < L.length; i++) p += L[i].length + 1;
+  ta.focus(); ta.setSelectionRange(p, p + (L[line - 1] || '').length); const lh = parseFloat(getComputedStyle(ta).lineHeight) || 19; ta.scrollTop = Math.max(0, (line - 4)*lh); edScroll(ta); }
+$('#lad').addEventListener('click', e => { const a = e.target.closest('[data-goto]'); if (a){ const ta = $('#mcode'); if (ta) edGoto(ta, +a.dataset.goto); } });
+window.addEventListener('resize', () => { const ta = $('#mcode'), tg = typeof drawerTarget === 'function' && drawerTarget(); if (ta && tg && MCU[tg.t]) edRender(ta, tg); });
 function ladMon(force){
   const tg = drawerTarget(); if (ladOpen && tg && MCU[tg.t]){ mcuMon(tg); return; }
   const p = ladPlc(); if (!ladOpen || !p) return;
@@ -9141,6 +9287,7 @@ window.__sim = {
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },
   find: n => S.comps.find(c => c.n === n),
+  codeLint, edTokens,
   trend: () => ({t:TRD.t, v:TRD.v, sig:trendSigs()}), sigVal, trendCSV, trendOpen, expRunSync, expMetrics, expCSV, expOpen, reportHTML,
 };
 
