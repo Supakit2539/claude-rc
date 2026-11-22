@@ -636,6 +636,38 @@ const path = require('path');
     s.load('semi'); s.run(0.5); const u = s.S.comps.find(c => c.t === 'reg'); o.pins = pinsOf(u).map(p => +nodeVAt(p[0], p[1]).d.toFixed(2)); return o; });
   checks.push(['ป้ายค่าบนสัญลักษณ์: R1 แสดง 5.45 V / 54.5 mA / 297 mW, ปิดรวมแล้วตั้งเฉพาะตัว (บันทึกได้) · แรงดันขา 7805 = 12/0/5 V',
     JSON.stringify(disp.all) === '["5.45 V","54.5 mA","297 mW"]' && disp.off === 0 && JSON.stringify(disp.own) === '["5.45 V"]' && disp.saved === 'v' && JSON.stringify(disp.pins) === '[12,0,5]', JSON.stringify(disp)]);
+  const vfd = await page.evaluate(() => { const s = __sim, o = {};
+    // VFD + มอเตอร์: ทางลาดความถี่, AVI → ความถี่, กระแสพิกัดไม่มีกระแสสตาร์ทสูง
+    s.load(build((C, W) => { C('src3',4,2,{n:'G1'}); C('vfd',6,7,{n:'VFD1',acc:5,dec:5}); W([3,3],[3,5]); W([4,3],[4,5]); W([5,3],[5,5]);
+      C('motor3',9,12,{n:'M1',P:1.1}); W([8,5],[8,4],[12,4],[12,9],[8,9],[8,11]); W([9,5],[9,3],[13,3],[13,10],[9,10],[9,11]); W([10,5],[10,2],[14,2],[14,11],[10,11]);
+      C('sw',4,11,{r:1,n:'S1',on:false}); W([3,9],[3,10],[4,10]); W([5,9],[5,12],[4,12]); C('pot',6,11,{n:'RV1',pos:60}); W([6,9],[6,10]); W([7,9],[7,10]); }));
+    const v = s.find('VFD1'), m = s.find('M1'); s.run(1); s.find('S1').on = true; s.poke(); let pk = 0;
+    for (let k = 0; k < 40; k++){ s.run(0.25); pk = Math.max(pk, s.RES.comp[v.id].Iout); } const R = s.RES.comp[v.id];
+    o.run = [+v._f.toFixed(2), +m._sp.toFixed(3), +R.Iout.toFixed(2), +pk.toFixed(2), m._dir];
+    s.find('S1').on = false; s.poke(); s.run(3); o.dec = +v._f.toFixed(1);
+    // PID ระดับน้ำ (แลดเดอร์/ข้อความ)
+    o.pid = ['lad', 'txt'].map(md => { s.load('pidtank'); const P = s.find('PLC1'); P.prog.mode = md; delete P._cp; s.run(1); s.find('S1').on = true; s.poke(); s.run(100);
+      const a = [+s.find('TK1').lvl.toFixed(1), +Math.abs(s.find('VFD1')._f).toFixed(1), +s.RES.comp[s.find('VFD1').id].P.toFixed(0)]; s.find('TK1').out = 4.5; s.run(60);
+      return a.concat([+s.find('TK1').lvl.toFixed(1), +Math.abs(s.find('VFD1')._f).toFixed(1), s.trend().t.length > 1500]); });
+    // Modbus RTU: PLC มาสเตอร์ → VFD
+    s.load('pidtank'); const P = s.find('PLC1'), V = s.find('VFD1'); V.run = 'mb'; V.fsrc = 'mb';
+    Object.assign(P, {mbOn:true, mbMode:'master', mbList:'1 06 1 1 D12\n1 06 0 1 D11\n1 03 2 2 D13'}); P.prog.mode = 'txt';
+    P.prog.txt += 'D11 := 1 IF M0\nD11 := 0 IF NOT M0\nD12 := D10 * 5\n'; delete P._cp; s.find('S1').on = true; s.poke(); s.run(60);
+    o.mb = [+s.find('TK1').lvl.toFixed(0), P._img.D[13] === Math.round(Math.abs(V._f)*100), (P._mb || {}).err];
+    // ตัวนับ + MOV นิพจน์ + AQ0
+    const c = compile('C0 := CTU(I0, I1, 3)\nAQ0 := (CV0 + 1) * 10\nD5 := 2 IF C0'), img = newImage();
+    for (const x of [1,0,1,0,1,0]){ img.I[0] = x; runText(c.code, img, 0.1); } o.ctu = [img.C[0].cv, img.C[0].q, img.AQ[0], img.D[5]]; img.I[1] = 1; runText(c.code, img, 0.1); o.ctu.push(img.C[0].cv);
+    const lad = [{cmt:'', rows:[{cells:[nc('NO','I0'),null,null,null,null,null,null], out:{k:'CTU', a:'C1', p:2}}], links:[]}, {cmt:'', rows:[{cells:[nc('NO','C1'),null,null,null,null,null,null], out:{k:'MOV', a:'D3', p:'(AI0+10)*2'}}], links:[]}];
+    const im2 = newImage(); im2.AI[0] = 5; for (const x of [1,0,1]){ im2.I[0] = x; runLadder(lad, im2, 0.1); } o.lad = [validateLad(lad).length, im2.C[1].cv, im2.D[3]];
+    // ฟอลต์: มอเตอร์ 7.5 kW บน VFD 1.5 kW
+    s.load('pidtank'); s.find('M1').P = 7.5; s.find('S1').on = true; s.poke(); s.run(30); o.flt = s.find('VFD1')._flt;
+    return o; });
+  checks.push(['VFD: AVI 6.98 V → 34.9 Hz ทางลาด 10 Hz/s, มอเตอร์ 1.1 kW กระแส 2.55 A ไม่มีกระแสสตาร์ทสูง (< 1.3 × In), ปลด FWD → ลดความถี่',
+    nr(vfd.run[0], 34.88, 0.1) && nr(vfd.run[1], 0.698, 0.01) && nr(vfd.run[2], 2.55, 0.05) && vfd.run[3] < 3.3 && vfd.run[4] === 1 && nr(vfd.dec, 4.9, 0.3), JSON.stringify([vfd.run, vfd.dec])]);
+  checks.push(['pidtank (แลดเดอร์/ข้อความ): PID คุมระดับ 60% ≈ 25 Hz ปั๊มกินไฟ < 250 W (กฎกำลังสาม), ใช้น้ำมากขึ้น → ≈ 37.6 Hz ระดับยังคง 60%, บันทึกเทรนด์',
+    vfd.pid.every(a => nr(a[0], 60, 1) && nr(a[1], 25, 1) && a[2] < 250 && nr(a[3], 60, 1) && nr(a[4], 37.5, 1) && a[5]), JSON.stringify(vfd.pid)]);
+  checks.push(['VFD ผ่าน Modbus RTU: PLC เขียนคำสั่ง/ความถี่ อ่านความถี่ขาออกกลับ, ระดับ 60% · CTU นับ 3 → C0, RST ล้าง, AQ0 = 40% · แลดเดอร์ CTU + MOV (AI0+10)*2 = 30 · มอเตอร์ใหญ่เกิน → ฟอลต์ oC',
+    vfd.mb[0] === 60 && vfd.mb[1] && vfd.mb[2] === 0 && JSON.stringify(vfd.ctu) === '[3,1,40,2,0]' && JSON.stringify(vfd.lad) === '[0,2,30]' && vfd.flt === 'oC', JSON.stringify([vfd.mb, vfd.ctu, vfd.lad, vfd.flt])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;

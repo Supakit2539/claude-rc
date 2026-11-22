@@ -137,6 +137,12 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 @media (max-width:820px){.anbody{grid-template-columns:1fr}.anlist{max-height:140px}#anv{height:260px}}
 .swh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);cursor:move;flex-wrap:wrap}
 #scv{width:100%;height:300px;display:block;flex:none;touch-action:none}
+#trwin{position:absolute;left:10px;bottom:10px;width:min(760px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:6;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
+#trwin[hidden]{display:none}
+#trv{width:100%;height:240px;display:block;flex:none}
+.trsig{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 10px;padding:8px 10px;font-size:12.5px}
+.trsig div{display:flex;align-items:center;gap:6px}.trsig input{flex:1;min-width:0;font:12px 'IBM Plex Mono',monospace}
+.trsig i{width:12px;height:12px;border-radius:3px;flex:none}.trsig b{font:600 12px 'IBM Plex Mono',monospace;min-width:70px;text-align:right}
 .swc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;padding:8px 10px;font-size:12.5px}
 .swc label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 #scmeas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:4px 18px;padding:0 10px 10px;font:12px 'IBM Plex Mono',monospace}
@@ -229,7 +235,7 @@ button,select,.pi,summary{touch-action:manipulation}
   #ftools .btn{min-width:44px;padding:4px 8px;font-size:13px}
   #lad.open ~ #ftools,#main.inspopen #ftools{display:none}
   #lad.open{height:62%}
-  #scopewin,#anwin{left:0 !important;right:0 !important;top:0 !important;width:100% !important;max-height:100% !important;height:100%;border-radius:0}
+  #scopewin,#anwin,#trwin{left:0 !important;right:0 !important;top:0 !important;width:100% !important;max-height:100% !important;height:100%;border-radius:0}
   #scv{height:38vh}
   .swc{grid-template-columns:repeat(2,minmax(0,1fr))}
   #ladbody.mcu{grid-template-columns:1fr;grid-template-rows:1fr 140px}
@@ -257,6 +263,7 @@ button,select,.pi,summary{touch-action:manipulation}
   <button class="btn" id="b3d" title="มุมมองโรงงาน 3D (สลับ ปิด / แบ่งจอ / เต็มจอ)">โรงงาน 3D</button>
   <button class="btn" id="bLad" title="เขียนโปรแกรม PLC / ไมโครคอนโทรลเลอร์">เขียนโปรแกรม</button>
   <button class="btn" id="bEx" title="แบบฝึกหัดพร้อมตรวจคำตอบอัตโนมัติ">แบบฝึกหัด</button>
+  <button class="btn" id="bTrend" title="กราฟเทรนด์ตามเวลา + บันทึกข้อมูลเป็น CSV (เช่น SP/PV/MV ของ PID)">เทรนด์</button>
   <button class="btn" id="bAn" title="วิเคราะห์วงจรแบบ SPICE: จุดทำงาน, กวาด DC, AC (Bode), ชั่วคราว, ฟูเรียร์">วิเคราะห์</button>
   <button class="btn run" id="bRun" title="รัน/หยุดการจำลอง (Space)"></button>
   <select id="spd" title="ความเร็วจำลอง"><option value="1" selected>×1</option><option value="5">×5</option><option value="20">×20</option></select>
@@ -288,6 +295,7 @@ button,select,.pi,summary{touch-action:manipulation}
     <section id="lad"></section>
     <div id="scopewin" hidden></div>
     <div id="anwin" hidden></div>
+    <div id="trwin" hidden></div><datalist id="trlist"></datalist>
     <div id="task" hidden></div>
     <div id="ftools" aria-label="เครื่องมือ"><button class="btn" data-px="bSel">เลือก</button><button class="btn" data-px="bBox">⬚</button><button class="btn" data-px="bProbe">V</button><button class="btn" data-px="bWire">สายไฟ</button><button class="btn" data-px="bRot">หมุน</button><button class="btn" data-px="bDel">ลบ</button><button class="btn" data-px="bUndo">↶</button><button class="btn" data-px="bFit">⤢</button></div>
   </div>
@@ -306,7 +314,7 @@ const LC = 7;            // จำนวนช่องต่อแถวใน�
 const SQ3 = Math.sqrt(3);
 
 const PLC_PINS = [[-5,-2,'L+'],[-4,-2,'M'],[-3,-2,'COM'],[-2,-2,'I0'],[-1,-2,'I1'],[0,-2,'I2'],[1,-2,'I3'],[2,-2,'I4'],[3,-2,'I5'],[4,-2,'I6'],[5,-2,'I7'],
-  [-5,2,'C'],[-4,2,'Q0'],[-3,2,'Q1'],[-2,2,'Q2'],[-1,2,'Q3'],[3,2,'A'],[4,2,'B'],[0,2,'AI0'],[1,2,'AI1'],[2,2,'AM'],[5,2,'A2'],[6,2,'B2'],[6,-2,'ETH']];
+  [-5,2,'C'],[-4,2,'Q0'],[-3,2,'Q1'],[-2,2,'Q2'],[-1,2,'Q3'],[3,2,'A'],[4,2,'B'],[0,2,'AI0'],[1,2,'AI1'],[2,2,'AM'],[5,2,'A2'],[6,2,'B2'],[6,-2,'ETH'],[7,2,'AQ0']];
 
 /* อุปกรณ์ 2 ขั้ว: ไม่มี pins, หมุนได้ด้วย r (0–3), ครึ่งความยาว L
    บล็อก: มี pins [dx,dy,ชื่อ] และ box [x0,y0,x1,y1] (หน่วยช่อง), หมุนไม่ได้ */
@@ -385,7 +393,7 @@ const T = {
   k3:    {nm:'คอนแทกเตอร์ 3 ขั้ว',     ic:'‖‖', pre:'',   d:{ref:'K1'}, pins:[[-1,-1,'L1'],[0,-1,'L2'],[1,-1,'L3'],[-1,1,'T1'],[0,1,'T2'],[1,1,'T3']], box:[-1.6,-1,1.6,1]},
   motor3:{nm:'มอเตอร์ 3 เฟส',         ic:'M3', pre:'M',  d:{V:400, P:1.1, pf:0.82, eff:0.76}, pins:[[-1,-1,'U'],[0,-1,'V'],[1,-1,'W']], box:[-1.6,-1,1.6,1.7]},
   psu:   {nm:'พาวเวอร์ซัพพลาย DC',    ic:'⎓',  pre:'PS', d:{V:24, Imax:2.5}, pins:[[-1,-1,'L'],[1,-1,'N'],[-1,1,'+'],[1,1,'−']], box:[-1.6,-1,1.6,1]},
-  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbMode:'master', mbId:1, mbBaud:9600, mbList:'', mb2On:false, mb2Mode:'slave', mb2Id:1, mb2Baud:9600, mb2List:'', ip:'192.168.1.10', ethSrv:true, mbtOn:false, mbtList:''}, pins:PLC_PINS, box:[-5.6,-2,6.6,2]},
+  plc:   {nm:'PLC',                  ic:'▦',  pre:'PLC',d:{run:true, prog:null, mbOn:false, mbMode:'master', mbId:1, mbBaud:9600, mbList:'', mb2On:false, mb2Mode:'slave', mb2Id:1, mb2Baud:9600, mb2List:'', ip:'192.168.1.10', ethSrv:true, mbtOn:false, mbtList:'', aim:'420', pidList:''}, pins:PLC_PINS, box:[-5.6,-2,7.6,2]},
   hmi:   {nm:'จอ HMI (RS-485)',       ic:'▣',  pre:'HMI',d:{proto:'link', sid:1, baud:9600, ip:'192.168.1.50', srvIp:'192.168.1.10', b1:'M0 START', b2:'M1 STOP', b3:'', b4:'', l1:'Q0 ปั๊ม', l2:'M2 ระบบ', l3:'I2 ลูกลอยล่าง', l4:'I3 ลูกลอยบน'},
           pins:[[-2,2,'24V'],[-1,2,'0V'],[1,2,'A'],[2,2,'B'],[0,2,'ETH']], box:[-2.6,-2,2.6,2]},
   pump:  {nm:'ปั๊มน้ำ',               ic:'P',  pre:'M',  d:{V:230, P:0.75, pf:0.8, eff:0.7, tank:'TK1', flow:6}},
@@ -439,6 +447,9 @@ T.ethsw = {nm:'สวิตช์ Ethernet อุตสาหกรรม (5 พ
   pins:[[-2,-2,'P1'],[-1,-2,'P2'],[0,-2,'P3'],[1,-2,'P4'],[2,-2,'P5'],[-1,2,'24V'],[1,2,'0V']], box:[-2.6,-2,2.6,2]};
 T.term  = {nm:'คอมพิวเตอร์ (เทอร์มินัล RS-232)', ic:'▭', pre:'PC', d:{baud:9600, eol:'nl'},
   pins:[[-1,-2,'TX'],[0,-2,'RX'],[1,-2,'GND']], box:[-3,-2,3,2.6]};
+// อินเวอร์เตอร์ (VFD): ขาบน L1 L2 L3 (ไฟเข้า) · U V W (ไปมอเตอร์) · ขาล่าง FWD REV DCM (อินพุตดิจิทัลแบบ sink) +10V AVI ACM (อนาล็อก 0–10 V) A B (RS-485 Modbus RTU)
+T.vfd = {nm:'อินเวอร์เตอร์ (VFD)', ic:'Hz', pre:'VFD', d:{inV:400, P:1.5, fb:50, fmax:50, fmin:0, acc:5, dec:5, run:'di', fsrc:'ai', fset:30, mbOn:true, mbId:1, mbBaud:9600},
+  pins:[[-3,-2,'L1'],[-2,-2,'L2'],[-1,-2,'L3'],[2,-2,'U'],[3,-2,'V'],[4,-2,'W'],[-3,2,'FWD'],[-2,2,'REV'],[-1,2,'DCM'],[0,2,'+10V'],[1,2,'AVI'],[2,2,'ACM'],[3,2,'A'],[4,2,'B']], box:[-3.6,-2,4.6,2]};
 const SENS = {pir:[0,2], sr04:[0,3], dht:[0,2], soil:[0,1], servo:[1,0], rs485:[4,7], rs232:[0,3], lora:[5,6], ethsw:[5,6], wifiap:[0,1]};
 for (const t of DIG3) SENS[t] = [0, 2];
 const ldrR = c => c.lux <= 0 ? 2e6 : Math.min(2e6, Math.max(100, 10000*Math.pow(c.lux/10, -0.7)));
@@ -446,7 +457,7 @@ const ntcR = c => c.R25*Math.exp(c.B*(1/(c.temp + 273.15) - 1/298.15));
 const txI  = c => (4 + 16*Math.max(0, Math.min(100, c.pct))/100)/1000;
 T.pot = {nm:'โพเทนชิโอมิเตอร์', ic:'⊸', pre:'RV', d:{R:10000, pos:50}, pins:[[-1,-1,'1'],[0,-1,'W'],[1,-1,'3']], box:[-1.6,-1,1.6,0.8]};
 // ตัวแปรกระแสเพิ่มใน MNA
-const NV = {bat:1, acs:1, src1:1, src3:3, led:1, psu:1, xfmr:1};
+const NV = {bat:1, acs:1, src1:1, src3:3, led:1, psu:1, xfmr:1, vfd:3};
 // อิเล็กทรอนิกส์
 T.diode = {nm:'ไดโอด (1N4007)',            ic:'▷|', pre:'D',  d:{Vf:0.7}};
 T.zener = {nm:'ซีเนอร์ไดโอด',               ic:'▷Z', pre:'DZ', d:{Vz:5.1}};
@@ -971,6 +982,12 @@ const MODELS = {
     {id:'bim', nm:'เทอร์โมสตัทไบเมทัล 85 °C NC (ตัดความร้อนเกิน)', sh:'85 °C NC', p:{mode:'NC', sp:85, hys:15}, spec:{'จุดตัด':'85 °C ±5', 'คืนตัว':'≈ 70 °C', 'งาน':'ป้องกันความร้อนเกินของมอเตอร์/ฮีตเตอร์'}},
     {id:'cab', nm:'สวิตช์อุณหภูมิตู้ควบคุม 0–60 °C (NO สั่งพัดลม)', sh:'ตู้ NO', p:{mode:'NO', sp:35, hys:7}, spec:{'ช่วงตั้ง':'0–60 °C', 'ติดตั้ง':'ราง DIN', 'งาน':'อุณหภูมิในตู้ถึงจุดตั้ง → สั่งพัดลมระบาย'}},
   ],
+  vfd: [
+    ...[0.4, 0.75, 1.5, 2.2, 4, 7.5].map(P => ({id:'v4_' + P, nm:`อินเวอร์เตอร์ 3 เฟส 400 V ${P} kW (V/f)`, sh:P + 'kW 400V', p:{inV:400, P},
+      spec:{'ไฟเข้า':'3 เฟส 380–480 V 50/60 Hz', 'ขาออก':`3 เฟส 0–400 V 0–${P >= 4 ? 400 : 599} Hz`, 'กระแสพิกัด':(P*1000/(SQ3*400*0.8*0.85)).toFixed(1) + ' A', 'เกินพิกัด':'150% 60 s', 'ควบคุม':'V/f, FWD/REV, AVI 0–10 V, RS-485 Modbus RTU'}})),
+    ...[0.4, 0.75, 1.5, 2.2].map(P => ({id:'v2_' + P, nm:`อินเวอร์เตอร์ 1 เฟส 230 V ${P} kW (ขาออก 3 เฟส 230 V)`, sh:P + 'kW 230V', p:{inV:230, P},
+      spec:{'ไฟเข้า':'1 เฟส 200–240 V (L1–L2)', 'ขาออก':'3 เฟส 0–230 V (มอเตอร์ต่อเดลต้า)', 'กระแสพิกัด':(P*1000/(SQ3*230*0.8*0.85)).toFixed(1) + ' A', 'เกินพิกัด':'150% 60 s'}})),
+  ],
   tx420: [
     {id:'pt100', nm:'ทรานสมิตเตอร์อุณหภูมิ PT100 0–150 °C', sh:'PT100', p:{q:'T', unit:'°C', min:0, max:150}, spec:{'เซนเซอร์':'PT100 Class A (100 Ω ที่ 0 °C)', 'เอาต์พุต':'4–20 mA 2 สาย', 'ไฟเลี้ยงลูป':'10–30 VDC'}},
     {id:'tc', nm:'ทรานสมิตเตอร์เทอร์โมคัปเปิล Type K 0–1000 °C', sh:'TC-K', p:{q:'T', unit:'°C', min:0, max:1000}, spec:{'เซนเซอร์':'เทอร์โมคัปเปิล Type K (NiCr-NiAl)', 'ชดเชย':'จุดต่อเย็นในตัว'}},
@@ -1140,9 +1157,12 @@ function yInd(V, S, pf){
 }
 // มอเตอร์เหนี่ยวนำ: ขณะสตาร์ท (ความเร็ว _sp ต่ำ) กระแส = Ist×In, pf ≈ 0.35 แล้วลดลงเมื่อเร่งถึงความเร็ว
 function motY(c, V, S, pf, ac){
-  const sp = Math.min(1, c._sp || 0), k = c.Ist || 1, m = 1 + (k - 1)*(1 - sp*sp);
+  // สลิปจริง = ความถี่ซิงโครนัส − ความเร็วรอบ (pu ของความถี่ฐาน): ไฟบ้าน fs = 1 → เท่ากับแบบเดิม, ขับด้วย VFD ออกตัวที่สลิปต่ำ จึงไม่มีกระแสสตาร์ทสูง
+  const fs = c._fs == null ? 1 : Math.max(0.02, c._fs), sp = 1 - Math.min(1, Math.max(0, (c._fs == null ? 1 : c._fs) - (c._sp || 0))), k = c.Ist || 1, m = 1 + (k - 1)*(1 - sp*sp);
   const pfx = Math.min(pf, 0.35) + (pf - Math.min(pf, 0.35))*sp*sp;
-  return indLoad(V, S*m, pfx, ac);
+  const ld = c._fs != null && c.tank ? Math.max(0.25, Math.min(1, c._fs)**2) : 1;   // ปั๊ม/พัดลม: แรงบิดโหลด ∝ ความเร็ว²
+  const y = indLoad(V, S*m*ld, pfx, ac);
+  return c._fs == null || !ac ? y : [y[0]/fs, y[1]/fs];
 }
 function indLoad(V, S, pf, ac){
   const y = yInd(V, S, pf);
@@ -1261,7 +1281,7 @@ function solveAll(){
   const nid = (x,y) => { const k = x+','+y; let v = nm.get(k); if (v === undefined){ v = ++nn; nm.set(k, v); } return v; };
   for (const w of S.wires){ w._a = nid(w.x1,w.y1); w._b = nid(w.x2,w.y2); }
   for (const c of S.comps){ c._n = pinsOf(c).map(p => nid(p[0],p[1])); }
-  for (const c of S.comps) if (c.t === 'motor3') c._star = ++nn;
+  for (const c of S.comps) if (c.t === 'motor3' || c.t === 'vfd') c._star = ++nn;
   let nv = 0;
   for (const c of S.comps){ const k = NV[c.t] || 0; if (k){ c._kv = nn + nv; nv += k; } else c._kv = -1; }
   const N = nn + nv;
@@ -1341,9 +1361,28 @@ function solveAll(){
         case 'ol': for (let k = 0; k < 3; k++) Y(n[k], n[k + 3], GW, 0); Y(n[6], n[7], c._trip ? GOFF : GW, 0); break;
         case 'capbank': if (ac){ const Cp = c.kvar*1000/3/(w*c.V*c.V); for (let k = 0; k < 3; k++) Y(n[k], n[(k + 1)%3], 0, w*Cp); } break;
         case 'gnd': Y(n[0], 0, GW, 0); break;
+        case 'vfd': {
+          // ไฟเข้า: วงจรเรียงกระแส + DC bus กินกำลังตามโหลดขาออก (η ≈ 96%) + ไฟเลี้ยงภายใน 15 W
+          const Pin = (c._pout || 0)/0.96 + 15, VL = +c.inV || 400;
+          if (ac){ if (VL >= 300){ const g = Pin/(3*VL*VL); for (let k = 0; k < 3; k++) Y(n[k], n[(k + 1)%3], g, 0); } else Y(n[0], n[1], Pin/(VL*VL), 0); }
+          // ขาออก U V W: แหล่งแรงดัน 3 เฟสเทียบจุดสตาร์ภายใน (แบบ V/f) — หยุด = ไม่จ่าย
+          const fo = c._f || 0, on = c._pw && !c._flt && Math.abs(fo) > 0.05, fb = +c.fb || 50;
+          const vll = on ? VL*Math.min(1, Math.max(0.02, Math.abs(fo)/fb)) : 0, vp = vll/SQ3, sq = fo < 0 ? -1 : 1;
+          for (let k = 0; k < 3; k++){ if (!on){ Z(j + k); continue; } const a = -k*sq*2*Math.PI/3;
+            V(n[3 + k], c._star, j + k, ac ? vp*Math.cos(a) : 0, ac ? vp*Math.sin(a) : 0, 0.05); }
+          // วงจรควบคุม: FWD/REV ดึงขึ้น 24 V ภายในผ่าน 4.7 kΩ (ต่อลง DCM = สั่ง), +10V จ่ายผ่าน 100 Ω, AVI = 10 kΩ, DCM–ACM ร่วมกันภายใน
+          const cs = (a, b, I) => { if (ac) return; if (a) zr[a - 1] += I; if (b) zr[b - 1] -= I; };
+          Y(n[8], n[11], GW, 0);
+          for (const k of [6, 7]){ Y(n[k], n[8], 1/4700, 0); if (c._pw) cs(n[k], n[8], 24/4700); }
+          Y(n[9], n[11], 1/100, 0); if (c._pw) cs(n[9], n[11], 10/100);
+          Y(n[10], n[11], 1/10000, 0);
+          if (c._pw && c.mbOn !== false) busStamp(n[12], n[13], n[11], FORCE && FORCE.c === c && FORCE.p === 'port' ? FORCE.v : (c._drv ? 1 : null), Y, ac, zr);
+        } break;
         case 'plc': {
           Y(n[0], n[1], 1/120, 0);
-          if (n[18]){ Y(n[18], n[20], 1/250, 0); Y(n[19], n[20], 1/250, 0); }
+          { const ga = c.aim === '010' ? 1/20000 : 1/250; Y(n[18], n[20], ga, 0); Y(n[19], n[20], ga, 0); }
+          // AQ0: เอาต์พุตแอนะล็อก 0–10 V เทียบ AM (Norton ผ่าน 100 Ω)
+          Y(n[24], n[20], 1/100, 0); if (!ac && c._run && c._img && c._img.AQ){ const I = Math.max(0, Math.min(100, c._img.AQ[0] || 0))/10/100; if (n[24]) zr[n[24]-1] += I; if (n[20]) zr[n[20]-1] -= I; }
           for (let k = 0; k < 8; k++) Y(n[3+k], n[2], 1/5000, 0);
           const q = c._img ? c._img.Q : [0,0,0,0];
           for (let k = 0; k < 4; k++) Y(n[11], n[12+k], (c._run && q[k]) ? GW : GOFF, 0);
@@ -1505,11 +1544,15 @@ function solveAll(){
           const a = R.pv[0], b = R.pv[1];
           R.dir = (a.i*b.r - a.r*b.i) >= 0 ? 1 : -1;   // Im(Vu·conj(Vv)) > 0 → ลำดับเฟสบวก
         } break;
+        case 'vfd': { R.Vin = acm(sub(R.pv[0], R.pv[1])); let P = 0, Q = 0; R.Iph = [0, 0, 0];
+          if (j >= 0) for (let k = 0; k < 3; k++){ const i = vv(j + k), v = sub(R.pv[3 + k], RES.nvv[c._star] || {d:0, r:0, i:0}), q = pw(v, i); P -= q.P; Q -= q.Q; R.Iph[k] = rms(i); }
+          R.Iout = Math.max(...R.Iph); R.P = P; R.Q = Q; R.Vout = rms(sub(R.pv[3], R.pv[4])); R.Pin = P/0.96 + 15;
+          R.fwd = R.pv[6].d - R.pv[8].d < 5; R.rev = R.pv[7].d - R.pv[8].d < 5; R.avi = R.pv[10].d - R.pv[11].d; } break;
         case 'psu': { R.Vin = acm(sub(R.pv[0], R.pv[1])); const i = j >= 0 ? -xd[j] : 0;
           R.Iout = c._on ? i : 0; R.Vout = R.pv[2].d - R.pv[3].d; } break;
         case 'xfmr': R.Vp = acm(sub(R.pv[0],R.pv[1])); R.Vs = acm(sub(R.pv[2],R.pv[3])); R.Is = Math.hypot(xr[j], xi[j]); R.Ip = R.Is*c.V2/c.V1; break;
         case 'plc': R.pw = R.pv[0].d - R.pv[1].d; R.inp = []; for (let k = 0; k < 8; k++) R.inp.push(R.pv[3+k].d - R.pv[2].d);
-          R.ai = [(R.pv[18].d - R.pv[20].d)/250, (R.pv[19].d - R.pv[20].d)/250]; break;
+          R.ai = [(R.pv[18].d - R.pv[20].d)/250, (R.pv[19].d - R.pv[20].d)/250]; R.aiv = [R.pv[18].d - R.pv[20].d, R.pv[19].d - R.pv[20].d]; R.aq = R.pv[24] ? R.pv[24].d - R.pv[20].d : 0; break;
         case 'tx420': R.V = R.pv[0].d - R.pv[1].d; R.I = c._on ? txI(c) : R.V*txI(c)/10; break;
         case 'npn': case 'pnp': { const sg = c.t === 'npn' ? 1 : -1;
           R.ib = j >= 0 ? xd[j] : 0; R.ic = j >= 0 ? xd[j + 1] : 0; c._ic = R.ic;
@@ -1612,29 +1655,43 @@ function solveAll(){
 /* ============================================================
    4. PLC
    ============================================================ */
-const AREA = {I:8, Q:4, M:32, T:8, D:32};
+const AREA = {I:8, Q:4, M:32, T:8, D:32, C:8};
 function newImage(){
-  return {I:Array(8).fill(0), Q:Array(4).fill(0), M:Array(32).fill(0), AI:[0,0], D:Array(32).fill(0),
-          T:Array.from({length:8}, () => ({pre:0, acc:0, q:0}))};
+  return {I:Array(8).fill(0), Q:Array(4).fill(0), M:Array(32).fill(0), AI:[0,0], D:Array(32).fill(0), AQ:[0],
+          T:Array.from({length:8}, () => ({pre:0, acc:0, q:0})), C:Array.from({length:8}, () => ({pre:0, cv:0, q:0, last:0}))};
 }
 function parseAddr(a){
-  const m = /^([IQMTD])(\d{1,2})$/.exec(String(a||'').trim().toUpperCase());
+  const m = /^([IQMTDC])(\d{1,2})$/.exec(String(a||'').trim().toUpperCase());
   if (!m) return null;
   const n = +m[2]; if (n >= AREA[m[1]]) return null;
   return {k:m[1], n};
 }
-function getA(img, a){ const p = parseAddr(a); if (!p) return 0; if (p.k === 'D') return (img.D || [])[p.n] ? 1 : 0; return p.k === 'T' ? img.T[p.n].q : img[p.k][p.n]; }
-function setA(img, a, v){ const p = parseAddr(a); if (!p || p.k === 'T' || p.k === 'D') return; img[p.k][p.n] = v ? 1 : 0; }
+function getA(img, a){ const p = parseAddr(a); if (!p) return 0; if (p.k === 'D') return (img.D || [])[p.n] ? 1 : 0; if (p.k === 'C') return img.C ? img.C[p.n].q : 0; return p.k === 'T' ? img.T[p.n].q : img[p.k][p.n]; }
+function setA(img, a, v){ const p = parseAddr(a); if (!p || p.k === 'T' || p.k === 'D') return; if (p.k === 'C'){ if (!v && img.C){ const c = img.C[p.n]; c.cv = 0; c.q = 0; } return; } img[p.k][p.n] = v ? 1 : 0; }
 // รีจิสเตอร์ข้อมูล D0–D31 (คำ 16 บิต 0–65535) และค่าตัวเลข: AI0/AI1 (%) หรือ Dn
-const isNumA = a => /^(AI[01]|D([0-9]|[12][0-9]|3[01]))$/.test(String(a || '').toUpperCase());
-function numA(img, a){ a = String(a || '').toUpperCase(); if (/^AI[01]$/.test(a)) return (img.AI || [0,0])[+a[2]] || 0; const p = parseAddr(a); return p && p.k === 'D' ? (img.D || [])[p.n] || 0 : 0; }
+const isNumA = a => /^(AI[01]|AQ0|CV[0-7]|D([0-9]|[12][0-9]|3[01]))$/.test(String(a || '').toUpperCase());
+const isNumDst = a => /^(AQ0|CV[0-7]|D([0-9]|[12][0-9]|3[01]))$/.test(String(a || '').toUpperCase());
+function numA(img, a){ a = String(a || '').toUpperCase(); if (/^AI[01]$/.test(a)) return (img.AI || [0,0])[+a[2]] || 0; if (a === 'AQ0') return (img.AQ || [0])[0] || 0; if (/^CV[0-7]$/.test(a)) return img.C ? img.C[+a[2]].cv : 0; const p = parseAddr(a); return p && p.k === 'D' ? (img.D || [])[p.n] || 0 : 0; }
 const numOf = (img, v) => isNumA(v) ? numA(img, v) : (+v || 0);
-function setD(img, a, v){ const p = parseAddr(a); if (!p || p.k !== 'D') return; if (!img.D) img.D = Array(32).fill(0); img.D[p.n] = Math.round(+v || 0) & 0xFFFF; }
+function setD(img, a, v){ a = String(a || '').toUpperCase(); if (a === 'AQ0'){ if (!img.AQ) img.AQ = [0]; img.AQ[0] = Math.round(Math.max(0, Math.min(100, +v || 0))*100)/100; return; }
+  if (/^CV[0-7]$/.test(a)){ if (img.C) img.C[+a[2]].cv = Math.round(+v || 0); return; }
+  const p = parseAddr(a); if (!p || p.k !== 'D') return; if (!img.D) img.D = Array(32).fill(0); img.D[p.n] = Math.round(+v || 0) & 0xFFFF; }
 function ton(img, a, inp, pre, dt){
   const p = parseAddr(a); if (!p || p.k !== 'T') return;
   const t = img.T[p.n]; t.pre = pre;
   if (inp){ t.acc = Math.min(pre, t.acc + dt); t.q = t.acc >= pre ? 1 : 0; } else { t.acc = 0; t.q = 0; }
 }
+// ตัวนับ: CTU นับขอบขาขึ้น (q เมื่อ cv ≥ pre, rst ล้าง) · CTD นับลง (ld โหลด pre, q เมื่อ cv ≤ 0)
+function ctr(img, a, kind, inp, rst, pre){
+  const p = parseAddr(a); if (!p || p.k !== 'C' || !img.C) return; const c = img.C[p.n]; c.pre = pre;
+  if (rst){ c.cv = kind === 'CTD' ? pre : 0; } else if (inp && !c.last) c.cv = Math.max(-32768, Math.min(32767, c.cv + (kind === 'CTD' ? -1 : 1)));
+  c.last = inp ? 1 : 0; c.q = kind === 'CTD' ? (c.cv <= 0 ? 1 : 0) : (c.cv >= pre ? 1 : 0);
+}
+// ค่าตัวเลขของ MOV ในแลดเดอร์: ตัวเลข, ที่อยู่ตัวเลข หรือ นิพจน์ (+ − × ÷ วงเล็บ)
+const NEXPR = new Map();
+function nexpr(str){ str = String(str ?? '').trim(); if (NEXPR.has(str)) return NEXPR.get(str); const r = compile('D0 := ' + str); const e = r.err.length || !r.code[0] ? null : r.code[0].e; NEXPR.set(str, e); return e; }
+function movVal(img, v){ if (typeof v === 'number') return v; const s2 = String(v ?? '').trim(); if (s2 !== '' && isFinite(+s2)) return +s2; if (isNumA(s2)) return numA(img, s2); const e = nexpr(s2); return e ? evn(e, img) : 0; }
+const movOk = v => typeof v === 'number' || (String(v ?? '').trim() !== '' && (isFinite(+v) || !!nexpr(v)));
 function emptyRung(){ return {cmt:'', rows:[{cells:Array(LC).fill(null), out:null}], links:[]}; }
 function defaultProg(){
   return {mode:'lad', lad:[emptyRung()], txt:'// เขียนโปรแกรมแบบข้อความ\n// Q0 := (I0 OR Q0) AND NOT I1\n// T0 := TON(I2, 3)\n// SET Q1 := I3   /   RST Q1 := I4\n'};
@@ -1670,8 +1727,8 @@ function compile(src){
       let k = '=';
       if (peek()==='SET'||peek()==='RST'){ k = peek()==='SET' ? 'S' : 'R'; next(); }
       const dst = (next()||'').toUpperCase(), pd = parseAddr(dst);
-      if (!pd) fail('ที่อยู่ปลายทางไม่ถูกต้อง');
-      if (pd.k === 'I') fail('เขียนค่าลงอินพุต ' + dst + ' ไม่ได้');
+      if (!pd && !isNumDst(dst)) fail('ที่อยู่ปลายทางไม่ถูกต้อง');
+      if (pd && pd.k === 'I') fail('เขียนค่าลงอินพุต ' + dst + ' ไม่ได้');
       const op = next(); if (op !== ':=' && op !== '=') fail('ต้องมี := หลัง ' + dst);
       // D ← นิพจน์ตัวเลข (+ − × ÷, วงเล็บ, ตัวเลข, AI0/AI1, Dn)
       const nsum = () => { let a = nprod(); while (peek() === '+' || peek() === '-'){ const o = next(); a = {o:'n' + o, a, b:nprod()}; } return a; };
@@ -1682,7 +1739,14 @@ function compile(src){
         if (isNumA(t)){ next(); return {o:'v', a:t}; }
         if (/^\d/.test(t)){ next(); return {o:'k', v:+t}; }
         fail(t ? 'ไม่รู้จัก "' + toks[p] + '" ในนิพจน์ตัวเลข' : 'นิพจน์ไม่ครบ'); };
-      if (pd.k === 'D'){ if (k !== '=') fail('SET/RST ใช้กับรีจิสเตอร์ D ไม่ได้'); code.push({k:'MOV', dst, e:nsum()}); if (p < toks.length) fail('มีข้อความเกิน: "' + toks.slice(p).join(' ') + '"'); return; }
+      if (!pd || pd.k === 'D'){ if (k !== '=') fail('SET/RST ใช้กับรีจิสเตอร์ตัวเลขไม่ได้'); const e = nsum(); let cond = null; if (peek() === 'IF'){ next(); cond = expr(); } code.push({k:'MOV', dst, e, cond}); if (p < toks.length) fail('มีข้อความเกิน: "' + toks.slice(p).join(' ') + '"'); return; }
+      if (pd.k === 'C' && k !== 'R'){
+        const fn = peek(); if (fn !== 'CTU' && fn !== 'CTD') fail('ตัวนับต้องใช้ CTU(นับ, รีเซ็ต, ค่าตั้ง) หรือ CTD(นับลง, โหลด, ค่าตั้ง)');
+        next(); if (next() !== '(') fail('ขาด ( หลัง ' + fn);
+        const e = expr(); if (next() !== ',') fail('ขาด , ใน ' + fn); const r2 = expr(); if (next() !== ',') fail('ขาด , ใน ' + fn);
+        const pre = parseFloat(next()); if (!(pre >= 0)) fail('ค่าตั้งของตัวนับไม่ถูกต้อง'); if (next() !== ')') fail('ขาดวงเล็บปิดของ ' + fn);
+        code.push({k:fn, dst, e, r:r2, pre}); if (p < toks.length) fail('มีข้อความเกิน: "' + toks.slice(p).join(' ') + '"'); return;
+      }
       if (pd.k === 'T'){
         if (peek() !== 'TON') fail('ไทเมอร์ต้องใช้ TON(เงื่อนไข, วินาที)');
         next(); if (next() !== '(') fail('ขาด ( หลัง TON');
@@ -1716,12 +1780,13 @@ function evn(e, img){
 }
 function runText(code, img, dt){
   for (const s of code){
-    if (s.k === 'MOV'){ setD(img, s.dst, evn(s.e, img)); continue; }
+    if (s.k === 'MOV'){ if (!s.cond || ev(s.cond, img)) setD(img, s.dst, evn(s.e, img)); continue; }
     const v = ev(s.e, img);
     if (s.k === '=') setA(img, s.dst, v);
     else if (s.k === 'S'){ if (v) setA(img, s.dst, 1); }
     else if (s.k === 'R'){ if (v) setA(img, s.dst, 0); }
     else if (s.k === 'TON') ton(img, s.dst, v, s.pre, dt);
+    else if (s.k === 'CTU' || s.k === 'CTD') ctr(img, s.dst, s.k, v, ev(s.r, img), s.pre);
   }
 }
 
@@ -1773,7 +1838,8 @@ function runLadder(lad, img, dt, plc){
       else if (o.k === 'SET'){ if (on) setA(img, o.a, 1); }
       else if (o.k === 'RST'){ if (on) setA(img, o.a, 0); }
       else if (o.k === 'TON') ton(img, o.a, on, +o.p || 0, dt);
-      else if (o.k === 'MOV'){ if (on) setD(img, o.a, numOf(img, o.p)); }
+      else if (o.k === 'MOV'){ if (on) setD(img, o.a, movVal(img, o.p)); }
+      else if (o.k === 'CTU') ctr(img, o.a, 'CTU', on, 0, +o.p || 0);
     });
     mon.push(m);
   }
@@ -1789,10 +1855,12 @@ function validateLad(lad){
       });
       const o = row.out;
       if (o){
-        const p = parseAddr(o.a);
+        const p = o.k === 'MOV' && isNumDst(o.a) ? {k:'D', n:0} : parseAddr(o.a);
         if (!p) err.push(`รัง ${ri+1}: ที่อยู่เอาต์พุต "${o.a||''}" ไม่ถูกต้อง`);
         else if (o.k === 'TON' && p.k !== 'T') err.push(`รัง ${ri+1}: TON ต้องใช้ที่อยู่ T0–T7`);
-        else if (o.k === 'MOV' && (p.k !== 'D' || !(isNumA(o.p) || isFinite(+o.p)))) err.push(`รัง ${ri+1}: MOV ต้องเขียนลง D0–D31 จากตัวเลข, AI0/AI1 หรือ Dn`);
+        else if (o.k === 'MOV' && (p.k !== 'D' || !movOk(o.p))) err.push(`รัง ${ri+1}: MOV ต้องเขียนลง D0–D31, AQ0 หรือ CVn จากตัวเลข ที่อยู่ หรือนิพจน์ (เช่น D10/10 + 5)`);
+        else if (o.k === 'CTU' && p.k !== 'C') err.push(`รัง ${ri+1}: CTU ต้องใช้ที่อยู่ C0–C7`);
+        else if (p.k === 'C' && !['CTU','RST'].includes(o.k)) err.push(`รัง ${ri+1}: ตัวนับ ${o.a} ใช้ได้กับ CTU หรือ RST เท่านั้น`);
         else if (o.k !== 'MOV' && p.k === 'D') err.push(`รัง ${ri+1}: คอยล์เขียนลงรีจิสเตอร์ ${o.a} ไม่ได้ (ใช้ MOV)`);
         else if (o.k !== 'TON' && (p.k === 'I' || p.k === 'T')) err.push(`รัง ${ri+1}: คอยล์เขียนลง ${o.a} ไม่ได้`);
       }
@@ -1822,20 +1890,51 @@ function plcScan(p, dt){
   if (run){
     for (let k = 0; k < 8; k++) img.I[k] = Math.abs(r.inp[k]) >= 15 ? 1 : 0;   // อินพุตแบบ sink/source
     if (!img.AI) img.AI = [0,0];
-    for (let k = 0; k < 2; k++) img.AI[k] = Math.round((r.ai[k]*1000 - 4)/16*1000)/10;
+    for (let k = 0; k < 2; k++) img.AI[k] = p.aim === '010' ? Math.round(r.aiv[k]*100)/10 : Math.round((r.ai[k]*1000 - 4)/16*1000)/10;
+    if (!img.C) img.C = newImage().C; if (!img.AQ) img.AQ = [0];
     for (const h of S.comps) if (h.t === 'hmi' && h._link === p)
       hmiBtns(h).forEach((b, i) => { if (b) setA(img, b.a, h._press === i ? 1 : 0); });
     if (p.prog.mode === 'txt') runText(prog.code, img, dt); else runLadder(p.prog.lad, img, dt, p);
     if (!img.D) img.D = Array(32).fill(0);
+    plcPid(p, dt);
     for (const pt of plcPorts(p)) if (pt.on){ if (pt.mode === 'slave') plcSlave(p, pt); else plcModbus(p, pt); }
     if (p.ethSrv !== false) plcTcpServer(p);
   } else {
-    img.Q.fill(0);
+    img.Q.fill(0); if (img.AQ) img.AQ[0] = 0;
     if (!p._pw){ img.I.fill(0); img.T.forEach(t => { t.acc = 0; t.q = 0; }); }
     if (p.prog.mode !== 'txt') runLadderMonOnly(p);
   }
   if (run !== !!p._run){ p._run = run; needSolve = true; }
   if (img.Q.join('') !== oldQ) needSolve = true;
+}
+/* ---------- PID (ฟิลด์ pidList บรรทัดละวง: EN PV SP MV Kp Ti Td [ต่ำ สูง]) ----------
+   EN = บิตเปิดวง (M0, I0 …) หรือ 1 · PV/SP = ตัวเลข/AI0/Dn/CVn · MV = Dn หรือ AQ0 · Kp = % เอาต์พุตต่อหน่วยความผิดพลาด (ติดลบ = กลับทิศ), Ti/Td วินาที (Ti = 0 ไม่มี I)
+   e = SP − PV, u = Kp·e + ∫(Kp/Ti)·e dt − Kp·Td·dPV/dt (อนุพันธ์จาก PV กันกระชากเมื่อเปลี่ยน SP) จำกัด 0–100% กัน wind-up แล้วสเกลเป็น ต่ำ…สูง (ค่าเริ่ม 0 100) */
+function pidParse(txt){
+  const list = [], err = [];
+  String(txt || '').split('\n').forEach((raw, i) => { const ln = raw.replace(/\/\/.*$|#.*$/, '').trim(); if (!ln) return; const t = ln.split(/[\s,]+/);
+    if (t.length < 7){ err.push(`PID บรรทัด ${i + 1}: ต้องมี EN PV SP MV Kp Ti Td`); return; }
+    const [en, pv, sp, mv] = t.map(x => x.toUpperCase()), [kp, ti, td] = t.slice(4, 7).map(Number), lo = t[7] != null ? +t[7] : 0, hi = t[8] != null ? +t[8] : 100;
+    if (!(en === '1' || parseAddr(en))) err.push(`PID บรรทัด ${i + 1}: EN "${t[0]}" ไม่ถูกต้อง`);
+    else if (!(isNumA(pv) || isFinite(+pv)) || !(isNumA(sp) || isFinite(+sp))) err.push(`PID บรรทัด ${i + 1}: PV/SP ต้องเป็นตัวเลข AI0/AI1 Dn หรือ CVn`);
+    else if (!isNumDst(mv)) err.push(`PID บรรทัด ${i + 1}: MV ต้องเป็น Dn หรือ AQ0`);
+    else if (![kp, ti, td, lo, hi].every(isFinite)) err.push(`PID บรรทัด ${i + 1}: Kp Ti Td ต่ำ สูง ต้องเป็นตัวเลข`);
+    else list.push({en, pv, sp, mv, kp, ti, td, lo, hi}); });
+  return {list, err};
+}
+function plcPid(p, dt){
+  if (!p.pidList){ p._pid = []; return; }
+  if (!p._pidc || p._pidc.src !== p.pidList) p._pidc = Object.assign({src:p.pidList}, pidParse(p.pidList));
+  const img = p._img, st = p._pid || (p._pid = []);
+  p._pidc.list.forEach((L, i) => { const z = st[i] || (st[i] = {I:0, pv1:null, u:0, e:0});
+    const pv = numOf(img, L.pv), sp = numOf(img, L.sp); z.pv = pv; z.sp = sp;
+    if (!(L.en === '1' || getA(img, L.en))){ z.I = 0; z.pv1 = null; z.u = 0; z.e = sp - pv; setD(img, L.mv, L.lo); return; }
+    if (!(dt > 0)){ setD(img, L.mv, L.lo + (L.hi - L.lo)*z.u/100); return; }
+    const e = sp - pv, P = L.kp*e, D = L.td > 0 && z.pv1 != null ? -L.kp*L.td*(pv - z.pv1)/dt : 0;
+    if (L.ti > 0) z.I += L.kp*e*dt/L.ti;
+    z.I = Math.max(-P - D, Math.min(100 - P - D, z.I));          // กัน wind-up: ไม่สะสมเกินช่วงที่ทำให้อิ่มตัว
+    const u = Math.max(0, Math.min(100, P + z.I + D)); z.u = u; z.e = e; z.pv1 = pv;
+    setD(img, L.mv, L.lo + (L.hi - L.lo)*u/100); });
 }
 function runLadderMonOnly(p){ p._mon = p.prog.lad.map(r => evalRung(r, p._img)); }
 function hmiBtns(h){
@@ -1967,11 +2066,12 @@ function discrete(dt){
         const on = c._on ? lv >= c.lvl - 0.5 : lv >= c.lvl;
         if (on !== !!c._on){ c._on = on; needSolve = true; }
       } break;
+      case 'vfd': vfdTick(c, r, dt); break;
       case 'psu': if (c._ol){ c._retry -= dt; if (c._retry <= 0){ c._ol = false; needSolve = true; } } break;
       case 'motor3': {
         const inom = c.P*1000/(c.eff*c.pf)/(SQ3*c.V), mx = Math.max(...r.ph), mn = Math.min(...r.ph);
         c._hum = mx > 0.2*inom && mn < 0.6*mx;
-        c._run = mx > 0.5*inom && !c._hum;
+        c._run = mx > (c._fs != null ? 0.1 : 0.5)*inom && !c._hum;
         c._dir = r.dir;
       } break;
       case 'motor1': case 'pump': c._run = r.Vr >= 0.8*c.V; break;
@@ -1989,6 +2089,78 @@ function discrete(dt){
   }
   hmiLink();
   for (const p of S.comps) if (p.t === 'plc') plcScan(p, dt);
+  vfdFeed();
+}
+/* ---------- อินเวอร์เตอร์ (VFD) ----------
+   สถานะ: c._pw ไฟเข้า ≥ 70%, c._f ความถี่ขาออก (มีเครื่องหมาย: + = FWD), c._ft ความถี่เป้าหมาย, c._flt รหัสฟอลต์ (oC กระแสเกิน, oL โหลดเกิน, Lu ไฟตก)
+   Modbus holding: 0 คำสั่ง (บิต0 RUN, บิต1 REV, บิต7 รีเซ็ตฟอลต์) · 1 ความถี่สั่ง ×0.01 Hz · 2 ความถี่ขาออก ×0.01 Hz · 3 กระแส ×0.01 A · 4 สถานะ (บิต0 RUN, 1 REV, 2 ฟอลต์, 3 ถึงความเร็ว) · 5 แรงดันขาออก V · 6 รหัสฟอลต์ (1 oC, 2 oL, 3 Lu) · 7 DC bus V */
+const VFD_FLT = {oC:[1, 'กระแสเกิน (oC)'], oL:[2, 'โหลดเกิน (oL)'], Lu:[3, 'ไฟเข้าตก (Lu)']};
+const vfdIn = c => (+c.P || 1.5)*1000/(SQ3*(+c.inV >= 300 ? 400 : 230)*0.8*0.85);   // กระแสพิกัดขาออกโดยประมาณ
+function vfdTick(c, r, dt){
+  const VL = +c.inV || 400, pw = r.Vin >= 0.7*VL;
+  if (pw !== !!c._pw){ c._pw = pw; needSolve = true; if (!pw && Math.abs(c._f || 0) > 0.5) c._flt = 'Lu'; }
+  const reg = c._reg || (c._reg = [0, 0]);
+  if (!pw){ c._f = 0; c._cmd = 0; return; }
+  if (c._flt && (reg[0] & 0x80 || c._rst)){ c._flt = ''; c._ol = 0; reg[0] &= ~0x80; c._rst = false; }
+  if (c._flt === 'Lu' && !c._f) c._flt = '';
+  // คำสั่ง: +1 FWD, −1 REV, 0 หยุด
+  let cmd = 0;
+  if (c.run === 'mb') cmd = reg[0] & 1 ? (reg[0] & 2 ? -1 : 1) : 0;
+  else if (c.run === 'kp') cmd = c._kp || 0;
+  else cmd = r.fwd && !r.rev ? 1 : r.rev && !r.fwd ? -1 : 0;
+  if (c._flt) cmd = 0;
+  const fmax = +c.fmax || 50, fmin = +c.fmin || 0;
+  let fs = c.fsrc === 'mb' ? reg[1]/100 : c.fsrc === 'kp' ? +c.fset || 0 : Math.max(0, Math.min(10, r.avi))/10*fmax;
+  fs = Math.max(fmin, Math.min(fmax, fs));
+  const tgt = cmd*fs, f0 = c._f || 0, up = Math.abs(tgt) > Math.abs(f0) && Math.sign(tgt || 1) === Math.sign(f0 || tgt || 1);
+  const rate = fmax/Math.max(0.1, up ? +c.acc || 5 : +c.dec || 5);
+  let f = f0 + Math.sign(tgt - f0)*Math.min(Math.abs(tgt - f0), rate*dt);
+  if (Math.abs(f) < 0.05 && !cmd) f = 0;
+  c._ft = tgt; c._cmd = cmd;
+  if (Math.abs(f - f0) > 0.02 || (!f !== !f0)){ c._f = f; needSolve = true; } else c._f = f;
+  // ป้องกัน: กระแส > 2 × พิกัด ทันที → oC, > 1.1 × พิกัด สะสม (150% 60 s) → oL
+  const In = vfdIn(c), x = (r.Iout || 0)/In;
+  if (x > 2.2 && Math.abs(f) > 0.5){ c._flt = 'oC'; c._f = 0; needSolve = true; }
+  c._ol = Math.max(0, (c._ol || 0) + dt*(x > 1.1 ? (x*x - 1.21)/(2.25 - 1.21)/60 : -1/120));
+  if (c._ol >= 1){ c._flt = 'oL'; c._f = 0; c._ol = 0; needSolve = true; }
+  c._pout = Math.max(0, r.P || 0);
+  vfdSlave(c);
+}
+function vfdTables(c){ const r = RES.comp[c.id] || {}, reg = c._reg || (c._reg = [0, 0]), f = c._f || 0;
+  const g = i => i === 0 ? reg[0] : i === 1 ? reg[1] : i === 2 ? Math.round(Math.abs(f)*100) : i === 3 ? Math.round((r.Iout || 0)*100) :
+    i === 4 ? (Math.abs(f) > 0.05 ? 1 : 0) | (f < 0 ? 2 : 0) | (c._flt ? 4 : 0) | (Math.abs(f - (c._ft || 0)) < 0.1 && Math.abs(f) > 0.05 ? 8 : 0) :
+    i === 5 ? Math.round(r.Vout || 0) : i === 6 ? (c._flt ? VFD_FLT[c._flt][0] : 0) : Math.round((r.Vin || 0)*1.35);
+  const hr = {has:i => i < 8, get:g, set:(i, v) => { if (i < 2) reg[i] = v & 0xFFFF; }};
+  return {hr, ir:{has:i => i < 8, get:g}};
+}
+function vfdSlave(c){
+  const st = c._mbs || (c._mbs = {rx:0, tx:0, err:0, last:''}), q = c._mbrx || []; q.sort((a, b) => a.t - b.t);
+  while (q.length && q[0].t <= simT + 1e-9){
+    const b = mbBytes(q.shift().s);
+    if (!mbCrcOk(b)){ st.err++; st.last = 'CRC ผิด'; continue; }
+    if (b[0] !== (+c.mbId || 1) && b[0] !== 0) continue;
+    st.rx++; const R = mbServe(b, vfdTables(c)); st.last = (MB_FN[R.fn] || 'ฟังก์ชัน ' + R.fn) + ' @' + R.addr + (R.ex ? ' → ข้อยกเว้น ' + R.ex : '');
+    if (b[0] === 0) continue;
+    const data = mbFrame(R.r), baud = +c.mbBaud || 9600, at = Math.max(simT + 0.005, c._mbBusy || 0) + data.length*10/baud; c._mbBusy = at;
+    busDrive(c, at); commRec(c, 'port', data, baud, at); busDeliver(c, netOf(c, 12), netOf(c, 13), data, baud, at); st.tx++;
+  }
+}
+// มอเตอร์ที่ต่อกับขา U/V/W ของ VFD (ผ่านสาย คอนแทกเตอร์ที่ปิด โอเวอร์โหลด หรืออุปกรณ์ 2 ขั้วที่นำ) → c._fs = |f|/fb
+function vfdFeed(){
+  const vs = S.comps.filter(c => c.t === 'vfd' && c._n), ms = S.comps.filter(c => (c.t === 'motor3' || c.t === 'motor6') && c._n);
+  if (!ms.length) return;
+  const par = new Map(), f = x => { while (par.has(x) && par.get(x) !== x) x = par.get(x); return x; }, u = (a, b) => { a = f(a); b = f(b); if (a !== b) par.set(a, b); };
+  if (vs.length){
+    for (const w of S.wires) u(w._a, w._b);
+    for (const c of S.comps){ if (!c._n) continue;
+      if (isTwo(c)){ const y = admit(c, false, 0); if (y && y[0] >= GW/2) u(c._n[0], c._n[1]); }
+      else if (c.t === 'k3' && contactClosed(c.ref)) for (let k = 0; k < 3; k++) u(c._n[k], c._n[k + 3]);
+      else if (c.t === 'ol' || c.t === 'pmeter') for (let k = 0; k < (c.t === 'ol' ? 3 : 2); k++) u(c._n[k], c._n[k + (c.t === 'ol' ? 3 : 2)]); }
+  }
+  for (const m of ms){ let fs = null;
+    for (const v of vs){ if (f(m._n[0]) === f(v._n[3]) || f(m._n[0]) === f(v._n[4]) || f(m._n[0]) === f(v._n[5])){ fs = Math.abs(v._f || 0)/(+v.fb || 50); m._vfd = v; break; } }
+    if (fs == null){ if (m._fs != null){ delete m._fs; delete m._vfd; needSolve = true; } continue; }
+    if (m._fs == null || Math.abs(fs - m._fs) > 0.01){ m._fs = fs; needSolve = true; } }
 }
 function hmiLink(){
   for (const h of S.comps) if (h.t === 'hmi'){
@@ -2285,6 +2457,7 @@ function busPorts(o){
   if (o.t === 'rs485') return o._pw ? [{ab:[netOf(o, 6), netOf(o, 5)], rt:o, mod:true}] : [];
   if (o.t === 'plc') return o._pw ? plcPorts(o).filter(q => q.on && !q.tcp).map(q => ({ab:[netOf(o, q.a), netOf(o, q.b)], rt:q.rt, baud:q.baud})) : [];
   if (o.t === 'hmi') return o.proto === 'modbus' && o._pw ? [{ab:[netOf(o, 2), netOf(o, 3)], rt:o, baud:+o.baud || 9600}] : [];
+  if (o.t === 'vfd') return o._pw && o.mbOn !== false ? [{ab:[netOf(o, 12), netOf(o, 13)], rt:o, baud:+o.mbBaud || 9600}] : [];
   return [];
 }
 // ทรานซีฟเวอร์ RS-485 ในตัว PLC/HMI: อินพุตตัวรับ 12 kΩ ไป 2.5 V (เทียบขากราวด์ g), ขณะส่ง A → 5 V, B → 0 V ผ่าน 25 Ω
@@ -2318,7 +2491,7 @@ function uartBit(e, t){
 // ตัวขับบัสทำงานตลอดช่วงที่กำลังส่ง (ถึงเวลา _drvUntil) → แก้วงจรใหม่เมื่อเริ่ม/หยุดขับ
 function busDrvTick(c){
   const chk = o => { const d = (o._drvUntil || 0) > simT; if (d !== !!o._drv){ o._drv = d; needSolve = true; } };
-  if (c.t === 'rs485' || c.t === 'hmi') chk(c); else if (c.t === 'plc'){ chk(c); if (c._p2) chk(c._p2); }
+  if (c.t === 'rs485' || c.t === 'hmi' || c.t === 'vfd') chk(c); else if (c.t === 'plc'){ chk(c); if (c._p2) chk(c._p2); }
 }
 const busDrive = (o, at) => { o._drvUntil = Math.max(o._drvUntil || 0, at); if (!o._drv){ o._drv = true; needSolve = true; } };
 function busDeliver(src, A, Bn, data, baud, at, depth = 0){
@@ -2667,12 +2840,13 @@ function continuous(dt){
     switch (c.t){
       case 'motor3': case 'motor1': case 'pump': case 'motor6': {
         // เร่งเครื่องจนถึงความเร็วพิกัดใน ≈ 1.5 s (ช่วงนี้กินกระแสสตาร์ทสูง), หยุดหมุนแบบค่อย ๆ ลดลง
-        if (c._run) c._sp = Math.min(1, (c._sp||0) + dt/1.5);
+        const tg = c._fs == null ? 1 : c._fs;
+        if (c._run) c._sp = (c._sp||0) < tg ? Math.min(tg, (c._sp||0) + dt/1.5) : Math.max(tg, (c._sp||0) - dt/1.5);
         else c._sp = (c._sp||0)*(1 - Math.min(1, dt/2.5));
         if (c._sp < 1e-3) c._sp = 0;
         c._ang = ((c._ang||0) + c._sp*dt*14*(c._dir||1)) % (Math.PI*2);
-        if (c.t === 'pump'){ const tk = byName[c.tank]; if (tk) tk._in += c._sp * c.flow; }
-        spDirty(c);
+        if (c.t === 'pump' || (c.t === 'motor3' && c.tank)){ const tk = byName[c.tank]; if (tk) tk._in += c._sp * (+c.flow || 0); }
+        spDirty(c, c._run ? tg : null);
       } break;
       case 'dcm': {
         const R = RES.comp[c.id], I = R && R.i ? R.i.d : 0, Vm = R && R.v ? R.v.d : 0, tg = Math.min(1.2, Math.abs(Vm)/c.V);   // ความเร็ว ∝ แรงดัน
@@ -2693,9 +2867,10 @@ function continuous(dt){
   for (const c of S.comps) if (c.t === 'tank'){
     c.lvl = Math.max(0, Math.min(100, c.lvl + ((c._in||0) - c.out) * dt));
   }
+  for (const c of S.comps) if (c.t === 'tx420' && c.tank){ const tk = byName[c.tank]; if (tk){ const v = Math.round(tk.lvl*100)/100; if (Math.abs(v - c.pct) > 0.02){ c.pct = v; needSolve = true; } } }
 }
 // อิมพีแดนซ์มอเตอร์ขึ้นกับความเร็ว → ความเร็วเปลี่ยนเกิน 2% ต้องแก้วงจรใหม่
-function spDirty(c){ if (Math.abs((c._sp || 0) - (c._spS || 0)) > 0.02){ c._spS = c._sp || 0; needSolve = true; } }
+function spDirty(c, tg){ const sp = c._sp || 0; if (Math.abs(sp - (c._spS || 0)) > 0.02 || (tg != null && sp === tg && c._spS !== sp)){ c._spS = sp; needSolve = true; } }
 /* ============================================================
    จำลองตามเวลา (transient) — ใช้เมื่อวงจรมีแต่อุปกรณ์ที่รองรับ และมีตัวเก็บประจุ/ตัวเหนี่ยวนำ หรือไดโอดกับไฟ AC
    ก้าวละ h ≈ 100 µs (200 จุด/คาบ) · ตัวเก็บประจุ/ขดลวด = companion model แบบ backward Euler · ไดโอด = piecewise (Vf + R / ตัดวงจร)
@@ -2857,7 +3032,7 @@ function settle(){
     needSolve = false; solveAll(); discrete(0);
   }
 }
-function step(dt){ simT += dt; continuous(dt); facStep(dt); discrete(dt); settle(); if (trApplicable()) trRun(dt); else TR.active = false; scopeRecord(); }
+function step(dt){ simT += dt; continuous(dt); facStep(dt); discrete(dt); settle(); if (trApplicable()) trRun(dt); else TR.active = false; scopeRecord(); trendRec(); }
 function poke(){ needSolve = true; settle(); }
 
 /* ============================================================
@@ -2867,7 +3042,7 @@ const KEY = 'circuit-board-v2';
 let hist = [], cur = null, fut = [];
 function strip(o){ const r = {}; for (const k in o) if (k[0] !== '_') r[k] = o[k]; return clone(r); }
 function ser(){
-  return JSON.stringify({v:2, nid:S.nid, fac:S.fac || undefined, comps:S.comps.map(strip), wires:S.wires.map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2}))});
+  return JSON.stringify({v:2, nid:S.nid, fac:S.fac || undefined, trend:S.trend || undefined, comps:S.comps.map(strip), wires:S.wires.map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2}))});
 }
 function mkComp(t, x, y, p){
   const c = Object.assign({id:0, t, x, y, r:0}, clone(T[t].d), p || {});
@@ -2876,7 +3051,8 @@ function mkComp(t, x, y, p){
 }
 function load(o){
   if (typeof o === 'string') o = JSON.parse(o);
-  S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? (o.fac.items ? clone(o.fac) : facPreset('sort')) : null};
+  S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? (o.fac.items ? clone(o.fac) : facPreset('sort')) : null, trend:o.trend ? clone(o.trend) : null};
+  if (typeof trendReset === 'function') trendReset();
   if (S.fac) S.fac.items = S.fac.items.filter(i => FKIND[i.k]).map(i => Object.assign(clone(FKIND[i.k].d), i));   // เติมฟิลด์ใหม่ให้ฉากที่บันทึกไว้ก่อน
   facReset();
   for (const c of o.comps||[]){ if (!T[c.t]) continue; const k = mkComp(c.t, c.x, c.y, c); S.comps.push(k); S.nid = Math.max(S.nid, k.id + 1); }
@@ -3201,6 +3377,53 @@ void loop() {
     C('res', 10, 8, {r:1, n:'R1', R:220}); W([10,6],[10,7]); C('led', 10, 11, {r:1, n:'D1', col:'yellow'}); W([10,9],[10,10]);
     W([10,12],[10,13],[3,13],[3,6]);
   })},
+  pidtank: {nm:'PID คุมระดับน้ำ: PLC → อินเวอร์เตอร์ (VFD) → ปั๊ม 3 เฟส + กราฟเทรนด์ (มีฉาก 3D)', f:() => { const o = build((C,W) => {
+    // กำลัง: ไฟ 3 เฟส → VFD → มอเตอร์ปั๊ม (ขับปั๊มเติมถัง TK1)
+    C('src3', 4, 2, {n:'G1'}); C('lbl', 6, 3, {net:'N'});
+    C('vfd', 6, 8, {n:'VFD1', P:1.5, acc:5, dec:5, run:'di', fsrc:'ai'});
+    W([3,3],[3,6]); W([4,3],[4,6]); W([5,3],[5,6]); C('lbl', 3, 5, {net:'L'});
+    C('motor3', 14, 5, {n:'M1', P:1.1, tank:'TK1', flow:6});
+    W([8,6],[8,5],[12,5],[12,4],[13,4]); W([9,6],[9,3],[14,3],[14,4]); W([10,6],[10,2],[15,2],[15,4]);
+    C('tank', 20, 6, {n:'TK1', lvl:20, out:3});
+    // ขั้วควบคุม VFD: FWD ← หน้าสัมผัส Q0, AVI ← AQ0 ของ PLC, ACM = 0V, RS-485 A/B
+    W([3,10],[3,12]); C('lbl', 3, 12, {net:'FWD'});
+    W([7,10],[7,15]); C('lbl', 7, 15, {net:'AVI'});
+    W([8,10],[8,13]); C('lbl', 8, 13, {net:'0V'});
+    W([9,10],[9,12]); C('lbl', 9, 12, {net:'RSA'});
+    W([10,10],[10,11]); C('lbl', 10, 11, {net:'RSB'});
+    // ไฟเลี้ยง 24 VDC
+    C('psu', 24, 15, {n:'PS1'}); C('lbl', 23, 14, {net:'L'}); C('lbl', 25, 14, {net:'N'}); C('lbl', 23, 16, {net:'+24'}); C('lbl', 25, 16, {net:'0V'});
+    // PLC
+    const plc = C('plc', 13, 22, {n:'PLC1', mbBaud:9600, pidList:'// EN PV SP MV Kp Ti Td ต่ำ สูง\nM0 AI0 D1 D10 4 8 0 0 1000'});
+    W([8,20],[8,16]); C('lbl', 8, 16, {net:'+24'});
+    W([9,20],[9,17]); C('lbl', 9, 17, {net:'0V'}); W([9,19],[10,19],[10,20]);
+    C('sw', 11, 18, {r:1, n:'S1', on:false}); W([11,19],[11,20]); W([11,17],[11,16]); C('lbl', 11, 16, {net:'+24'});
+    W([8,24],[8,26]); C('lbl', 8, 26, {net:'0V'}); W([9,24],[9,25]); C('lbl', 9, 25, {net:'FWD'});
+    W([13,24],[13,26]); C('lbl', 13, 26, {net:'LT'});
+    W([15,24],[15,27]); C('lbl', 15, 27, {net:'0V'});
+    W([16,24],[16,26]); C('lbl', 16, 26, {net:'RSA'}); W([17,24],[17,25]); C('lbl', 17, 25, {net:'RSB'});
+    W([20,24],[20,25]); C('lbl', 20, 25, {net:'AVI'});
+    // ทรานสมิตเตอร์ระดับ 4–20 mA วัดถัง TK1 (ลูป +24 → TT1 → AI0 → 250 Ω → AM)
+    C('tx420', 13, 30, {n:'TT1', q:'L', unit:'%', min:0, max:100, pct:20, tank:'TK1'});
+    W([12,31],[12,32]); C('lbl', 12, 32, {net:'+24'}); W([14,31],[14,32]); C('lbl', 14, 32, {net:'LT'});
+    plc.prog = {mode:'lad', txt:`// S1 (I0) = AUTO: เปิดวง PID (M0) และสั่ง VFD เดินหน้าผ่าน Q0 → FWD
+M0 := I0
+// ระดับเกิน 95% ตัดปั๊มกันล้น
+Q0 := M0 AND NOT (AI0 > 95)
+// ค่าตั้งระดับเริ่มต้น 60% ครั้งแรกครั้งเดียว (แก้ D1 ภายหลังได้ เช่นผ่าน Modbus)
+D1 := 60 IF NOT M2
+SET M2 := TRUE
+// ผลลัพธ์ PID ใน D10 (0–1000) → AQ0 (0–100% = 0–10 V) → AVI ของ VFD → ความถี่ 0–50 Hz
+AQ0 := D10 / 10
+`, lad:[
+      {cmt:'S1 (I0) = AUTO → เปิดวง PID (M0)', rows:[{cells:[nc('NO','I0'), null, null, null, null, null, null], out:{k:'OUT', a:'M0'}}], links:[]},
+      {cmt:'สั่ง VFD เดินหน้า (Q0 → FWD) เมื่อ AUTO และระดับยังไม่เกิน 95%', rows:[{cells:[nc('NO','M0'), {k:'LT', a:'AI0', p:95}, null, null, null, null, null], out:{k:'OUT', a:'Q0'}}], links:[]},
+      {cmt:'ค่าตั้งระดับเริ่มต้น 60% ครั้งแรกครั้งเดียว', rows:[{cells:[nc('NC','M2'), null, null, null, null, null, null], out:{k:'MOV', a:'D1', p:60}}], links:[]},
+      {cmt:'', rows:[{cells:[nc('NC','M2'), null, null, null, null, null, null], out:{k:'SET', a:'M2'}}], links:[]},
+      {cmt:'ผลลัพธ์ PID (D10 = 0–1000) → AQ0 0–100% (0–10 V) → AVI', rows:[{cells:[null, null, null, null, null, null, null], out:{k:'MOV', a:'AQ0', p:'D10/10'}}], links:[]},
+    ]};
+  }); const f = facPreset('tank'); f.items = f.items.filter(i => i.k !== 'station'); f.btn = [];
+    return Object.assign(o, {fac:f, trend:{sig:['PLC1.D1', 'PLC1.AI0', 'PLC1.PID1', 'VFD1.f'], win:120, ax:'pct'}}); }},
   plcsense: {nm:'PLC + เซนเซอร์อุตสาหกรรม (พร็อกซิมิตี้, โฟโต้, 4–20 mA)', f:() => build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6});
     W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
@@ -4635,6 +4858,21 @@ function drawBlock(c, ghost){
       line(X - 22, Y, X + 22, Y);
       text(c.V1 + '/' + c.V2 + ' V', X + 1.3*G, Y, 9, K.muted, 'right', '600', true);
     } break;
+    case 'vfd': {
+      const f = c._f || 0, sx = X - 2.9*G, sy = Y - 1.35*G;
+      ctx.fillStyle = '#0b1220'; rrect(sx, sy, 3.4*G, 1.25*G, 4); ctx.fill();
+      if (c._pw){ text(c._flt ? c._flt : Math.abs(f).toFixed(2), sx + 3.25*G, sy + 0.45*G, 19, c._flt ? '#f87171' : '#4ade80', 'right', '700', true);
+        text(c._flt ? 'FAULT' : 'Hz', sx + 6, sy + 0.45*G, 10, c._flt ? '#f87171' : '#86efac', 'left', '600', true);
+        text((f > 0.05 ? 'RUN FWD' : f < -0.05 ? 'RUN REV' : 'STOP') + ' · ' + fmt((RES.comp[c.id] || {}).Iout || 0, 'A'), sx + 6, sy + 0.98*G, 9.5, '#cbd5e1', 'left', '600', true); }
+      else text('ไม่มีไฟเข้า', sx + 1.7*G, sy + 0.62*G, 10, '#64748b', 'center', '500');
+      text('VFD', X + 1.2*G, Y - 0.7*G, 15, K.text, 'left', '700', true); text((c.P || 1.5) + ' kW', X + 1.2*G, Y - 0.15*G, 10, K.muted, 'left', '600', true);
+      // ปุ่ม/ไฟสถานะ
+      [['RUN', '#16a34a', Math.abs(f) > 0.05], ['STOP', '#dc2626', !f], ['FLT', '#f59e0b', !!c._flt]].forEach((q, k) => { ctx.fillStyle = q[2] ? q[1] : K.ladoff; dot(X - 2.6*G + k*1.05*G, Y + 0.55*G, 5); text(q[0], X - 2.6*G + k*1.05*G + 9, Y + 0.55*G, 8.5, K.muted, 'left', '600', true); });
+      // ใบพัดระบายความร้อน
+      ctx.save(); ctx.translate(X + 3.2*G, Y + 0.1*G); ctx.rotate((c._fa = (c._fa || 0) + Math.abs(f)*0.004) ); ctx.strokeStyle = K.muted; ctx.lineWidth = 1.5;
+      circ(0, 0, 13, false); for (let k = 0; k < 4; k++){ ctx.rotate(Math.PI/2); line(0, 0, 10, 4); } ctx.restore();
+      text('RS-485', X + 3.5*G, Y + 2*G - 24, 8.5, K.muted, 'center', '600', true);
+    } break;
     case 'plc': {
       const img = c._img || newImage(), run = c._run, err = c.prog && getProg(c).err.length;
       text('PLC', bx + 12, Y - 2, 15, K.text, 'left', '600', true);
@@ -4643,7 +4881,7 @@ function drawBlock(c, ghost){
       for (let k = 0; k < 4; k++){ ctx.fillStyle = (run && img.Q[k]) ? K.warn : K.ladoff; ctx.fillRect(X + (k - 4)*G - 4, Y + 2*G - 25, 8, 5); }
       text('RS-485 #1', X + 3.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true); text(String(c.ip || ''), X + 6*G, Y - 2*G + 22, 8, K.accent, 'right', '600', true); text('#2', X + 5.5*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
       [c.mbOn && (c.mbMode === 'slave' ? 'S' : 'M'), c.mb2On && (c.mb2Mode === 'slave' ? 'S' : 'M')].forEach((m, k) => { if (m) text(m + (m === 'S' ? (k ? c.mb2Id : c.mbId) : ''), X + (3.5 + 2*k)*G, Y + 2*G - 38, 9, K.accent, 'center', '700', true); });
-      text('AI 4–20mA', X + 1*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true);
+      text(c.aim === '010' ? 'AI 0–10V' : 'AI 4–20mA', X + 1*G, Y + 2*G - 24, 9, K.muted, 'center', '600', true); text('0–10V', X + 7*G, Y + 2*G - 24, 8.5, K.muted, 'center', '600', true);
     } break;
     case 'hmi': {
       const L = hmiLayout(c), link = c._link;
@@ -5225,14 +5463,21 @@ const F = {
   coil:[NMF,['V','แรงดันคอยล์','num','V'],['S','กำลังคอยล์','num','VA/W'],['dc','ชนิดคอยล์','bool','ไฟ DC']],
   tmr:[NMF,['mode','ชนิด','sel',{TON:'ON-delay (หน่วงเปิด)',TOF:'OFF-delay (หน่วงปิด)'}],['V','แรงดันคอยล์','num','V'],['td','เวลาหน่วง','num','s'],['dc','ชนิดคอยล์','bool','ไฟ DC']],
   no:[['ref','อ้างอิงคอยล์','txt']], nc:[['ref','อ้างอิงคอยล์','txt']], k3:[['ref','อ้างอิงคอยล์','txt'],['In','พิกัด AC-3','num','A']],
-  motor3:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['conn','การต่อขดลวด','sel',{Y:'สตาร์ (Y) — 400 V',D:'เดลต้า (Δ) — 230 V'}]],
+  motor3:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['conn','การต่อขดลวด','sel',{Y:'สตาร์ (Y) — 400 V',D:'เดลต้า (Δ) — 230 V'}],['tank','ขับปั๊มเติมถังน้ำ (ชื่อถัง, เว้นว่าง = ไม่ใช่ปั๊ม)','txt'],['flow','อัตราสูบที่ความเร็วพิกัด','num','%/s']],
+  vfd:[NMF,['inV','ไฟเข้า','sel',{400:'3 เฟส 400 V (L1 L2 L3)',230:'1 เฟส 230 V (L1–L2)'}],['P','พิกัดกำลัง','num','kW'],['fb','ความถี่ฐาน (V/f เต็ม)','num','Hz'],['fmax','ความถี่สูงสุด','num','Hz'],['fmin','ความถี่ต่ำสุด','num','Hz'],
+    ['acc','เวลาเร่ง 0 → fmax','num','s'],['dec','เวลาลด fmax → 0','num','s'],
+    ['run','แหล่งคำสั่งเดิน','sel',{di:'ขั้ว FWD/REV (ต่อลง DCM)',kp:'ปุ่มบนตัวเครื่อง',mb:'Modbus RTU (ทะเบียน 0)'}],
+    ['fsrc','แหล่งความถี่','sel',{ai:'AVI 0–10 V (pot หรือ AQ0 ของ PLC)',kp:'ตั้งบนตัวเครื่อง',mb:'Modbus RTU (ทะเบียน 1 ×0.01 Hz)'}],['fset','ความถี่ตั้งบนตัวเครื่อง','range','Hz'],
+    ['mbOn','RS-485 Modbus RTU (ขา A/B)','bool','เปิด'],['mbId','Modbus ID','num',''],['mbBaud','บอดเรต','sel',{4800:'4800',9600:'9600',19200:'19200',38400:'38400'}]],
   psu:[NMF,['V','แรงดันขาออก','num','V'],['Imax','กระแสสูงสุด','num','A']],
   plc:[NMF,['run','สวิตช์โหมด','bool','RUN'],['mbOn','พอร์ต #1 Modbus RTU (ขา A/B)','bool','เปิด'],['mbMode','พอร์ต #1 บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mbId','พอร์ต #1 ID เมื่อเป็นสเลฟ','num',''],['mbBaud','พอร์ต #1 บอดเรต','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
     ['mbList','พอร์ต #1 ตารางคำสั่ง (มาสเตอร์) — สเลฟ ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 1 03 0 4 D0 (อ่าน holding 0–3 → D0–D3) · 1 15 0 2 M16 (เขียนคอยล์ 0–1 ← M16–M17) · 1 06 4 1 D8'],
     ['mb2On','พอร์ต #2 Modbus RTU (ขา A2/B2)','bool','เปิด'],['mb2Mode','พอร์ต #2 บทบาท','sel',{master:'มาสเตอร์ (ใช้ตารางคำสั่ง)',slave:'สเลฟ (ให้ HMI/อุปกรณ์อื่นอ่านเขียน)'}],['mb2Id','พอร์ต #2 ID เมื่อเป็นสเลฟ','num',''],['mb2Baud','พอร์ต #2 บอดเรต','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],
     ['mb2List','พอร์ต #2 ตารางคำสั่ง (มาสเตอร์)','area','รูปแบบเดียวกับพอร์ต #1'],
     ['ip','Ethernet: IP ของ PLC','txt'],['ethSrv','Ethernet: เซิร์ฟเวอร์ Modbus TCP (พอร์ต 502)','bool','เปิด'],['mbtOn','Ethernet: ไคลเอนต์ Modbus TCP','bool','เปิด'],
-    ['mbtList','Ethernet: ตารางคำสั่งไคลเอนต์ — IP Unit ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 192.168.1.20 1 03 0 4 D0 (อ่าน D0–D3 ของ PLC อีกตัว)']],
+    ['mbtList','Ethernet: ตารางคำสั่งไคลเอนต์ — IP Unit ฟังก์ชัน แอดเดรส จำนวน รีจิสเตอร์ PLC','area','เช่น 192.168.1.20 1 03 0 4 D0 (อ่าน D0–D3 ของ PLC อีกตัว)'],
+    ['aim','อินพุตแอนะล็อก AI0/AI1','sel',{'420':'4–20 mA (250 Ω)','010':'0–10 V (20 kΩ)'}],
+    ['pidList','PID — บรรทัดละวง: EN PV SP MV Kp Ti(s) Td(s) [ต่ำ สูง]','area','เช่น M0 AI0 D1 D10 4 8 0 0 1000 → เมื่อ M0 = 1 คุม AI0 ให้เท่า D1 ส่งผลลัพธ์ 0–1000 ลง D10']],
   ethsw:[NMF],
   hmi:[NMF,['proto','โปรโตคอล','sel',{link:'ลิงก์ตรงกับ PLC (แบบเดิม)',modbus:'Modbus RTU (HMI = มาสเตอร์)',tcp:'Modbus TCP ผ่าน Ethernet'}],['ip','IP ของ HMI (TCP)','txt'],['srvIp','IP ของ PLC (TCP)','txt'],['sid','ID สเลฟของ PLC','num',''],['baud','บอดเรต (Modbus)','sel',{1200:'1200',2400:'2400',4800:'4800',9600:'9600',19200:'19200',38400:'38400',57600:'57600',115200:'115200'}],['b1','ปุ่ม 1','txt'],['b2','ปุ่ม 2','txt'],['b3','ปุ่ม 3','txt'],['b4','ปุ่ม 4','txt'],['l1','ไฟ 1','txt'],['l2','ไฟ 2','txt'],['l3','ไฟ 3','txt'],['l4','ไฟ 4','txt']],
   pump:[NMF,...MOT,['Ist','กระแสสตาร์ท (× In)','num',''],['tank','ถังน้ำ','txt'],['flow','อัตราสูบ','num','%/s']],
@@ -5287,9 +5532,10 @@ const F = {
   seg7:[NMF,['Rs','ตัวต้านทานจำกัดกระแสในโมดูล','num','Ω']],
   rgb:[NMF,['Rs','ตัวต้านทานจำกัดกระแสในโมดูล','num','Ω']],
   spdt:[NMF,['pos','ตำแหน่ง','sel',{A:'ต่อขา A',B:'ต่อขา B'}]],
-  tx420:[NMF,['q','ปริมาณที่วัด','sel',{T:'อุณหภูมิ',P:'ความดัน',L:'ระดับ',F:'อัตราการไหล',W:'น้ำหนัก',H:'ความชื้น'}],['unit','หน่วย','txt'],['min','ค่าที่ 4 mA','num',''],['max','ค่าที่ 20 mA','num',''],['pct','ค่าที่วัด','range','% ของช่วง']],
+  tx420:[NMF,['q','ปริมาณที่วัด','sel',{T:'อุณหภูมิ',P:'ความดัน',L:'ระดับ',F:'อัตราการไหล',W:'น้ำหนัก',H:'ความชื้น'}],['unit','หน่วย','txt'],['min','ค่าที่ 4 mA','num',''],['max','ค่าที่ 20 mA','num',''],['pct','ค่าที่วัด','range','% ของช่วง'],['tank','วัดระดับถังน้ำ (ชื่อถัง, เว้นว่าง = ตั้งเอง)','txt']],
 };
 const NOTES = {
+  vfd:'อินเวอร์เตอร์ปรับความถี่ (V/f): แปลงไฟเข้าเป็นไฟตรงแล้วสร้างไฟ 3 เฟสความถี่ 0–fmax ไปขับมอเตอร์ ความเร็วรอบ ∝ ความถี่ แรงดันขาออก ∝ ความถี่ (ถึงความถี่ฐาน) จึงไม่มีกระแสสตาร์ทสูง<br>· เดิน: ต่อ FWD หรือ REV ลง DCM (สวิตช์/หน้าสัมผัสรีเลย์ PLC) · ความถี่: pot 10 kΩ ที่ +10V–AVI–ACM หรือ AQ0 ของ PLC (0–10 V) หรือ Modbus<br>· Modbus holding: 0 คำสั่ง (1 = FWD, 3 = REV, 128 = รีเซ็ตฟอลต์) · 1 ความถี่สั่ง ×0.01 Hz · 2 ความถี่ขาออก · 3 กระแส ×0.01 A · 4 สถานะ · 5 แรงดัน · 6 ฟอลต์ · 7 DC bus<br>· ป้องกัน: กระแสเกิน 2.2 × พิกัด (oC), โหลดเกิน 150% 60 s (oL), ไฟตกขณะเดิน (Lu)<br>· มอเตอร์ 3 เฟสที่ตั้ง "ขับปั๊ม" ใช้โหลดแบบปั๊ม (แรงบิด ∝ n², กำลัง ∝ n³) จึงเห็นการประหยัดพลังงานเมื่อลดรอบ',
   res:'กฎของโอห์ม V = I × R — กระแสผ่านตัวต้านทานแปรผันตามแรงดันที่ตกคร่อม',
   lamp:'หลอดไส้เป็นโหลดความต้านทาน R = V²/P · ความสว่างบนแผงตามกำลังที่ได้รับจริง · ถ้าแรงดันเกิน 1.4 เท่าของพิกัด หลอดจะขาด',
   led:'LED นำกระแสทางเดียว จากแอโนด (ขั้วแรก) ไปแคโทด · ต้องมีตัวต้านทานจำกัดกระแส R = (Vs − Vf)/I · กระแสเกิน 2.5 เท่าของพิกัด LED จะเสีย · ตอนนี้จำลองเฉพาะไฟ DC',
@@ -5447,6 +5693,7 @@ function renderInsp(){
   if ((c.t === 'res' || c.t === 'cap') && c._blown) acts.push(['replace', c.t === 'res' ? 'เปลี่ยนตัวต้านทานใหม่' : 'เปลี่ยนตัวเก็บประจุใหม่']);
   if ((c.t === 'coil' || c.t === 'tmr') && c._burnt) acts.push(['replace','เปลี่ยนคอยล์']);
   if (c.t === 'plc') acts.push(['prog','เปิดตัวเขียนโปรแกรม']);
+  if (c.t === 'vfd'){ if (c.run === 'kp'){ acts.push(['vfwd','▶ RUN FWD']); acts.push(['vrev','◀ RUN REV']); acts.push(['vstop','■ STOP']); } if (c._flt) acts.push(['vreset','รีเซ็ตฟอลต์']); }
   if (c.t === 'scope') acts.push(['scope','เปิดหน้าจอสโคป']);
   if (c.t === 'ol' && c._trip) acts.push(['reset','รีเซ็ตโอเวอร์โหลด']);
   if (c.t === 'rcd'){ acts.push(['test','กดปุ่มทดสอบ (T)']); if (!c.on) acts.push(['reset','รีเซ็ต (ยกคันโยกขึ้น)']); }
@@ -5493,12 +5740,22 @@ function compHTML(c){
     case 'motor3': ['U','V','W'].forEach((n, k) => add('กระแสขด ' + n, fmt(R.ph[k], 'A')));
       add('แรงดัน U–V / V–W / W–U', R.Vl.map(v => v.toFixed(0)).join(' / ') + ' V'); add('กำลังไฟฟ้า', fmt(R.P, 'W')); add('ความเร็ว', ((c._sp||0)*100).toFixed(0) + '%');
       if (c._hum) st.push(tag('bad','ขาดเฟส — คราง')); else if (c._run) st.push(tag('ok', c._dir < 0 ? 'หมุนทวนเข็ม' : 'หมุนตามเข็ม')); else st.push(tag('warn','หยุด')); break;
+    case 'vfd': { const f = c._f || 0, In = vfdIn(c);
+      add('ไฟเข้า', fmt(R.Vin, 'V')); add('ความถี่ขาออก / เป้าหมาย', Math.abs(f).toFixed(2) + ' / ' + Math.abs(c._ft || 0).toFixed(2) + ' Hz' + (f < 0 ? ' (REV)' : ''));
+      add('แรงดันขาออก (L–L)', fmt(R.Vout, 'V')); add('กระแสขาออก', fmt(R.Iout, 'A') + ' (' + Math.round((R.Iout || 0)/In*100) + '% ของพิกัด ' + fmt(In, 'A') + ')');
+      add('กำลังขาออก / ขาเข้า', fmt(R.P, 'W') + ' / ' + fmt(R.Pin, 'W')); add('AVI', fmt(R.avi, 'V')); add('FWD / REV', (R.fwd ? 'ON' : 'off') + ' / ' + (R.rev ? 'ON' : 'off'));
+      if (c._ol) add('สะสมโหลดเกิน', Math.round((c._ol || 0)*100) + '%');
+      const m = c._mbs; if (c.mbOn !== false) add('Modbus ID ' + (c.mbId || 1) + ' รับ / ตอบ / CRC ผิด', m ? `${m.rx} / ${m.tx} / ${m.err}` + (m.last ? ' · ' + esc(m.last) : '') : '0 / 0 / 0');
+      st.push(!c._pw ? tag('warn', 'ไม่มีไฟเข้า') : c._flt ? tag('bad', 'ฟอลต์: ' + VFD_FLT[c._flt][1]) : Math.abs(f) > 0.05 ? tag('ok', (f > 0 ? 'เดินหน้า' : 'ถอยหลัง') + ' ' + Math.abs(f).toFixed(1) + ' Hz') : tag('warn', 'หยุด')); } break;
     case 'psu': add('แรงดันขาเข้า', fmt(R.Vin, 'V')); add('แรงดันขาออก', fmt(R.Vout, 'V')); add('กระแสขาออก', fmt(R.Iout, 'A'));
       st.push(c._ol ? tag('bad','โหลดเกิน — ตัดชั่วคราว') : c._on ? tag('ok','จ่ายไฟ') : tag('warn','ไม่มีไฟเข้า')); break;
     case 'xfmr': add('แรงดันปฐมภูมิ', fmt(R.Vp, 'V')); add('แรงดันทุติยภูมิ', fmt(R.Vs, 'V')); add('กระแสทุติยภูมิ', fmt(R.Is, 'A')); add('ภาระ', ((R.Vs*R.Is)/c.S*100).toFixed(0) + '%'); break;
     case 'plc': { add('ไฟเลี้ยง L+/M', fmt(R.pw, 'V')); const img = c._img || newImage();
       add('อินพุต I0–I7', img.I.join('')); add('AI0 / AI1', (img.AI || [0,0]).map(v => v.toFixed(1) + '%').join(' / ')); add('เอาต์พุต Q0–Q3', img.Q.join('')); add('M0–M7', img.M.slice(0,8).join(''));
-      add('D0–D7', (img.D || []).slice(0, 8).join(' · '));
+      add('D0–D7', (img.D || []).slice(0, 8).join(' · ')); add('AQ0', ((img.AQ || [0])[0]).toFixed(1) + '% · ' + fmt(R.aq || 0, 'V'));
+      if (img.C && img.C.some(q => q.cv || q.pre)) add('ตัวนับ CV0–CV3', img.C.slice(0, 4).map(q => q.cv + (q.q ? '●' : '')).join(' · '));
+      if (c.pidList){ const pc = c._pidc || pidParse(c.pidList); pc.err.forEach(e => st.push(tag('bad', esc(e))));
+        (c._pid || []).forEach((z, i) => { const L = pc.list[i]; if (L) add(`PID ${i + 1}: ${L.pv} → ${L.mv}`, `SP ${(+z.sp || 0).toFixed(1)} · PV ${(+z.pv || 0).toFixed(1)} · MV ${z.u.toFixed(1)}%`); }); }
       { const L = ethLan(), me = L.lan.get(c); add('Ethernet', esc(c.ip || '—') + (me != null && L.cnt.get(me) > 1 ? ' · มีลิงก์' : ' · ไม่มีลิงก์'));
         if (c.ethSrv !== false && c._tcps) add('เซิร์ฟเวอร์ TCP รับ / ตอบ', `${c._tcps.rx} / ${c._tcps.tx}` + (c._tcps.last ? ' · ' + esc(c._tcps.last) : '')); }
       for (const pt of plcPorts(c)) if (pt.on){ const P2 = pt.tcp ? 'TCP ' : 'พอร์ต #' + (pt.k + 1) + ' ';
@@ -5663,6 +5920,8 @@ function warnList(){
     if (srcI > 100) w.push(['bad', `ลัดวงจร! ${n} จ่ายกระแส ${fmt(srcI, 'A')}`]);
     if (c.t === 'mcb' && c._trip) w.push(['warn', `เบรกเกอร์ ${n} ทริป — คลิกที่เบรกเกอร์เพื่อรีเซ็ต`]);
     if (c.t === 'fuse' && c._blown) w.push(['bad', `ฟิวส์ ${n} ขาด`]);
+    if (c.t === 'vfd' && c._flt) w.push(['bad', `อินเวอร์เตอร์ ${n} ฟอลต์ ${VFD_FLT[c._flt][1]} — กดรีเซ็ตในแผงขวา`]);
+    if (c.t === 'vfd' && c._pw && !S.comps.some(m => m._vfd === c)) w.push(['warn', `อินเวอร์เตอร์ ${n} ยังไม่ได้ต่อมอเตอร์ 3 เฟสที่ขา U V W`]);
     if (c.t === 'lamp' && c._blown) w.push(['bad', `หลอด ${n} ขาด (แรงดันเกินพิกัด)`]);
     if (c.t === 'led' && c._blown) w.push(['bad', `LED ${n} เสีย (กระแสเกิน)`]);
     if (c.t === 'res' && c._blown) w.push(['bad', `ตัวต้านทาน ${n} ไหม้ (กำลังเกินพิกัด ${c.Pr} W) — วงจรขาด เลือกแล้วกด "เปลี่ยนตัวต้านทานใหม่"`]);
@@ -5775,7 +6034,7 @@ function ladPlc(){
   return p;
 }
 const TOOLS = [['NO','┤ ├','หน้าสัมผัส NO'],['NC','┤/├','หน้าสัมผัส NC'],['H','──','เส้นตรง'],['OUT','( )','คอยล์เอาต์พุต'],['SET','(S)','เซ็ต'],['RST','(R)','รีเซ็ต'],['TON','TON','ไทเมอร์หน่วงเวลา'],
-  ['GT','[>]','เปรียบเทียบ AI0/AI1 หรือ D มากกว่าค่า'],['LT','[<]','เปรียบเทียบ AI0/AI1 หรือ D น้อยกว่าค่า'],['MOV','MOV','ย้ายค่า (ตัวเลข/AI/D) ลงรีจิสเตอร์ D'],
+  ['GT','[>]','เปรียบเทียบ AI0/AI1 หรือ D มากกว่าค่า'],['LT','[<]','เปรียบเทียบ AI0/AI1 หรือ D น้อยกว่าค่า'],['MOV','MOV','ย้ายค่า/คำนวณ (ตัวเลข, AI, D หรือนิพจน์ เช่น D10/10) ลง D, AQ0 หรือ CVn'],['CTU','CTU','ตัวนับขึ้น Cn (นับขอบขาขึ้น, ล้างด้วย RST Cn)'],
   ['LL','┃←','เชื่อมกับแถวบน ด้านซ้ายของช่อง'],['LR','→┃','เชื่อมกับแถวบน ด้านขวาของช่อง'],['DEL','ลบ','ลบคำสั่งในช่อง']];
 function ladStruct(){
   const el = $('#lad'); $('#bLad').classList.toggle('on', ladOpen);
@@ -5806,10 +6065,10 @@ function ladStruct(){
   el.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => applyTool(p, b.dataset.tool));
   el.querySelectorAll('[data-op]').forEach(b => b.onclick = () => ladOp(p, b.dataset.op));
   if (md === 'lad'){
-    const fillSel = () => { const it = selItem(p); $('#laddr').value = it && it.a ? it.a : ''; $('#lpre').value = it && ['TON','GT','LT','MOV'].includes(it.k) ? it.p : ''; };
+    const fillSel = () => { const it = selItem(p); $('#laddr').value = it && it.a ? it.a : ''; $('#lpre').value = it && ['TON','GT','LT','MOV','CTU'].includes(it.k) ? it.p : ''; };
     fillSel();
     $('#laddr').onchange = e => { const it = selItem(p); if (it && it.k !== 'H'){ it.a = e.target.value.trim().toUpperCase(); progEdited(p); } };
-    $('#lpre').onchange = e => { const it = selItem(p); if (it && ['TON','GT','LT','MOV'].includes(it.k)){ const v = e.target.value.trim().toUpperCase(); it.p = it.k === 'MOV' && isNumA(v) ? v : parseFloat(v) || 0; progEdited(p); } };
+    $('#lpre').onchange = e => { const it = selItem(p); if (it && ['TON','GT','LT','MOV','CTU'].includes(it.k)){ const v = e.target.value.trim().toUpperCase(); it.p = it.k === 'MOV' && !(v !== '' && isFinite(+v)) ? v : parseFloat(v) || 0; progEdited(p); } };
     $('#lcmt').onchange = e => { const r = p.prog.lad[ladSel.ri]; if (r){ r.cmt = e.target.value; progEdited(p); } };
   }
   renderLadBody();
@@ -5850,12 +6109,12 @@ function applyTool(p, k){
   const row = rung.rows[ladSel.row]; if (!row) return;
   const addr = ($('#laddr') && $('#laddr').value || '').trim().toUpperCase();
   const pre = parseFloat($('#lpre') && $('#lpre').value) || 3;
-  const isOut = ['OUT','SET','RST','TON','MOV'].includes(k);
+  const isOut = ['OUT','SET','RST','TON','MOV','CTU'].includes(k);
   if (isOut){
-    const def = k === 'TON' ? 'T0' : k === 'MOV' ? 'D0' : 'Q0';
-    const a = addr && (k === 'TON' ? addr[0] === 'T' : k === 'MOV' ? addr[0] === 'D' : !'ITD'.includes(addr[0])) ? addr : def;
+    const def = k === 'TON' ? 'T0' : k === 'MOV' ? 'D0' : k === 'CTU' ? 'C0' : 'Q0';
+    const a = addr && (k === 'TON' ? addr[0] === 'T' : k === 'MOV' ? isNumDst(addr) : k === 'CTU' ? addr[0] === 'C' : k === 'RST' ? !'ITD'.includes(addr[0]) : !'ITDC'.includes(addr[0])) ? addr : def;
     const pv = ($('#lpre') && $('#lpre').value || '').trim().toUpperCase();
-    row.out = k === 'TON' ? {k, a, p:pre} : k === 'MOV' ? {k, a, p:isNumA(pv) ? pv : (parseFloat(pv) || 0)} : {k, a}; ladSel.col = LC;
+    row.out = k === 'TON' || k === 'CTU' ? {k, a, p:k === 'CTU' ? Math.round(parseFloat(pv) || 10) : pre} : k === 'MOV' ? {k, a, p:pv !== '' && isFinite(+pv) ? +pv : (pv || 0)} : {k, a}; ladSel.col = LC;
   } else if (k === 'DEL'){ if (ladSel.col >= LC) row.out = null; else row.cells[ladSel.col] = null; }
   else if (k === 'LL' || k === 'LR'){
     if (ladSel.row === 0){ $('#ladmsg').innerHTML = '<span class="e">เลือกช่องในแถวกิ่ง (แถวที่ 2 ขึ้นไป) ก่อน แล้วจึงเชื่อมกับแถวบน</span>'; return; }
@@ -5915,7 +6174,11 @@ function rungSVG(rung, ri, mon, img){
       o += L(x, cy, x + 38, cy, cc) + L(x + 82, cy, XR, cy, cc);
       if (out.k === 'MOV'){
         o += `<rect x="${x+30}" y="${cy-14}" width="60" height="28" rx="3" fill="none" stroke="${cc}" stroke-width="2"/>` + T_('MOV', x + 60, cy - 2, 'var(--text)') + T_(String(out.p) + '→' + out.a, x + 60, cy + 10, 'var(--muted)');
-        o += T_(img ? String(numA(img, out.a)) : '', x + 60, cy - 18, /^D/.test(out.a) ? 'var(--text)' : 'var(--bad)');
+        o += T_(img ? String(Math.round(numA(img, out.a)*100)/100) : '', x + 60, cy - 18, isNumDst(out.a) ? 'var(--text)' : 'var(--bad)');
+      } else if (out.k === 'CTU'){
+        o += `<rect x="${x+38}" y="${cy-14}" width="44" height="28" rx="3" fill="${act ? 'var(--ladon)' : 'none'}" fill-opacity="0.2" stroke="${cc}" stroke-width="2"/>` + T_('CTU', x + 60, cy + 4, 'var(--text)');
+        const cn = parseAddr(out.a), cv = img && cn && cn.k === 'C' && img.C ? img.C[cn.n].cv : 0;
+        o += T_(out.a + ' ' + (+out.p), x + 60, cy - 18, cn && cn.k === 'C' ? 'var(--text)' : 'var(--bad)') + T_(String(cv), x + 60, cy + 25, 'var(--muted)');
       } else if (out.k === 'TON'){
         o += `<rect x="${x+38}" y="${cy-14}" width="44" height="28" rx="3" fill="${act ? 'var(--ladon)' : 'none'}" fill-opacity="0.2" stroke="${cc}" stroke-width="2"/>` + T_('TON', x + 60, cy + 4, 'var(--text)');
         const tn = parseAddr(out.a); const acc = img && tn && tn.k === 'T' ? img.T[tn.n].acc : 0;
@@ -7811,6 +8074,101 @@ async function anSave(name, data, type){
 })();
 
 /* ============================================================
+   กราฟเทรนด์ / บันทึกข้อมูล — สัญญาณ "ชื่ออุปกรณ์.ค่า" สุ่มทุก 0.1 s (เวลาจำลอง) เก็บย้อนหลัง 1 ชั่วโมง ส่งออก CSV
+   PLC1.AI0 / D1 / AQ0 / CV0 / M0 / Q0 / PID1 (MV %) · VFD1.f / I / P / Pin · TK1.lvl · M1.sp (% รอบ) / I / P · R1.V / I / P · TT1.pct
+   ============================================================ */
+const TRC = ['#2563eb','#dc2626','#16a34a','#d97706','#9333ea','#0891b2'], TRD = {t:[], v:[], sig:'', last:-1};
+function trendCfg(){ return S.trend || (S.trend = {sig:['', '', '', ''], win:60, ax:'auto'}); }
+function trendReset(){ TRD.t = []; TRD.v = []; TRD.sig = ''; TRD.last = -1; }
+function sigVal(str){
+  const m = /^\s*([^.\s]+)\.([^\s]+)\s*$/.exec(String(str || '')); if (!m) return NaN;
+  const c = (byName || nameMap())[m[1]] || S.comps.find(o => o.n === m[1]); if (!c) return NaN;
+  const k = m[2].toUpperCase(), R = RES.comp[c.id] || {};
+  if (c.t === 'plc'){ const img = c._img || newImage();
+    if (/^PID\d$/.test(k)){ const z = (c._pid || [])[+k[3] - 1]; return z ? z.u : NaN; }
+    if (isNumA(k)) return numA(img, k); if (parseAddr(k)) return getA(img, k); return NaN; }
+  if (k === 'V') return c.t === 'vfd' ? R.Vout : R.Vr ?? R.V ?? R.Vout;
+  if (k === 'I') return c.t === 'vfd' ? R.Iout : R.Ir ?? (R.ph ? Math.max(...R.ph) : R.I ?? R.Iout);
+  if (k === 'P') return R.P;
+  if (k === 'PIN' && c.t === 'vfd') return R.Pin;
+  if (k === 'F' && c.t === 'vfd') return Math.abs(c._f || 0);
+  if (k === 'SP') return (c._sp || 0)*100;
+  if (k === 'LVL') return c.lvl;
+  const v = c[m[2]] ?? c['_' + m[2]]; return typeof v === 'number' ? v : typeof v === 'boolean' ? +v : NaN;
+}
+function trendSigs(){ return trendCfg().sig.map(x => String(x || '').trim()); }
+function trendRec(){
+  if (!S.trend) return; const sg = trendSigs(), key = sg.join('|');
+  if (key !== TRD.sig){ trendReset(); TRD.sig = key; }
+  if (TRD.last >= 0 && simT - TRD.last < 0.1 - 1e-9 && simT >= TRD.last) return;
+  if (simT < TRD.last) trendReset(), TRD.sig = key;
+  TRD.last = simT; TRD.t.push(+simT.toFixed(3)); TRD.v.push(sg.map(x => x ? sigVal(x) : NaN));
+  if (TRD.t.length > 36000){ TRD.t.splice(0, 6000); TRD.v.splice(0, 6000); }
+}
+function trendSuggest(){
+  const o = [];
+  for (const c of S.comps){ const n = c.n; if (!n) continue;
+    if (c.t === 'plc'){ o.push(n + '.AI0', n + '.AI1', n + '.AQ0', n + '.D0', n + '.D1', n + '.D10', n + '.Q0', n + '.M0', n + '.CV0'); (c._pidc ? c._pidc.list : []).forEach((_, i) => o.push(n + '.PID' + (i + 1))); }
+    else if (c.t === 'vfd') o.push(n + '.f', n + '.I', n + '.P', n + '.Pin');
+    else if (c.t === 'tank') o.push(n + '.lvl');
+    else if (/motor|pump|dcm/.test(c.t)) o.push(n + '.sp', n + '.I', n + '.P');
+    else if (c.t === 'tx420') o.push(n + '.pct');
+    else if (isTwo(c)) o.push(n + '.V', n + '.I', n + '.P'); }
+  return o;
+}
+function trendOpen(){ trendCfg(); const el = $('#trwin'); el.hidden = false; $('#bTrend').classList.add('on'); trendUI(); }
+function trendUI(){
+  const el = $('#trwin'), C = trendCfg(); if (el.hidden) return;
+  $('#trlist').innerHTML = trendSuggest().map(x => `<option value="${esc(x)}">`).join('');
+  el.innerHTML = `<div class="swh"><b>กราฟเทรนด์ / บันทึกข้อมูล</b><span class="anhint">สุ่มทุก 0.1 s ของเวลาจำลอง</span><span style="flex:1"></span>
+    <select data-tr="win" title="ช่วงเวลาที่แสดง">${[[10,'10 s'],[30,'30 s'],[60,'1 นาที'],[120,'2 นาที'],[300,'5 นาที'],[600,'10 นาที'],[0,'ทั้งหมด']].map(w => `<option value="${w[0]}" ${+C.win === w[0] ? 'selected' : ''}>${w[1]}</option>`).join('')}</select>
+    <select data-tr="ax" title="แกนตั้ง"><option value="auto" ${C.ax !== 'pct' ? 'selected' : ''}>แกนอัตโนมัติ</option><option value="pct" ${C.ax === 'pct' ? 'selected' : ''}>0–100</option></select>
+    <button class="btn" data-tb="clr">ล้าง</button><button class="btn" data-tb="csv">CSV</button><button class="btn" data-tb="x" title="ปิด">✕</button></div>
+    <canvas id="trv"></canvas>
+    <div class="trsig">${C.sig.map((x, i) => `<div><i style="background:${TRC[i]}"></i><input list="trlist" data-ts="${i}" value="${esc(x || '')}" placeholder="เช่น PLC1.AI0"><b data-tv="${i}"></b></div>`).join('')}
+      ${C.sig.length < 6 ? '<div><button class="btn" data-tb="add">+ เพิ่มสัญญาณ</button></div>' : ''}</div>`;
+  trendDraw();
+}
+function trendDraw(){
+  const cv = $('#trv'); if (!cv || $('#trwin').hidden) return; const C = trendCfg(), r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (!r.width) return; cv.width = r.width*d; cv.height = r.height*d; const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0);
+  const W = r.width, H = r.height, L = 52, Rm = 10, Tm = 10, B = 24, pw = W - L - Rm, ph = H - Tm - B;
+  g.fillStyle = K.board; g.fillRect(0, 0, W, H);
+  const n = TRD.t.length, tEnd = n ? TRD.t[n - 1] : 0, win = +C.win || 0, t0 = win ? Math.max(0, tEnd - win) : (n ? TRD.t[0] : 0), t1 = win ? Math.max(win, tEnd) : Math.max(tEnd, t0 + 1);
+  let i0 = 0; while (i0 < n && TRD.t[i0] < t0) i0++;
+  let lo = Infinity, hi = -Infinity;
+  if (C.ax === 'pct'){ lo = 0; hi = 100; } else for (let i = i0; i < n; i++) for (const v of TRD.v[i]) if (isFinite(v)){ lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  if (!isFinite(lo)){ lo = 0; hi = 1; } if (hi - lo < 1e-9){ hi += 0.5; lo -= 0.5; } const pad = (hi - lo)*0.06; if (C.ax !== 'pct'){ lo -= pad; hi += pad; }
+  const X = t => L + (t - t0)/(t1 - t0)*pw, Y = v => Tm + (1 - (v - lo)/(hi - lo))*ph;
+  g.strokeStyle = K.grid; g.lineWidth = 1; g.font = "10.5px 'IBM Plex Mono',monospace"; g.fillStyle = K.muted;
+  for (let k = 0; k <= 5; k++){ const v = lo + (hi - lo)*k/5, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(+v.toPrecision(3) + '', L - 4, y); }
+  for (let k = 0; k <= 6; k++){ const t = t0 + (t1 - t0)*k/6, x = X(t); g.beginPath(); g.moveTo(x, Tm); g.lineTo(x, Tm + ph); g.stroke(); g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(t.toFixed(t1 - t0 < 20 ? 1 : 0) + ' s', x, Tm + ph + 5); }
+  const step = Math.max(1, Math.floor((n - i0)/(pw*2)));
+  C.sig.forEach((sg, j) => { if (!String(sg || '').trim()) return; g.strokeStyle = TRC[j]; g.lineWidth = 1.8; g.beginPath(); let pen = false;
+    for (let i = i0; i < n; i += step){ const v = TRD.v[i][j]; if (!isFinite(v)){ pen = false; continue; } const x = X(TRD.t[i]), y = Y(Math.max(lo, Math.min(hi, v))); pen ? g.lineTo(x, y) : g.moveTo(x, y); pen = true; }
+    g.stroke(); const b = $(`[data-tv="${j}"]`), v = n ? TRD.v[n - 1][j] : NaN; if (b) b.textContent = isFinite(v) ? (+v.toPrecision(4)).toString() : '—'; });
+}
+function trendCSV(){ const sg = trendSigs(); return ['t_s,' + sg.map((x, i) => x || 'ch' + (i + 1)).join(',')].concat(TRD.t.map((t, i) => t + ',' + TRD.v[i].map(v => isFinite(v) ? +v.toPrecision(6) : '').join(','))).join('\n'); }
+(function trendEvents(){
+  const el = $('#trwin');
+  $('#bTrend').onclick = () => { if (el.hidden) trendOpen(); else { el.hidden = true; $('#bTrend').classList.remove('on'); } };
+  el.addEventListener('click', e => { const b = e.target.closest('[data-tb]'); if (!b) return; const a = b.dataset.tb, C = trendCfg();
+    if (a === 'x'){ el.hidden = true; $('#bTrend').classList.remove('on'); }
+    if (a === 'clr') trendReset();
+    if (a === 'add' && C.sig.length < 6){ C.sig.push(''); commit(); trendUI(); }
+    if (a === 'csv'){ if (!TRD.t.length) toast('ยังไม่มีข้อมูล — รันการจำลองก่อน'); else { anSave('เทรนด์.csv', trendCSV(), 'text/csv'); toast('ส่งออก ' + TRD.t.length + ' แถว'); } } });
+  el.addEventListener('change', e => { const C = trendCfg(), t = e.target;
+    if (t.dataset.ts != null){ C.sig[+t.dataset.ts] = t.value.trim(); commit(); trendDraw(); }
+    if (t.dataset.tr === 'win'){ C.win = +t.value; commit(); trendDraw(); } if (t.dataset.tr === 'ax'){ C.ax = t.value; commit(); trendDraw(); } });
+  el.addEventListener('pointerdown', e => { const hd = e.target.closest('.swh'); if (!hd || e.target.closest('button,select,input')) return;
+    const r = el.getBoundingClientRect(), pr = el.offsetParent.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
+    const mv = ev => { el.style.left = Math.max(0, ev.clientX - pr.left - ox) + 'px'; el.style.top = Math.max(0, ev.clientY - pr.top - oy) + 'px'; el.style.bottom = 'auto'; };
+    const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); });
+  setInterval(() => { if (!el.hidden) trendDraw(); }, 250);
+})();
+
+/* ============================================================
    15. แก้ไขขั้นสูง: เลือกหลายชิ้น / คัดลอก / วาง / สำเนา / ทำซ้ำ (redo) / ไฟล์ / แชร์ / ส่งออกภาพ
    ============================================================ */
 let CLIP = null;
@@ -8092,6 +8450,7 @@ const PAL = [
   ['สวิตช์และปุ่มกด', ['sw','spdt','swint','pb','pbnc','estop','sel3','limit']],
   ['โหลดไฟฟ้า', ['res','lamp','fluo','cap','ind','capbank','human']],
   ['มอเตอร์', ['motor1','motor3','motor6','dcm','pump','servo']],
+  ['ขับเคลื่อนมอเตอร์ (อินเวอร์เตอร์)', ['vfd']],
   ['ควบคุมมอเตอร์ (รีเลย์/คอนแทกเตอร์)', ['coil','tmr','no','nc','k3']],
   ['เครื่องวัด', ['am','vm','pmeter','scope']],
   ['อิเล็กทรอนิกส์', ['led','diode','zener','npn','pnp','nmos','opto','ne555','seg7','rgb','buzzer','pot']],
@@ -8160,6 +8519,7 @@ function loadEx(k){
   if (cur !== null) pushHist(); fut = [];
   simT = 0; load(EX[k].f()); cur = ser(); save(); simT = 0; fit(); refreshUI();
   if (S.fac && fx.mode === 'off') setView('split');
+  if (S.trend) trendOpen(); else { $('#trwin').hidden = true; $('#bTrend').classList.remove('on'); }
 }
 function place(gx, gy, keep){
   const c = mkComp(placeT, Math.round(gx), Math.round(gy), {r:ghostR});
@@ -8343,6 +8703,10 @@ $('#ihead').addEventListener('click', e => {
     case 'reset': c._trip = false; c._h = 0; if (c.t === 'rcd') c.on = true; needSolve = true; renderInsp(); break;
     case 'test': c.on = false; c._trip = 'rcd'; needSolve = true; renderInsp(); break;
     case 'kwh': c._kwh = 0; break;
+    case 'vfwd': c._kp = 1; break;
+    case 'vrev': c._kp = -1; break;
+    case 'vstop': c._kp = 0; break;
+    case 'vreset': c._rst = true; renderInsp(); break;
     case 'scope': scopeOpen(c); break;
     case 'replace': c._blown = false; c._burnt = false; c._on = false; c._h = 0; c._heat = 0; c._stress = 0; needSolve = true; renderInsp(); break;
     case 'prog': ladPid = c.id; ladOpen = true; ladSel = {ri:0, row:0, col:0}; ladStruct(); break;
@@ -8408,6 +8772,7 @@ window.__sim = {
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },
   find: n => S.comps.find(c => c.n === n),
+  trend: () => ({t:TRD.t, v:TRD.v, sig:trendSigs()}), sigVal, trendCSV, trendOpen,
 };
 
 (function init(){

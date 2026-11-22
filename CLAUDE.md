@@ -60,6 +60,13 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - โมดูลสื่อสาร (บล็อก, อยู่ใน `SENS` เพื่อตรวจไฟเลี้ยง `c._pw`): `rs485` (RO RE DE DI / VCC B A GND; รุ่น MAX485/MAX487/MAX3485 ต่างกันที่ `vmin`, `maxbd`),
      `rs232` (MAX3232: T1IN→T1OUT, R1IN→R1OUT, ขั้ว DB9), `lora` (E32/E22 UART โปร่งใส: M0 M1 RXD TXD AUX VCC GND; `band`, `ch`, `addr`, `sf`, `pw` dBm, `loc` m, `env`, `baud`),
      `term` (คอมพิวเตอร์ + เทอร์มินัล RS-232: TX RX GND, `baud`, `eol`; ช่องพิมพ์ส่งในแผงขวา → `termSend`, หน้าจอ `c._log`)
+   - **อินเวอร์เตอร์** `vfd` (L1 L2 L3 / U V W / FWD REV DCM +10V AVI ACM / A B; NV 3 + จุดสตาร์ภายใน `c._star`): ขาออก = แหล่งแรงดัน 3 เฟสแบบ V/f
+     (V_LL = inV·max(0.02, |f|/fb), ลำดับเฟสกลับเมื่อ REV) · ไฟเข้ากินกำลัง `_pout`/0.96 + 15 W · FWD/REV ดึงขึ้น 24 V ภายใน 4.7 kΩ (ต่อลง DCM = สั่ง), +10V ผ่าน 100 Ω, AVI 10 kΩ, DCM–ACM ร่วมกัน
+     `vfdTick` (ใน discrete): `run` = di/kp/mb, `fsrc` = ai/kp/mb, ทางลาด `acc`/`dec` (0 ↔ fmax), `_f` มีเครื่องหมาย, ฟอลต์ `_flt` oC (> 2.2 × `vfdIn`) / oL (150% 60 s) / Lu (ไฟตกขณะเดิน)
+     Modbus สเลฟ (`vfdSlave`, `vfdTables`): holding 0 คำสั่ง (บิต0 RUN, บิต1 REV, บิต7 รีเซ็ต), 1 ความถี่ ×0.01 Hz, 2 ความถี่ขาออก, 3 กระแส ×0.01 A, 4 สถานะ, 5 แรงดัน, 6 ฟอลต์, 7 DC bus
+     `vfdFeed()` (ท้าย discrete) หามอเตอร์ที่ต่อกับ U/V/W (สาย + อุปกรณ์ที่นำ, k3 ที่ปิด, ol, pmeter) → `m._fs` = |f|/fb, `m._vfd`
+   - `motY` ใช้สลิปจริง = `_fs − _sp` (ไฟบ้าน `_fs` ไม่มี = 1 → เหมือนเดิม) และ admittance ÷ fs (ขดลวด ∝ f) จึงไม่มีกระแสสตาร์ทสูงเมื่อขับด้วย VFD; ความเร็วเป้าหมาย = `_fs`
+     · `spDirty(c, tg)` แก้วงจรอีกครั้งเมื่อความเร็วถึงเป้าพอดี · `motor3.tank`/`flow` = ขับปั๊มเติมถัง (แรงบิด ∝ n², จึงกำลัง ∝ n³ เมื่อมี VFD) · `tx420.tank` = วัดระดับถังจริง
    - หน้าสัมผัส `no`/`nc`/`k3` อ้างอิงคอยล์ (`coil`/`tmr`) ด้วยชื่อในฟิลด์ `ref`; ปั๊ม (`tank`) และลูกลอย (`ref`) อ้างอิงถังด้วยชื่อ
 2. **โทโพโลยี** — สายต่อกันเฉพาะที่ปลายสายร่วมกัน (โหนด = จุดกริด); สายที่ตัดหรือผ่านมุม/ปลายสาย/ขั้วอื่นกลางเส้นไม่เชื่อมกัน
    - `normalize(full)` ลบสายซ้ำ และแยกสายเฉพาะที่จุดใน `splitPts` (`markSplit`) = ปลายสองข้างของสายที่เพิ่งลาก (ต่อแบบ T เข้ากลางสายอื่น)
@@ -94,6 +101,12 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
      **สเลฟ** (`mbMode = 'slave'`, `mbId`): `plcSlave` ตอบคำขอใน `p._mbrx` ผ่าน `mbServe` + `plcMbTables` — คอยล์ 0–31 = M, 100–103 = Q · อินพุต 0–7 = I · holding 0–31 = D · input reg 0–1 = AI×10; สถิติ `p._mbs`
      บัส RS-485 รวมที่ `busDeliver(src, A, B, data, baud, at)` (MAX485 → RO, PLC/HMI ที่เปิด Modbus → `_mbrx`) · `mbCheck` ตรวจคำตอบ (CRC, ID, ข้อยกเว้น)
      `plcModbus` ส่งทีละบรรทัด (`mbRequest` + `crc16`/`mbFrame`, `plcBusSend` → MAX485 บนบัส) รอคำตอบใน `p._mbrx` (ส่งเข้ามาจาก `rs485Tx`) หมดเวลา 0.3 s → `mbHandle` (CRC, ข้อยกเว้น `MB_EXC`), สถิติ `p._mb`
+   - **ตัวนับ** C0–C7 (`img.C[n] = {pre, cv, q, last}`, `ctr`): ข้อความ `C0 := CTU(นับ, รีเซ็ต, ค่าตั้ง)` / `CTD(นับลง, โหลด, ค่าตั้ง)`, `RST C0 := expr`; แลดเดอร์เอาต์พุต `CTU` (`{k:'CTU', a:'C0', p}`) + `RST C0`
+     ค่า `CV0`–`CV7` ใช้เป็นตัวเลขได้ (`isNumA`) · ปลายทางตัวเลข `isNumDst` = Dn / AQ0 / CVn · ข้อความ `D1 := 60 IF NOT M2` (เงื่อนไขท้ายบรรทัด)
+     แลดเดอร์ MOV รับนิพจน์ (`movVal`/`nexpr`/`movOk`, เช่น `D10/10`)
+   - **AQ0** (ขาสุดท้ายของ `PLC_PINS`, 0–100% → 0–10 V เทียบ AM ผ่าน 100 Ω, `img.AQ`) · `aim` = '420' (250 Ω) | '010' (20 kΩ, AI = V × 10%)
+   - **PID** (`pidList` บรรทัดละวง `EN PV SP MV Kp Ti Td [ต่ำ สูง]`, `pidParse`/`plcPid` ทุกสแกนหลังโปรแกรม): e = SP − PV, อนุพันธ์จาก PV, จำกัด 0–100% กัน wind-up,
+     สเกลเป็น ต่ำ…สูง ลง MV; EN = 0 → MV = ต่ำ รีเซ็ตอินทิกรัล; สถานะ `p._pid[i] = {I, u, e, pv, sp}`
    - ขั้ว PLC: L+, M (ไฟเลี้ยง 24 VDC), COM, I0–I7 (ON เมื่อ |V| ≥ 15 V เทียบ COM: ใช้ได้ทั้ง sink/source), C–Q0..Q3 (หน้าสัมผัสรีเลย์), A/B (RS-485 #1), A2/B2 (RS-485 #2), ETH (Ethernet, ต่อท้าย `PLC_PINS` เพื่อไม่ให้ดัชนีขาเดิมเลื่อน),
      AI0/AI1–AM (อินพุต 4–20 mA ผ่าน 250 Ω, อ่านเป็น 0–100% ใน `img.AI`)
    - เปรียบเทียบแอนะล็อก: แลดเดอร์ช่องชนิด `GT`/`LT` (`{k, a:'AI0', p:ค่า}`), ข้อความ `AI0 > 75` (`>`, `<`, `>=`, `<=`)
@@ -135,7 +148,7 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
    - ลูปหลัก `frame()` แบ่งเวลาเป็นช่วงละ ≤ 0.05 s ตามความเร็วจำลองที่เลือก
 6. **State/ประวัติ** — `ser()`, `load()`, `commit()`, `pushHist()`, `undo()`; บันทึกลง localStorage คีย์ `circuit-board-v2`
    ฟิลด์ที่ขึ้นต้นด้วย `_` เป็นสถานะรันไทม์ ไม่ถูกบันทึก
-7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, lcdi2c, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, ceamp, semi, timer555, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
+7. **ตัวอย่าง** — `EX` (series, parallel, mixed, led, home, dol, plcpump, arduino, esp32, pico, ardsense, espgarden, plcsense, indsense, rs485, lora, rs232, modbus, plc2port, hmimodbus, modbustcp, esp32wifi, lcdi2c, rectifier, halfwave, rccharge, logic, flipflop, opamp, opamposc, chaser, cnt7seg, shift595, lm317, tempalarm, ceamp, semi, timer555, pidtank, counter, motor, stardelta, rcdtest, pfc, stair, factory, seqconv, gate, pickplace, lift, elevator, osc, oscxy, oscprobe, blank) — dol/stardelta/plcpump/pico มีฉาก 3D ผูกมาด้วย สร้างด้วย `build((C,W)=>…)`
 8. **การวาด** — canvas, `drawTwo()` (อุปกรณ์ 2 ขั้ว, วาดในพิกัดท้องถิ่นที่หมุนแล้ว), `drawBlock()`, `labelTwo()`, `drawFlow()` (จุดกระแส: DC ไหลทางเดียว, AC แกว่งตามมุมเฟส)
    - สีสาย: L1 น้ำตาล, L2 ดำ, L3 เทา (ตามมุมเฟส), N/สายกลับฟ้า, DC + แดง
 9. **แผงขวา (inspector)** — `F` = สเปกฟิลด์ของแต่ละชนิด, `NOTES`, `compHTML()`, `warnList()`
@@ -239,6 +252,9 @@ PLC (แลดเดอร์ + ข้อความ), HMI ผ่าน RS-485,
 22. **ป้ายค่าบนสัญลักษณ์** — ปุ่ม "ค่า ▾" (`#vmenu`): ค่ารวมทั้งแผง `showVal` + `DISP = {val, v, i, p, pin}` (บันทึกใน localStorage `circuit-lab-disp`)
     รายอุปกรณ์ `c.vshow` (บันทึกในวงจร, ตาม `VSHOW`: '' ตามค่ารวม | vi | v | i | p | all | pin | none) → `dispFor(c)`; 2 ขั้ว: `measText` (V สี `--vlab`, I `--ilab`, P `--plab`, `~` = RMS)
     บล็อก: แรงดันที่ขา `pinVLabel` ผ่าน `nodeVAt` เทียบ `vRefNode()` (กราวด์/ไฟบ้าน → โหนด 0, ไม่มี → ขั้วลบแบตเตอรี่/COM fgen ตัวแรก) · ค่าจิ๋วปัดเป็น 0 (`tiny`)
+23. **กราฟเทรนด์ / บันทึกข้อมูล** (ปุ่ม "เทรนด์", `#trwin`): `S.trend = {sig:[≤ 6], win, ax}` (บันทึกในวงจร) · `trendRec()` ท้าย `step` สุ่มทุก 0.1 s ใน `TRD` (≤ 36000 จุด)
+    สัญญาณ `sigVal('ชื่อ.ค่า')`: PLC → AI0/D1/AQ0/CV0/M0/Q0/PID1 (MV %), VFD → f/I/P/Pin, ถัง → lvl, มอเตอร์ → sp (%)/I/P, 2 ขั้ว → V/I/P, อื่น ๆ → ฟิลด์ตัวเลข · ส่งออก `trendCSV()`
+    ตัวอย่างที่มี `trend` เปิดหน้าต่างเองตอน `loadEx` · `#trwin[hidden]` ต้องมี display:none (มิฉะนั้นบังแผงวงจร)
 
 ## ข้อตกลง
 - สีทั้งหมดเป็น CSS token บน `:root` และรองรับ dark mode (`prefers-color-scheme` + `data-theme`); canvas อ่านค่าผ่าน `readColors()` เก็บใน `K`
@@ -299,9 +315,12 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - ป้ายชื่อสาย VCC/GND → 9 mA (สด + SPICE), มิเตอร์จิ้ม 9.00 V · 100 Ω 0.25 W ที่ 9 V → ไหม้ · อิเล็กโทรไลต์กลับขั้ว → ระเบิด
 - lcdi2c: "TEMP 27.9 C" / "ADC  57", 40 °C → "TEMP 40.1 C" · แบบฝึกหัด 6 ข้อ: เริ่มต้นไม่ผ่าน เฉลยผ่าน · Monte Carlo RC −3 dB ≈ 159 Hz σ 4–8 Hz
 - ป้ายค่า: mixed R1 = 5.45 V / 54.5 mA / 297 mW · semi แรงดันขา 7805 = 12 / 0 / 5 V
+- VFD: AVI 6.98 V → 34.9 Hz (ทางลาด 10 Hz/s), มอเตอร์ 1.1 kW 2.55 A ไม่มีกระแสสตาร์ทสูง, ปลด FWD → ลดความถี่ · มอเตอร์ 7.5 kW บน VFD 1.5 kW → oC
+- pidtank (แลดเดอร์/ข้อความ): ระดับ 60% ≈ 25 Hz ปั๊ม < 250 W, ใช้น้ำ 4.5 %/s → ≈ 37.6 Hz ระดับคง 60% · Modbus (PLC มาสเตอร์ → VFD) ได้ผลเดียวกัน
+- CTU นับ 3 → C0, RST ล้าง · แลดเดอร์ CTU + MOV `(AI0+10)*2` = 30 · AQ0 := (CV0 + 1) * 10 = 40
 
 ## งานที่วางแผนไว้
-- ซอฟต์สตาร์ทเตอร์/อินเวอร์เตอร์ (VFD), มอเตอร์สเต็ปเปอร์, เครื่องกำเนิดไฟฟ้า, หม้อแปลง 3 เฟส, กราวด์และระบบ TN/TT
+- ซอฟต์สตาร์ทเตอร์, VFD แบบเวกเตอร์/แรงบิด + เบรกต้านทาน, มอเตอร์สเต็ปเปอร์, เครื่องกำเนิดไฟฟ้า, หม้อแปลง 3 เฟส, กราวด์และระบบ TN/TT
 - บล็อกหมุนได้ (ตอนนี้หมุนได้เฉพาะอุปกรณ์ 2 ขั้ว), หมุนชุดที่เลือกหลายชิ้น
 - ลอจิกแอนะไลเซอร์, สลับภาษา TH/EN, รายงาน PDF, แบบฝึกหัดเพิ่ม (PLC/MCU)
 - โรงงาน 3D: เครื่องจักรเพิ่ม (โต๊ะหมุน, แขนปัด, สายพานโค้ง), กล่องเอียงตามทางลาด, แขนหยิบวางต่างระดับ, เงาบนชิ้นงาน (shadow map), ตัวนับ (CTU) ใน PLC, เซนเซอร์แอนะล็อกในฉาก
@@ -310,5 +329,6 @@ NODE_PATH=$(npm root -g) node tests/circuit-lab.test.js
 - MOSFET/ทรานซิสเตอร์รับ PWM แบบเฉลี่ย (ตอนนี้ PWM ที่เกตถือว่าเปิดเต็ม), สลูว์เรตออปแอมป์, เกต 3–4 อินพุต, ไอซีเพิ่ม (ULN2003, 74HC138, L293D, LCD I2C), ขา PRE/CLR ของ D-FF
 - ไมโครคอนโทรลเลอร์: ชนิดตัวแปรจริง (float พิมพ์ 2 ตำแหน่งเสมอ, หารจำนวนเต็ม), Modbus: บอร์ดเป็นมาสเตอร์ RTU / เซิร์ฟเวอร์ TCP, MQTT, W5500 Ethernet, เกตเวย์/เราเตอร์ข้ามซับเน็ต, LoRa แบบ SPI (RA-02), CAN/I2C/SPI
 - SPICE: MCU/PLC ในการวิเคราะห์ (ใช้สถานะขาปัจจุบัน), ขั้นเวลาปรับอัตโนมัติ (LTE), วิเคราะห์สัญญาณรบกวน/ความไว, กวาดพารามิเตอร์หลายเส้น, โหมดจำลองสดด้วยเครื่อง SPICE
-- PLC: อินพุตแอนะล็อก 0–10 V, เทอร์โมคัปเปิล, คำสั่งคณิตศาสตร์
+- PLC: เทอร์โมคัปเปิล, PID ปรับจูนอัตโนมัติ, AQ หลายช่อง, CTD ในแลดเดอร์
+- งานวิจัย (ระยะ 2): ทดลองแบบชุด/กวาดพารามิเตอร์ของวงจรสด (เช่น Kp หลายค่า), รายงาน PDF · การเรียน (ระยะ 3): โหมดหาจุดเสีย, บทเรียนทีละขั้น, โหมดครู
 - พิจารณาแยกไฟล์เป็นโมดูล (solver / plc / render / ui) เมื่อโค้ดใหญ่ขึ้น
