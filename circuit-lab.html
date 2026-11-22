@@ -138,7 +138,15 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 .swh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);cursor:move;flex-wrap:wrap}
 #scv{width:100%;height:300px;display:block;flex:none;touch-action:none}
 #trwin{position:absolute;left:10px;bottom:10px;width:min(760px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:6;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
-#trwin[hidden]{display:none}
+#trwin[hidden],#exwin[hidden],#rpt[hidden]{display:none}
+#exwin{position:absolute;right:10px;top:10px;width:min(860px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);z-index:8;display:flex;flex-direction:column;max-height:calc(100% - 20px);overflow:auto}
+#exwin textarea{width:100%;font:12px 'IBM Plex Mono',monospace;resize:vertical}
+#exv{width:100%;height:260px;display:block;flex:none}
+#extab{padding:0 10px 10px;overflow-x:auto}#extab table{border-collapse:collapse;width:100%;font:12px 'IBM Plex Mono',monospace}
+#extab th,#extab td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:right;white-space:nowrap}#extab th{color:var(--muted);font-weight:600}
+#rpt{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.45);display:flex;flex-direction:column;padding:16px}
+#rpt .rbar{display:flex;gap:8px;align-items:center;background:var(--panel);border-radius:10px 10px 0 0;padding:8px 10px;flex-wrap:wrap}
+#rpt iframe{flex:1;border:0;background:#fff;border-radius:0 0 10px 10px;width:100%}
 #trv{width:100%;height:240px;display:block;flex:none}
 .trsig{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 10px;padding:8px 10px;font-size:12.5px}
 .trsig div{display:flex;align-items:center;gap:6px}.trsig input{flex:1;min-width:0;font:12px 'IBM Plex Mono',monospace}
@@ -235,7 +243,7 @@ button,select,.pi,summary{touch-action:manipulation}
   #ftools .btn{min-width:44px;padding:4px 8px;font-size:13px}
   #lad.open ~ #ftools,#main.inspopen #ftools{display:none}
   #lad.open{height:62%}
-  #scopewin,#anwin,#trwin{left:0 !important;right:0 !important;top:0 !important;width:100% !important;max-height:100% !important;height:100%;border-radius:0}
+  #scopewin,#anwin,#trwin,#exwin{left:0 !important;right:0 !important;top:0 !important;width:100% !important;max-height:100% !important;height:100%;border-radius:0}
   #scv{height:38vh}
   .swc{grid-template-columns:repeat(2,minmax(0,1fr))}
   #ladbody.mcu{grid-template-columns:1fr;grid-template-rows:1fr 140px}
@@ -264,6 +272,7 @@ button,select,.pi,summary{touch-action:manipulation}
   <button class="btn" id="bLad" title="เขียนโปรแกรม PLC / ไมโครคอนโทรลเลอร์">เขียนโปรแกรม</button>
   <button class="btn" id="bEx" title="แบบฝึกหัดพร้อมตรวจคำตอบอัตโนมัติ">แบบฝึกหัด</button>
   <button class="btn" id="bTrend" title="กราฟเทรนด์ตามเวลา + บันทึกข้อมูลเป็น CSV (เช่น SP/PV/MV ของ PID)">เทรนด์</button>
+  <button class="btn" id="bExp" title="ทดลองแบบชุด: กวาดค่าพารามิเตอร์ วัด overshoot / settling / IAE / พลังงาน">ทดลองชุด</button>
   <button class="btn" id="bAn" title="วิเคราะห์วงจรแบบ SPICE: จุดทำงาน, กวาด DC, AC (Bode), ชั่วคราว, ฟูเรียร์">วิเคราะห์</button>
   <button class="btn run" id="bRun" title="รัน/หยุดการจำลอง (Space)"></button>
   <select id="spd" title="ความเร็วจำลอง"><option value="1" selected>×1</option><option value="5">×5</option><option value="20">×20</option></select>
@@ -273,7 +282,7 @@ button,select,.pi,summary{touch-action:manipulation}
 <div id="fmenu" class="pop" hidden>
   <button data-f="save">💾 บันทึกเป็นไฟล์ (.json)</button><button data-f="open">📂 เปิดไฟล์…</button>
   <button data-f="share">🔗 แชร์ (โค้ด/ลิงก์)</button><button data-f="import">📥 นำเข้าโค้ด/ข้อความ</button>
-  <button data-f="png">🖼 ส่งออกภาพวงจร (PNG)</button><button data-f="paste">📋 วาง (Ctrl+V)</button><button data-f="new">✚ วงจรใหม่</button>
+  <button data-f="png">🖼 ส่งออกภาพวงจร (PNG)</button><button data-f="report">📄 รายงาน (PDF / HTML)</button><button data-f="paste">📋 วาง (Ctrl+V)</button><button data-f="new">✚ วงจรใหม่</button>
 </div>
 <div id="vmenu" class="pop" hidden>
   <label><input type="checkbox" data-d="on"> <b>แสดงป้ายค่าบนแผง</b></label>
@@ -287,6 +296,7 @@ button,select,.pi,summary{touch-action:manipulation}
 <input type="file" id="fopen" accept=".json,application/json" hidden>
 <div id="modal" hidden><div class="mbody"></div></div>
 <div id="toast" hidden></div>
+<div id="rpt" hidden><div class="rbar"><b>รายงานผลการจำลอง</b><span class="anhint" id="rptmsg"></span><span style="flex:1"></span><button class="btn on" data-rp="print">🖨 พิมพ์ / บันทึกเป็น PDF</button><button class="btn" data-rp="html">⬇ ดาวน์โหลด .html</button><button class="btn" data-rp="x">ปิด</button></div><iframe id="rptf" title="รายงาน"></iframe></div>
 <div id="main">
   <nav id="pal"></nav>
   <div id="center">
@@ -296,6 +306,7 @@ button,select,.pi,summary{touch-action:manipulation}
     <div id="scopewin" hidden></div>
     <div id="anwin" hidden></div>
     <div id="trwin" hidden></div><datalist id="trlist"></datalist>
+    <div id="exwin" hidden></div><datalist id="exlist"></datalist>
     <div id="task" hidden></div>
     <div id="ftools" aria-label="เครื่องมือ"><button class="btn" data-px="bSel">เลือก</button><button class="btn" data-px="bBox">⬚</button><button class="btn" data-px="bProbe">V</button><button class="btn" data-px="bWire">สายไฟ</button><button class="btn" data-px="bRot">หมุน</button><button class="btn" data-px="bDel">ลบ</button><button class="btn" data-px="bUndo">↶</button><button class="btn" data-px="bFit">⤢</button></div>
   </div>
@@ -3042,7 +3053,7 @@ const KEY = 'circuit-board-v2';
 let hist = [], cur = null, fut = [];
 function strip(o){ const r = {}; for (const k in o) if (k[0] !== '_') r[k] = o[k]; return clone(r); }
 function ser(){
-  return JSON.stringify({v:2, nid:S.nid, fac:S.fac || undefined, trend:S.trend || undefined, comps:S.comps.map(strip), wires:S.wires.map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2}))});
+  return JSON.stringify({v:2, nid:S.nid, fac:S.fac || undefined, trend:S.trend || undefined, exp:S.exp || undefined, comps:S.comps.map(strip), wires:S.wires.map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2}))});
 }
 function mkComp(t, x, y, p){
   const c = Object.assign({id:0, t, x, y, r:0}, clone(T[t].d), p || {});
@@ -3051,7 +3062,7 @@ function mkComp(t, x, y, p){
 }
 function load(o){
   if (typeof o === 'string') o = JSON.parse(o);
-  S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? (o.fac.items ? clone(o.fac) : facPreset('sort')) : null, trend:o.trend ? clone(o.trend) : null};
+  S = {comps:[], wires:(o.wires||[]).map(w => ({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2})), nid:o.nid || 1, fac:o.fac ? (o.fac.items ? clone(o.fac) : facPreset('sort')) : null, trend:o.trend ? clone(o.trend) : null, exp:o.exp ? clone(o.exp) : null};
   if (typeof trendReset === 'function') trendReset();
   if (S.fac) S.fac.items = S.fac.items.filter(i => FKIND[i.k]).map(i => Object.assign(clone(FKIND[i.k].d), i));   // เติมฟิลด์ใหม่ให้ฉากที่บันทึกไว้ก่อน
   facReset();
@@ -3423,7 +3434,8 @@ AQ0 := D10 / 10
       {cmt:'ผลลัพธ์ PID (D10 = 0–1000) → AQ0 0–100% (0–10 V) → AVI', rows:[{cells:[null, null, null, null, null, null, null], out:{k:'MOV', a:'AQ0', p:'D10/10'}}], links:[]},
     ]};
   }); const f = facPreset('tank'); f.items = f.items.filter(i => i.k !== 'station'); f.btn = [];
-    return Object.assign(o, {fac:f, trend:{sig:['PLC1.D1', 'PLC1.AI0', 'PLC1.PID1', 'VFD1.f'], win:120, ax:'pct'}}); }},
+    return Object.assign(o, {fac:f, trend:{sig:['PLC1.D1', 'PLC1.AI0', 'PLC1.PID1', 'VFD1.f'], win:120, ax:'pct'},
+      exp:{par:'PLC1.PID1.Kp', vals:'1 2 4 8', dur:120, tm:0, sig:'TK1.lvl', tgt:'60', sig2:'VFD1.Pin', ev:'S1.on = 1'}}); }},
   plcsense: {nm:'PLC + เซนเซอร์อุตสาหกรรม (พร็อกซิมิตี้, โฟโต้, 4–20 mA)', f:() => build((C,W) => {
     C('src1', 2, 1, {n:'การไฟฟ้า'}); C('mcb', 2, 4, {r:1, n:'Q1', In:6});
     W([2,2],[2,3]); W([2,5],[2,7],[6,7]); W([3,2],[3,6],[8,6],[8,7]);
@@ -8129,25 +8141,36 @@ function trendUI(){
       ${C.sig.length < 6 ? '<div><button class="btn" data-tb="add">+ เพิ่มสัญญาณ</button></div>' : ''}</div>`;
   trendDraw();
 }
-function trendDraw(){
-  const cv = $('#trv'); if (!cv || $('#trwin').hidden) return; const C = trendCfg(), r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
-  if (!r.width) return; cv.width = r.width*d; cv.height = r.height*d; const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0);
-  const W = r.width, H = r.height, L = 52, Rm = 10, Tm = 10, B = 24, pw = W - L - Rm, ph = H - Tm - B;
-  g.fillStyle = K.board; g.fillRect(0, 0, W, H);
-  const n = TRD.t.length, tEnd = n ? TRD.t[n - 1] : 0, win = +C.win || 0, t0 = win ? Math.max(0, tEnd - win) : (n ? TRD.t[0] : 0), t1 = win ? Math.max(win, tEnd) : Math.max(tEnd, t0 + 1);
-  let i0 = 0; while (i0 < n && TRD.t[i0] < t0) i0++;
-  let lo = Infinity, hi = -Infinity;
-  if (C.ax === 'pct'){ lo = 0; hi = 100; } else for (let i = i0; i < n; i++) for (const v of TRD.v[i]) if (isFinite(v)){ lo = Math.min(lo, v); hi = Math.max(hi, v); }
-  if (!isFinite(lo)){ lo = 0; hi = 1; } if (hi - lo < 1e-9){ hi += 0.5; lo -= 0.5; } const pad = (hi - lo)*0.06; if (C.ax !== 'pct'){ lo -= pad; hi += pad; }
+// วาดกราฟเส้นหลายชุด: ss = [{t:[], y:[], col, w}] · pal = สีพื้น/เส้นกริด/ตัวอักษร · o = {t0, t1, lo, hi, pct}
+function plotPaint(g, W, H, ss, pal, o = {}){
+  const L = 54, Rm = 10, Tm = 10, B = 24, pw = W - L - Rm, ph = H - Tm - B;
+  g.fillStyle = pal.board; g.fillRect(0, 0, W, H);
+  let t0 = o.t0, t1 = o.t1, lo = o.lo, hi = o.hi;
+  if (t0 == null || t1 == null){ t0 = Infinity; t1 = -Infinity; for (const q of ss) if (q.t.length){ t0 = Math.min(t0, q.t[0]); t1 = Math.max(t1, q.t[q.t.length - 1]); } if (!isFinite(t0)){ t0 = 0; t1 = 1; } if (t1 - t0 < 1e-9) t1 = t0 + 1; }
+  if (o.pct){ lo = 0; hi = 100; }
+  else if (lo == null || hi == null){ lo = Infinity; hi = -Infinity; for (const q of ss) for (let i = 0; i < q.t.length; i++) if (q.t[i] >= t0 && isFinite(q.y[i])){ lo = Math.min(lo, q.y[i]); hi = Math.max(hi, q.y[i]); }
+    if (!isFinite(lo)){ lo = 0; hi = 1; } if (hi - lo < 1e-9){ hi += 0.5; lo -= 0.5; } const pad = (hi - lo)*0.06; lo -= pad; hi += pad; }
   const X = t => L + (t - t0)/(t1 - t0)*pw, Y = v => Tm + (1 - (v - lo)/(hi - lo))*ph;
-  g.strokeStyle = K.grid; g.lineWidth = 1; g.font = "10.5px 'IBM Plex Mono',monospace"; g.fillStyle = K.muted;
+  g.strokeStyle = pal.grid; g.lineWidth = 1; g.font = "10.5px 'IBM Plex Mono',monospace"; g.fillStyle = pal.muted;
   for (let k = 0; k <= 5; k++){ const v = lo + (hi - lo)*k/5, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(+v.toPrecision(3) + '', L - 4, y); }
   for (let k = 0; k <= 6; k++){ const t = t0 + (t1 - t0)*k/6, x = X(t); g.beginPath(); g.moveTo(x, Tm); g.lineTo(x, Tm + ph); g.stroke(); g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(t.toFixed(t1 - t0 < 20 ? 1 : 0) + ' s', x, Tm + ph + 5); }
-  const step = Math.max(1, Math.floor((n - i0)/(pw*2)));
-  C.sig.forEach((sg, j) => { if (!String(sg || '').trim()) return; g.strokeStyle = TRC[j]; g.lineWidth = 1.8; g.beginPath(); let pen = false;
-    for (let i = i0; i < n; i += step){ const v = TRD.v[i][j]; if (!isFinite(v)){ pen = false; continue; } const x = X(TRD.t[i]), y = Y(Math.max(lo, Math.min(hi, v))); pen ? g.lineTo(x, y) : g.moveTo(x, y); pen = true; }
-    g.stroke(); const b = $(`[data-tv="${j}"]`), v = n ? TRD.v[n - 1][j] : NaN; if (b) b.textContent = isFinite(v) ? (+v.toPrecision(4)).toString() : '—'; });
+  for (const q of ss){ g.strokeStyle = q.col; g.lineWidth = q.w || 1.8; if (q.dash) g.setLineDash(q.dash); g.beginPath(); let pen = false; const n = q.t.length, st = Math.max(1, Math.floor(n/(pw*2)));
+    for (let i = 0; i < n; i += st){ if (q.t[i] < t0) continue; const v = q.y[i]; if (!isFinite(v)){ pen = false; continue; } const x = X(q.t[i]), y = Y(Math.max(lo, Math.min(hi, v))); pen ? g.lineTo(x, y) : g.moveTo(x, y); pen = true; }
+    g.stroke(); g.setLineDash([]); }
 }
+const palK = () => ({board:K.board, grid:K.grid, muted:K.muted, text:K.text});
+const PAL_PRINT = {board:'#ffffff', grid:'#d4d9e1', muted:'#4b5563', text:'#111827'};
+function trendSeries(){ const C = trendCfg(), n = TRD.t.length, tEnd = n ? TRD.t[n - 1] : 0, win = +C.win || 0;
+  const ss = C.sig.map((sg, j) => String(sg || '').trim() ? {t:TRD.t, y:TRD.v.map(r => r[j]), col:TRC[j]} : null).filter(Boolean);
+  const o = {pct:C.ax === 'pct'}; if (win){ o.t0 = Math.max(0, tEnd - win); o.t1 = Math.max(win, tEnd); } return [ss, o]; }
+function trendDraw(){
+  const cv = $('#trv'); if (!cv || $('#trwin').hidden) return; const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (!r.width) return; cv.width = r.width*d; cv.height = r.height*d; const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0);
+  const [ss, o] = trendSeries(); plotPaint(g, r.width, r.height, ss, palK(), o);
+  const n = TRD.t.length; trendCfg().sig.forEach((_, j) => { const b = $(`[data-tv="${j}"]`), v = n ? TRD.v[n - 1][j] : NaN; if (b) b.textContent = isFinite(v) ? (+v.toPrecision(4)).toString() : '—'; });
+}
+// รูปกราฟสำหรับรายงาน (พื้นขาว)
+function plotImage(ss, o, W = 900, H = 320){ const c = document.createElement('canvas'); c.width = W*2; c.height = H*2; const g = c.getContext('2d'); g.scale(2, 2); plotPaint(g, W, H, ss, PAL_PRINT, o); return c.toDataURL('image/png'); }
 function trendCSV(){ const sg = trendSigs(); return ['t_s,' + sg.map((x, i) => x || 'ch' + (i + 1)).join(',')].concat(TRD.t.map((t, i) => t + ',' + TRD.v[i].map(v => isFinite(v) ? +v.toPrecision(6) : '').join(','))).join('\n'); }
 (function trendEvents(){
   const el = $('#trwin');
@@ -8167,6 +8190,176 @@ function trendCSV(){ const sg = trendSigs(); return ['t_s,' + sg.map((x, i) => x
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); });
   setInterval(() => { if (!el.hidden) trendDraw(); }, 250);
 })();
+
+/* ============================================================
+   ทดลองแบบชุด (กวาดพารามิเตอร์) — แต่ละรอบเริ่มจากวงจรที่บันทึกปัจจุบัน (ค่าในฟิลด์ เช่นระดับถัง) ที่เวลา 0 จำลองตามเวลาแบบเดียวกับการรันสด
+   S.exp = {par:'PLC1.PID1.Kp', vals:'1 2 4 8', dur:120, sig:'TK1.lvl', sig2:'VFD1.Pin', tgt:'60', tm:0, ev:'S1.on = 1\n@60 TK1.out = 4.5'}
+   พารามิเตอร์/เหตุการณ์: ชื่อ.ฟิลด์ (ฟิลด์ตัวเลข/สวิตช์ของอุปกรณ์), PLC1.PID1.Kp|Ti|Td|SP|lo|hi (แก้บรรทัดใน pidList), PLC1.D1 / AQ0 / M0 (เขียนรีจิสเตอร์หลังสแกนแรก)
+   ค่าวัด: ค่าสุดท้าย, overshoot (% ของขนาดขั้น), rise 10–90%, settling ±2%, IAE, ess, พลังงานจากสัญญาณที่ 2 (W → Wh)
+   ============================================================ */
+const EXP = {busy:false, res:null, stop:false};
+function expCfg(){ return S.exp || (S.exp = {par:'', vals:'', dur:30, sig:'', sig2:'', tgt:'', tm:0, ev:''}); }
+const PID_TOK = {EN:0, PV:1, SP:2, MV:3, KP:4, TI:5, TD:6, LO:7, HI:8};
+function expSet(target, v){
+  const m = /^\s*([^.\s]+)\.(.+?)\s*$/.exec(String(target || '')); if (!m) throw new Error('รูปแบบต้องเป็น ชื่อ.ค่า: "' + target + '"');
+  const c = S.comps.find(o => o.n === m[1]); if (!c) throw new Error('ไม่พบอุปกรณ์ชื่อ ' + m[1]);
+  const k = m[2], K2 = k.toUpperCase();
+  if (c.t === 'plc'){
+    const pm = /^PID(\d)\.(\w+)$/.exec(K2);
+    if (pm){ const ix = PID_TOK[pm[2]]; if (ix == null || ix < 2 || ix === 3) throw new Error('PID แก้ได้เฉพาะ SP Kp Ti Td lo hi');
+      let n = 0; c.pidList = String(c.pidList || '').split('\n').map(ln => { const raw = ln.replace(/\/\/.*$|#.*$/, '').trim(); if (!raw) return ln; n++; if (n !== +pm[1]) return ln;
+        const t = raw.split(/[\s,]+/); while (t.length < 9) t.push(t.length === 7 ? '0' : '100'); t[ix] = String(v); return t.join(' '); }).join('\n');
+      if (n < +pm[1]) throw new Error('ไม่มี PID วงที่ ' + pm[1]); delete c._pidc; return 'pid'; }
+    if (isNumDst(K2) || parseAddr(K2)){ if (!c._img) c._img = newImage(); if (isNumDst(K2)) setD(c._img, K2, v); else setA(c._img, K2, v); return 'reg'; }
+  }
+  if (!(k in c) && !(k in T[c.t].d)) throw new Error(`${m[1]} ไม่มีฟิลด์ ${k}`);
+  const cv0 = c[k] ?? T[c.t].d[k]; c[k] = typeof cv0 === 'boolean' ? !!+v : typeof cv0 === 'string' && !isFinite(+v) ? String(v) : +v;
+  const md = modelOf(c); if (md && md.p && k in md.p) c.model = ''; if (c.t === 'plc') delete c._cp; needSolve = true; return 'fld';
+}
+function expParseVals(str){ str = String(str || '').trim(); const r = /^(-?[\d.]+)\s*:\s*(-?[\d.]+)\s*:\s*(-?[\d.]+)$/.exec(str);
+  if (r){ const a = +r[1], st = +r[2], b = +r[3], o = []; if (st > 0) for (let x = a; x <= b + 1e-9 && o.length < 50; x += st) o.push(+x.toPrecision(10)); return o; }
+  return str.split(/[\s,;]+/).filter(Boolean).map(Number).filter(isFinite).slice(0, 50); }
+function expParseEv(str){ const o = [];
+  String(str || '').split('\n').forEach((ln, i) => { ln = ln.replace(/\/\/.*$/, '').trim(); if (!ln) return; const m = /^(?:@\s*([\d.]+)\s*(?:s)?\s+)?([^=\s]+)\s*=\s*(\S+)$/.exec(ln);
+    if (!m) throw new Error(`เหตุการณ์บรรทัด ${i + 1}: ใช้รูปแบบ [@เวลา] ชื่อ.ค่า = ตัวเลข`); o.push({t:m[1] ? +m[1] : 0, tg:m[2], v:m[3]}); });
+  return o.sort((a, b) => a.t - b.t); }
+function expMetrics(t, y, y2, tgt, tm){
+  const n = t.length; if (!n) return {}; let i0 = 0; while (i0 < n - 1 && t[i0] < tm) i0++;
+  const tail = Math.max(1, Math.floor((n - i0)*0.05)); let yf = 0; for (let i = n - tail; i < n; i++) yf += y[i]; yf /= tail;
+  const r = isFinite(tgt) ? tgt : yf, y0 = y[i0], stp = r - y0, A = Math.abs(stp) || 1e-9, sg = Math.sign(stp) || 1;
+  let mx = -Infinity, mn = Infinity, iae = 0, t10 = null, t90 = null, ts = t[i0], en = 0;
+  for (let i = i0; i < n; i++){ const v = y[i]; mx = Math.max(mx, v); mn = Math.min(mn, v); const dt = i > i0 ? t[i] - t[i - 1] : 0; iae += Math.abs(r - v)*dt;
+    if (t10 == null && (v - y0)*sg >= 0.1*A) t10 = t[i]; if (t90 == null && (v - y0)*sg >= 0.9*A) t90 = t[i];
+    if (Math.abs(v - r) > 0.02*A) ts = t[i]; if (y2 && isFinite(y2[i])) en += y2[i]*dt; }
+  const os = Math.max(0, sg > 0 ? (mx - r)/A*100 : (r - mn)/A*100);
+  return {yf, r, os, rise:t10 != null && t90 != null ? t90 - t10 : NaN, ts:ts - t[i0], iae, ess:r - yf, en:y2 ? en/3600 : NaN, mx, mn};
+}
+// ตัวรันแบบ generator: yield ความคืบหน้า [รอบ, สัดส่วน] · คืนผล {runs:[{v, t, y, y2, m}], cfg}
+function* expGen(cfg){
+  const vals = expParseVals(cfg.vals), evs = expParseEv(cfg.ev), dur = Math.max(0.5, +cfg.dur || 10), dt = 0.05, tgt0 = String(cfg.tgt ?? '').trim();
+  if (!String(cfg.par || '').trim() || !vals.length) throw new Error('ใส่พารามิเตอร์และค่าที่จะกวาด (เช่น 1 2 4 หรือ 1:1:5)');
+  if (!String(cfg.sig || '').trim()) throw new Error('ใส่สัญญาณที่จะวัด เช่น TK1.lvl');
+  const snap = ser(), keepT = simT, keepTRD = {t:TRD.t, v:TRD.v, sig:TRD.sig, last:TRD.last}, keepRun = running, keepTrend = S.trend; running = false;
+  const runs = [];
+  try {
+    for (let ri = 0; ri < vals.length; ri++){
+      load(snap); simT = 0; S.trend = null; const v = vals[ri], late = [];
+      if (expSet(cfg.par, v) === 'reg') late.push({t:0, tg:cfg.par, v});
+      const q = evs.map(e => Object.assign({}, e)).concat(late).sort((a, b) => a.t - b.t);
+      for (const e of q) if (e.t === 0 && !/\.(D\d+|AQ0|CV\d|[MQ]\d+)$/i.test(e.tg)){ expSet(e.tg, e.v); e.done = true; }
+      needSolve = true; settle();
+      const t = [], y = [], y2 = cfg.sig2 ? [] : null, N = Math.round(dur/dt);
+      for (let k = 0; k < N; k++){
+        if (EXP.stop) throw new Error('หยุดโดยผู้ใช้');
+        step(dt);
+        for (const e of q) if (!e.done && simT >= e.t - 1e-9){ expSet(e.tg, e.v); e.done = true; }
+        t.push(+simT.toFixed(3)); y.push(sigVal(cfg.sig)); if (y2) y2.push(sigVal(cfg.sig2));
+        if (k % 100 === 99) yield [ri, (k + 1)/N];
+      }
+      const tg = tgt0 === '' ? NaN : isFinite(+tgt0) ? +tgt0 : sigVal(tgt0);
+      runs.push({v, t, y, y2, m:expMetrics(t, y, y2, tg, +cfg.tm || 0)});
+    }
+  } finally { load(snap); S.trend = keepTrend; Object.assign(TRD, keepTRD); simT = keepT; running = keepRun; needSolve = true; settle(); }
+  return {runs, cfg:clone(cfg)};
+}
+function expRunSync(cfg){ EXP.stop = false; const g = expGen(cfg || expCfg()); let r; do { r = g.next(); } while (!r.done); EXP.res = r.value; return r.value; }
+async function expRunUI(){
+  if (EXP.busy) return; const cfg = clone(expCfg()); EXP.busy = true; EXP.stop = false; const msg = m => { const e = $('#exmsg'); if (e) e.innerHTML = m; };
+  try { const g = expGen(cfg), n = expParseVals(cfg.vals).length; let r, t0 = performance.now();
+    while (!(r = g.next()).done){ if (performance.now() - t0 > 40){ msg(`กำลังจำลองรอบ ${r.value[0] + 1}/${n} · ${Math.round(r.value[1]*100)}%`); await new Promise(z => setTimeout(z, 0)); t0 = performance.now(); } }
+    EXP.res = r.value; msg(`เสร็จ ${r.value.runs.length} รอบ · ${cfg.par} = ${r.value.runs.map(x => x.v).join(', ')}`);
+  } catch (e){ msg('<span class="e">' + esc(e.message) + '</span>'); }
+  EXP.busy = false; refreshUI(); expTable(); expDraw();
+}
+const fmtN = (x, d = 3) => isFinite(x) ? (+x.toPrecision(d)).toString() : '—';
+function expRows(res){ return res.runs.map((r, i) => [r.v, r.m.yf, r.m.os, r.m.rise, r.m.ts, r.m.iae, r.m.ess, r.m.en]); }
+const EXP_HD = ['ค่า', 'ค่าสุดท้าย', 'overshoot %', 'rise 10–90% s', 'settling ±2% s', 'IAE', 'ess', 'พลังงาน Wh'];
+function expTableHTML(res, cols){ return `<table><tr>${['', ...EXP_HD].map(h => `<th>${h}</th>`).join('')}</tr>${expRows(res).map((r, i) => `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${cols[i % cols.length]}"></span></td>${r.map((x, j) => `<td>${j === 0 ? esc(String(x)) : fmtN(x)}</td>`).join('')}</tr>`).join('')}</table>`; }
+const EXC = ['#2563eb','#dc2626','#16a34a','#d97706','#9333ea','#0891b2','#db2777','#65a30d','#7c3aed','#ea580c'];
+function expSeries(res){ return res.runs.map((r, i) => ({t:r.t, y:r.y, col:EXC[i % EXC.length]})); }
+function expOpen(){ expCfg(); $('#exwin').hidden = false; $('#bExp').classList.add('on'); expUI(); }
+function expSuggest(){ const o = [];
+  for (const c of S.comps){ const n = c.n; if (!n) continue;
+    if (c.t === 'plc'){ (c._pidc ? c._pidc.list : pidParse(c.pidList).list).forEach((_, i) => ['Kp','Ti','Td','SP'].forEach(k => o.push(`${n}.PID${i + 1}.${k}`))); o.push(n + '.D1'); }
+    for (const f of F[c.t] || []) if (f[2] === 'num' || f[2] === 'range' || f[2] === 'bool') o.push(n + '.' + f[0]); }
+  return o; }
+function expUI(){
+  const el = $('#exwin'), C = expCfg(); if (el.hidden) return;
+  $('#exlist').innerHTML = expSuggest().concat(trendSuggest()).map(x => `<option value="${esc(x)}">`).join('');
+  const F2 = (k, lb, ph, li) => `<label>${lb}<input data-ex="${k}" value="${esc(String(C[k] ?? ''))}" placeholder="${ph}" ${li ? 'list="' + li + '"' : ''}></label>`;
+  el.innerHTML = `<div class="swh"><b>ทดลองแบบชุด (กวาดพารามิเตอร์)</b><span class="anhint">ทุกรอบเริ่มจากวงจรที่บันทึกไว้ ณ เวลา 0</span><span style="flex:1"></span>
+    <button class="btn on" data-eb="run">▶ รันชุดทดลอง</button><button class="btn" data-eb="stop">หยุด</button><button class="btn" data-eb="csv">CSV</button><button class="btn" data-eb="x" title="ปิด">✕</button></div>
+    <div class="swc">${F2('par', 'พารามิเตอร์ที่กวาด', 'PLC1.PID1.Kp', 'exlist')}${F2('vals', 'ค่า (เว้นวรรค หรือ เริ่ม:ก้าว:จบ)', '1 2 4 8')}${F2('dur', 'ระยะเวลาต่อรอบ (s)', '60')}${F2('tm', 'เริ่มวัดที่ (s)', '0')}
+      ${F2('sig', 'สัญญาณที่วัด', 'TK1.lvl', 'exlist')}${F2('tgt', 'ค่าเป้าหมาย (ตัวเลข/สัญญาณ, ว่าง = ค่าสุดท้าย)', '60', 'exlist')}${F2('sig2', 'กำลังไฟสำหรับพลังงาน (W, ไม่บังคับ)', 'VFD1.Pin', 'exlist')}<label>&nbsp;<span class="anhint">${expParseVals(C.vals).length} รอบ</span></label></div>
+    <div style="padding:0 10px 8px"><label class="anhint">เหตุการณ์ระหว่างรอบ — บรรทัดละ <code>[@เวลา] ชื่อ.ค่า = ตัวเลข</code> เช่น <code>S1.on = 1</code>, <code>@60 TK1.out = 4.5</code></label><textarea data-ex="ev" rows="2">${esc(C.ev || '')}</textarea></div>
+    <div id="exmsg" class="anhint" style="padding:0 10px 6px">${EXP.res ? `ผลล่าสุด ${EXP.res.runs.length} รอบ · ${esc(EXP.res.cfg.par)}` : 'ตั้งค่าแล้วกด ▶ รันชุดทดลอง'}</div>
+    <canvas id="exv"></canvas><div id="extab"></div>`;
+  expTable(); expDraw();
+}
+function expTable(){ const e = $('#extab'); if (e) e.innerHTML = EXP.res ? expTableHTML(EXP.res, EXC) : ''; }
+function expDraw(){ const cv = $('#exv'); if (!cv || $('#exwin').hidden) return; const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (!r.width) return;
+  cv.width = r.width*d; cv.height = r.height*d; const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0);
+  const ss = EXP.res ? expSeries(EXP.res) : []; const tg = EXP.res && EXP.res.runs[0] && EXP.res.runs[0].m.r;
+  if (EXP.res && isFinite(tg)){ const t = EXP.res.runs[0].t; ss.push({t:[t[0], t[t.length - 1]], y:[tg, tg], col:K.muted, w:1, dash:[5, 4]}); }
+  plotPaint(g, r.width, r.height, ss, palK(), {}); }
+function expCSV(res){ const L = ['# ' + res.cfg.par + ' · สัญญาณ ' + res.cfg.sig + (res.cfg.sig2 ? ' · ' + res.cfg.sig2 : ''), 'run,value,t_s,' + res.cfg.sig + (res.cfg.sig2 ? ',' + res.cfg.sig2 : '')];
+  res.runs.forEach((r, i) => r.t.forEach((t, k) => L.push(`${i + 1},${r.v},${t},${fmtN(r.y[k], 6)}` + (r.y2 ? ',' + fmtN(r.y2[k], 6) : ''))));
+  L.push('', '# ค่าวัด', 'value,' + EXP_HD.slice(1).join(','), ...expRows(res).map(r => r.map(x => typeof x === 'number' ? fmtN(x, 6) : x).join(','))); return L.join('\n'); }
+(function expEvents(){
+  const el = $('#exwin');
+  $('#bExp').onclick = () => { if (el.hidden) expOpen(); else { el.hidden = true; $('#bExp').classList.remove('on'); } };
+  el.addEventListener('click', e => { const b = e.target.closest('[data-eb]'); if (!b) return; const a = b.dataset.eb;
+    if (a === 'x'){ el.hidden = true; $('#bExp').classList.remove('on'); } if (a === 'run') expRunUI(); if (a === 'stop') EXP.stop = true;
+    if (a === 'csv'){ if (!EXP.res) toast('ยังไม่มีผลการทดลอง'); else anSave('ทดลองชุด.csv', expCSV(EXP.res), 'text/csv'); } });
+  el.addEventListener('change', e => { const k = e.target.dataset.ex; if (!k) return; const C = expCfg(); C[k] = ['dur','tm'].includes(k) ? +e.target.value || 0 : e.target.value; commit(); if (k === 'vals') expUI(); });
+  el.addEventListener('pointerdown', e => { const hd = e.target.closest('.swh'); if (!hd || e.target.closest('button,select,input')) return;
+    const r = el.getBoundingClientRect(), pr = el.offsetParent.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
+    const mv = ev => { el.style.left = Math.max(0, ev.clientX - pr.left - ox) + 'px'; el.style.top = Math.max(0, ev.clientY - pr.top - oy) + 'px'; el.style.right = 'auto'; };
+    const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); });
+  window.addEventListener('resize', () => expDraw());
+})();
+
+/* ---------- รายงาน (HTML แยกไฟล์ พิมพ์เป็น PDF ได้) ---------- */
+function ladText(lad){ const cell = x => !x ? '' : x.k === 'H' ? '──' : x.k === 'GT' || x.k === 'LT' ? `[${x.a} ${x.k === 'GT' ? '>' : '<'} ${x.p}]` : x.k === 'NC' ? `┤/${x.a}├` : `┤${x.a}├`;
+  const out = o => !o ? '' : o.k === 'OUT' ? `( ${o.a} )` : o.k === 'SET' ? `(S ${o.a})` : o.k === 'RST' ? `(R ${o.a})` : o.k === 'TON' ? `TON ${o.a} ${o.p}s` : o.k === 'CTU' ? `CTU ${o.a} ${o.p}` : `MOV ${o.p} → ${o.a}`;
+  return lad.map((r, i) => `รัง ${i + 1}${r.cmt ? ' — ' + r.cmt : ''}\n` + r.rows.map((row, k) => `  ${k ? '└ ' : ''}${row.cells.map(cell).filter(Boolean).join(' ') || '──'}${row.out ? '  →  ' + out(row.out) : ''}`).join('\n')).join('\n'); }
+function reportHTML(){
+  const now = new Date(), e = esc, tbl = (h, rows) => `<table><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr>${rows.map(r => `<tr>${r.map(x => `<td>${x}</td>`).join('')}</tr>`).join('')}</table>`;
+  let tot = 0; for (const k in RES.src) tot += RES.src[k].P || 0;
+  const comps = S.comps.filter(c => !['lbl','gnd'].includes(c.t)).map(c => { const R = RES.comp[c.id] || {}, md = modelOf(c);
+    return [e(c.n || c.ref || ''), e(T[c.t].nm) + (md ? '<br><small>' + e(md.nm) + '</small>' : ''), isTwo(c) ? e(valText(c) || '') : '', R.Vr != null ? fmt(R.Vr, 'V') : R.Vout != null ? fmt(R.Vout, 'V') : '', R.Ir != null ? fmt(R.Ir, 'A') : R.Iout != null ? fmt(R.Iout, 'A') : '', R.P != null ? fmt(Math.abs(R.P), 'W') : '']; });
+  let h = `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>รายงานผลการจำลอง</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>body{font-family:'IBM Plex Sans Thai',sans-serif;color:#111827;background:#fff;margin:24px auto;max-width:960px;padding:0 16px;line-height:1.5}h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;border-bottom:2px solid #2563eb;padding-bottom:3px;margin:22px 0 8px}
+img{max-width:100%;border:1px solid #e5e7eb;border-radius:6px}table{border-collapse:collapse;width:100%;font-size:12.5px;margin:6px 0}th,td{border:1px solid #d1d5db;padding:4px 6px;text-align:left;vertical-align:top}th{background:#f3f4f6}
+pre{font:12px 'IBM Plex Mono',monospace;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px;white-space:pre-wrap}.mut{color:#6b7280;font-size:13px}.warn{color:#b45309}.bad{color:#b91c1c}
+@media print{body{margin:0}h2{break-after:avoid}img,table,pre{break-inside:avoid}}</style></head><body>
+<h1>รายงานผลการจำลอง — แผงทดลองวงจรไฟฟ้า</h1><div class="mut">สร้างเมื่อ ${e(now.toLocaleString('th-TH'))} · เวลาจำลอง ${simT.toFixed(1)} s · อุปกรณ์ ${S.comps.length} ชิ้น · สายไฟ ${S.wires.length} เส้น · กำลังจริงรวมที่จ่าย ${fmt(tot, 'W')}</div>`;
+  const png = circuitPNG(); if (png) h += `<h2>1. วงจร</h2><img src="${png}" alt="วงจร">`;
+  const w = warnList(); h += `<h2>2. สถานะและคำเตือน</h2>` + (w.length ? '<ul>' + w.map(x => `<li class="${x[0]}">${x[1]}</li>`).join('') + '</ul>' : '<p>ไม่พบปัญหา</p>');
+  h += `<h2>3. อุปกรณ์และค่าที่วัดได้ (ณ เวลาที่สร้างรายงาน)</h2>` + tbl(['ชื่อ', 'ชนิด / รุ่น', 'ค่าพิกัด', 'แรงดัน', 'กระแส', 'กำลัง'], comps);
+  let sec = 4;
+  for (const c of S.comps.filter(c => c.t === 'plc')){ const pr = c.prog || defaultProg();
+    h += `<h2>${sec++}. โปรแกรม PLC ${e(c.n || '')} (${pr.mode === 'txt' ? 'ข้อความ' : 'แลดเดอร์'})</h2><pre>${e(pr.mode === 'txt' ? pr.txt : ladText(pr.lad))}</pre>`;
+    if (c.pidList) h += `<p><b>PID</b></p><pre>${e(c.pidList)}</pre>` + ((c._pid || []).length ? tbl(['วง', 'SP', 'PV', 'MV %'], c._pid.map((z, i) => [i + 1, fmtN(z.sp), fmtN(z.pv), fmtN(z.u)])) : '');
+    for (const pt of plcPorts(c)) if (pt.on && pt.list) h += `<p><b>${pt.tcp ? 'Modbus TCP' : 'Modbus RTU พอร์ต #' + (pt.k + 1)} (${pt.mode === 'slave' ? 'สเลฟ' : 'มาสเตอร์'})</b></p><pre>${e(pt.list)}</pre>`; }
+  for (const c of S.comps.filter(c => MCU[c.t] && c.code)) h += `<h2>${sec++}. โค้ด ${e(MCU[c.t].nm)} ${e(c.n || '')}</h2><pre>${e(c.code)}</pre>`;
+  if (S.trend && TRD.t.length){ const [ss, o] = trendSeries(), sg = trendSigs();
+    h += `<h2>${sec++}. กราฟเทรนด์</h2><img src="${plotImage(ss, o)}" alt="เทรนด์">` + tbl(['สี', 'สัญญาณ', 'ต่ำสุด', 'สูงสุด', 'เฉลี่ย', 'ล่าสุด'], sg.map((x, j) => { if (!x) return null; const v = TRD.v.map(r => r[j]).filter(isFinite);
+      return [`<span style="display:inline-block;width:12px;height:12px;background:${TRC[j]}"></span>`, e(x), fmtN(Math.min(...v)), fmtN(Math.max(...v)), fmtN(v.reduce((a, b) => a + b, 0)/(v.length || 1)), fmtN(v[v.length - 1])]; }).filter(Boolean)); }
+  if (EXP.res){ const R = EXP.res, cf = R.cfg;
+    h += `<h2>${sec++}. ทดลองแบบชุด: ${e(cf.par)} = ${e(R.runs.map(r => r.v).join(', '))}</h2><p class="mut">สัญญาณ ${e(cf.sig)} · ${cf.dur} s ต่อรอบ · เป้าหมาย ${e(String(cf.tgt || 'ค่าสุดท้าย'))}${cf.ev ? ' · เหตุการณ์: ' + e(cf.ev.replace(/\n/g, '; ')) : ''}</p>
+      <img src="${plotImage(expSeries(R), {})}" alt="ผลทดลอง">` + expTableHTML(R, EXC); }
+  const an = $('#anv'); if (AN.res && an && an.width) h += `<h2>${sec++}. วิเคราะห์แบบ SPICE (${e(AN.kind)})</h2><img src="${an.toDataURL('image/png')}" alt="SPICE"><p class="mut">${anMsg()}</p>`;
+  return h + `<p class="mut" style="margin-top:24px">ผลจากแบบจำลอง ใช้เพื่อการศึกษาและวิจัยเบื้องต้น ควรตรวจสอบกับอุปกรณ์จริงก่อนนำไปใช้งาน</p></body></html>`;
+}
+let RPT = '';
+function reportOpen(){ $('#fmenu').hidden = true; RPT = reportHTML(); $('#rptf').srcdoc = RPT; $('#rpt').hidden = false; $('#rptmsg').textContent = Math.round(RPT.length/1024) + ' kB'; }
+$('#rpt').addEventListener('click', e => { const b = e.target.closest('[data-rp]'); if (!b) return; const a = b.dataset.rp;
+  if (a === 'x') $('#rpt').hidden = true;
+  if (a === 'html') anSave('รายงานวงจร.html', RPT, 'text/html');
+  if (a === 'print'){ try { const w = $('#rptf').contentWindow; w.focus(); w.print(); } catch (err){ toast('เบราว์เซอร์นี้ไม่อนุญาตให้พิมพ์จากหน้านี้ — ดาวน์โหลด .html แล้วเปิดพิมพ์ (Ctrl+P → บันทึกเป็น PDF)'); } } });
 
 /* ============================================================
    15. แก้ไขขั้นสูง: เลือกหลายชิ้น / คัดลอก / วาง / สำเนา / ทำซ้ำ (redo) / ไฟล์ / แชร์ / ส่งออกภาพ
@@ -8323,6 +8516,7 @@ async function fileAct(a){
       <div class="row"><button class="btn on" data-m="copy">คัดลอกโค้ด</button><button class="btn" data-m="close">ปิด</button></div>`); }
   if (a === 'import') modal(`<h3>นำเข้าวงจร</h3><p class="anhint">วางโค้ดแชร์ (CL1.…), ข้อความ JSON ของวงจร หรือข้อความที่คัดลอกจากแอป</p>
       <textarea id="mcode" rows="6" placeholder="วางที่นี่"></textarea><div class="row"><button class="btn on" data-m="imp">เปิดวงจร</button><button class="btn" data-m="close">ยกเลิก</button></div><div id="merr" class="anhint"></div>`);
+  if (a === 'report'){ reportOpen(); return; }
   if (a === 'png'){ const u = circuitPNG(); if (u) anSave('วงจร.png', u); else toast('ยังไม่มีวงจร'); }
   if (a === 'new'){ if (confirm('เริ่มวงจรใหม่ (วงจรปัจจุบันย้อนกลับได้ด้วยปุ่มย้อนกลับ)?')) loadEx('blank'); }
   if (a === 'paste'){ if (CLIP) pasteClip(); else toast('ยังไม่ได้คัดลอกอะไร'); }
@@ -8520,6 +8714,7 @@ function loadEx(k){
   simT = 0; load(EX[k].f()); cur = ser(); save(); simT = 0; fit(); refreshUI();
   if (S.fac && fx.mode === 'off') setView('split');
   if (S.trend) trendOpen(); else { $('#trwin').hidden = true; $('#bTrend').classList.remove('on'); }
+  EXP.res = null; if (!$('#exwin').hidden) expUI();
 }
 function place(gx, gy, keep){
   const c = mkComp(placeT, Math.round(gx), Math.round(gy), {r:ghostR});
@@ -8772,7 +8967,7 @@ window.__sim = {
   solveNow: () => { needSolve = true; settle(); }, poke, step,
   run: (sec, dt = 0.05) => { for (let t = 0; t < sec - 1e-9; t += dt) step(dt); },
   find: n => S.comps.find(c => c.n === n),
-  trend: () => ({t:TRD.t, v:TRD.v, sig:trendSigs()}), sigVal, trendCSV, trendOpen,
+  trend: () => ({t:TRD.t, v:TRD.v, sig:trendSigs()}), sigVal, trendCSV, trendOpen, expRunSync, expMetrics, expCSV, expOpen, reportHTML,
 };
 
 (function init(){

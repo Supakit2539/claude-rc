@@ -668,6 +668,25 @@ const path = require('path');
     vfd.pid.every(a => nr(a[0], 60, 1) && nr(a[1], 25, 1) && a[2] < 250 && nr(a[3], 60, 1) && nr(a[4], 37.5, 1) && a[5]), JSON.stringify(vfd.pid)]);
   checks.push(['VFD ผ่าน Modbus RTU: PLC เขียนคำสั่ง/ความถี่ อ่านความถี่ขาออกกลับ, ระดับ 60% · CTU นับ 3 → C0, RST ล้าง, AQ0 = 40% · แลดเดอร์ CTU + MOV (AI0+10)*2 = 30 · มอเตอร์ใหญ่เกิน → ฟอลต์ oC',
     vfd.mb[0] === 60 && vfd.mb[1] && vfd.mb[2] === 0 && JSON.stringify(vfd.ctu) === '[3,1,40,2,0]' && JSON.stringify(vfd.lad) === '[0,2,30]' && vfd.flt === 'oC', JSON.stringify([vfd.mb, vfd.ctu, vfd.lad, vfd.flt])]);
+  const exr = await page.evaluate(() => { const s = __sim, o = {};
+    // ค่าวัดกับระบบอันดับหนึ่ง y = 1 − e^(−t/τ), τ = 1 s: rise 10–90% = τ ln 9 = 2.197 s, settling 2% = τ ln 50 = 3.912 s, IAE = τ
+    const t = [], y = []; for (let k = 0; k <= 2000; k++){ t.push(k*0.005); y.push(1 - Math.exp(-k*0.005)); } const m = s.expMetrics(t, y, null, 1, 0); o.fo = [m.rise, m.ts, m.os, m.iae];
+    // กวาด Kp ของ PID ใน pidtank: Kp สูงขึ้น overshoot ลดลง, ทุกรอบเข้าเป้า 60%, วงจรคืนสภาพเดิม
+    s.load('pidtank'); const lv = s.find('TK1').lvl, pl = s.find('PLC1').pidList, R = s.expRunSync();
+    o.runs = R.runs.map(r => [r.v, +r.m.yf.toFixed(1), +r.m.os.toFixed(1), +r.m.ts.toFixed(0), +r.m.en.toFixed(1)]);
+    o.restore = s.find('TK1').lvl === lv && s.find('PLC1').pidList === pl && !s.S.comps.some(c => c.t === 'plc' && /PID/.test(c.pidList) && / 8 8 /.test(c.pidList));
+    o.csv = s.expCSV(R).split('\n').length; const h = s.reportHTML(); o.rep = [(h.match(/<img/g) || []).length, h.includes('ทดลองแบบชุด'), h.includes('รัง 1'), h.includes('M0 AI0 D1 D10')];
+    // เหตุการณ์กลางรอบ + กวาดฟิลด์ของอุปกรณ์ (อัตราใช้น้ำ) ด้วยรูปแบบ เริ่ม:ก้าว:จบ
+    const R2 = s.expRunSync({par:'TK1.out', vals:'2:1:4', dur:90, sig:'VFD1.f', sig2:'', tgt:'', tm:0, ev:'S1.on = 1\n@1 PLC1.D1 = 50'});
+    o.f = R2.runs.map(r => +r.m.yf.toFixed(1)); o.lv2 = s.find('TK1').out;
+    return o; });
+  checks.push(['ค่าวัดการตอบสนองขั้น (ระบบอันดับหนึ่ง τ = 1 s): rise 2.20 s, settling 2% 3.91 s, overshoot 0, IAE 1.00',
+    nr(exr.fo[0], 2.197, 0.01) && nr(exr.fo[1], 3.912, 0.01) && exr.fo[2] === 0 && nr(exr.fo[3], 1, 0.01), JSON.stringify(exr.fo)]);
+  checks.push(['ทดลองชุด pidtank: Kp 1/2/4/8 → overshoot ลดลงตามลำดับ settling เร็วขึ้น ทุกรอบเข้า 60%, คืนวงจรเดิม, CSV + รายงาน (ภาพวงจร/ผลทดลอง, แลดเดอร์, PID)',
+    exr.runs.length === 4 && exr.runs.every(r => nr(r[1], 60, 2.5) && r[4] > 5) && exr.runs[0][2] > exr.runs[1][2] && exr.runs[1][2] > exr.runs[2][2] && exr.runs[2][2] > exr.runs[3][2] && exr.runs[3][3] < exr.runs[0][3]
+    && exr.restore && exr.csv > 9000 && exr.rep[0] >= 2 && exr.rep.slice(1).every(Boolean), JSON.stringify([exr.runs, exr.restore, exr.csv, exr.rep])]);
+  checks.push(['ทดลองชุดกวาดฟิลด์อุปกรณ์ TK1.out = 2:1:4 พร้อมเหตุการณ์ @1 PLC1.D1 = 50 → ความถี่ VFD ≈ 16.7/25/33.3 Hz (ใช้น้ำมาก ปั๊มเร็วขึ้น) และค่าเดิมคืน',
+    exr.f.length === 3 && nr(exr.f[0], 16.7, 1) && nr(exr.f[1], 25, 1) && nr(exr.f[2], 33.3, 1) && exr.lv2 === 3, JSON.stringify([exr.f, exr.lv2])]);
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
