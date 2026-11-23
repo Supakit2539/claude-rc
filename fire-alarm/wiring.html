@@ -7,296 +7,409 @@
 <title>FACP Wiring Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=VT323&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap">
 <style>
-/* Layout: device catalogue + FACP cards (left), wiring board (centre, wide), inspector/panel/results (right); guide below. */
+/* Layout: desktop circuit-simulator shell — title bar, menu bar, toolbar; library dock | schematic sheet + ERC messages | properties/instrument/stimulus dock; status bar. Stacks to one column on phones. */
 :root{
-  --bg:#e8ecef; --surface:#ffffff; --surface-2:#f2f4f6; --fg:#1b2127; --muted:#5d6874; --line:#d3d9df;
-  --board:#f6f7f4; --board-grid:#e3e6e0; --part:#ffffff; --part-line:#2a3038; --part-head:#eef1f4;
-  --accent:#c8102e; --info:#2f6fb5; --ok:#1f8a4c; --warn:#b98900; --err:#d7192f;
-  --w-red:#d62828; --w-blk:#1d1f22; --w-blu:#1f5fbf; --w-yel:#d9a400; --halo:rgba(255,255,255,.95);
-  --enc:#2b2f34; --enc-2:#1f2226; --enc-card:#1a3a2a; --enc-card-2:#2a2f45; --enc-fg:#e6e9ec; --enc-muted:#9aa3ad;
-  --lcd-bg:#a9c27a; --lcd-fg:#1d2a12; --lcd-glow:#c4da94;
+  --chrome:#e4e7eb; --chrome-2:#d7dbe0; --chrome-3:#f3f4f6; --chrome-line:#b9c0c8; --chrome-fg:#1d232a; --chrome-muted:#5b6570;
+  --title:#26364a; --title-fg:#e9eef4; --menu-hover:#cfd8e3; --sel:#2f6fb5; --sel-fg:#ffffff;
+  --paper:#fcfcf9; --grid:#c6ccd3; --grid-major:#e6e9ec;
+  --sym:#23406b; --sym-fill:#fffef4; --sym-text:#1d232a; --pin:#4a5562; --pin-name:#2a5b9a; --ref:#1d232a; --val:#6b7480;
+  --info:#2f6fb5; --ok:#1f8a4c; --warn:#b98900; --err:#d7192f;
+  --w-red:#d62828; --w-blk:#1d1f22; --w-blu:#1f5fbf; --w-yel:#c99a00; --halo:rgba(252,252,249,.95); --live:#18a058;
+  --enc:#2b2f34; --enc-2:#1f2226; --enc-fg:#e6e9ec; --enc-muted:#9aa3ad; --lcd-bg:#a9c27a; --lcd-fg:#1d2a12; --lcd-glow:#c4da94;
   --font-body:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   --font-lcd:"VT323","IBM Plex Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#12161a; --surface:#1b2026; --surface-2:#222831; --fg:#e4e8ec; --muted:#9aa5b0; --line:#323a43;
-  --board:#171b20; --board-grid:#222830; --part:#20262d; --part-line:#aab3bc; --part-head:#2a313a;
-  --accent:#ff4a5f; --info:#6aa7ec; --ok:#3fc27a; --warn:#f2bf2e; --err:#ff4a5f;
-  --w-red:#ff4b4b; --w-blk:#0a0b0c; --w-blu:#4d8ef0; --w-yel:#f2c230; --halo:#68727d; color-scheme:dark }}
+  --chrome:#23282f; --chrome-2:#1b1f25; --chrome-3:#2b313a; --chrome-line:#3b444f; --chrome-fg:#e3e8ee; --chrome-muted:#9aa5b1;
+  --title:#121820; --title-fg:#e3e8ee; --menu-hover:#34404e; --sel:#3d7fd0; --sel-fg:#ffffff;
+  --paper:#11161d; --grid:#2c3542; --grid-major:#18202a;
+  --sym:#8fb4e6; --sym-fill:#18202b; --sym-text:#dde5ee; --pin:#8a96a4; --pin-name:#8cc0ff; --ref:#e3e8ee; --val:#8f9aa7;
+  --info:#6aa7ec; --ok:#3fc27a; --warn:#f2bf2e; --err:#ff5a6c;
+  --w-red:#ff5555; --w-blk:#c3cad2; --w-blu:#5b9bff; --w-yel:#f2c230; --halo:rgba(17,22,29,.95); --live:#3fd68a; color-scheme:dark }}
 :root[data-theme="dark"]{
-  --bg:#12161a; --surface:#1b2026; --surface-2:#222831; --fg:#e4e8ec; --muted:#9aa5b0; --line:#323a43;
-  --board:#171b20; --board-grid:#222830; --part:#20262d; --part-line:#aab3bc; --part-head:#2a313a;
-  --accent:#ff4a5f; --info:#6aa7ec; --ok:#3fc27a; --warn:#f2bf2e; --err:#ff4a5f;
-  --w-red:#ff4b4b; --w-blk:#0a0b0c; --w-blu:#4d8ef0; --w-yel:#f2c230; --halo:#68727d; color-scheme:dark }
+  --chrome:#23282f; --chrome-2:#1b1f25; --chrome-3:#2b313a; --chrome-line:#3b444f; --chrome-fg:#e3e8ee; --chrome-muted:#9aa5b1;
+  --title:#121820; --title-fg:#e3e8ee; --menu-hover:#34404e; --sel:#3d7fd0; --sel-fg:#ffffff;
+  --paper:#11161d; --grid:#2c3542; --grid-major:#18202a;
+  --sym:#8fb4e6; --sym-fill:#18202b; --sym-text:#dde5ee; --pin:#8a96a4; --pin-name:#8cc0ff; --ref:#e3e8ee; --val:#8f9aa7;
+  --info:#6aa7ec; --ok:#3fc27a; --warn:#f2bf2e; --err:#ff5a6c;
+  --w-red:#ff5555; --w-blk:#c3cad2; --w-blu:#5b9bff; --w-yel:#f2c230; --halo:rgba(17,22,29,.95); --live:#3fd68a; color-scheme:dark }
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
-.wrap{max-width:1680px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
-h1{font-size:1.6rem;font-weight:700} h2{font-size:1.05rem;font-weight:700} h3{font-size:.92rem;font-weight:600}
-p{margin:0}
-a{color:var(--info)}
-.eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
-header.top .t{display:flex;flex-direction:column;gap:4px;min-width:0}
-.lead{color:var(--muted);max-width:80ch}
-button,select,input{font:inherit}
-.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:7px 12px;font-size:.86rem;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
-.btn:hover{border-color:var(--muted)}
-.btn.pri{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.btn.dng{border-color:var(--err);color:var(--err)}
-.btn.sm{padding:5px 9px;font-size:.8rem}
-.btn:focus-visible,.term:focus-visible,.part:focus-visible,.pal-btn:focus-visible{outline:3px solid var(--info);outline-offset:2px}
-.btn[disabled]{opacity:.45;cursor:default}
-.grid{display:grid;grid-template-columns:250px minmax(0,1fr) 360px;gap:16px;align-items:start}
-@media (max-width:1400px){.grid{grid-template-columns:240px minmax(0,1fr)} .grid > .col.right{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
-@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)} .grid > .col.right{display:flex}}
-.col{display:flex;flex-direction:column;gap:16px;min-width:0}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.note{font-size:.8rem;color:var(--muted)}
+html,body{height:100%}
+body{background:var(--chrome-2);color:var(--chrome-fg);font-family:var(--font-body);font-size:13px;line-height:1.45;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;flex-direction:column}
+h2,h3,b{margin:0}
+button,select,input{font:inherit;color:inherit}
+.app{flex:1;min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;border:1px solid var(--chrome-line);border-radius:8px;overflow:hidden;background:var(--chrome);box-shadow:0 6px 24px rgba(0,0,0,.18)}
 
-/* palette */
-.pal{display:flex;flex-direction:column;gap:12px}
-.pal-cat{display:flex;flex-direction:column;gap:6px}
-.pal-cat h3{font-size:.78rem;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.pal-items{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.pal-btn{border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:8px;padding:6px 8px;font-size:.8rem;text-align:left;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;gap:1px;min-width:0}
-.pal-btn:hover{border-color:var(--info)}
-.pal-btn b{font-weight:600}
-.pal-btn span{font-family:var(--font-mono);font-size:.64rem;color:var(--muted);overflow-wrap:anywhere}
-.cardsel{display:flex;flex-direction:column;gap:8px}
-.cardsel label{display:flex;gap:8px;align-items:flex-start;font-size:.84rem;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--surface-2);cursor:pointer}
-.cardsel label.fixed{cursor:default;opacity:.85}
-.cardsel input{margin-top:3px}
-.cardsel small{display:block;color:var(--muted);font-size:.74rem}
+/* title + menu */
+.titlebar{display:flex;align-items:center;gap:10px;background:var(--title);color:var(--title-fg);padding:6px 12px;min-width:0}
+.titlebar svg{flex:none}
+.titlebar b{font-size:.9rem;letter-spacing:.02em}
+.titlebar .file{font-family:var(--font-mono);font-size:.76rem;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.titlebar .sp{flex:1}
+.titlebar a{color:var(--title-fg);font-size:.76rem;opacity:.85;white-space:nowrap}
+.menubar{display:flex;gap:2px;padding:2px 6px;background:var(--chrome);border-bottom:1px solid var(--chrome-line);position:relative;z-index:20;flex-wrap:wrap}
+.menu{position:relative}
+.menu > button{background:none;border:0;padding:4px 10px;border-radius:4px;cursor:pointer}
+.menu > button:hover,.menu.open > button{background:var(--menu-hover)}
+.drop{display:none;position:absolute;left:0;top:100%;min-width:230px;background:var(--chrome-3);border:1px solid var(--chrome-line);border-radius:6px;box-shadow:0 10px 24px rgba(0,0,0,.25);padding:4px;z-index:30}
+.menu.open .drop{display:block}
+.drop button{display:flex;justify-content:space-between;gap:20px;width:100%;background:none;border:0;padding:6px 10px;border-radius:4px;text-align:left;cursor:pointer}
+.drop button:hover{background:var(--sel);color:var(--sel-fg)}
+.drop button kbd{font-family:var(--font-mono);font-size:.72rem;opacity:.7}
+.drop hr{border:0;border-top:1px solid var(--chrome-line);margin:4px 2px}
 
-/* board */
-.board-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--board);max-height:min(86vh,1100px)}
+/* toolbar */
+.toolbar{display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--chrome-3);border-bottom:1px solid var(--chrome-line);overflow-x:auto}
+.tgrp{display:flex;align-items:center;gap:2px;padding-right:6px;margin-right:4px;border-right:1px solid var(--chrome-line);flex:none}
+.tgrp:last-child{border-right:0}
+.tb{display:inline-flex;align-items:center;gap:5px;height:30px;min-width:30px;justify-content:center;padding:0 7px;border:1px solid transparent;border-radius:5px;background:none;cursor:pointer;white-space:nowrap}
+.tb:hover{background:var(--menu-hover);border-color:var(--chrome-line)}
+.tb[disabled]{opacity:.38;cursor:default;background:none;border-color:transparent}
+.tb svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tb.run{background:var(--ok);color:#fff;border-color:transparent;padding:0 12px;font-weight:600}
+.tb.run.on{background:var(--err)}
+.tb.run svg{fill:currentColor;stroke:none}
+.tb .lbl{font-size:.78rem}
+#zLbl{font-family:var(--font-mono);font-size:.76rem;min-width:44px;text-align:center;color:var(--chrome-muted)}
+.swatches{display:flex;gap:4px;align-items:center}
+.sw{width:22px;height:22px;border-radius:4px;border:1px solid var(--chrome-line);cursor:pointer;display:grid;place-items:center;font-size:.62rem;font-weight:700;background:var(--chrome)}
+.sw[aria-pressed="true"]{outline:2px solid var(--sel);outline-offset:1px}
+.tb:focus-visible,.sw:focus-visible,.menu > button:focus-visible,.drop button:focus-visible,.lib-item:focus-visible,.term:focus-visible,.part:focus-visible{outline:2px solid var(--sel);outline-offset:1px}
+
+/* workspace */
+.work{display:grid;grid-template-columns:230px minmax(0,1fr) 330px;min-height:0}
+.dock{display:flex;flex-direction:column;min-height:0;overflow:auto;background:var(--chrome)}
+.dock.left{border-right:1px solid var(--chrome-line)}
+.dock.right{border-left:1px solid var(--chrome-line)}
+.pane{border-bottom:1px solid var(--chrome-line);display:flex;flex-direction:column;min-width:0}
+.pane-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px;background:var(--chrome-2);font-size:.74rem;font-weight:600;letter-spacing:.03em;color:var(--chrome-muted);text-transform:uppercase;border-bottom:1px solid var(--chrome-line);cursor:default;list-style:none}
+details.pane > summary{cursor:pointer}
+details.pane > summary::-webkit-details-marker{display:none}
+details.pane > summary::after{content:"▾"} details.pane:not([open]) > summary::after{content:"▸"}
+.pane-b{padding:8px 10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+
+/* component library */
+.tree{padding:4px 0}
+.tree details{border:0}
+.tree summary{padding:4px 10px;cursor:pointer;font-weight:600;font-size:.8rem;list-style:none;display:flex;gap:6px;align-items:center}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary::before{content:"▸";color:var(--chrome-muted);font-size:.7rem}
+.tree details[open] > summary::before{content:"▾"}
+.lib-item{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;padding:4px 10px 4px 24px;cursor:pointer;text-align:left;border-radius:0}
+.lib-item:hover{background:var(--sel);color:var(--sel-fg)}
+.lib-item:hover .lib-code{color:inherit;opacity:.8}
+.lib-item svg{flex:none;width:22px;height:18px;stroke:currentColor;fill:none;stroke-width:1.4}
+.lib-item span{min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.lib-code{font-family:var(--font-mono);font-size:.66rem;color:var(--chrome-muted)}
+.cardsel{display:flex;flex-direction:column;gap:4px}
+.cardsel label{display:flex;gap:7px;align-items:flex-start;font-size:.8rem;padding:4px 2px;cursor:pointer}
+.cardsel label.fixed{cursor:default;opacity:.8}
+.cardsel input{margin-top:2px}
+.cardsel small{display:block;color:var(--chrome-muted);font-size:.72rem}
+
+/* sheet */
+.center{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;min-width:0}
+.tabs{display:flex;gap:2px;padding:4px 6px 0;background:var(--chrome-2);border-bottom:1px solid var(--chrome-line)}
+.tab{padding:4px 12px;border:1px solid var(--chrome-line);border-bottom:0;border-radius:5px 5px 0 0;background:var(--paper);font-family:var(--font-mono);font-size:.74rem;margin-bottom:-1px}
+.board-wrap{overflow:auto;background:var(--paper);min-height:0;position:relative}
 svg.board{display:block;width:1100px;max-width:none;height:auto;touch-action:pan-x pan-y;user-select:none;-webkit-user-select:none}
-.part.selp{touch-action:none}
-.zoom{display:flex;gap:6px;align-items:center}
-.zoom .btn{min-width:36px;justify-content:center}
-.zoom output{font-family:var(--font-mono);font-size:.78rem;color:var(--muted);min-width:42px;text-align:center}
-details.card > summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-details.card > summary::-webkit-details-marker{display:none}
-details.card > summary::after{content:"▾";color:var(--muted)}
-details.card:not([open]) > summary::after{content:"▸"}
-button,.pal-btn,.sw,select{touch-action:manipulation}
-@media (pointer:coarse){
-  .term circle.hit{r:14px}
-  .term circle.screw{r:8.5px}
-  .btn{padding:9px 13px}
-  .btn.sm{padding:8px 11px}
-}
-@media (max-width:820px){
-  .board-wrap{max-height:72vh}
-  .pal-items{display:flex;overflow-x:auto;gap:6px;padding-bottom:4px;scroll-snap-type:x proximity}
-  .pal-btn{flex:none;width:136px;scroll-snap-align:start}
-  .pal{gap:8px}
-  .lead{font-size:.9rem}
-  h1{font-size:1.3rem}
-  .res{max-height:none}
-  .grid > .col:nth-child(2){order:-1}
-}
-.gridline{stroke:var(--board-grid);stroke-width:1}
+.gdot{fill:var(--grid)}
+.gmaj{fill:none;stroke:var(--grid-major);stroke-width:1}
+.sheet-frame{fill:none;stroke:var(--grid);stroke-width:1}
 .part{cursor:grab}
 .part.dragging{cursor:grabbing}
-.part rect.body{fill:var(--part);stroke:var(--part-line);stroke-width:1.4}
-.part.selp rect.body{stroke:var(--info);stroke-width:3}
-.part rect.head{fill:var(--part-head);stroke:none}
-.part .ttl{font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--fg)}
-.part .sub{font-family:var(--font-body);font-size:11px;fill:var(--muted)}
-.part .ico{fill:none;stroke:var(--part-line);stroke-width:1.4}
-.part .addr{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:var(--info)}
+.part.selp{touch-action:none}
+.part rect.body{fill:var(--sym-fill);stroke:var(--sym);stroke-width:1.6}
+.part .selbox{fill:none;stroke:none}
+.part.selp .selbox{stroke:var(--sel);stroke-width:1.4;stroke-dasharray:5 3}
+.part .ttl{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:var(--sym-text)}
+.part .sub{font-family:var(--font-body);font-size:10.5px;fill:var(--val)}
+.part .ref{font-family:var(--font-mono);font-size:11.5px;font-weight:600;fill:var(--ref)}
+.part .val{font-family:var(--font-mono);font-size:10.5px;fill:var(--val)}
+.part .ico{fill:none;stroke:var(--sym);stroke-width:1.3}
+.part .addr{font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--pin-name)}
 .part.k-facp{cursor:default}
-.part.k-facp rect.body{fill:var(--enc);stroke:#000}
-.part.k-facp .ttl{fill:#fff}
-.part.k-facp .sub,.part.k-facp .glabel{fill:var(--enc-muted)}
-.part.k-facp.selp rect.body{stroke:var(--info)}
-.cardrect{stroke:#4b525a;stroke-width:1}
-.cardrect.cpu{fill:var(--enc-card)} .cardrect.opt{fill:var(--enc-card-2)} .cardrect.psu{fill:#1a1d20}
-.cardrect.empty{fill:none;stroke-dasharray:5 4;stroke:#5a616a}
-.cardttl{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:#fff;letter-spacing:.06em}
-.glabel{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;fill:var(--muted)}
-.tlabel{font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--fg);pointer-events:none}
-.term.facp-t .tlabel{fill:var(--enc-fg)}
+.blk{fill:none;stroke:var(--sym);stroke-width:1;stroke-dasharray:6 4;opacity:.8}
+.blk.empty{opacity:.45}
+.blkttl{font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--sym)}
+.glabel{font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;fill:var(--val)}
 .term{cursor:crosshair}
-.term circle.screw{fill:#c9ced4;stroke:#555c64;stroke-width:1.2}
-.term line{stroke:#555c64;stroke-width:1.4}
+.term .pin{stroke:var(--pin);stroke-width:1.6}
+.term .pinend{fill:var(--paper);stroke:var(--pin);stroke-width:1.3}
+.term.pos .pinend{stroke:var(--w-red)}
 .term circle.hit{fill:transparent}
-.term:hover circle.screw{fill:#ffe27a}
-.term.sel circle.screw{fill:var(--info);stroke:var(--info)}
-.term.pos circle.screw{stroke:var(--w-red);stroke-width:2}
-.wire{fill:none;stroke-linecap:round;pointer-events:none}
-.wire-halo{fill:none;stroke:var(--halo);stroke-width:7;stroke-linecap:round;pointer-events:none}
-.wire-hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
-.wire.cut{stroke-dasharray:14 10}
-.wire.fault{stroke-dasharray:4 4}
-.wire.selw{stroke-width:5.5!important}
+.term:hover .pinend{fill:#ffd84d;stroke:#8a6d00}
+.term.sel .pinend{fill:var(--sel);stroke:var(--sel)}
+.tlabel{font-family:var(--font-mono);font-size:10px;font-weight:500;fill:var(--pin-name);pointer-events:none}
+.junc{stroke:none}
+.wire{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.wire-halo{fill:none;stroke:var(--halo);stroke-width:5.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.wire-hit{fill:none;stroke:transparent;stroke-width:12;cursor:pointer}
+.wire.cut{stroke-dasharray:12 9}
+.wire.fault{stroke-dasharray:3 4}
+.wire.selw{stroke-width:4!important}
 .wire.bad{animation:badw 1s ease-in-out infinite}
-@keyframes badw{50%{opacity:.3}}
-.rubber{fill:none;stroke:var(--info);stroke-width:2.5;stroke-dasharray:6 5;pointer-events:none}
-.part .flash{fill:#fff;opacity:0;pointer-events:none}
+@keyframes badw{50%{opacity:.25}}
+.flow{fill:none;stroke:var(--live);stroke-width:1.6;stroke-dasharray:3 13;stroke-linecap:round;pointer-events:none;animation:flow 1.6s linear infinite;opacity:.9}
+.flow.hot{stroke:#ffb020;stroke-width:2.2;animation-duration:.5s}
+@keyframes flow{to{stroke-dashoffset:-32}}
+.rubber{fill:none;stroke:var(--sel);stroke-width:1.6;stroke-dasharray:5 4;pointer-events:none}
+.part .flash{fill:#ffef9a;opacity:0;pointer-events:none}
 .part.on .flash{animation:strobe 1s steps(1) infinite}
-.part.on rect.body{stroke:var(--err);stroke-width:3}
-@keyframes strobe{0%{opacity:.95}15%{opacity:0}}
+.part.on rect.body{stroke:var(--err);stroke-width:2.6}
+@keyframes strobe{0%{opacity:.9}15%{opacity:0}}
 .fan{transform-box:fill-box;transform-origin:center}
 .part.run .fan{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .part.alm circle.ico.main{fill:var(--err);stroke:var(--err)}
-.part .isoled{fill:#3a3f45;stroke:var(--part-line)}
+.part .isoled{fill:#3a3f45;stroke:var(--sym)}
 .part.open .isoled{fill:#ffc93a;animation:isob 1s steps(1) infinite}
 @keyframes isob{50%{fill:#3a3f45}}
-.part.open rect.body{stroke:var(--warn);stroke-width:2.5}
+.part.open rect.body{stroke:var(--warn);stroke-width:2.4}
 .annlcd{fill:#a9c27a;stroke:#3b4a2a}
 .anntxt{font-family:var(--font-lcd);font-size:15px;fill:#1d2a12;pointer-events:none}
-@media (prefers-reduced-motion:reduce){.part.on .flash,.part.run .fan,.wire.bad,.part.open .isoled{animation-duration:3s}}
+@media (prefers-reduced-motion:reduce){.part.on .flash,.part.run .fan,.wire.bad,.part.open .isoled,.flow{animation-duration:3s}}
 
-/* panel display */
-.pnl{background:linear-gradient(180deg,var(--enc),var(--enc-2));border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;color:var(--enc-fg)}
-.pnl-h{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;color:var(--enc-muted)}
-.lcd{background:radial-gradient(ellipse at 50% 40%,var(--lcd-glow),var(--lcd-bg) 70%);color:var(--lcd-fg);font-family:var(--font-lcd);font-size:19px;line-height:1.12;padding:8px 10px;border-radius:4px;white-space:pre;overflow-x:auto;box-shadow:inset 0 0 12px rgba(0,0,0,.35);min-height:92px}
-.leds{display:flex;flex-wrap:wrap;gap:8px 16px}
-.led{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.08em;color:var(--enc-muted)}
-.led i{width:12px;height:12px;border-radius:50%;background:#3a3f45}
-.led.lit{color:var(--enc-fg)} .led.lit i{background:var(--c);box-shadow:0 0 9px var(--c)}
+/* messages */
+.msgs{border-top:1px solid var(--chrome-line);background:var(--chrome);display:flex;flex-direction:column;height:210px;min-height:0}
+.msgs .pane-h{flex:none}
+.ftabs{display:flex;gap:2px;text-transform:none;letter-spacing:0}
+.ftabs button{border:1px solid var(--chrome-line);background:var(--chrome-3);border-radius:4px;padding:1px 8px;font-size:.74rem;cursor:pointer;font-weight:500}
+.ftabs button[aria-pressed="true"]{background:var(--sel);color:var(--sel-fg);border-color:var(--sel)}
+.res{overflow:auto;flex:1;min-height:0;background:var(--chrome-3)}
+table.erc{width:100%;border-collapse:collapse;font-size:.8rem}
+table.erc td,table.erc th{padding:3px 8px;border-bottom:1px solid var(--chrome-line);vertical-align:top;text-align:left}
+table.erc th{position:sticky;top:0;background:var(--chrome-2);font-weight:600;color:var(--chrome-muted);font-size:.72rem;z-index:1}
+table.erc tr.grp td{background:var(--chrome);font-weight:600}
+table.erc td.ic{width:22px;text-align:center;font-weight:700}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:.64rem;font-weight:600;letter-spacing:.04em;padding:1px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-err{color:var(--err)} .c-muted{color:var(--chrome-muted)} .c-info{color:var(--info)}
+
+/* right dock */
+.insp{display:flex;flex-direction:column;gap:8px}
+.insp h3{font-size:.86rem}
+.insp p{font-size:.8rem;color:var(--chrome-muted);margin:0}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:center;font-size:.8rem}
+.kv dt{color:var(--chrome-muted)} .kv dd{margin:0;font-family:var(--font-mono);font-size:.78rem;overflow-wrap:anywhere}
+.kv input,.kv select,.shortrow select{border:1px solid var(--chrome-line);border-radius:4px;padding:3px 6px;background:var(--chrome-3);font-family:var(--font-mono);font-size:.8rem;width:100%}
+.btn{border:1px solid var(--chrome-line);background:var(--chrome-3);border-radius:5px;padding:4px 10px;font-size:.78rem;cursor:pointer}
+.btn:hover{border-color:var(--chrome-muted)}
+.btn.dng{color:var(--err);border-color:var(--err)}
+.btn.pri{background:var(--sel);color:var(--sel-fg);border-color:var(--sel)}
+.btn[disabled]{opacity:.45;cursor:default}
+.btn:focus-visible{outline:2px solid var(--sel);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.note{font-size:.76rem;color:var(--chrome-muted);margin:0}
+.pnl{background:linear-gradient(180deg,var(--enc),var(--enc-2));border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;color:var(--enc-fg)}
+.pnl-h{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;color:var(--enc-muted)}
+.lcd{background:radial-gradient(ellipse at 50% 40%,var(--lcd-glow),var(--lcd-bg) 70%);color:var(--lcd-fg);font-family:var(--font-lcd);font-size:17px;line-height:1.12;padding:6px 8px;border-radius:3px;white-space:pre;overflow-x:auto;box-shadow:inset 0 0 10px rgba(0,0,0,.35);min-height:84px}
+.leds{display:flex;flex-wrap:wrap;gap:6px 12px}
+.led{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:.64rem;letter-spacing:.06em;color:var(--enc-muted)}
+.led i{width:10px;height:10px;border-radius:50%;background:#3a3f45}
+.led.lit{color:var(--enc-fg)} .led.lit i{background:var(--c);box-shadow:0 0 8px var(--c)}
 .led.blink i{animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{background:#3a3f45;box-shadow:none}}
-
-/* results */
-.res{display:flex;flex-direction:column;gap:8px;max-height:620px;overflow:auto}
-.circ{border:1px solid var(--line);border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;background:var(--surface-2)}
-.circ-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.circ-h b{font-size:.86rem}
-.chip{display:inline-block;font-family:var(--font-mono);font-size:.66rem;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
-.c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-err{color:var(--err)} .c-muted{color:var(--muted)} .c-info{color:var(--info)}
-.circ ul{margin:0;padding-left:1.1em;font-size:.82rem;display:flex;flex-direction:column;gap:3px}
-.circ li.ok::marker{color:var(--ok)} .circ li.err::marker{color:var(--err)} .circ li.warn::marker{color:var(--warn)}
-.circ li.ok{list-style:"✓  "} .circ li.err{list-style:"✕  "} .circ li.warn{list-style:"!  "} .circ li.inf{list-style:"·  "}
-.insp{display:flex;flex-direction:column;gap:8px}
-.insp .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:.86rem}
-.insp input,.insp select,.shortrow select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:var(--surface);color:var(--fg);font-family:var(--font-mono);font-size:.85rem;width:100%}
-.insp p{font-size:.84rem;color:var(--muted)}
-.swatches{display:flex;gap:6px;flex-wrap:wrap}
-.sw{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);cursor:pointer;display:grid;place-items:center;font-size:.62rem;font-weight:700;color:var(--fg);background:var(--surface)}
-.sw[aria-pressed="true"]{border-color:var(--info);box-shadow:0 0 0 2px var(--info)}
-.hint{font-size:.84rem;background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}
-.shortrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.shortrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .shortrow select{width:auto;max-width:100%}
-.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
-.guide ul{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:5px;font-size:.88rem}
-.guide .g{display:flex;flex-direction:column;gap:8px}
-code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+
+/* status bar */
+.statusbar{display:flex;align-items:center;gap:0;background:var(--chrome-2);border-top:1px solid var(--chrome-line);font-size:.74rem;color:var(--chrome-muted);min-width:0}
+.statusbar > span{padding:3px 10px;border-right:1px solid var(--chrome-line);white-space:nowrap}
+.statusbar > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--chrome-fg)}
+.statusbar > span:last-child{border-right:0}
+#sbSim.on{color:var(--ok);font-weight:600}
+.mono{font-family:var(--font-mono)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(10,14,20,.45);display:grid;place-items:center;z-index:50;padding:16px}
+.dlg{background:var(--chrome-3);border:1px solid var(--chrome-line);border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.35);width:min(860px,100%);max-height:90%;display:flex;flex-direction:column;overflow:hidden}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;background:var(--title);color:var(--title-fg);padding:7px 12px}
+.dlg-h button{background:none;border:0;color:inherit;font-size:1rem;cursor:pointer;padding:2px 6px}
+.dlg-b{padding:14px 16px;overflow:auto;font-size:.86rem}
+.dlg-f{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid var(--chrome-line)}
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.guide h3{font-size:.88rem;margin-bottom:6px}
+.guide ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px}
+code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border:1px solid var(--chrome-line);border-radius:3px;padding:0 4px}
+
+@media (pointer:coarse){
+  .term circle.hit{r:14px}
+  .tb{height:36px;min-width:36px}
+  .lib-item{padding-block:7px}
+}
+@media (max-width:1180px){ .work{grid-template-columns:210px minmax(0,1fr) 290px} }
+@media (max-width:920px){
+  body{display:block}
+  .app{display:flex;flex-direction:column;height:auto}
+  .work{display:flex;flex-direction:column}
+  .center{order:-1;display:flex;flex-direction:column}
+  .board-wrap{height:62vh}
+  .msgs{height:auto;max-height:none}
+  .res{max-height:320px}
+  .dock{overflow:visible}
+  .dock.left,.dock.right{border:0;border-top:1px solid var(--chrome-line)}
+  .tree{display:flex;flex-direction:column}
+  .statusbar{flex-wrap:wrap}
+  .statusbar > span:first-child{flex-basis:100%;white-space:normal;border-right:0;border-bottom:1px solid var(--chrome-line)}
+  .titlebar .file{display:none}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="t">
-      <span class="eyebrow">Wiring lab · Build your own system</span>
-      <h1>ฝึกต่อสายระบบแจ้งเหตุเพลิงไหม้ Addressable</h1>
-      <p class="lead">เลือกอุปกรณ์จากคลังอุปกรณ์มาวางบนบอร์ด ลากย้ายตำแหน่งได้ ติดการ์ดเสริมในตู้ FACP แล้วต่อสายจากขั้วถึงขั้ว ระบบตรวจทุกวงจรทันทีว่าตู้จะแสดงอะไร: ลัดวงจร สายขาด กลับขั้ว Address ซ้ำ ค่า EOL ผิด หรือต่ออุปกรณ์ผิดประเภทกับวงจร</p>
-    </div>
-    <div class="row">
-      <a class="btn" id="simLink" href="index.html">เครื่องจำลองการใช้งานตู้</a>
-    </div>
+<div class="app">
+  <header class="titlebar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 12h5l2-5 4 10 2-5h7"/></svg>
+    <b>FACP Wiring Lab</b>
+    <span class="file" id="fileName">ระบบพื้นฐาน.fsim</span>
+    <span class="sp"></span>
+    <a id="simLink" href="index.html">เครื่องจำลองการใช้งานตู้</a>
   </header>
 
-  <div class="grid">
-    <div class="col">
-      <details class="card" id="cardsBox" open>
-        <summary><h2>การ์ดในตู้ FACP</h2></summary>
-        <div class="cardsel" id="cards"></div>
-      </details>
-      <section class="card" aria-label="คลังอุปกรณ์">
-        <div class="card-h"><h2>เพิ่มอุปกรณ์</h2><span class="eyebrow">แตะ/คลิกเพื่อวาง</span></div>
-        <div class="pal" id="palette"></div>
-      </section>
+  <nav class="menubar" id="menubar" aria-label="เมนู">
+    <div class="menu"><button type="button" aria-haspopup="true">ไฟล์</button><div class="drop" role="menu">
+      <button type="button" data-do="new">ใหม่ (ตู้เปล่า)</button>
+      <hr><button type="button" data-do="exBasic">เปิดตัวอย่าง: ระบบพื้นฐาน</button>
+      <button type="button" data-do="exFull">เปิดตัวอย่าง: ระบบเต็ม</button></div></div>
+    <div class="menu"><button type="button" aria-haspopup="true">แก้ไข</button><div class="drop" role="menu">
+      <button type="button" data-do="undo">ย้อนสายล่าสุด <kbd>Ctrl+Z</kbd></button>
+      <button type="button" data-do="delW">ลบสายที่เลือก <kbd>Del</kbd></button>
+      <button type="button" data-do="delP">ลบอุปกรณ์ที่เลือก <kbd>Del</kbd></button>
+      <button type="button" data-do="cutW">จำลองสายขาด / ต่อคืน</button></div></div>
+    <div class="menu"><button type="button" aria-haspopup="true">มุมมอง</button><div class="drop" role="menu">
+      <button type="button" data-do="zIn">ซูมเข้า <kbd>Ctrl+wheel</kbd></button>
+      <button type="button" data-do="zOut">ซูมออก</button>
+      <button type="button" data-do="zFit">พอดีหน้าจอ</button>
+      <hr><button type="button" data-do="grid">แสดง/ซ่อนกริด</button></div></div>
+    <div class="menu"><button type="button" aria-haspopup="true">จำลอง</button><div class="drop" role="menu">
+      <button type="button" data-do="runBtn">เริ่ม / หยุดจำลอง <kbd>F5</kbd></button>
+      <button type="button" data-do="rstBtn">SYSTEM RESET</button></div></div>
+    <div class="menu"><button type="button" aria-haspopup="true">ช่วยเหลือ</button><div class="drop" role="menu">
+      <button type="button" data-do="guide">หลักการต่อสายแต่ละส่วน</button>
+      <button type="button" data-do="howto">วิธีใช้โปรแกรม</button></div></div>
+  </nav>
+
+  <div class="toolbar" role="toolbar" aria-label="เครื่องมือ">
+    <div class="tgrp">
+      <button class="tb" type="button" id="clear" title="ใหม่ (ตู้เปล่า)" aria-label="ใหม่"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></button>
+      <button class="tb" type="button" id="exBasic" title="ตัวอย่าง: ระบบพื้นฐาน"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">พื้นฐาน</span></button>
+      <button class="tb" type="button" id="exFull" title="ตัวอย่าง: ระบบเต็ม"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">ระบบเต็ม</span></button>
     </div>
-
-    <div class="col">
-      <section class="card" aria-label="บอร์ดต่อสาย">
-        <div class="card-h">
-          <h2>บอร์ดต่อสาย</h2>
-          <div class="row"><span class="note">สีสาย</span><div class="swatches" id="swatches" role="group" aria-label="สีสาย"></div></div>
-          <div class="zoom" role="group" aria-label="ซูมบอร์ด"><button class="btn sm" type="button" id="zOut" aria-label="ซูมออก">−</button><output id="zLbl">100%</output><button class="btn sm" type="button" id="zIn" aria-label="ซูมเข้า">+</button><button class="btn sm" type="button" id="zFit">พอดีจอ</button></div>
-        </div>
-        <div class="hint" id="hint"></div>
-        <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="บอร์ดต่อสายอุปกรณ์"></svg></div>
-        <div class="row">
-          <button class="btn" id="undo" type="button">ย้อนสายล่าสุด</button>
-          <button class="btn" id="delW" type="button" disabled>ลบสายที่เลือก</button>
-          <button class="btn" id="cutW" type="button" disabled>จำลองสายขาด</button>
-          <span style="flex:1"></span>
-          <button class="btn" id="exBasic" type="button">ตัวอย่าง: ระบบพื้นฐาน</button>
-          <button class="btn" id="exFull" type="button">ตัวอย่าง: ระบบเต็ม</button>
-          <button class="btn dng" id="clear" type="button">เริ่มใหม่ (ตู้เปล่า)</button>
-        </div>
-      </section>
+    <div class="tgrp">
+      <button class="tb" type="button" id="undo" title="ย้อนสายล่าสุด (Ctrl+Z)" aria-label="ย้อนสาย"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+      <button class="tb" type="button" id="delW" title="ลบสายที่เลือก" aria-label="ลบสาย" disabled><svg viewBox="0 0 24 24"><path d="M3 12h7M14 12h7"/><path d="M10 9l4 6M14 9l-4 6"/></svg></button>
+      <button class="tb" type="button" id="cutW" title="จำลองสายขาด" aria-label="จำลองสายขาด" disabled><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M8 15L18 4M16 15L6 4"/></svg></button>
+      <button class="tb" type="button" id="delP" title="ลบอุปกรณ์ที่เลือก" aria-label="ลบอุปกรณ์" disabled><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
     </div>
-
-    <div class="col right">
-      <section class="card" aria-label="อุปกรณ์ที่เลือก">
-        <div class="card-h"><h2>อุปกรณ์ที่เลือก</h2></div>
-        <div class="insp" id="insp"></div>
-      </section>
-
-      <section class="pnl" aria-label="หน้าจอตู้">
-        <div class="pnl-h"><span>FACP DISPLAY</span><span id="pnlCount"></span></div>
-        <div class="lcd" id="lcd" aria-live="polite"></div>
-        <div class="leds" id="leds"></div>
-      </section>
-
-      <section class="card" aria-label="ทดสอบการทำงาน">
-        <div class="card-h"><h2>ทดสอบการทำงาน</h2><span class="eyebrow">Functional test</span></div>
-        <div class="row" id="tests"></div>
-        <div class="shortrow"><label for="shortSel" class="note">จำลอง SLC ช็อตที่</label><select id="shortSel"></select><button class="btn sm" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
-        <p class="note" id="testMsg">ต่อสายให้ครบแล้วลองสั่ง Alarm จากอุปกรณ์</p>
-      </section>
-
-      <section class="card" aria-label="ผลตรวจ">
-        <div class="card-h"><h2>ผลตรวจแต่ละวงจร</h2><span class="chip c-muted" id="score"></span></div>
-        <div class="res" id="res"></div>
-      </section>
+    <div class="tgrp">
+      <button class="tb" type="button" id="zOut" title="ซูมออก" aria-label="ซูมออก"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M7 10h6M15 15l5 5"/></svg></button>
+      <output id="zLbl">100%</output>
+      <button class="tb" type="button" id="zIn" title="ซูมเข้า" aria-label="ซูมเข้า"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M7 10h6M10 7v6M15 15l5 5"/></svg></button>
+      <button class="tb" type="button" id="zFit" title="พอดีหน้าจอ" aria-label="พอดีหน้าจอ"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    </div>
+    <div class="tgrp"><span class="note" style="margin-right:4px">สาย</span><div class="swatches" id="swatches" role="group" aria-label="สีสาย"></div></div>
+    <div class="tgrp">
+      <button class="tb run" type="button" id="runBtn" title="เริ่ม/หยุดจำลอง (F5)"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg><span class="lbl">เริ่มจำลอง</span></button>
+      <button class="tb" type="button" id="rstBtn" title="SYSTEM RESET"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg><span class="lbl">Reset</span></button>
+      <button class="tb" type="button" id="helpBtn" title="หลักการต่อสาย" aria-label="ช่วยเหลือ"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg></button>
     </div>
   </div>
 
-  <section class="card" aria-label="หลักการต่อสาย">
-    <h2>หลักการต่อสายแต่ละส่วน</h2>
-    <div class="guide">
-      <div class="g"><h3>ตู้ FACP และการ์ด</h3><ul>
-        <li><b>CPU / Main board</b>: มี SLC Loop 1, NAC 1–2, AUX 24V, ANN-BUS (RS-485 ไปจอแสดงผลระยะไกล) และรีเลย์ Alarm ในตัว</li>
-        <li><b>Main power supply</b>: รับไฟ AC 220V จ่าย 24V ให้ระบบ และชาร์จแบตเตอรี่ 12V × 2 ที่ต่ออนุกรม</li>
-        <li><b>การ์ด Loop 2</b>: เพิ่ม SLC อีกหนึ่ง loop Address แยกจาก Loop 1 (L2D001 คนละตัวกับ L1D001)</li>
-        <li><b>การ์ด DVC / Audio</b>: ระบบเสียงประกาศอพยพ ให้วงจรลำโพง 25V ต่อเฉพาะลำโพงที่มีหม้อแปลง ห้ามต่อฮอร์น</li>
-      </ul></div>
-      <div class="g"><h3>SLC Loop และ Isolator</h3><ul>
-        <li>สาย <code>SLC+</code>/<code>SLC−</code> ต่อพ่วงหัวและโมดูลทุกตัว ขั้วต้องตรงกัน</li>
-        <li><b>Class B</b> ออกขั้ว B จบที่ตัวสุดท้าย แยกสาย (T-tap) ได้ · <b>Class A</b> วนกลับเข้าขั้ว A ห้าม T-tap</li>
-        <li>ตั้ง Loop ของอุปกรณ์ในช่อง "อุปกรณ์ที่เลือก" ให้ตรงกับ loop ที่ต่อจริง ไม่งั้นตู้จะเห็นเป็น Unprogrammed</li>
-        <li>Isolator: ขา IN จากฝั่งตู้ ขา OUT ไปอุปกรณ์ถัดไป เมื่อช็อตจะตัดเฉพาะช่วงที่เสีย ควรติดใกล้ตู้และคั่นทุกโซน</li>
-      </ul></div>
-      <div class="g"><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
-        <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO ของแมนนวล, Flow switch, Tamper + EOL 47kΩ ที่ตัวสุดท้าย (Tamper แจ้งเป็น Supervisory)</li>
-        <li><b>Control</b>: ต้องมีไฟ 24V จาก AUX ขา OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ</li>
-        <li><b>Relay</b>: C/NO/NC เป็นหน้าสัมผัสแห้ง AHU ใช้ C–NC (ดับพัดลมตอน Alarm) ลิฟต์ใช้ C–NO (ปิดวงจรสั่ง Recall)</li>
-        <li>NAC บนตู้ใช้ EOL 2.2kΩ ฮอร์นต่อกลับขั้ว ตู้จะเห็นเป็น SHORT</li>
-      </ul></div>
-      <div class="g"><h3>อุปกรณ์เสริมภายนอก</h3><ul>
-        <li><b>Remote power supply (NAC extender)</b>: ขา IN รับสัญญาณจาก NAC ของตู้ (ต่อเหมือนฮอร์นตัวหนึ่ง แล้วย้าย EOL ของ NAC ตู้ไปไว้หลังขา IN) ขยาย NAC ได้อีก 2 วงจร ต้องมีแบตเตอรี่ของตัวเอง</li>
-        <li><b>Annunciator (จอแสดงผลระยะไกล)</b>: ต่อ ANN-BUS A→A, B→B และไฟ 24V จาก AUX ตั้ง Address 1–8 ห้ามซ้ำ</li>
-        <li>ทุกวงจรที่ตรวจสาย (IDC, NAC, ลำโพง) EOL ต้องอยู่ปลายสายเสมอ</li>
-      </ul></div>
-    </div>
-    <p class="note">ชื่อการ์ดและขั้วในแบบฝึกเป็นแบบกลาง ตู้จริง (เช่น Notifier รุ่นต่างๆ) มีชื่อการ์ด หมายเลขขั้ว ค่า EOL และพิกัดกระแสต่างกัน ให้ยึดคู่มือติดตั้งของรุ่นที่ใช้ มาตรฐาน วสท. และ NFPA 72</p>
-  </section>
+  <main class="work">
+    <aside class="dock left" aria-label="คลังอุปกรณ์">
+      <section class="pane">
+        <div class="pane-h">คลังอุปกรณ์ · Library</div>
+        <div class="tree" id="palette"></div>
+        <p class="note" style="padding:4px 10px 8px">คลิกเพื่อวาง หรือลากลงบนแผ่นงาน</p>
+      </section>
+      <details class="pane" id="cardsBox" open>
+        <summary class="pane-h">ตู้ FACP · การ์ด</summary>
+        <div class="pane-b"><div class="cardsel" id="cards"></div></div>
+      </details>
+    </aside>
+
+    <section class="center">
+      <div class="tabs"><span class="tab" id="sheetTab">Sheet 1 · ผังต่อสาย</span></div>
+      <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="แผ่นงานผังต่อสาย"></svg></div>
+      <section class="msgs" aria-label="ผลตรวจวงจร">
+        <div class="pane-h"><span>ผลตรวจวงจร (ERC) · <span id="score" class="chip c-muted"></span></span>
+          <span class="ftabs" role="group" aria-label="กรองข้อความ"><button type="button" id="fIss" aria-pressed="true">ปัญหา</button><button type="button" id="fAll" aria-pressed="false">ทั้งหมด</button></span></div>
+        <div class="res" id="res"></div>
+      </section>
+    </section>
+
+    <aside class="dock right" aria-label="แผงคุณสมบัติ">
+      <section class="pane"><div class="pane-h">คุณสมบัติ · Properties</div><div class="pane-b insp" id="insp"></div></section>
+      <section class="pane"><div class="pane-h">เครื่องมือวัด · FACP display</div>
+        <div class="pane-b"><div class="pnl"><div class="pnl-h"><span>FACP DISPLAY</span><span id="pnlCount"></span></div><div class="lcd" id="lcd" aria-live="polite"></div><div class="leds" id="leds"></div></div></div></section>
+      <section class="pane"><div class="pane-h">สัญญาณทดสอบ · Stimulus</div>
+        <div class="pane-b">
+          <div class="row" id="tests"></div>
+          <div class="shortrow"><label for="shortSel" class="note">จำลอง SLC ช็อตที่</label><select id="shortSel"></select><button class="btn" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
+          <p class="note" id="testMsg">กด ▶ เริ่มจำลอง แล้วสั่งเหตุจากอุปกรณ์</p>
+        </div></section>
+    </aside>
+  </main>
+
+  <footer class="statusbar">
+    <span id="hint"></span>
+    <span id="sbCoord" class="mono">X 0  Y 0</span>
+    <span id="sbErr"></span>
+    <span id="sbZoom" class="mono">100%</span>
+    <span id="sbSim">■ หยุดจำลอง</span>
+  </footer>
 </div>
+
+<div class="modal" id="modal" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="dlg-h"><b id="mTitle"></b><button type="button" id="mClose" aria-label="ปิด">✕</button></div>
+    <div class="dlg-b" id="mBody"></div>
+    <div class="dlg-f" id="mFoot"></div>
+  </div>
+</div>
+
+<template id="guideTpl">
+  <div class="guide">
+    <div><h3>ตู้ FACP และการ์ด</h3><ul>
+      <li><b>CPU / Main board</b>: SLC Loop 1, NAC 1–2, AUX 24V, ANN-BUS (RS-485 ไปจอแสดงผลระยะไกล) และรีเลย์ Alarm</li>
+      <li><b>Main power supply</b>: รับ AC 220V จ่าย 24V และชาร์จแบตเตอรี่ 12V × 2 ที่ต่ออนุกรม</li>
+      <li><b>การ์ด Loop 2</b>: เพิ่ม SLC อีก loop Address แยกจาก Loop 1 (L2D001 คนละตัวกับ L1D001)</li>
+      <li><b>การ์ด DVC / Audio</b>: วงจรลำโพง 25V ต่อเฉพาะลำโพงที่มีหม้อแปลง ห้ามต่อฮอร์น</li>
+    </ul></div>
+    <div><h3>SLC Loop และ Isolator</h3><ul>
+      <li><code>SLC+</code>/<code>SLC−</code> ต่อพ่วงทุกตัว ขั้วต้องตรงกัน</li>
+      <li><b>Class B</b> ออกขั้ว B จบที่ตัวสุดท้าย T-tap ได้ · <b>Class A</b> วนกลับขั้ว A ห้าม T-tap</li>
+      <li>ตั้ง Loop ของอุปกรณ์ใน Properties ให้ตรงกับ loop ที่ต่อจริง ไม่งั้นตู้เห็นเป็น Unprogrammed</li>
+      <li>Isolator: IN จากฝั่งตู้ OUT ไปตัวถัดไป ช็อตแล้วตัดเฉพาะช่วงที่เสีย ควรติดใกล้ตู้และคั่นทุกโซน</li>
+    </ul></div>
+    <div><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
+      <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO (แมนนวล, Flow, Tamper) + EOL 47kΩ ที่ตัวสุดท้าย</li>
+      <li><b>Control</b>: ไฟ 24V จาก AUX, OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ</li>
+      <li><b>Relay</b>: AHU ใช้ C–NC (ดับพัดลมตอน Alarm) ลิฟต์ใช้ C–NO (ปิดวงจรสั่ง Recall)</li>
+      <li>NAC บนตู้ใช้ EOL 2.2kΩ ฮอร์นกลับขั้ว ตู้เห็นเป็น SHORT</li>
+    </ul></div>
+    <div><h3>อุปกรณ์เสริมภายนอก</h3><ul>
+      <li><b>Remote power supply</b>: IN รับจาก NAC ตู้ (เหมือนฮอร์นหนึ่งตัว แล้วย้าย EOL ของ NAC ตู้ไปหลัง IN) ขยาย NAC อีก 2 วงจร ต้องมีแบตเตอรี่ของตัวเอง</li>
+      <li><b>Annunciator</b>: ANN-BUS A→A, B→B และไฟ 24V จาก AUX Address 1–8 ห้ามซ้ำ</li>
+      <li>วงจรที่ตรวจสาย (IDC, NAC, ลำโพง) EOL ต้องอยู่ปลายสายเสมอ</li>
+    </ul></div>
+  </div>
+  <p class="note" style="margin-top:12px">ชื่อการ์ดและขั้วในโปรแกรมเป็นแบบกลาง ตู้จริง (เช่น Notifier รุ่นต่างๆ) มีชื่อการ์ด หมายเลขขั้ว ค่า EOL และพิกัดกระแสต่างกัน ให้ยึดคู่มือติดตั้งของรุ่นที่ใช้ มาตรฐาน วสท. และ NFPA 72</p>
+</template>
+<template id="howtoTpl">
+  <ul style="margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px">
+    <li><b>วางอุปกรณ์</b>: คลิกชื่อในคลังอุปกรณ์ หรือลากลงบนแผ่นงาน แล้วลากตัวอุปกรณ์เพื่อจัดตำแหน่ง (บนมือถือ แตะเลือกก่อนแล้วจึงลาก)</li>
+    <li><b>ต่อสาย</b>: คลิกปลายขา (วงกลมเล็ก) ตัวแรก แล้วคลิกปลายขาปลายทาง สีสายเลือกได้ที่แถบเครื่องมือ (A = อัตโนมัติ: + แดง, − ดำ)</li>
+    <li><b>การ์ดในตู้</b>: ติด/ถอดการ์ด Loop 2 และ DVC ได้ที่ "ตู้ FACP · การ์ด"</li>
+    <li><b>Properties</b>: ตั้ง Loop และ Address ของอุปกรณ์ที่เลือก</li>
+    <li><b>ERC</b>: ตรวจวงจรทุกครั้งที่แก้ไข ข้อความแสดงสิ่งที่ตู้จริงจะเห็น สายที่กะพริบคือจุดที่ตู้ตรวจสายขาดไม่ได้</li>
+    <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง สายที่มีไฟจะแสดงการไหลของกระแส แล้วสั่งเหตุจากอุปกรณ์ใน Stimulus ดูว่าฮอร์นดัง พัดลมดับ ลิฟต์ถูกเรียก</li>
+  </ul>
+</template>
 
 <script>
 (() => {
@@ -380,9 +493,14 @@ const byId = id => parts.find(p => p.id === id);
 const T = p => TYPES[p.t];
 function termsOf(p) { return p.t === 'facp' ? facpTerms() : T(p).terms; }
 let TERM = {};
+const STUB = 14;
+const SD = {r:[1, 0], l:[-1, 0], t:[0, -1], b:[0, 1]};
 function rebuildTerms() {
   TERM = {};
-  for (const p of parts) for (const [k, lb, x, y, side, pol] of termsOf(p)) TERM[p.id + '.' + k] = {part:p, k, lb, x:p.x + x, y:p.y + y, side, pol};
+  for (const p of parts) for (const [k, lb, x, y, side, pol] of termsOf(p)) {
+    const d = SD[side];
+    TERM[p.id + '.' + k] = {part:p, k, lb, ex:p.x + x, ey:p.y + y, x:p.x + x + d[0] * STUB, y:p.y + y + d[1] * STUB, side, pol};
+  }
 }
 function nameOf(p) {
   if (p.t === 'facp') return 'ตู้ FACP';
@@ -413,8 +531,8 @@ function addPart(t, x, y, extra = {}) {
 }
 function freeSpot(t) {
   const ty = TYPES[t];
-  const occupied = (x, y) => parts.some(p => { const w = p.t === 'facp' ? FW : T(p).w, h = p.t === 'facp' ? BH - 40 : T(p).h; return x < p.x + w + 30 && x + ty.w + 30 > p.x && y < p.y + h + 30 && y + ty.h + 30 > p.y; });
-  for (let y = 30; y < BH - ty.h - 10; y += 20) for (let x = 360; x < BW - ty.w - 10; x += 20) if (!occupied(x, y)) return [x, y];
+  const occupied = (x, y) => parts.some(p => { const w = p.t === 'facp' ? FW : T(p).w, h = p.t === 'facp' ? BH - 40 : T(p).h; return x < p.x + w + 40 && x + ty.w + 40 > p.x && y < p.y + h + 40 && y + ty.h + 40 > p.y; });
+  for (let y = 30; y < BH - ty.h - 10; y += 20) for (let x = 380; x < BW - ty.w - 20; x += 20) if (!occupied(x, y)) return [x, y];
   return [360, 40];
 }
 
@@ -721,8 +839,8 @@ function analyze() {
 
 /* ================= functional simulation ================= */
 function simulate(R) {
-  const S = {sound:new Set(), relayOn:new Set(), psuOn:new Set()};
-  if (!alarm || alarm.kind !== 'FIRE') return S;
+  const S = {sound:new Set(), relayOn:new Set(), psuOn:new Set(), active:new Set()};
+  if (!running || !alarm || alarm.kind !== 'FIRE') return S;
   const works = r => r && !r.shorted && r.state !== 'skip';
   const active = new Set();
   ['P.n1', 'P.n2', 'P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
@@ -730,6 +848,7 @@ function simulate(R) {
   for (let k = 0; k < 3; k++) for (const p of parts.filter(q => q.t === 'psu')) {
     if ([...active].some(id => R.outs[id].devOK.includes(p))) { S.psuOn.add(p.id); ['.1', '.2'].forEach(s => { if (works(R.outs[p.id + s])) active.add(p.id + s); }); }
   }
+  S.active = active;
   active.forEach(id => R.outs[id].devOK.forEach(d => { if (d.t !== 'psu') S.sound.add(d.id); }));
   S.relayOn.add('P');
   parts.filter(p => p.t === 'rm' && R.resp[p.id]).forEach(p => S.relayOn.add(p.id));
@@ -739,13 +858,28 @@ function simulate(R) {
 /* ================= board drawing ================= */
 const board = $('board');
 function el(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
-let gParts, gWires, gRubber, gTerms;
+let gParts, gWires, gRubber, gTerms, gGrid;
+let showGrid = true, liveRoots = new Set(), hotRoots = new Set(), netNow = null;
+const PREFIX = {smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
+const VAL = {smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
+function refdes(p) {
+  if (p.t === 'facp') return 'U1';
+  const pre = PREFIX[p.t];
+  return pre + (parts.filter(q => PREFIX[q.t] === pre).indexOf(p) + 1);
+}
 function drawAll() {
   rebuildTerms();
   board.innerHTML = '';
-  const gGrid = el('g', {}, board);
-  for (let x = 0; x <= BW; x += 40) el('line', {class:'gridline', x1:x, y1:0, x2:x, y2:BH}, gGrid);
-  for (let y = 0; y <= BH; y += 40) el('line', {class:'gridline', x1:0, y1:y, x2:BW, y2:y}, gGrid);
+  const defs = el('defs', {}, board);
+  const pt = el('pattern', {id:'gDot', width:20, height:20, patternUnits:'userSpaceOnUse'}, defs);
+  el('circle', {class:'gdot', cx:10, cy:10, r:1.1}, pt);
+  const pm = el('pattern', {id:'gMaj', width:100, height:100, patternUnits:'userSpaceOnUse'}, defs);
+  el('path', {class:'gmaj', d:'M100 0 V100 H0'}, pm);
+  gGrid = el('g', {}, board);
+  el('rect', {x:0, y:0, width:BW, height:BH, fill:'url(#gMaj)'}, gGrid);
+  el('rect', {x:0, y:0, width:BW, height:BH, fill:'url(#gDot)'}, gGrid);
+  el('rect', {class:'sheet-frame', x:4, y:4, width:BW - 8, height:BH - 8}, gGrid);
+  gGrid.style.display = showGrid ? '' : 'none';
   gParts = el('g', {}, board);
   parts.forEach(drawPart);
   gWires = el('g', {}, board);
@@ -756,102 +890,123 @@ function drawAll() {
 function drawPart(p) {
   const g = el('g', {class:`part k-${p.t}` + (selP === p.id ? ' selp' : ''), id:'part-' + p.id, 'data-p':p.id, transform:`translate(${p.x} ${p.y})`, tabindex:0, role:'button', 'aria-label':label(p)}, gParts);
   if (p.t === 'facp') { drawFacp(g); return; }
-  const ty = T(p);
-  el('rect', {class:'body', x:0, y:0, width:ty.w, height:ty.h, rx:ty.cat === 'det' ? 14 : 6}, g);
-  el('rect', {class:'head', x:1, y:1, width:ty.w - 2, height:22, rx:5}, g);
-  const many = parts.filter(q => q.t === p.t).length > 1;
-  // small parts carry their number in the header so it doesn't collide with terminal labels
-  el('text', {class:'ttl', x:8, y:16}, g).textContent = ty.short + (ty.h <= 90 && many ? ' #' + p.n : '');
-  if (ty.addrType) el('text', {class:'addr', x:ty.w - 8, y:16, 'text-anchor':'end'}, g).textContent = addrStr(p);
-  if (ty.h > 90) el('text', {class:'sub', x:8, y:38}, g).textContent = nameOf(p);
+  const ty = T(p), tms = termsOf(p);
+  const topPins = tms.some(t => t[4] === 't'), botPins = tms.some(t => t[4] === 'b');
+  el('rect', {class:'selbox', x:-8, y:-22, width:ty.w + 16, height:ty.h + 40, rx:3}, g);
+  el('rect', {class:'body', x:0, y:0, width:ty.w, height:ty.h, rx:ty.cat === 'det' ? 12 : 2}, g);
+  el('text', {class:'ref', x:0, y:topPins ? -18 : -6}, g).textContent = refdes(p);
+  el('text', {class:'ttl', x:8, y:topPins ? 30 : 15}, g).textContent = ty.short;
+  const v = ty.addrType ? addrStr(p) : VAL[p.t] || '';
+  if (botPins) el('text', {class:'val', x:ty.w, y:-6, 'text-anchor':'end'}, g).textContent = v;
+  else el('text', {class:'val', x:ty.w, y:ty.h + 13, 'text-anchor':'end'}, g).textContent = v;
+  if (ty.h > 90 && p.t !== 'bat') el('text', {class:'sub', x:8, y:30}, g).textContent = nameOf(p);
   drawIcon(p, ty, g);
-  if (['nac', 'spk'].includes(ty.role)) el('rect', {class:'flash', x:0, y:0, width:ty.w, height:ty.h, rx:6}, g);
+  if (['nac', 'spk'].includes(ty.role)) el('rect', {class:'flash', x:0, y:0, width:ty.w, height:ty.h, rx:2}, g);
 }
 function drawIcon(p, ty, g) {
   const w = ty.w, h = ty.h, cx = w / 2;
   switch (ty.role) {
     case 'slc':
       if (ty.cat === 'det') {
-        el('circle', {class:'ico main', cx, cy:68, r:20}, g); el('circle', {class:'ico', cx, cy:68, r:8}, g);
-        if (ty.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} 70 l6 -8 l6 8`}, g);
-        if (ty.dt === 'DUCT') el('rect', {class:'ico', x:cx - 34, y:56, width:68, height:24, rx:3}, g);
-        if (ty.dt === 'MULTI') el('path', {class:'ico', d:`M${cx - 28} 50 l7 6 M${cx + 28} 50 l-7 6`}, g);
-      } else el('rect', {class:'ico', x:cx - 20, y:48, width:40, height:34, rx:4}, g);
+        el('circle', {class:'ico main', cx, cy:64, r:20}, g); el('circle', {class:'ico', cx, cy:64, r:8}, g);
+        if (ty.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} 66 l6 -8 l6 8`}, g);
+        if (ty.dt === 'DUCT') el('rect', {class:'ico', x:cx - 34, y:52, width:68, height:24, rx:3}, g);
+        if (ty.dt === 'MULTI') el('path', {class:'ico', d:`M${cx - 28} 46 l7 6 M${cx + 28} 46 l-7 6`}, g);
+      } else el('rect', {class:'ico', x:cx - 18, y:44, width:36, height:30, rx:3}, g);
       break;
-    case 'iso': el('path', {class:'ico', d:'M48 53 h12 l14 -9 M78 53 h14'}, g); el('circle', {class:'isoled', cx:70, cy:36, r:5}, g); break;
+    case 'iso': el('path', {class:'ico', d:'M48 53 h12 l14 -9 M78 53 h14'}, g); el('circle', {class:'isoled', cx:70, cy:34, r:5}, g); break;
     case 'contact':
-      if (p.t === 'pull') { el('rect', {class:'ico', x:64, y:44, width:52, height:30, rx:3}, g); el('path', {class:'ico', d:'M76 68 h26 v-12'}, g); }
-      else if (p.t === 'flow') el('path', {class:'ico', d:'M60 60 h60 M82 52 l10 8 l-10 8'}, g);
-      else el('path', {class:'ico', d:'M70 70 h40 M90 70 v-20 M80 50 h20'}, g);
+      if (p.t === 'pull') { el('rect', {class:'ico', x:64, y:30, width:52, height:34, rx:3}, g); el('path', {class:'ico', d:'M76 56 h26 v-12'}, g); }
+      else if (p.t === 'flow') el('path', {class:'ico', d:'M60 52 h60 M82 44 l10 8 l-10 8'}, g);
+      else el('path', {class:'ico', d:'M70 62 h40 M90 62 v-20 M80 42 h20'}, g);
       break;
     case 'nac':
-      if (p.t === 'bell') el('path', {class:'ico', d:'M82 68 a13 13 0 0 1 26 0 z M95 72 v3'}, g);
-      else { el('rect', {class:'ico', x:60, y:50, width:20, height:20, rx:3}, g); if (p.t === 'hs') el('path', {class:'ico', d:'M88 60 l14 -8 v24 l-14 -8 z M108 54 q6 8 0 16'}, g); }
+      if (p.t === 'bell') el('path', {class:'ico', d:'M82 62 a13 13 0 0 1 26 0 z M95 66 v3'}, g);
+      else { el('rect', {class:'ico', x:60, y:40, width:20, height:20, rx:3}, g); if (p.t === 'hs') el('path', {class:'ico', d:'M88 50 l14 -8 v24 l-14 -8 z M108 44 q6 8 0 16'}, g); }
       break;
-    case 'spk': el('path', {class:'ico', d:'M70 56 h8 l12 -9 v28 l-12 -9 h-8 z M98 54 q6 9 0 18 M104 49 q10 14 0 28'}, g); break;
+    case 'spk': el('path', {class:'ico', d:'M66 46 h8 l12 -9 v28 l-12 -9 h-8 z M94 44 q6 9 0 18 M100 39 q10 14 0 28'}, g); break;
     case 'eol': el('path', {class:'ico', d:'M0 38 h28 l5 -6 l8 12 l8 -12 l8 12 l8 -12 l5 6 h16 v20 h-86'}, g); break;
     case 'rsink':
-      if (p.t === 'ahu') { const fan = el('g', {class:'fan'}, g); el('circle', {class:'ico', cx:105, cy:56, r:16}, fan); el('path', {class:'ico', d:'M105 56 l0 -12 M105 56 l10 6 M105 56 l-10 6'}, fan); }
-      else el('path', {class:'ico', d:'M94 42 h22 v30 h-22 z M105 48 l-5 6 h10 z M105 66 l-5 -6 h10 z'}, g);
-      el('text', {class:'addr', x:w - 8, y:h - 8, 'text-anchor':'end', id:'st-' + p.id}, g);
+      if (p.t === 'ahu') { const fan = el('g', {class:'fan'}, g); el('circle', {class:'ico', cx:105, cy:52, r:16}, fan); el('path', {class:'ico', d:'M105 52 l0 -12 M105 52 l10 6 M105 52 l-10 6'}, fan); }
+      else el('path', {class:'ico', d:'M94 34 h22 v32 h-22 z M105 40 l-5 6 h10 z M105 60 l-5 -6 h10 z'}, g);
+      el('text', {class:'addr', x:w - 8, y:h - 7, 'text-anchor':'end', id:'st-' + p.id}, g);
       break;
-    case 'bat': el('rect', {class:'ico', x:20, y:44, width:100, height:44, rx:4}, g); el('text', {class:'tlabel', x:70, y:70, 'text-anchor':'middle'}, g).textContent = '12V DC'; break;
-    case 'ann': el('rect', {class:'annlcd', x:44, y:46, width:80, height:46, rx:3}, g); el('text', {class:'anntxt', x:50, y:64, id:'annt-' + p.id}, g).textContent = 'NORMAL'; break;
+    case 'bat':
+      el('path', {class:'ico', d:'M45 66 h50 M55 76 h30 M45 86 h50 M55 96 h0', 'stroke-width':2}, g);
+      el('path', {class:'ico', d:'M35 0 v20 h35 v46 M105 0 v20 h-35'}, g);
+      break;
+    case 'ann': el('rect', {class:'annlcd', x:44, y:40, width:80, height:46, rx:3}, g); el('text', {class:'anntxt', x:50, y:58, id:'annt-' + p.id}, g).textContent = 'NORMAL'; break;
     case 'psu':
-      el('text', {class:'sub', x:8, y:56}, g).textContent = 'AC 220V IN';
-      el('rect', {class:'ico', x:30, y:96, width:90, height:56, rx:4}, g);
-      el('text', {class:'tlabel', x:75, y:128, 'text-anchor':'middle'}, g).textContent = 'PSU 24V';
+      el('text', {class:'sub', x:8, y:48}, g).textContent = '~ AC 220V IN';
+      el('path', {class:'ico', d:'M40 100 a14 14 0 1 0 0.1 0 M30 100 q5 -8 10 0 t10 0 M100 86 v28 M108 92 v16 M120 100 h20'}, g);
       el('text', {class:'addr', x:8, y:176, id:'st-' + p.id}, g);
       break;
   }
 }
 function drawFacp(g) {
   const H = BH - 40;
-  el('rect', {class:'body', x:0, y:0, width:FW, height:H, rx:8}, g);
-  el('text', {class:'ttl', x:12, y:22}, g).textContent = 'FACP';
-  el('text', {class:'sub', x:56, y:22}, g).textContent = 'Fire Alarm Control Panel';
-  const card = (cls, y, h, ttl) => { el('rect', {class:'cardrect ' + cls, x:10, y, width:FW - 20, height:h, rx:5}, g); el('text', {class:'cardttl', x:20, y:y + 16}, g).textContent = ttl; };
-  card('cpu', 36, 540, 'CPU / MAIN BOARD');
+  el('rect', {class:'selbox', x:-6, y:-20, width:FW + 12, height:H + 26, rx:3}, g);
+  el('rect', {class:'body', x:0, y:0, width:FW, height:H, rx:2}, g);
+  el('text', {class:'ref', x:0, y:-6}, g).textContent = 'U1';
+  el('text', {class:'val', x:FW, y:-6, 'text-anchor':'end'}, g).textContent = 'FACP · ADDRESSABLE';
+  el('text', {class:'ttl', x:12, y:20}, g).textContent = 'FIRE ALARM CONTROL PANEL';
+  const blk = (cls, y, h, ttl) => { el('rect', {class:'blk ' + cls, x:10, y, width:180, height:h, rx:3}, g); el('text', {class:'blkttl', x:20, y:y + 16}, g).textContent = ttl; };
+  blk('', 36, 540, 'CPU / MAIN BOARD');
   FACP_GROUPS.forEach(([lb, y]) => el('text', {class:'glabel', x:22, y:y + 22}, g).textContent = lb);
-  if (CARDS.loop2) { card('opt', 600, 150, 'OPTION 1: LOOP 2 CARD'); el('text', {class:'glabel', x:22, y:662}, g).textContent = 'SLC LOOP 2'; el('text', {class:'glabel', x:22, y:718}, g).textContent = 'CLASS A RETURN'; }
-  else card('empty', 600, 150, 'OPTION SLOT 1 (ว่าง)');
-  if (CARDS.dvc) { card('opt', 772, 110, 'OPTION 2: DVC / AUDIO AMP'); el('text', {class:'glabel', x:22, y:822}, g).textContent = 'SPEAKER 25V'; el('text', {class:'glabel', x:22, y:842}, g).textContent = 'MIC · MESSAGE · 50W'; }
-  else card('empty', 772, 110, 'OPTION SLOT 2 (ว่าง)');
-  card('psu', 905, 250, 'MAIN POWER SUPPLY');
-  el('text', {class:'glabel', x:22, y:945}, g).textContent = 'AC 220V  L · N · G';
+  if (CARDS.loop2) { blk('', 600, 150, 'SLOT 1 · LOOP 2 CARD'); el('text', {class:'glabel', x:22, y:662}, g).textContent = 'SLC LOOP 2'; el('text', {class:'glabel', x:22, y:718}, g).textContent = 'CLASS A RETURN'; }
+  else blk('empty', 600, 150, 'SLOT 1 · (EMPTY)');
+  if (CARDS.dvc) { blk('', 772, 110, 'SLOT 2 · DVC / AUDIO AMP'); el('text', {class:'glabel', x:22, y:822}, g).textContent = 'SPEAKER 25V'; el('text', {class:'glabel', x:22, y:842}, g).textContent = 'MIC · MESSAGE · 50W'; }
+  else blk('empty', 772, 110, 'SLOT 2 · (EMPTY)');
+  blk('', 905, 250, 'MAIN POWER SUPPLY');
+  el('text', {class:'glabel', x:22, y:945}, g).textContent = '~ AC 220V  L · N · G';
   el('text', {class:'glabel', x:22, y:965}, g).textContent = '24VDC OUT · CHARGER';
   el('text', {class:'glabel', x:22, y:1094}, g).textContent = 'BATTERY 24V';
 }
 function drawTerms() {
   gTerms.innerHTML = '';
   for (const [key, t] of Object.entries(TERM)) {
-    const g = el('g', {class:'term' + (t.pol === '+' ? ' pos' : '') + (t.part.t === 'facp' ? ' facp-t' : '') + (pending === key ? ' sel' : ''), 'data-k':key, tabindex:0, role:'button', 'aria-label':`${nameOf(t.part)} ขั้ว ${t.lb || t.k}`}, gTerms);
-    el('circle', {class:'hit', cx:t.x, cy:t.y, r:12}, g);
-    el('circle', {class:'screw', cx:t.x, cy:t.y, r:7}, g);
-    el('line', {x1:t.x - 4, y1:t.y - 4, x2:t.x + 4, y2:t.y + 4}, g);
+    const g = el('g', {class:'term' + (t.pol === '+' ? ' pos' : '') + (pending === key ? ' sel' : ''), 'data-k':key, tabindex:0, role:'button', 'aria-label':`${refdes(t.part)} ${nameOf(t.part)} ขา ${t.lb || t.k}`}, gTerms);
+    el('line', {class:'pin', x1:t.ex, y1:t.ey, x2:t.x, y2:t.y}, g);
+    el('circle', {class:'hit', cx:t.x, cy:t.y, r:11}, g);
+    el('circle', {class:'pinend', cx:t.x, cy:t.y, r:3.4}, g);
     if (t.lb) {
-      const o = {r:[-12, 4, 'end'], l:[12, 4, 'start'], b:[0, -12, 'middle'], t:[0, -12, 'middle']}[t.side];
-      el('text', {class:'tlabel', x:t.x + o[0], y:t.y + o[1], 'text-anchor':o[2]}, g).textContent = t.lb;
+      const o = {r:[-5, 3.5, 'end'], l:[5, 3.5, 'start'], b:[0, -5, 'middle'], t:[0, 13, 'middle']}[t.side];
+      el('text', {class:'tlabel', x:t.ex + o[0], y:t.ey + o[1], 'text-anchor':o[2]}, g).textContent = t.lb;
     }
   }
 }
-function wirePath(a, b) {
+function wirePath(a, b, id = 0) {
   const A = TERM[a], B = TERM[b];
-  const off = s => ({r:[1, 0], l:[-1, 0], t:[0, -1], b:[0, 1]}[s]);
-  const d = Math.max(40, Math.min(160, Math.hypot(B.x - A.x, B.y - A.y) * 0.4));
-  const oa = off(A.side), ob = off(B.side);
-  return `M${A.x} ${A.y} C${A.x + oa[0] * d} ${A.y + oa[1] * d} ${B.x + ob[0] * d} ${B.y + ob[1] * d} ${B.x} ${B.y}`;
+  const da = SD[A.side], db = SD[B.side], L = 12;
+  const a1 = [A.x + da[0] * L, A.y + da[1] * L], b1 = [B.x + db[0] * L, B.y + db[1] * L];
+  const jog = ((id % 5) - 2) * 4;
+  const hA = da[0] !== 0, hB = db[0] !== 0;
+  let mid;
+  if (hA && hB) { const mx = Math.round((a1[0] + b1[0]) / 2) + jog; mid = `L${mx} ${a1[1]} L${mx} ${b1[1]}`; }
+  else if (!hA && !hB) { const my = Math.round((a1[1] + b1[1]) / 2) + jog; mid = `L${a1[0]} ${my} L${b1[0]} ${my}`; }
+  else if (hA) mid = `L${b1[0]} ${a1[1]}`;
+  else mid = `L${a1[0]} ${b1[1]}`;
+  return `M${A.x} ${A.y} L${a1[0]} ${a1[1]} ${mid} L${b1[0]} ${b1[1]} L${B.x} ${B.y}`;
 }
 function drawWires() {
   gWires.innerHTML = '';
+  const cnt = {};
   for (const w of wires) {
     if (!TERM[w.a] || !TERM[w.b]) continue;
-    const d = wirePath(w.a, w.b);
+    cnt[w.a] = (cnt[w.a] || 0) + 1; cnt[w.b] = (cnt[w.b] || 0) + 1;
+    const d = wirePath(w.a, w.b, w.id);
     el('path', {class:'wire-halo', d}, gWires);
-    el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':3.5}, gWires);
+    el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':2.4}, gWires);
+    if (running && !w.cut && netNow) {
+      const r = netNow(w.a);
+      if (hotRoots.has(r)) el('path', {class:'flow hot', d}, gWires);
+      else if (liveRoots.has(r)) el('path', {class:'flow', d}, gWires);
+    }
     const h = el('path', {class:'wire-hit', d, 'data-w':w.id}, gWires);
-    el('title', {}, h).textContent = `${nameOf(TERM[w.a].part)} ${TERM[w.a].lb} → ${nameOf(TERM[w.b].part)} ${TERM[w.b].lb}`;
+    el('title', {}, h).textContent = `${refdes(TERM[w.a].part)}.${TERM[w.a].lb || TERM[w.a].k} → ${refdes(TERM[w.b].part)}.${TERM[w.b].lb || TERM[w.b].k}`;
   }
+  // junction dots where two or more wires land on one pin
+  for (const [k, n] of Object.entries(cnt)) if (n >= 2) { const t = TERM[k]; const w = wires.find(x => x.a === k || x.b === k); el('circle', {class:'junc', cx:t.x, cy:t.y, r:3.8, fill:COLORS[w.color]}, gWires); }
 }
 
 /* ================= interaction ================= */
@@ -895,14 +1050,15 @@ board.addEventListener('pointermove', ev => {
     if (!drag.moved) { try { board.setPointerCapture(ev.pointerId); } catch (e) {} }
     drag.moved = true;
     const ty = T(drag.p);
-    drag.p.x = Math.max(FW + 40, Math.min(BW - ty.w - 4, Math.round((pt.x - drag.dx) / 10) * 10));
+    drag.p.x = Math.max(FW + 70, Math.min(BW - ty.w - 4, Math.round((pt.x - drag.dx) / 10) * 10));
     drag.p.y = Math.max(16, Math.min(BH - ty.h - 4, Math.round((pt.y - drag.dy) / 10) * 10));
     drag.g.setAttribute('transform', `translate(${drag.p.x} ${drag.p.y})`);
     rebuildTerms(); drawTerms(); drawWires();
     return;
   }
+  const q = svgPt(ev); $('sbCoord').textContent = `X ${Math.round(q.x / 10)}  Y ${Math.round(q.y / 10)}`;
   if (!pending) return;
-  const p = svgPt(ev), A = TERM[pending];
+  const p = q, A = TERM[pending];
   gRubber.setAttribute('d', `M${A.x} ${A.y} L${p.x} ${p.y}`); gRubber.style.display = '';
 });
 let justDragged = false;
@@ -933,13 +1089,17 @@ document.addEventListener('keydown', ev => {
   if (/input|select/i.test(document.activeElement.tagName)) return;
   if (ev.key === 'Escape') { pending = null; selW = null; gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
   if ((ev.key === 'Delete' || ev.key === 'Backspace') && selW) delSel();
+  else if ((ev.key === 'Delete' || ev.key === 'Backspace') && selP && selP !== 'P') delPart();
+  if (ev.key === 'F5') { ev.preventDefault(); toggleRun(); }
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') { ev.preventDefault(); $('undo').click(); }
 });
 function selectPart(id) {
   selP = id;
   document.querySelectorAll('#board .part').forEach(g => g.classList.toggle('selp', g.dataset.p === id));
-  renderInsp();
+  renderInsp(); updateBtns();
   const p = byId(id);
-  if (p && p.t !== 'facp' && narrow()) hint(`เลือก ${nameOf(p)} แล้ว ลากเพื่อย้ายได้ · ตั้ง Address/ลบ ได้ที่ "อุปกรณ์ที่เลือก" ใต้บอร์ด`);
+  if (p) hint(`เลือก ${refdes(p)} · ${label(p)}`);
+  if (p && p.t !== 'facp' && narrow()) hint(`เลือก ${refdes(p)} แล้ว ลากเพื่อย้ายได้ · ตั้ง Address/ลบ ได้ที่ Properties ด้านล่าง`);
 }
 function delSel() { wires = wires.filter(w => w.id !== selW); selW = null; hint(); changed(); }
 $('delW').addEventListener('click', delSel);
@@ -947,24 +1107,45 @@ $('cutW').addEventListener('click', () => { const w = wires.find(x => x.id === s
 $('undo').addEventListener('click', () => { wires.pop(); selW = null; changed(); });
 function updateBtns() {
   $('delW').disabled = !selW; $('cutW').disabled = !selW;
+  $('delP').disabled = !selP || selP === 'P';
   const w = wires.find(x => x.id === selW);
-  $('cutW').textContent = w && w.cut ? 'ต่อสายที่ขาดคืน' : 'จำลองสายขาด';
+  $('cutW').title = w && w.cut ? 'ต่อสายที่ขาดคืน' : 'จำลองสายขาด';
 }
+function delPart() {
+  const p = byId(selP); if (!p || p.t === 'facp') return;
+  parts = parts.filter(q => q !== p);
+  wires = wires.filter(w => !w.a.startsWith(p.id + '.') && !w.b.startsWith(p.id + '.'));
+  hint(`ลบ ${refdes(p)} แล้ว`);
+  selP = null; alarm = null; changed();
+}
+$('delP').addEventListener('click', delPart);
 
 /* swatches */
-const SW = [['auto', 'อัตโนมัติ', 'A'], ['red', 'แดง', ''], ['blk', 'ดำ', ''], ['blu', 'น้ำเงิน', ''], ['yel', 'เหลือง', '']];
+const SW = [['auto', 'อัตโนมัติ (+ แดง, − ดำ)', 'A'], ['red', 'แดง', ''], ['blk', 'ดำ', ''], ['blu', 'น้ำเงิน', ''], ['yel', 'เหลือง', '']];
 $('swatches').innerHTML = SW.map(([k, n, t]) => `<button class="sw" type="button" data-c="${k}" title="${n}" aria-label="สี${n}" aria-pressed="${k === color}" style="${k !== 'auto' ? `background:${COLORS[k]}` : ''}">${t}</button>`).join('');
 $('swatches').addEventListener('click', ev => { const b = ev.target.closest('.sw'); if (!b) return; color = b.dataset.c; $('swatches').querySelectorAll('.sw').forEach(s => s.setAttribute('aria-pressed', String(s === b))); });
 
 /* palette */
-$('palette').innerHTML = CATS.map(([c, n]) => `<div class="pal-cat"><h3>${n}</h3><div class="pal-items">${Object.entries(TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button class="pal-btn" type="button" data-t="${k}"><b>${t.name}</b><span>${t.short}</span></button>`).join('')}</div></div>`).join('');
+const LIBICON = {det:'<circle cx="11" cy="9" r="6"/><circle cx="11" cy="9" r="2"/>', mod:'<rect x="3" y="3" width="16" height="12" rx="1"/><path d="M0 6h3M0 12h3M19 6h3M19 12h3"/>', field:'<path d="M3 6h5l6-4v14l-6-4H3z"/>', aux:'<rect x="3" y="4" width="16" height="10" rx="1"/><path d="M8 4V2M14 4V2"/>'};
+$('palette').innerHTML = CATS.map(([c, n]) => `<details open><summary>${n}</summary>${Object.entries(TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button class="lib-item" type="button" draggable="true" data-t="${k}"><svg viewBox="0 0 22 18">${LIBICON[c]}</svg><span>${t.name}<span class="lib-code">${PREFIX[k]} · ${t.short}</span></span></button>`).join('')}</details>`).join('');
+$('palette').addEventListener('dragstart', ev => { const b = ev.target.closest('.lib-item'); if (!b) return; ev.dataTransfer.setData('text/plain', 'facp:' + b.dataset.t); ev.dataTransfer.effectAllowed = 'copy'; });
+$('boardWrap').addEventListener('dragover', ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
+$('boardWrap').addEventListener('drop', ev => {
+  ev.preventDefault();
+  const d = ev.dataTransfer.getData('text/plain'); if (!d.startsWith('facp:')) return;
+  const t = d.slice(5); if (!TYPES[t]) return;
+  const q = svgPt(ev), ty = TYPES[t];
+  const x = Math.max(FW + 70, Math.min(BW - ty.w - 4, Math.round((q.x - ty.w / 2) / 10) * 10)), y = Math.max(30, Math.min(BH - ty.h - 4, Math.round((q.y - ty.h / 2) / 10) * 10));
+  const p = addPart(t, x, y); selP = p.id; alarm = null; changed();
+  hint(`วาง ${refdes(p)} · ${nameOf(p)} แล้ว ต่อสายที่ปลายขาของอุปกรณ์`);
+});
 $('palette').addEventListener('click', ev => {
-  const b = ev.target.closest('.pal-btn'); if (!b) return;
+  const b = ev.target.closest('.lib-item'); if (!b) return;
   const t = b.dataset.t; const [x, y] = freeSpot(t);
   const p = addPart(t, x, y);
   selP = p.id; alarm = null;
   changed();
-  hint(`วาง ${nameOf(p)} แล้ว (กรอบสีน้ำเงิน) ลากย้ายได้ แล้วต่อสายจากขั้วของอุปกรณ์`);
+  hint(`วาง ${refdes(p)} · ${nameOf(p)} แล้ว (กรอบเส้นประ) ลากย้ายได้ แล้วต่อสายที่ปลายขาของอุปกรณ์`);
   const wrap = $('boardWrap'), sc = board.getBoundingClientRect().width / BW;
   if (narrow()) wrap.scrollIntoView({behavior:'smooth', block:'start'});
   wrap.scrollTo({left:Math.max(0, x * sc - 60), top:Math.max(0, y * sc - 60), behavior:'smooth'});
@@ -988,8 +1169,8 @@ $('cards').addEventListener('change', ev => {
 /* inspector */
 function renderInsp() {
   const p = byId(selP);
-  if (!p) { $('insp').innerHTML = '<p>คลิกอุปกรณ์บนบอร์ดเพื่อดูวิธีต่อ ตั้ง Address และ Loop หรือลบอุปกรณ์</p>'; return; }
-  if (p.t === 'facp') { $('insp').innerHTML = '<h3>ตู้ FACP</h3><p>ตู้ประกอบด้วยการ์ด CPU และ Main power supply ติดการ์ดเสริมได้ 2 ช่องจากรายการ "การ์ดในตู้ FACP" ขั้วของการ์ดที่ติดจะปรากฏที่ขอบขวาของตู้</p>'; return; }
+  if (!p) { $('insp').innerHTML = '<p>คลิกอุปกรณ์บนแผ่นงานเพื่อดูวิธีต่อ ตั้ง Loop และ Address หรือลบอุปกรณ์</p>'; return; }
+  if (p.t === 'facp') { $('insp').innerHTML = '<h3>U1 · ตู้ FACP</h3><p>ตู้ประกอบด้วยการ์ด CPU และ Main power supply ติดการ์ดเสริมได้ 2 ช่องจากรายการ "การ์ดในตู้ FACP" ขั้วของการ์ดที่ติดจะปรากฏที่ขอบขวาของตู้</p>'; return; }
   const ty = T(p);
   let kv = '';
   if (ty.addrType === 'A') kv += `<label for="iAddr">Address</label><input id="iAddr" type="number" min="1" max="8" value="${p.addr}">`;
@@ -997,8 +1178,11 @@ function renderInsp() {
     kv += `<label for="iLoop">Loop</label><select id="iLoop"><option value="1" ${p.loop === 1 ? 'selected' : ''}>Loop 1</option><option value="2" ${p.loop === 2 ? 'selected' : ''}>Loop 2</option></select>`;
     kv += `<label for="iAddr">Address (${ty.addrType})</label><input id="iAddr" type="number" min="1" max="159" value="${p.addr}">`;
   }
-  $('insp').innerHTML = `<h3 id="iTitle">${label(p)}</h3><p>${ty.desc}</p>${kv ? `<div class="kv">${kv}</div>` : ''}
-    <div class="row"><button class="btn sm dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
+  const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
+  $('insp').innerHTML = `<h3 id="iTitle">${refdes(p)} · ${label(p)}</h3><p>${ty.desc}</p>
+    <dl class="kv"><dt>Ref</dt><dd>${refdes(p)}</dd><dt>Value</dt><dd>${VAL[p.t] || '-'}</dd><dt>Pins</dt><dd>${pins || 'A, B'}</dd><dt>Position</dt><dd>${p.x / 10}, ${p.y / 10}</dd></dl>
+    ${kv ? `<div class="kv">${kv}</div>` : ''}
+    <div class="row"><button class="btn dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
 }
 $('insp').addEventListener('input', ev => {
   const p = byId(selP); if (!p) return;
@@ -1006,14 +1190,11 @@ $('insp').addEventListener('input', ev => {
   else if (ev.target.id === 'iLoop') p.loop = +ev.target.value;
   else return;
   changed({keepInsp:true});
-  $('iTitle').textContent = label(p);
+  $('iTitle').textContent = `${refdes(p)} · ${label(p)}`;
 });
 $('insp').addEventListener('click', ev => {
   if (ev.target.id !== 'iDel') return;
-  const p = byId(selP); if (!p) return;
-  parts = parts.filter(q => q !== p);
-  wires = wires.filter(w => !w.a.startsWith(p.id + '.') && !w.b.startsWith(p.id + '.'));
-  selP = null; alarm = null; changed();
+  delPart();
 });
 
 /* ================= examples ================= */
@@ -1065,24 +1246,76 @@ function build(full) {
   rebuildTerms();
   wires = L.map(w => ({id:wseq++, a:w.a, b:w.b, color:w.color || autoColor(w.a), cut:false}));
   changed();
+  $('fileName').textContent = full ? 'ระบบเต็ม.fsim' : 'ระบบพื้นฐาน.fsim';
   hint(full ? 'ตัวอย่างระบบเต็ม: Loop 1 แบบ Class A + Isolator, การ์ด Loop 2, การ์ด DVC, Remote PSU บน NAC 2, Annunciator, ลิฟต์และ AHU' : 'ตัวอย่างระบบพื้นฐาน: Loop 1 แบบ Class B + Isolator, NAC 1, โมดูล 3 แบบ และแบตเตอรี่');
 }
 $('exBasic').addEventListener('click', () => build(false));
 $('exFull').addEventListener('click', () => build(true));
-$('clear').addEventListener('click', () => {
-  const b = $('clear');
-  if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'กดอีกครั้งเพื่อยืนยัน'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = 'เริ่มใหม่ (ตู้เปล่า)'; }, 2500); return; }
-  b.dataset.confirm = ''; b.textContent = 'เริ่มใหม่ (ตู้เปล่า)';
+function newBlank() {
   parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loop2 = false; CARDS.dvc = false;
   addPart('bat', 380, 1040); addPart('bat', 560, 1040);
   wires = []; selP = null; selW = null; alarm = null; changed();
-  hint('ตู้เปล่าพร้อมแบตเตอรี่ 2 ลูก เลือกอุปกรณ์จากคลังทางซ้ายมาวาง แล้วเริ่มต่อสาย');
+  $('fileName').textContent = 'ไม่มีชื่อ.fsim';
+  hint('แผ่นงานใหม่: ตู้ FACP กับแบตเตอรี่ 2 ลูก เลือกอุปกรณ์จากคลังอุปกรณ์มาวาง แล้วเริ่มต่อสาย');
+}
+$('clear').addEventListener('click', () => modal('สร้างแผ่นงานใหม่', '<p>ล้างอุปกรณ์และสายทั้งหมด เหลือเฉพาะตู้ FACP กับแบตเตอรี่ 2 ลูก งานที่ต่ออยู่ตอนนี้จะหายไป</p>', [['ยกเลิก', ''], ['สร้างใหม่', 'pri', newBlank]]));
+
+/* ================= modal ================= */
+function modal(title, html, buttons) {
+  $('mTitle').textContent = title; $('mBody').innerHTML = html; $('mFoot').innerHTML = '';
+  (buttons || [['ปิด', 'pri']]).forEach(([lb, cls, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = lb; b.addEventListener('click', () => { closeModal(); if (fn) fn(); }); $('mFoot').appendChild(b); });
+  $('modal').hidden = false; $('mFoot').lastChild.focus();
+}
+function closeModal() { $('modal').hidden = true; }
+$('mClose').addEventListener('click', closeModal);
+$('modal').addEventListener('click', ev => { if (ev.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('modal').hidden) closeModal(); });
+const showGuide = () => modal('หลักการต่อสายแต่ละส่วน', $('guideTpl').innerHTML);
+$('helpBtn').addEventListener('click', showGuide);
+
+/* ================= menus ================= */
+const menubar = $('menubar');
+function closeMenus() { menubar.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open')); }
+menubar.addEventListener('click', ev => {
+  const top = ev.target.closest('.menu > button');
+  if (top) { const m = top.parentElement, was = m.classList.contains('open'); closeMenus(); if (!was) m.classList.add('open'); return; }
+  const it = ev.target.closest('[data-do]'); if (!it) return;
+  closeMenus();
+  const k = it.dataset.do;
+  if (k === 'new') $('clear').click();
+  else if (k === 'guide') showGuide();
+  else if (k === 'howto') modal('วิธีใช้โปรแกรม', $('howtoTpl').innerHTML);
+  else if (k === 'grid') { showGrid = !showGrid; gGrid.style.display = showGrid ? '' : 'none'; }
+  else if ($(k) && !$(k).disabled) $(k).click();
+  else hint('เลือกสายหรืออุปกรณ์บนแผ่นงานก่อน');
 });
+menubar.addEventListener('mouseover', ev => { const top = ev.target.closest('.menu > button'); if (top && menubar.querySelector('.menu.open') && !top.parentElement.classList.contains('open')) { closeMenus(); top.parentElement.classList.add('open'); } });
+document.addEventListener('click', ev => { if (!ev.target.closest('#menubar')) closeMenus(); });
+
+/* ================= run / stop ================= */
+let running = false, runStart = 0, runTimer = null;
+function toggleRun() {
+  running = !running;
+  const b = $('runBtn');
+  b.classList.toggle('on', running);
+  b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
+  b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
+  if (!running) { alarm = null; clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  else { runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'กำลังจำลอง: สายที่มีไฟแสดงการไหลของกระแส สั่งเหตุจากอุปกรณ์ด้านบนได้'; }
+  simClock(); renderTests(); render();
+}
+function simClock() {
+  const s = Math.floor((Date.now() - runStart) / 1000);
+  $('sbSim').textContent = running ? `● กำลังจำลอง ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : '■ หยุดจำลอง';
+  $('sbSim').classList.toggle('on', running);
+}
+$('runBtn').addEventListener('click', toggleRun);
+$('rstBtn').addEventListener('click', () => { alarm = null; $('testMsg').textContent = running ? 'SYSTEM RESET แล้ว' : 'รีเซ็ตแล้ว'; render(); });
 
 /* ================= tests ================= */
 function renderTests() {
   const ini = parts.filter(p => T(p) && (T(p).cat === 'det' || T(p).role === 'contact'));
-  $('tests').innerHTML = ini.map(p => `<button class="btn sm" type="button" data-t="${p.id}">${T(p).cat === 'det' ? 'เหตุที่' : 'สั่ง'} ${nameOf(p)}</button>`).join('') + '<button class="btn sm pri" type="button" data-t="reset">SYSTEM RESET</button>';
+  $('tests').innerHTML = ini.map(p => `<button class="btn" type="button" data-t="${p.id}" ${running ? '' : 'disabled'} title="${label(p)}">${T(p).cat === 'det' ? 'เหตุที่' : 'สั่ง'} ${refdes(p)}</button>`).join('') || '<span class="note">ยังไม่มีอุปกรณ์ตรวจจับบนแผ่นงาน</span>';
   const slc = parts.filter(p => T(p) && T(p).role === 'slc');
   const cur = $('shortSel').value;
   $('shortSel').innerHTML = slc.map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${label(p)}</option>`).join('');
@@ -1091,8 +1324,7 @@ function renderTests() {
 $('tests').addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b) return;
   const k = b.dataset.t;
-  if (k === 'reset') { alarm = null; $('testMsg').textContent = 'รีเซ็ตแล้ว'; render(); return; }
-  const p = byId(k); if (!p) return;
+  const p = byId(k); if (!p || !running) return;
   if (T(p).cat === 'det') {
     if (result.resp[p.id]) { alarm = {kind:'FIRE', txt:`${addrStr(p)} ${T(p).dt}`}; $('testMsg').textContent = `${label(p)} ส่ง Alarm เข้าตู้`; }
     else $('testMsg').textContent = `ตู้ไม่ได้รับสัญญาณ: ${label(p)} ไม่ตอบบน SLC`;
@@ -1121,6 +1353,12 @@ function render() {
   const idcAlarm = result.panel.find(p => p[0] === 'ALARM');
   if (idcAlarm && !alarm) alarm = {kind:'FIRE', txt:idcAlarm[1]};
   const S = simulate(result);
+  netNow = netFn(); liveRoots = new Set(); hotRoots = new Set();
+  if (running) {
+    Object.keys(TERM).filter(k => k.startsWith('P.') && !/^P\.r/.test(k)).forEach(k => { if (termUsed(k)) liveRoots.add(netNow(k)); });
+    parts.filter(p => p.t === 'psu').forEach(p => ['o1+', 'o1-', 'o2+', 'o2-', 't+', 't-'].forEach(k => liveRoots.add(netNow(p.id + '.' + k))));
+    S.active.forEach(id => { const o = result.outs[id].o; hotRoots.add(netNow(o.sp)); hotRoots.add(netNow(o.sn)); });
+  }
   drawWires();
   parts.forEach(p => {
     const g = $('part-' + p.id); if (!g || p.t === 'facp') return;
@@ -1149,8 +1387,17 @@ function render() {
     .map(([n, c, s]) => `<div class="led ${s ? 'lit' : ''} ${s === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`).join('');
   parts.filter(p => p.t === 'ann').forEach(p => { $('annt-' + p.id).textContent = !result.ann[p.id] ? 'COMM FAIL' : alarm ? (alarm.kind === 'FIRE' ? 'FIRE ALARM' : 'SUPERVISORY') : tr.length ? 'TROUBLE' : 'NORMAL'; });
   const LBL = {ok:['ผ่าน', 'c-ok'], err:['ต้องแก้', 'c-err'], todo:['ยังไม่ต่อ', 'c-muted'], warn:['ระวัง', 'c-warn']};
-  $('res').innerHTML = result.circ.map(c => `<div class="circ"><div class="circ-h"><b>${c.title}</b><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></div>
-    <ul>${c.items.map(([l, t]) => `<li class="${l}">${t}</li>`).join('')}</ul></div>`).join('');
+  const IC = {ok:['✓', 'c-ok'], err:['✕', 'c-err'], warn:['!', 'c-warn'], inf:['·', 'c-muted']};
+  let rows = '';
+  for (const c of result.circ) {
+    const items = ercFilter === 'all' ? c.items : c.items.filter(i => i[0] === 'err' || i[0] === 'warn');
+    if (ercFilter !== 'all' && !items.length) continue;
+    rows += `<tr class="grp"><td class="ic ${LBL[c.state][1]}">${IC[c.state === 'todo' ? 'inf' : c.state][0]}</td><td>${c.title}</td><td><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></td></tr>`;
+    rows += items.map(([l, t]) => `<tr><td class="ic ${IC[l][1]}">${IC[l][0]}</td><td colspan="2">${t}</td></tr>`).join('');
+  }
+  $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
+  const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
+  $('sbErr').textContent = `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
   const circs = result.circ.filter(c => !['x', 'loose', 'l2x'].includes(c.key));
   const pass = circs.filter(c => c.state === 'ok').length;
   const allOk = pass === circs.length && !result.circ.some(c => ['x', 'l2x'].includes(c.key));
@@ -1158,10 +1405,12 @@ function render() {
   $('score').className = 'chip ' + (allOk ? 'c-ok' : 'c-muted');
   updateBtns();
 }
+let ercFilter = 'issues';
+['fIss', 'fAll'].forEach(id => $(id).addEventListener('click', () => { ercFilter = id === 'fAll' ? 'all' : 'issues'; $('fIss').setAttribute('aria-pressed', String(ercFilter === 'issues')); $('fAll').setAttribute('aria-pressed', String(ercFilter === 'all')); render(); }));
 function changed(opts = {}) { save(); drawAll(); renderCards(); if (!opts.keepInsp) renderInsp(); renderTests(); render(); }
 
 /* ================= zoom ================= */
-const narrow = () => window.innerWidth <= 820;
+const narrow = () => window.innerWidth <= 920;
 let zoom = 1;
 const fitZoom = () => Math.max(0.3, ($('boardWrap').clientWidth - 2) / BW);
 function setZoom(z, keepCenter = true) {
@@ -1170,7 +1419,7 @@ function setZoom(z, keepCenter = true) {
   const cx = (wrap.scrollLeft + wrap.clientWidth / 2) / old, cy = (wrap.scrollTop + wrap.clientHeight / 2) / (old * BH / BW);
   zoom = Math.min(2, Math.max(0.3, z));
   board.style.width = Math.round(BW * zoom) + 'px';
-  $('zLbl').textContent = Math.round(zoom * 100) + '%';
+  $('zLbl').textContent = $('sbZoom').textContent = Math.round(zoom * 100) + '%';
   if (keepCenter) { const nw = BW * zoom; wrap.scrollLeft = cx * nw - wrap.clientWidth / 2; wrap.scrollTop = cy * nw * BH / BW - wrap.clientHeight / 2; }
 }
 $('zIn').addEventListener('click', () => setZoom(zoom * 1.25));
@@ -1180,7 +1429,8 @@ $('boardWrap').addEventListener('wheel', ev => { if (!ev.ctrlKey) return; ev.pre
 
 /* ================= boot ================= */
 hint();
-setZoom(TOUCH || narrow() ? 0.75 : Math.max(fitZoom(), 0.62), false);
+setZoom(TOUCH || narrow() ? 0.75 : Math.max(fitZoom(), 0.55), false);
+simClock();
 if (narrow()) $('cardsBox').open = false;
 if (!load()) build(false); else changed();
 })();
