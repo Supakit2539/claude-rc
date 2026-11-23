@@ -272,6 +272,28 @@ svg.board.real .part.selp .selbox{stroke:var(--sel)}
 .piezo .dot.on{background:#ffd34d;box-shadow:0 0 7px #ffd34d}
 .piezo .dot.pulse{background:#ffd34d;animation:blink .5s steps(1) infinite}
 .keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.keys.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.k-prog{background:#5b3f8c;min-height:32px}
+/* panel programming dialog */
+.pg-lcd{background:radial-gradient(ellipse at 50% 40%,var(--lcd-glow),var(--lcd-bg) 70%);color:var(--lcd-fg);font-family:var(--font-lcd);font-size:17px;line-height:1.15;padding:8px 10px;border-radius:4px;white-space:pre-wrap;box-shadow:inset 0 0 10px rgba(0,0,0,.35);margin-bottom:12px}
+.pg-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.pg-menu button{text-align:left;padding:10px 12px;border:1px solid var(--chrome-line);border-radius:6px;background:var(--chrome);cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.pg-menu button:hover{border-color:var(--sel)}
+.pg-menu b{font-family:var(--font-mono);font-size:.82rem}
+.pg-menu span{font-size:.76rem;color:var(--chrome-muted)}
+.pg-tbl-wrap{overflow:auto;max-height:52vh;border:1px solid var(--chrome-line);border-radius:6px}
+table.pg{width:100%;border-collapse:collapse;font-size:.8rem}
+table.pg th,table.pg td{padding:4px 6px;border-bottom:1px solid var(--chrome-line);text-align:left;vertical-align:middle;white-space:nowrap}
+table.pg th{position:sticky;top:0;background:var(--chrome-2);color:var(--chrome-muted);font-size:.72rem;z-index:1}
+table.pg td.m{font-family:var(--font-mono)}
+table.pg input[type=text],table.pg select,table.pg input[type=number]{border:1px solid var(--chrome-line);border-radius:4px;padding:2px 5px;background:var(--chrome-3);font-family:var(--font-mono);font-size:.78rem;text-transform:uppercase}
+table.pg input[type=text]{width:13.5em}
+table.pg input[type=number]{width:4.2em}
+table.pg tr.off td{opacity:.55}
+.pg-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.pg-prog{height:6px;border-radius:3px;background:var(--chrome-line);overflow:hidden}
+.pg-prog i{display:block;height:100%;width:0;background:var(--sel);transition:width .1s linear}
+.dlg.wide{width:min(1100px,100%)}
 .pbtn{position:relative;overflow:hidden;border:1px solid #000;border-radius:6px;padding:7px 2px 6px;color:#fff;font-family:var(--font-mono);font-size:.56rem;font-weight:600;letter-spacing:.02em;line-height:1.2;box-shadow:0 2px 0 rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.22);text-align:center;min-height:46px;cursor:pointer;touch-action:manipulation}
 .pbtn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.55)}
 .pbtn[disabled]{opacity:.45;cursor:default}
@@ -355,7 +377,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
       <hr><button type="button" data-do="grid">แสดง/ซ่อนกริด</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">จำลอง</button><div class="drop" role="menu">
       <button type="button" data-do="runBtn">เริ่ม / หยุดจำลอง <kbd>F5</kbd></button>
-      <button type="button" data-do="rstBtn">SYSTEM RESET</button></div></div>
+      <button type="button" data-do="rstBtn">SYSTEM RESET</button>
+      <hr><button type="button" data-do="kProg">โปรแกรมตู้ (PROGRAM)…</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">ช่วยเหลือ</button><div class="drop" role="menu">
       <button type="button" data-do="guide">หลักการต่อสายแต่ละส่วน</button>
       <button type="button" data-do="howto">วิธีใช้โปรแกรม</button></div></div>
@@ -429,11 +452,12 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
             <button class="pbtn k-drill" id="kDrill" type="button">DRILL<br>HOLD 2s<small>อพยพ</small><span class="hold"></span></button>
             <button class="pbtn k-reset" id="kReset" type="button">SYSTEM<br>RESET<small>รีเซ็ต</small></button>
           </div>
-          <div class="keys">
+          <div class="keys k5">
             <button class="pbtn k-sm" id="kPrev" type="button" aria-label="เหตุการณ์ก่อนหน้า">◀ PREV</button>
             <button class="pbtn k-sm" id="kNext" type="button" aria-label="เหตุการณ์ถัดไป">NEXT ▶</button>
             <button class="pbtn k-sm" id="kLamp" type="button">LAMP TEST</button>
             <button class="pbtn k-sm" id="kHist" type="button">HISTORY</button>
+            <button class="pbtn k-prog" id="kProg" type="button">PROGRAM</button>
           </div>
         </div></div></section>
       <section class="pane"><div class="pane-h">จำลองความผิดปกติของสาย</div>
@@ -453,6 +477,12 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
   </footer>
 </div>
 
+<div class="modal" id="pgModal" hidden>
+  <div class="dlg wide" role="dialog" aria-modal="true" aria-labelledby="pgTitle">
+    <div class="dlg-h"><b id="pgTitle">NFS2-3030 · PROGRAMMING</b><button type="button" id="pgClose" aria-label="ปิด">✕</button></div>
+    <div class="dlg-b" id="pgBody"></div>
+  </div>
+</div>
 <div class="modal" id="modal" hidden>
   <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="mTitle">
     <div class="dlg-h"><b id="mTitle"></b><button type="button" id="mClose" aria-label="ปิด">✕</button></div>
@@ -504,6 +534,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) สายที่มีไฟจะแสดงการไหลของกระแส</li>
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
+    <li><b>PROGRAM (ตั้งโปรแกรมตู้)</b>: กดปุ่ม PROGRAM ที่หน้าตู้ ใส่รหัส 00000 แล้วเลือก AUTOPROGRAM เพื่อสแกนหา Address บน SLC และลงโปรแกรม · POINT PROGRAM เพื่อตั้ง Type Code ชื่อจุด ชื่อท้าย/ตำแหน่ง และ Zone · DISABLE/ENABLE เพื่อปิด/เปิดจุด อุปกรณ์ที่ยังไม่ได้ลงโปรแกรม ตู้จะไม่รับเหตุ</li>
     <li><b>History</b>: ทุกเหตุการณ์และการกดปุ่มถูกบันทึกในแท็บ "ประวัติเหตุการณ์" ใต้แผ่นงาน</li>
   </ul>
 </template>
@@ -666,7 +697,8 @@ function freeSpot(t) {
 
 /* ================= persistence ================= */
 const KEY = 'facp-wiring-v3';
-function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS})); } catch (e) {} }
+let PROG = {};   // panel program database: point key (L1D001) -> {t, type, label, ext, zone, on}
+function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG})); } catch (e) {} }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -678,6 +710,7 @@ function load() {
     rebuildTerms();
     wires = (s.wires || []).filter(w => TERM[w.a] && TERM[w.b]);
     wseq = wires.reduce((m, w) => Math.max(m, w.id), 0) + 1;
+    if (s.prog && typeof s.prog === 'object') PROG = s.prog; else programAll();
     return true;
   } catch (e) { return false; }
 }
@@ -809,7 +842,7 @@ function analyzeBat(tp, tn) {
 function analyze() {
   rebuildTerms();
   const fAll = netFn();
-  const R = {circ:[], panel:[], bad:new Set(), resp:{}, isoOpen:[], outs:{}, power:{}, ann:{}, relays:[]};
+  const R = {circ:[], panel:[], bad:new Set(), resp:{}, isoOpen:[], outs:{}, power:{}, ann:{}, relays:[], scan:{}};
   const add = (key, title, items, state) => R.circ.push({key, title, items, state});
 
   /* ---- cross-circuit: source terminals of different circuits in one net ---- */
@@ -875,6 +908,7 @@ function analyze() {
       onLoop.filter(d => T(d).addrType === ty).forEach(d => (seen[d.addr] = seen[d.addr] || []).push(d));
       Object.entries(seen).forEach(([a, ds]) => { if (ds.length > 1) { ds.forEach(d => dup.add(d)); it.push(['err', `Address ${pre}${ty}${String(a).padStart(3, '0')} ซ้ำกัน: ${ds.map(nameOf).join(', ')}`]); R.panel.push(['TROUBLE', `${pre}${ty}${String(a).padStart(3, '0')} DUPLICATE ADDR`]); st = 'err'; } });
     }
+    R.scan[L.n] = {found:onLoop.filter(d => !dup.has(d)), dup:[...dup], down:short};
     for (const d of onLoop) if (d.loop !== L.n) { it.push(['err', `${nameOf(d)} ต่ออยู่บน Loop ${L.n} แต่ตั้งโปรแกรมไว้ Loop ${d.loop} ตู้เห็นเป็นอุปกรณ์ไม่ได้ลงโปรแกรม`]); R.panel.push(['TROUBLE', `${pre}${T(d).addrType}${String(d.addr).padStart(3, '0')} UNPROGRAMMED`]); st = 'err'; }
     const prog = slcDevs.filter(d => d.loop === L.n);
     for (const d of prog) {
@@ -1008,6 +1042,7 @@ function analyze() {
   /* ---- loose field parts ---- */
   const loose = parts.filter(p => p.t !== 'facp' && p.t !== 'refl' && !partUsed(p) && ['nac', 'spk', 'contact', 'zone', 'eol', 'bat', 'iso'].includes(T(p).role));
   if (loose.length) add('loose', 'อุปกรณ์ที่ยังไม่ได้ต่อสาย', loose.map(p => ['inf', nameOf(p)]), 'todo');
+  progReport(R);
   return R;
 }
 
@@ -1669,6 +1704,7 @@ function renderInsp() {
   }
   const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
   $('insp').innerHTML = `<h3 id="iTitle">${refdes(p)} · ${label(p)}</h3><p>${ty.desc}</p>
+    ${ty.role === 'slc' ? (() => { const pr = PROG[addrStr(p)]; return pr ? `<p><b>ในโปรแกรมตู้:</b> ${pr.type} · "${pr.label}" ${pr.ext ? '· ' + pr.ext : ''} · Z${pz(pr.zone, 3)} · ${pr.on ? 'Enable' : '<b>Disable</b>'} <button class="btn" type="button" id="iProg">แก้ที่ตู้</button></p>` : `<p><b>ยังไม่ได้ลงโปรแกรมในตู้</b> ตู้จะไม่รับเหตุจากจุดนี้ <button class="btn" type="button" id="iProg">AUTOPROGRAM</button></p>`; })() : ''}
     <dl class="kv"><dt>Ref</dt><dd>${refdes(p)}</dd><dt>Value</dt><dd>${VAL[p.t] || '-'}</dd><dt>Pins</dt><dd>${pins || (termsOf(p).length ? 'A, B' : '— (ไม่ต้องเดินสาย)')}</dd><dt>Position</dt><dd>${p.x / 10}, ${p.y / 10}</dd></dl>
     ${kv ? `<div class="kv">${kv}</div>` : ''}
     <div class="row"><button class="btn dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
@@ -1699,6 +1735,7 @@ $('insp').addEventListener('input', ev => {
   $('iTitle').textContent = `${refdes(p)} · ${label(p)}`;
 });
 $('insp').addEventListener('click', ev => {
+  if (ev.target.id === 'iProg') { const p = byId(selP); openProgram(PROG[addrStr(p)] ? 'point' : 'auto', p); return; }
   if (ev.target.id !== 'iDel') return;
   delPart();
 });
@@ -1751,6 +1788,7 @@ function build(full) {
   }
   rebuildTerms();
   wires = L.map(w => ({id:wseq++, a:w.a, b:w.b, color:w.color || autoColor(w.a), cut:false}));
+  programAll();
   changed();
   $('fileName').textContent = full ? 'ระบบเต็ม.fsim' : 'ระบบพื้นฐาน.fsim';
   hint(full ? 'ตัวอย่างระบบเต็ม NFS2-3030: Loop 1 (LCM-320) แบบ Class A + Isolator, Loop 2 (LEM-320), DVC, FCPS-24S บน NAC 2, ACS annunciator, ลิฟต์และ AHU' : 'ตัวอย่างระบบพื้นฐาน NFS2-3030: Loop 1 (LCM-320) แบบ Class B + Isolator, NAC 1, FMM-1 / FCM-1 / FRM-1 และแบตเตอรี่ที่ AMPS-24');
@@ -1760,7 +1798,7 @@ $('exFull').addEventListener('click', () => build(true));
 function newBlank() {
   parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loops = 0; CARDS.dvc = false;
   addPart('bat', 380, 1040); addPart('bat', 560, 1040);
-  wires = []; selP = null; selW = null; alarm = null; changed();
+  wires = []; selP = null; selW = null; alarm = null; PROG = {}; changed();
   $('fileName').textContent = 'ไม่มีชื่อ.fsim';
   hint('แผ่นงานใหม่: ตู้ NFS2-3030 (LCM-320 1 loop) กับแบตเตอรี่ 2 ลูก เลือกอุปกรณ์จากคลังอุปกรณ์มาวาง แล้วเริ่มต่อสาย');
 }
@@ -1775,7 +1813,7 @@ function modal(title, html, buttons) {
 function closeModal() { $('modal').hidden = true; }
 $('mClose').addEventListener('click', closeModal);
 $('modal').addEventListener('click', ev => { if (ev.target.id === 'modal') closeModal(); });
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('modal').hidden) closeModal(); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('modal').hidden) closeModal(); else if (ev.key === 'Escape' && !$('pgModal').hidden) pgClose(); });
 const showGuide = () => modal('หลักการต่อสายแต่ละส่วน', $('guideTpl').innerHTML);
 $('helpBtn').addEventListener('click', showGuide);
 
@@ -1837,6 +1875,11 @@ function autoAddress() {
   changed();
   hint('เรียง Address ใหม่แล้ว: แยกตาม Loop และประเภท (D = หัว, M = โมดูล) ไล่จากบนลงล่าง ซ้ายไปขวา');
 }
+function progKeyOf(p) {
+  if (T(p).role === 'slc') return addrStr(p);
+  const m = parts.find(q => (q.t === 'mm' || q.t === 'fzm') && result.outs[q.id] && result.outs[q.id].devOK.includes(p));
+  return m ? addrStr(m) : null;
+}
 function triggerDevice(id) {
   const p = byId(id); if (!p) return;
   if (!running) { selectPart(id); hint(`กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) ก่อน แล้วคลิกที่ ${refdes(p)} อีกครั้งเพื่อสั่งงาน`); return; }
@@ -1848,24 +1891,70 @@ function triggerDevice(id) {
   const ev = PX.events.find(e => e.src === p.id || (zm && e.src === zm.id + ':zone'));
   if (!p.act) hint(`${refdes(p)} คืนสภาพแล้ว ` + (ev ? 'แต่ตู้ยังค้างเหตุไว้ (Latching) กด SYSTEM RESET ที่หน้าตู้' : ''));
   else if (ev) hint(`${refdes(p)} ${det ? ((isHeat(p) ? 'ร้อนเกินกำหนด' : 'มีควัน') + (T(p).role === 'zone' ? ' (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : '')) : p.t === 'pull' || p.t === 'apull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
+  else if (progKeyOf(p) && !PROG[progKeyOf(p)]) hint(`${refdes(p)} ทำงานแล้ว แต่ ${progKeyOf(p)} ยังไม่ได้ลงโปรแกรมในตู้ ตู้จึงไม่สนใจ → กด PROGRAM ที่หน้าตู้ › AUTOPROGRAM`);
+  else if (progKeyOf(p) && !PROG[progKeyOf(p)].on) hint(`${refdes(p)} ทำงานแล้ว แต่ ${progKeyOf(p)} ถูก Disable ในโปรแกรมตู้ ตู้จึงไม่รับเหตุ → PROGRAM › DISABLE/ENABLE`);
   else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${p.t === 'beam' ? 'หัว Beam ต้องตอบบน SLC มีไฟ 24V และมีแผ่นสะท้อนวางตรงกันในระยะ 5–70 ม.' : T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : p.t === 'apull' ? 'แมนนวลไม่ตอบบน SLC (ตรวจสาย/Address/Loop · ต่อ SLC ตรง ไม่ต้องผ่าน FMM-1)' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
 }
+/* ---------- panel program (what the FACP has been told is installed) ---------- */
+const TYPECODES = {
+  smoke:['SMOKE(PHOTO)'], heat:['HEAT', 'HEAT(ROR)'], multi:['SMOKE(ACCLIMATE)', 'SMOKE(PHOTO)'], duct:['SMOKE(DUCT P)'], beam:['SMOKE(BEAM)'],
+  mm:['MONITOR', 'PULL STATION', 'WATERFLOW', 'TAMPER', 'SUPERVISORY'], apull:['PULL STATION', 'MONITOR'], fzm:['ZONE(CONV)', 'MONITOR'],
+  cm:['CONTROL', 'HORN/STROBE', 'STROBE'], rm:['RELAY', 'HVAC SHUTDN', 'ELEV RECALL', 'DOOR RELEASE'],
+};
+const SUPV_CODES = ['TAMPER', 'SUPERVISORY'];
+const CODES_D = [...new Set(['smoke', 'heat', 'multi', 'duct', 'beam'].flatMap(t => TYPECODES[t]))];
+const CODES_M = [...new Set(['mm', 'apull', 'fzm', 'cm', 'rm'].flatMap(t => TYPECODES[t]))];
+function defaultCode(p) {
+  if (p.t !== 'mm') return TYPECODES[p.t][0];
+  const sink = parts.find(c => T(c) && T(c).role === 'contact' && wires.some(w => (w.a.startsWith(c.id + '.') && w.b.startsWith(p.id + '.')) || (w.b.startsWith(c.id + '.') && w.a.startsWith(p.id + '.'))));
+  return sink ? ({pull:'PULL STATION', flow:'WATERFLOW', tamper:'TAMPER'})[sink.t] : 'MONITOR';
+}
+const progEntry = p => ({t:p.t, type:defaultCode(p), label:refdes(p), ext:'', zone:1, on:true});
+function programAll() { PROG = {}; parts.filter(p => T(p) && T(p).role === 'slc').forEach(p => { PROG[addrStr(p)] = progEntry(p); }); }
+const partAt = key => parts.find(p => T(p) && T(p).role === 'slc' && addrStr(p) === key);
+const ptKey = msg => { const m = /^L\d+[DM]\d{3}/.exec(msg); return m ? m[0] : null; };
+const pointLines = (key, pr) => [pr.type, (pr.label || key).toUpperCase(), `${key} Z${pz(pr.zone || 0, 3)} ${(pr.ext || '').toUpperCase()}`.trim()];
+function progReport(R) {
+  const it = []; let st = 'ok';
+  const keys = Object.keys(PROG);
+  for (const p of parts.filter(q => T(q) && T(q).role === 'slc')) {
+    const k = addrStr(p), pr = PROG[k];
+    if (!pr) { if (R.resp[p.id]) { it.push(['warn', `${refdes(p)} ${k} ตอบบน SLC แต่ยังไม่ได้ลงโปรแกรมในตู้ ตู้จะไม่สนใจจุดนี้ → PROGRAM › AUTOPROGRAM`]); st = 'warn'; } continue; }
+    if (!TYPECODES[p.t].includes(pr.type)) { it.push(['err', `${k} ตั้ง Type Code เป็น ${pr.type} แต่อุปกรณ์จริงคือ ${T(p).short} ตู้แจ้ง INVALID TYPE`]); st = 'err'; }
+    if (!pr.on) it.push(['warn', `${k} ${pr.label} ถูก Disable ตู้จะไม่รับเหตุจากจุดนี้`]);
+  }
+  for (const k of keys) if (!partAt(k)) { it.push(['err', `${k} (${PROG[k].label}) อยู่ในโปรแกรมแต่ไม่พบอุปกรณ์ที่ Address นี้ ตู้แจ้ง INVALID REPLY`]); st = 'err'; }
+  it.unshift(['inf', `จุดในโปรแกรม ${keys.length} จุด · Disable ${keys.filter(k => !PROG[k].on).length} จุด`]);
+  if (!keys.length) { it.push(['inf', 'ยังไม่มีจุดในโปรแกรม กด PROGRAM ที่หน้าตู้ แล้วเลือก AUTOPROGRAM']); st = 'todo'; }
+  R.circ.push({key:'prog', title:'โปรแกรมในตู้ (Panel program)', items:it, state:st});
+}
 function syncActive(R) {
+  const fire = (key, src, fallback) => { const pr = PROG[key]; if (!pr || !pr.on) return; const [code, lb, l3] = pointLines(key, pr); padd(SUPV_CODES.includes(pr.type) ? 'SUPERVISORY' : (fallback || 'FIRE ALARM'), src, code, lb, l3, true); };
   for (const p of parts.filter(q => q.act)) {
-    if (T(p).role === 'slc') { if (R.resp[p.id] && (p.t !== 'beam' || R.beam[p.id])) padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); }
+    if (T(p).role === 'slc') { if (R.resp[p.id] && (p.t !== 'beam' || R.beam[p.id])) fire(addrStr(p), p.id); }
     else {
       const mm = parts.find(m => (m.t === 'mm' || (m.t === 'fzm' && R.power[m.id])) && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
-      if (mm && R.resp[mm.id] && T(p).role === 'zone') padd('FIRE ALARM', mm.id + ':zone', T(mm).short, `CONV ZONE ${refdes(mm)}`, addrStr(mm), true);
-      else if (mm && R.resp[mm.id]) padd(T(p).ev === 'SUPV' ? 'SUPERVISORY' : 'FIRE ALARM', p.id, T(mm).short, `${T(p).short} ${refdes(p)}`, addrStr(mm), true);
+      if (mm && R.resp[mm.id] && T(p).role === 'zone') fire(addrStr(mm), mm.id + ':zone');
+      else if (mm && R.resp[mm.id]) fire(addrStr(mm), p.id);
     }
   }
 }
 function syncPanel(R) {
   if (!running || PX.resetting) return;
   const seen = new Set();
+  const known = k => !k || (PROG[k] && PROG[k].on);   // the panel only reports programmed, enabled points
+  const trouble = msg => { seen.add('T:' + msg); padd('TROUBLE', 'T:' + msg, '', msg, '', false); };
   for (const [lvl, msg] of R.panel) {
-    if (lvl === 'TROUBLE') { seen.add('T:' + msg); padd('TROUBLE', 'T:' + msg, '', msg, '', false); }
-    if (lvl === 'ALARM') padd('FIRE ALARM', 'A:' + msg, 'MONITOR', msg, '', true);
+    const k = ptKey(msg);
+    if (!known(k)) continue;
+    if (lvl === 'TROUBLE') trouble(msg);
+    if (lvl === 'ALARM') { const pr = PROG[k]; padd(pr && SUPV_CODES.includes(pr.type) ? 'SUPERVISORY' : 'FIRE ALARM', 'A:' + msg, pr ? pr.type : 'MONITOR', pr ? pr.label : msg, msg, true); }
+  }
+  for (const [k, pr] of Object.entries(PROG)) {
+    const p = partAt(k);
+    if (!pr.on) { trouble(`${k} DISABLED`); continue; }
+    if (!p) trouble(`${k} INVALID REPLY`);
+    else if (!TYPECODES[p.t].includes(pr.type) && R.resp[p.id]) trouble(`${k} INVALID TYPE`);
   }
   PX.events.filter(e => e.type === 'TROUBLE' && !seen.has(e.src)).forEach(pclear);
   syncActive(R);
@@ -1927,14 +2016,14 @@ function lcdLines() {
   const fill = arr => { while (arr.length < PROWS) arr.splice(arr.length - 1, 0, PL('')); return arr.slice(0, PROWS); };
   if (PX.lamp) return Array(PROWS).fill('█'.repeat(PW));
   const c = t => PX.events.filter(e => e.type === t).length;
-  const foot = PL(`ALM:${pz(c('FIRE ALARM'), 3)} SUP:${pz(c('SUPERVISORY'), 3)} TBL:${pz(c('TROUBLE'), 3)}`, `DIS:000`);
+  const foot = PL(`ALM:${pz(c('FIRE ALARM'), 3)} SUP:${pz(c('SUPERVISORY'), 3)} TBL:${pz(c('TROUBLE'), 3)}`, `DIS:${pz(Object.values(PROG).filter(p => !p.on).length, 3)}`);
   if (PX.resetting) return fill([PL('SYSTEM RESET IN PROGRESS'), PL(''), PL('PLEASE WAIT...'), PL(stamp()), foot]);
   if (PX.flash && Date.now() < PX.flash.until) return fill([PL(PX.flash.lines[0]), PL(PX.flash.lines[1]), PL(''), PL(stamp()), foot]);
   const sep = '─'.repeat(PW);
   if (!PX.events.length) {
     const head = PX.drill ? [PL('MANUAL EVACUATE', 'DRILL'), PL('ALL SILENCEABLE OUTPUTS ON'), PL('PRESS SIGNAL SILENCE TO STOP'), PL(stamp())]
                           : [PL('SYSTEM NORMAL'), PL('NFS2-3030'), PL(''), PL(stamp())];
-    const loops = loopsList().map(L => { const prog = parts.filter(d => T(d) && T(d).role === 'slc' && d.loop === L.n); return PL(`LOOP ${L.n} ${loopCard(L.n)}`, `${pz(prog.filter(d => result.resp[d.id]).length, 3)}/${pz(prog.length, 3)} OK`); });
+    const loops = loopsList().map(L => { const ks = Object.keys(PROG).filter(k => k.startsWith(`L${L.n}D`) || k.startsWith(`L${L.n}M`)); const ok = ks.filter(k => { const p = partAt(k); return p && result.resp[p.id]; }).length; return PL(`LOOP ${L.n} ${loopCard(L.n)}`, `${pz(ok, 3)}/${pz(ks.length, 3)} PROG`); });
     return fill([...head, sep, ...loops.slice(0, 10), foot]);
   }
   const e = PX.events[Math.min(PX.view, PX.events.length - 1)];
@@ -1955,7 +2044,7 @@ const PLEDS = [
   ['SUPERVISORY', '#ffc93a', () => punacked('SUPERVISORY') ? 'blink' : phas('SUPERVISORY') ? 'on' : ''],
   ['SYSTEM TROUBLE', '#ffc93a', () => punacked('TROUBLE') ? 'blink' : phas('TROUBLE') ? 'on' : ''],
   ['SIGNALS SILENCED', '#ffc93a', () => PX.silenced ? 'on' : ''],
-  ['POINTS DISABLED', '#ffc93a', () => ''],
+  ['POINTS DISABLED', '#ffc93a', () => Object.values(PROG).some(p => !p.on) ? 'on' : ''],
   ['CPU FAILURE', '#ffc93a', () => ''],
 ];
 function renderPanel() {
@@ -1992,6 +2081,154 @@ function renderHistory() {
     ? `<table class="erc hist"><thead><tr><th>เวลา</th><th>ประเภท</th><th>รายละเอียด</th></tr></thead><tbody>${PX.log.map(r => `<tr><td class="m">${stamp(r.t)}</td><td><span class="chip ${LOGCLS[r.type] || 'c-muted'}">${r.type}</span></td><td class="m" style="white-space:normal">${r.text}</td></tr>`).join('')}</tbody></table>`
     : '<p class="note" style="padding:10px">ยังไม่มีเหตุการณ์ กด ▶ เริ่มจำลอง แล้วสั่งเหตุจาก Stimulus หรือทำสายขาด/ช็อต</p>';
 }
+
+/* ================= panel programming (PROGRAM key) ================= */
+const PASSWORD = '00000';
+let pgUnlocked = false, pgLoop = 1, pgFocus = null, pgScan = null;
+const pgLcd = lines => `<div class="pg-lcd">${lines.join('\n')}</div>`;
+function openProgram(screen, focusPart) {
+  if (!running) { modal('ตู้ยังไม่มีไฟ', '<p>ต้องจ่ายไฟให้ตู้ก่อนจึงเข้าโหมดโปรแกรมได้ กด ▶ เริ่มจำลอง แล้วกด PROGRAM อีกครั้ง</p>', [['ปิด', ''], ['เริ่มจำลอง', 'pri', () => { toggleRun(); openProgram(screen, focusPart); }]]); return; }
+  pgFocus = focusPart ? addrStr(focusPart) : null;
+  if (focusPart) pgLoop = focusPart.loop;
+  $('pgModal').hidden = false;
+  pgShow(pgUnlocked ? (screen || 'menu') : 'login', screen);
+  plog('INFO', 'PROGRAM MODE ENTERED');
+}
+function pgClose() { $('pgModal').hidden = true; pgScan = null; plog('INFO', 'PROGRAM MODE EXIT'); save(); render(); }
+$('pgClose').addEventListener('click', pgClose);
+$('pgModal').addEventListener('click', ev => { if (ev.target.id === 'pgModal') pgClose(); });
+$('kProg').addEventListener('click', () => openProgram());
+const loopOpts = sel => loopsList().map(L => `<option value="${L.n}" ${L.n === sel ? 'selected' : ''}>Loop ${L.n} · ${loopCard(L.n)}</option>`).join('');
+function pgShow(scr, next) {
+  const b = $('pgBody');
+  if (scr === 'login') {
+    b.innerHTML = pgLcd(['PROGRAMMING', 'ENTER PASSWORD:', '*****']) +
+      `<div class="pg-bar"><label for="pgPw">รหัสผ่าน</label><input id="pgPw" type="password" inputmode="numeric" autocomplete="off" style="font-family:var(--font-mono);padding:5px 8px;border:1px solid var(--chrome-line);border-radius:4px;background:var(--chrome-3)"><button class="btn pri" type="button" data-pg="login" data-next="${next || 'menu'}">ENTER</button><span class="note">รหัส Master ในแบบฝึกนี้: 00000</span></div><p class="note" id="pgErr"></p>`;
+    setTimeout(() => $('pgPw').focus(), 30);
+    return;
+  }
+  if (scr === 'menu') {
+    b.innerHTML = pgLcd(['PROGRAMMING · NFS2-3030', `LOOPS: ${loopsList().length}   POINTS PROGRAMMED: ${pz(Object.keys(PROG).length, 3)}`]) +
+      `<div class="pg-menu">
+        <button type="button" data-pg="go" data-to="auto"><b>1 · AUTOPROGRAM</b><span>สแกนหาอุปกรณ์บน SLC แล้วลงโปรแกรมจุดที่พบ</span></button>
+        <button type="button" data-pg="go" data-to="point"><b>2 · POINT PROGRAM</b><span>ตั้ง Type Code, ชื่อจุด (Custom label), ชื่อท้าย/ตำแหน่ง, Zone</span></button>
+        <button type="button" data-pg="go" data-to="enable"><b>3 · DISABLE / ENABLE</b><span>ปิดหรือเปิดการรับเหตุของแต่ละจุด</span></button>
+        <button type="button" data-pg="go" data-to="clear"><b>4 · CLEAR PROGRAM</b><span>ล้างโปรแกรมจุดทั้งหมดในตู้</span></button>
+        <button type="button" data-pg="exit"><b>ESC · EXIT</b><span>ออกจากโหมดโปรแกรม</span></button>
+      </div>`;
+    return;
+  }
+  if (scr === 'auto') {
+    b.innerHTML = pgLcd(['AUTOPROGRAM', 'SCAN SLC LOOPS FOR INSTALLED DEVICES']) +
+      `<div class="pg-bar"><label for="pgScanLoop">สแกน</label><select id="pgScanLoop" class="btn"><option value="0">ทุก Loop</option>${loopOpts(0)}</select>
+       <button class="btn pri" type="button" data-pg="scan">เริ่มสแกน</button><button class="btn" type="button" data-pg="go" data-to="menu">กลับ</button></div>
+       <div class="pg-prog"><i id="pgBar"></i></div><p class="note" id="pgScanTxt">ตู้จะส่งคำถามไปทุก Address 001–159 ของหัว (D) และโมดูล (M) แล้วรายงานจุดที่ตอบกลับ</p><div id="pgScanRes"></div>`;
+    return;
+  }
+  if (scr === 'point' || scr === 'enable') {
+    const keys = Object.keys(PROG).filter(k => new RegExp(`^L${pgLoop}[DM]`).test(k)).sort();
+    const rows = keys.map(k => {
+      const pr = PROG[k], p = partAt(k), cls = k[2 + String(pgLoop).length - 1] === 'D' ? CODES_D : CODES_M;
+      const isD = /^L\d+D/.test(k), codes = isD ? CODES_D : CODES_M;
+      const status = !p ? '<span class="chip c-err">ไม่พบอุปกรณ์</span>' : !TYPECODES[p.t].includes(pr.type) ? '<span class="chip c-err">TYPE ผิด</span>' : `<span class="chip c-ok">${refdes(p)}</span>`;
+      if (scr === 'enable') return `<tr class="${pr.on ? '' : 'off'}" ${pgFocus === k ? 'style="outline:2px solid var(--sel)"' : ''}><td class="m">${k}</td><td class="m">${pr.type}</td><td class="m">${pr.label}</td><td>${status}</td><td><button class="btn ${pr.on ? 'dng' : 'pri'}" type="button" data-pg="toggle" data-k="${k}">${pr.on ? 'DISABLE' : 'ENABLE'}</button></td></tr>`;
+      return `<tr class="${pr.on ? '' : 'off'}" ${pgFocus === k ? 'style="outline:2px solid var(--sel)"' : ''}><td class="m">${k}</td>
+        <td><select data-pf="type" data-k="${k}" aria-label="Type code ${k}">${codes.map(c => `<option ${c === pr.type ? 'selected' : ''}>${c}</option>`).join('')}</select></td>
+        <td><input type="text" maxlength="20" data-pf="label" data-k="${k}" value="${pr.label.replace(/"/g, '&quot;')}" aria-label="Custom label ${k}"></td>
+        <td><input type="text" maxlength="20" data-pf="ext" data-k="${k}" value="${(pr.ext || '').replace(/"/g, '&quot;')}" placeholder="เช่น ชั้น 2 ห้องประชุม" aria-label="Extended label ${k}"></td>
+        <td><input type="number" min="0" max="99" data-pf="zone" data-k="${k}" value="${pr.zone}" aria-label="Zone ${k}"></td>
+        <td><label><input type="checkbox" data-pf="on" data-k="${k}" ${pr.on ? 'checked' : ''}> ${pr.on ? 'ON' : 'OFF'}</label></td>
+        <td>${status}</td><td><button class="btn dng" type="button" data-pg="del" data-k="${k}" aria-label="ลบ ${k} ออกจากโปรแกรม">ลบ</button></td></tr>`;
+    }).join('');
+    const head = scr === 'enable' ? '<tr><th>Address</th><th>Type Code</th><th>Custom label</th><th>อุปกรณ์</th><th></th></tr>'
+      : '<tr><th>Address</th><th>Type Code</th><th>Custom label (ชื่อจุด)</th><th>Extended label (ชื่อท้าย/ตำแหน่ง)</th><th>Zone</th><th>เปิด/ปิด</th><th>อุปกรณ์</th><th></th></tr>';
+    b.innerHTML = pgLcd([scr === 'enable' ? 'DISABLE / ENABLE POINTS' : 'POINT PROGRAM', `LOOP ${pgLoop} · ${loopCard(pgLoop)} · ${keys.length} POINT(S)`]) +
+      `<div class="pg-bar"><label for="pgLoopSel">Loop</label><select id="pgLoopSel" class="btn">${loopOpts(pgLoop)}</select><button class="btn" type="button" data-pg="go" data-to="menu">กลับเมนู</button>
+       <span class="note">${scr === 'point' ? 'แก้แล้วบันทึกทันที ชื่อจุดและชื่อท้ายจะแสดงบนจอ LCD เมื่อเกิดเหตุ · Type Code ของโมดูลกำหนดว่าเป็น Fire Alarm หรือ Supervisory' : 'จุดที่ Disable ตู้จะไม่รับเหตุ และไฟ POINTS DISABLED ติด'}</span></div>
+       ${keys.length ? `<div class="pg-tbl-wrap"><table class="pg"><thead>${head}</thead><tbody>${rows}</tbody></table></div>` : '<p class="note">Loop นี้ยังไม่มีจุดในโปรแกรม ใช้ AUTOPROGRAM ก่อน</p>'}`;
+    if (pgFocus) setTimeout(() => { const el = $('pgBody').querySelector(`[data-k="${pgFocus}"]`); if (el) el.scrollIntoView({block:'center'}); }, 30);
+    return;
+  }
+  if (scr === 'clear') {
+    b.innerHTML = pgLcd(['CLEAR PROGRAM', 'ALL POINT PROGRAMMING WILL BE ERASED', 'PRESS ENTER TO CONFIRM']) +
+      `<div class="pg-bar"><button class="btn dng" type="button" data-pg="doclear">ENTER · ล้างโปรแกรมทั้งหมด</button><button class="btn" type="button" data-pg="go" data-to="menu">ยกเลิก</button></div>`;
+  }
+}
+function pgRunScan() {
+  const which = +$('pgScanLoop').value;
+  const loops = loopsList().filter(L => !which || L.n === which);
+  const bar = $('pgBar'), txt = $('pgScanTxt');
+  let step = 0; const total = loops.length * 2 * 159;
+  const tick = () => {
+    step = Math.min(total, step + 18);
+    const li = Math.min(loops.length - 1, Math.floor(step / (2 * 159))), r = step % (2 * 159), ty = r < 159 ? 'D' : 'M';
+    bar.style.width = (step / total * 100) + '%';
+    txt.textContent = `SCANNING L${loops[li].n}${ty}${pz(r % 159 + 1, 3)} ...`;
+    if (step < total) setTimeout(tick, 16); else pgScanDone(loops);
+  };
+  tick();
+}
+function pgScanDone(loops) {
+  const rows = []; pgScan = [];
+  for (const L of loops) {
+    const sc = result.scan[L.n] || {found:[], dup:[], down:false};
+    if (sc.down) rows.push(`<tr><td class="m">LOOP ${L.n}</td><td colspan="4"><span class="chip c-err">SLC SHORT</span> สแกนไม่ได้ ทั้ง loop ไม่ตอบ</td></tr>`);
+    const seenKeys = new Set();
+    for (const p of sc.found) {
+      const k = `L${L.n}${T(p).addrType}${pz(p.addr, 3)}`; seenKeys.add(k);
+      const pr = PROG[k], st = !pr ? 'NEW' : TYPECODES[p.t].includes(pr.type) ? 'OK' : 'TYPE?';
+      pgScan.push({k, p, st, loop:L.n});
+      rows.push(`<tr><td class="m">${k}</td><td class="m">${T(p).short}</td><td>${refdes(p)} · ${nameOf(p)}</td><td><span class="chip ${st === 'NEW' ? 'c-info' : st === 'OK' ? 'c-ok' : 'c-err'}">${st}</span></td><td class="m">${pr ? pr.type : defaultCode(p)}</td></tr>`);
+    }
+    for (const p of sc.dup) rows.push(`<tr><td class="m">L${L.n}${T(p).addrType}${pz(p.addr, 3)}</td><td class="m">${T(p).short}</td><td>${refdes(p)}</td><td><span class="chip c-err">DUPLICATE</span></td><td>แก้ Address ก่อน</td></tr>`);
+    for (const k of Object.keys(PROG).filter(k => new RegExp(`^L${L.n}[DM]`).test(k) && !seenKeys.has(k))) {
+      pgScan.push({k, missing:true});
+      rows.push(`<tr><td class="m">${k}</td><td class="m">${PROG[k].type}</td><td>${PROG[k].label}</td><td><span class="chip c-warn">MISSING</span></td><td>ไม่ตอบ</td></tr>`);
+    }
+  }
+  const nNew = pgScan.filter(x => x.st === 'NEW').length, nMiss = pgScan.filter(x => x.missing).length;
+  $('pgScanTxt').textContent = `สแกนเสร็จ: พบ ${pgScan.filter(x => x.p).length} จุด · ใหม่ ${nNew} · หายไป ${nMiss}`;
+  $('pgScanRes').innerHTML = `<div class="pg-tbl-wrap"><table class="pg"><thead><tr><th>Address</th><th>อุปกรณ์ที่ตอบ</th><th>บนแผ่นงาน</th><th>สถานะ</th><th>Type Code</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="5">ไม่พบอุปกรณ์ที่ตอบบน SLC</td></tr>'}</tbody></table></div>
+    <div class="pg-bar"><button class="btn pri" type="button" data-pg="accept">ACCEPT · บันทึกจุดใหม่เข้าโปรแกรม (${nNew})</button>
+    ${nMiss ? `<label><input type="checkbox" id="pgDropMissing"> ลบจุดที่หายไป (${nMiss}) ออกจากโปรแกรม</label>` : ''}<button class="btn" type="button" data-pg="go" data-to="menu">กลับเมนู</button></div>`;
+}
+$('pgBody').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-pg]'); if (!b) return;
+  const a = b.dataset.pg;
+  if (a === 'login') {
+    if ($('pgPw').value === PASSWORD) { pgUnlocked = true; plog('INFO', 'PROGRAM PASSWORD ACCEPTED'); pgShow(b.dataset.next); }
+    else { $('pgErr').textContent = 'INVALID PASSWORD · รหัสผ่านไม่ถูกต้อง'; plog('INFO', 'INVALID PASSWORD'); }
+  }
+  else if (a === 'go') pgShow(b.dataset.to);
+  else if (a === 'exit') pgClose();
+  else if (a === 'scan') pgRunScan();
+  else if (a === 'accept') {
+    let n = 0;
+    for (const x of pgScan || []) {
+      if (x.st === 'NEW') { x.p.loop = x.loop; PROG[x.k] = progEntry(x.p); n++; }
+      if (x.missing && $('pgDropMissing') && $('pgDropMissing').checked) delete PROG[x.k];
+    }
+    plog('INFO', `AUTOPROGRAM: ${n} NEW POINT(S) ADDED`);
+    save(); render(); pgShow('point');
+  }
+  else if (a === 'toggle') { const pr = PROG[b.dataset.k]; pr.on = !pr.on; plog('INFO', `${b.dataset.k} ${pr.on ? 'ENABLED' : 'DISABLED'}`); save(); render(); pgShow('enable'); }
+  else if (a === 'del') { delete PROG[b.dataset.k]; plog('INFO', `${b.dataset.k} DELETED FROM PROGRAM`); save(); render(); pgShow('point'); }
+  else if (a === 'doclear') { PROG = {}; plog('INFO', 'PROGRAM CLEARED'); save(); render(); pgShow('menu'); }
+});
+$('pgBody').addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.id === 'pgPw') $('pgBody').querySelector('[data-pg="login"]').click(); });
+$('pgBody').addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.id === 'pgLoopSel') { pgLoop = +t.value; pgFocus = null; pgShow($('pgBody').querySelector('[data-pg="toggle"]') ? 'enable' : 'point'); return; }
+  const k = t.dataset.k, f = t.dataset.pf; if (!k || !f || !PROG[k]) return;
+  const pr = PROG[k];
+  if (f === 'label' || f === 'ext') pr[f] = t.value.toUpperCase().slice(0, 20);
+  else if (f === 'zone') pr.zone = Math.max(0, Math.min(99, parseInt(t.value, 10) || 0));
+  else if (f === 'type') pr.type = t.value;
+  else if (f === 'on') pr.on = t.checked;
+  plog('INFO', `${k} ${f.toUpperCase()} → ${f === 'on' ? (pr.on ? 'ENABLED' : 'DISABLED') : pr[f]}`);
+  save(); render();
+  if (f === 'on' || f === 'type') pgShow('point');
+});
 
 /* ================= audio: panel piezo + NAC horns (temporal-3) ================= */
 let audio = null, soundOn = false, lastS = null;
@@ -2105,7 +2342,7 @@ function render() {
   else $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
   const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
   $('sbErr').textContent = `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
-  const circs = result.circ.filter(c => !['x', 'loose', 'l2x'].includes(c.key));
+  const circs = result.circ.filter(c => !['x', 'loose', 'l2x', 'prog'].includes(c.key));
   const pass = circs.filter(c => c.state === 'ok').length;
   const allOk = pass === circs.length && !result.circ.some(c => ['x', 'l2x'].includes(c.key));
   $('score').textContent = `ผ่าน ${pass}/${circs.length} วงจร`;
