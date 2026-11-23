@@ -240,6 +240,9 @@ svg.board.real .part.selp .selbox{stroke:var(--sel)}
 @keyframes lensf{0%{fill:#fffef0;filter:drop-shadow(0 0 10px #fff6a0)}15%{fill:rgba(255,255,255,.88);filter:none}}
 @media (prefers-reduced-motion:reduce){.part.act .dled,.part.on .lens{animation-duration:3s}}
 
+/* address dials */
+.adial{cursor:pointer}
+.adial:hover .adial-ring{stroke:var(--sel);stroke-width:1.6}
 /* device hotspots: smoke into a head, pull a manual station */
 .hot{fill:transparent;cursor:pointer}
 .hot:hover{fill:rgba(215,25,47,.10);stroke:var(--err);stroke-width:1.2;stroke-dasharray:3 3}
@@ -333,7 +336,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
       <button type="button" data-do="undo">ย้อนสายล่าสุด <kbd>Ctrl+Z</kbd></button>
       <button type="button" data-do="delW">ลบสายที่เลือก <kbd>Del</kbd></button>
       <button type="button" data-do="delP">ลบอุปกรณ์ที่เลือก <kbd>Del</kbd></button>
-      <button type="button" data-do="cutW">จำลองสายขาด / ต่อคืน</button></div></div>
+      <button type="button" data-do="cutW">จำลองสายขาด / ต่อคืน</button>
+      <hr><button type="button" data-do="autoAddr">เรียง Address อัตโนมัติ (ทุก Loop)</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">มุมมอง</button><div class="drop" role="menu">
       <button type="button" data-do="zIn">ซูมเข้า <kbd>Ctrl+wheel</kbd></button>
       <button type="button" data-do="zOut">ซูมออก</button>
@@ -465,6 +469,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     </ul></div>
     <div><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
       <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO (แมนนวล, Flow, Tamper) + EOL 47kΩ ที่ตัวสุดท้าย</li>
+      <li><b>หัว Conventional (ไม่มี Address)</b>: ต่อ SLC ตรงไม่ได้ ต้องผ่านโมดูลโซน FZM-1 (ไฟ 24V จาก AUX) ต่อหัว 2 สายขนานกันตามขั้ว + EOL 3.9kΩ ที่หัวตัวสุดท้าย ทั้งโซนใช้ Address เดียวของ FZM-1</li>
+      <li><b>ตั้ง Address</b>: คลิกปุ่มหมุน TENS / ONES บนหัวหรือโมดูล (+1, Shift/คลิกขวา −1) หรือพิมพ์ใน Properties หรือเมนู แก้ไข › เรียง Address อัตโนมัติ</li>
       <li><b>Control</b>: ไฟ 24V จาก AUX, OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ</li>
       <li><b>Relay</b>: AHU ใช้ C–NC (ดับพัดลมตอน Alarm) ลิฟต์ใช้ C–NO (ปิดวงจรสั่ง Recall)</li>
       <li>NAC บนตู้ใช้ EOL 2.2kΩ ฮอร์นกลับขั้ว ตู้เห็นเป็น SHORT</li>
@@ -509,12 +515,17 @@ const TYPES = {
   heat:  {cat:'det', name:'หัวความร้อน (FST-951)', short:'FST-951', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'HEAT', desc:'หัวตรวจจับความร้อนแบบ Fixed/Rate-of-rise ต่อเหมือนหัวควัน ใช้ในครัว ห้องเครื่อง หรือที่มีควันรบกวน'},
   multi: {cat:'det', name:'หัว Multi-criteria (FAPT-951)', short:'FAPT-951', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'MULTI', desc:'หัวตรวจจับแบบผสม ควัน + ความร้อน ลดการแจ้งเตือนผิดพลาด ต่อ SLC เหมือนหัวทั่วไป'},
   duct:  {cat:'det', name:'หัวควันในท่อลม (DNR)', short:'DNR+FSP-951R', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'DUCT', desc:'หัวควันติดในกล่องสุ่มลมของท่อ AHU ใช้สั่งดับพัดลมเมื่อมีควันในระบบปรับอากาศ'},
+  conv:  {cat:'det', name:'หัวควัน Conventional (2-wire)', short:'CONV 2-WIRE', w:130, h:110, terms:[['+','+',35,110,'b','+'],['-','−',95,110,'b','-']], role:'zone', dt:'CONV SMOKE',
+          desc:'หัวควันแบบธรรมดา (Conventional) 2 สาย ไม่มี Address ต่อบน SLC ตรงไม่ได้ ต้องต่อผ่านโมดูลโซน FZM-1: + ไป ZONE+, − ไป ZONE− ต่อพ่วงหลายหัวได้ แต่ตู้จะรู้แค่ว่า "โซนนี้" Alarm ไม่รู้ว่าหัวไหน'},
   mm:    {cat:'mod', name:'Monitor module (FMM-1)', short:'FMM-1', w:150, h:110, addrType:'M', role:'slc',
           terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['i+','IDC+',150,50,'r','+'],['i-','IDC−',150,75,'r','-']],
           desc:'รับสัญญาณหน้าสัมผัสแห้ง (NO) จากแมนนวล Flow switch หรือ Tamper ด้าน IDC ต้องมี EOL 47kΩ ที่ปลายสาย'},
   cm:    {cat:'mod', name:'Control module (FCM-1)', short:'FCM-1', w:150, h:140, addrType:'M', role:'slc',
           terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['v+','24V+',0,105,'l','+'],['v-','24V−',0,128,'l','-'],['o+','OUT+',150,50,'r','+'],['o-','OUT−',150,75,'r','-']],
           desc:'สั่งงานวงจร NAC เฉพาะจุด ต้องรับไฟ 24V จาก AUX ของ AMPS-24 ขา OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ'},
+  fzm:   {cat:'mod', name:'Zone module (FZM-1)', short:'FZM-1', w:150, h:140, addrType:'M', role:'slc',
+          terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['v+','24V+',0,105,'l','+'],['v-','24V−',0,128,'l','-'],['z+','ZONE+',150,50,'r','+'],['z-','ZONE−',150,75,'r','-']],
+          desc:'โมดูลโซน Conventional: แปลงหัวควันแบบ 2 สาย (ไม่มี Address) ให้เป็น 1 จุดบน SLC ต้องรับไฟ 24V จาก AUX ขา ZONE ต่อหัว Conventional ขนานกันตามขั้ว + EOL 3.9kΩ ที่หัวตัวสุดท้าย (ตรวจค่า ELR กับคู่มือ) ทั้งโซนมี Address เดียว คือ Address ของโมดูล'},
   rm:    {cat:'mod', name:'Relay module (FRM-1)', short:'FRM-1', w:150, h:130, addrType:'M', role:'slc',
           terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['c','C',150,50,'r',''],['no','NO',150,78,'r',''],['nc','NC',150,106,'r','']],
           desc:'หน้าสัมผัสแห้ง Form-C ใช้สั่ง AHU ลิฟต์ ประตู ไม่ตรวจสาย'},
@@ -538,6 +549,7 @@ const TYPES = {
           desc:'แหล่งจ่ายไฟขยาย NAC (NAC extender เช่น FCPS-24S6/S8) รับไฟ AC เอง ขา IN ต่อจาก NAC ของตู้ เมื่อตู้สั่ง NAC ตัวนี้จะสั่ง OUT1/OUT2 ย้าย EOL ของ NAC ตู้ไปไว้หลังขา IN และต้องมีแบตเตอรี่ของตัวเอง'},
   bat:   {cat:'aux', name:'แบตเตอรี่ 12V', short:'BATTERY 12V', w:140, h:100, role:'bat', terms:[['+','+',35,0,'t','+'],['-','−',105,0,'t','-']], desc:'แบตเตอรี่ตะกั่วกรดแบบแห้ง 12V ใช้ 2 ลูกต่ออนุกรมได้ 24V'},
   eol47: {cat:'aux', name:'EOL 47kΩ', short:'EOL 47kΩ', w:110, h:70, role:'eol', val:47000, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย สำหรับ IDC และ OUT ของโมดูล วงจรลำโพง และ NAC ของ Remote power supply'},
+  eol39: {cat:'aux', name:'EOL 3.9kΩ', short:'EOL 3.9kΩ', w:110, h:70, role:'eol', val:3900, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสายสำหรับโซน Conventional ของ FZM-1 (ตรวจค่า ELR กับคู่มือ FZM-1)'},
   eol22: {cat:'aux', name:'EOL 2.2kΩ', short:'EOL 2.2kΩ', w:110, h:70, role:'eol', val:2200, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย สำหรับ NAC 1–4 บน CPU2-3030 (ตรวจค่าและเบอร์ ELR กับคู่มือติดตั้ง)'},
 };
 const CATS = [['det','หัวตรวจจับ'],['mod','โมดูล SLC'],['field','อุปกรณ์ปลายทาง'],['aux','อุปกรณ์เสริม']];
@@ -662,8 +674,9 @@ function across(f, x, y, sp, sn) { const A = f(x), B = f(y), S = f(sp), N = f(sn
 function wiresTouching(f, roots) { return wires.filter(w => !w.cut && (roots.has(f(w.a)) || roots.has(f(w.b)))); }
 const fmtR = v => v >= 1000 ? v / 1000 + 'kΩ' : v + 'Ω';
 function sinkTerms(p) { const r = T(p).role; return p.t === 'psu' ? ['in+', 'in-'] : r === 'contact' ? ['c1', 'c2'] : ['+', '-']; }
+const accepts = (o, r) => [].concat(o.accept).includes(r);
 const sinkRole = p => p.t === 'psu' ? 'nac' : T(p).role;
-const ROLE_TH = {nac:'อุปกรณ์ NAC (ฮอร์น/สโตรบ/กระดิ่ง)', spk:'ลำโพง', contact:'หน้าสัมผัส (แมนนวล/Flow/Tamper)'};
+const ROLE_TH = {nac:'อุปกรณ์ NAC (ฮอร์น/สโตรบ/กระดิ่ง)', spk:'ลำโพง', contact:'หน้าสัมผัส (แมนนวล/Flow/Tamper)', zone:'หัวควัน Conventional'};
 
 function loopsList() {
   const L = [{n:1, b:['P.l1b+','P.l1b-'], a:['P.l1a+','P.l1a-']}];
@@ -680,6 +693,7 @@ function outPorts() {
   if (CARDS.dvc) O.push({id:'P.sp', title:'วงจรลำโพง (DVC-EM / DAA2)', label:'SPEAKER CKT 1', sp:'P.sp+', sn:'P.sp-', eol:47000, accept:'spk', optional:true});
   for (const p of parts) {
     if (p.t === 'mm') O.push({id:p.id, title:`${nameOf(p)} ${addrStr(p)} · IDC`, label:addrStr(p), sp:p.id + '.i+', sn:p.id + '.i-', eol:47000, accept:'contact', owner:p});
+    if (p.t === 'fzm') O.push({id:p.id, title:`${nameOf(p)} ${addrStr(p)} · ZONE`, label:addrStr(p), sp:p.id + '.z+', sn:p.id + '.z-', eol:3900, accept:['zone', 'contact'], owner:p});
     if (p.t === 'cm') O.push({id:p.id, title:`${nameOf(p)} ${addrStr(p)} · OUT`, label:addrStr(p), sp:p.id + '.o+', sn:p.id + '.o-', eol:47000, accept:'nac', owner:p});
     if (p.t === 'psu') {
       O.push({id:p.id + '.1', title:`${nameOf(p)} · OUT1`, label:'PSU OUT1', sp:p.id + '.o1+', sn:p.id + '.o1-', eol:47000, accept:'nac', psu:p, optional:true});
@@ -698,18 +712,19 @@ function analyzeOut(o, f) {
   }
   if (S === N) {
     out.shorted = true; out.state = 'err';
-    if (o.accept === 'contact') { out.items.push(['warn', 'IDC+ กับ IDC− ลัดถึงกัน ตู้เห็นเป็นหน้าสัมผัสปิด ขึ้น ALARM']); out.panel.push(['ALARM', o.label + ' IDC SHORT']); }
+    if (accepts(o, 'contact')) { out.items.push(['warn', 'IDC+ กับ IDC− ลัดถึงกัน ตู้เห็นเป็นหน้าสัมผัสปิด ขึ้น ALARM']); out.panel.push(['ALARM', o.label + ' IDC SHORT']); }
     else { out.items.push(['err', 'ขั้ว + กับ − ลัดวงจร']); out.panel.push(['TROUBLE', o.label + ' SHORT']); }
     return out;
   }
   const eols = parts.filter(p => T(p) && T(p).role === 'eol' && across(f, p.id + '.a', p.id + '.b', o.sp, o.sn));
-  const sinks = parts.filter(p => p.t === 'psu' || (T(p) && ['nac', 'spk', 'contact'].includes(T(p).role)));
+  const sinks = parts.filter(p => p.t === 'psu' || (T(p) && ['nac', 'spk', 'contact', 'zone'].includes(T(p).role)));
   for (const d of sinks) {
     const [tp, tn] = sinkTerms(d);
     const kp = d.id + '.' + tp, kn = d.id + '.' + tn;
     if (across(f, kp, kn, o.sp, o.sn)) {
       const r = sinkRole(d);
-      if (r !== o.accept) { out.items.push(['err', `${nameOf(d)} เป็น${ROLE_TH[r]} ต่อบนวงจรนี้ไม่ได้ (วงจรนี้รับ${ROLE_TH[o.accept]})`]); out.state = 'err'; continue; }
+      if (!accepts(o, r)) { out.items.push(['err', `${nameOf(d)} เป็น${ROLE_TH[r]} ต่อบนวงจรนี้ไม่ได้ (วงจรนี้รับ${[].concat(o.accept).map(a => ROLE_TH[a]).join(' / ')})` + (r === 'zone' ? ' หัว Conventional ต้องต่อผ่าน FZM-1' : '')]); out.state = 'err'; continue; }
+      if (r === 'zone' && f(kp) === N) { out.items.push(['err', `${nameOf(d)} ต่อกลับขั้ว หัว 2 สายจะไม่ทำงาน/ไม่ส่ง Alarm`]); out.state = 'err'; continue; }
       if (r === 'nac' && f(kp) === N) { out.items.push(['err', `${nameOf(d)} ต่อกลับขั้ว ตอนตรวจสาย (กลับขั้ว) กระแสไหลผ่านไดโอด ตู้เห็นเป็นลัดวงจร`]); out.panel.push(['TROUBLE', o.label + ' SHORT']); out.state = 'err'; continue; }
       if (r === 'spk' && f(kp) === N) out.items.push(['warn', `${nameOf(d)} กลับขั้ว เสียงจะกลับเฟสกับลำโพงตัวอื่น`]);
       out.devOK.push(d);
@@ -861,7 +876,7 @@ function analyze() {
     let st = r.state;
     if (o.owner) {
       const resp = R.resp[o.owner.id];
-      if (o.owner.t === 'cm') {
+      if (o.owner.t === 'cm' || o.owner.t === 'fzm') {
         R.power[o.owner.id] = powered(o.owner);
         if (R.power[o.owner.id]) r.items.unshift(['ok', 'มีไฟ 24VDC จาก AUX ของ AMPS-24']);
         else { r.items.unshift(['err', powerRev(o.owner) ? 'ไฟ 24V เข้าโมดูลกลับขั้ว' : 'ไม่มีไฟ 24VDC เข้าโมดูล สั่งแล้วอุปกรณ์จะไม่ทำงาน']); if (resp) R.panel.push(['TROUBLE', `${addrStr(o.owner)} NO 24V`]); st = 'err'; }
@@ -927,7 +942,7 @@ function analyze() {
   }
 
   /* ---- loose field parts ---- */
-  const loose = parts.filter(p => p.t !== 'facp' && !partUsed(p) && ['nac', 'spk', 'contact', 'eol', 'bat', 'iso'].includes(T(p).role));
+  const loose = parts.filter(p => p.t !== 'facp' && !partUsed(p) && ['nac', 'spk', 'contact', 'zone', 'eol', 'bat', 'iso'].includes(T(p).role));
   if (loose.length) add('loose', 'อุปกรณ์ที่ยังไม่ได้ต่อสาย', loose.map(p => ['inf', nameOf(p)]), 'todo');
   return R;
 }
@@ -958,8 +973,8 @@ function el(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag)
 let gParts, gWires, gRubber, gTerms, gGrid;
 let showGrid = true, liveRoots = new Set(), hotRoots = new Set(), netNow = null;
 const ACTLBL = {pull:'PULLED', flow:'FLOW', tamper:'CLOSED'};
-const PREFIX = {smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
-const VAL = {smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
+const PREFIX = {conv:'CD', fzm:'ZM', eol39:'R', smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
+const VAL = {conv:'NON-ADDR', eol39:'3.9kΩ', smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
 function refdes(p) {
   if (p.t === 'facp') return 'U1';
   const pre = PREFIX[p.t];
@@ -1036,6 +1051,7 @@ function drawPart(p) {
 function drawIcon(p, ty, g) {
   const w = ty.w, h = ty.h, cx = w / 2;
   switch (ty.role) {
+    case 'zone': el('circle', {class:'ico main', cx, cy:64, r:20}, g); el('path', {class:'ico', d:`M${cx - 8} 64 h16`}, g); break;
     case 'slc':
       if (ty.cat === 'det') {
         el('circle', {class:'ico main', cx, cy:64, r:20}, g); el('circle', {class:'ico', cx, cy:64, r:8}, g);
@@ -1102,17 +1118,21 @@ function drawFacp(g) {
 const rr = (g, x, y, w, h, rx, fill, stroke, extra = {}) => el('rect', {x, y, width:w, height:h, rx, fill, stroke:stroke || 'none', ...extra}, g);
 const rt = (g, x, y, txt, size = 9, fill = '#3a4048', extra = {}) => { const e = el('text', {class:'rtxt', x, y, 'font-size':size, fill, ...extra}, g); e.textContent = txt; return e; };
 function screw(g, x, y, r = 4.2) { el('circle', {cx:x, cy:y, r, fill:'#d8c27a', stroke:'#6b5a2a', 'stroke-width':1}, g); el('path', {d:`M${x - r * 0.6} ${y} h${r * 1.2}`, stroke:'#5a4a1e', 'stroke-width':1.2}, g); }
-function dial(g, cx, cy, val, steps, lbl) {
-  el('circle', {cx, cy, r:11, fill:'#fdfdfd', stroke:'#2b2f34', 'stroke-width':1.4}, g);
-  for (let i = 0; i < steps; i++) el('line', {x1:cx, y1:cy - 11, x2:cx, y2:cy - 8.5, stroke:'#555', 'stroke-width':0.8, transform:`rotate(${i * 360 / steps} ${cx} ${cy})`}, g);
-  el('path', {d:`M${cx} ${cy + 3} L${cx - 2.4} ${cy} L${cx} ${cy - 9} L${cx + 2.4} ${cy} Z`, fill:'#c62828', transform:`rotate(${(val % steps) * 360 / steps} ${cx} ${cy})`}, g);
-  el('circle', {cx, cy, r:2, fill:'#2b2f34'}, g);
-  rt(g, cx, cy + 20, lbl, 6.5, '#555', {'text-anchor':'middle'});
+function dial(g0, cx, cy, val, steps, lbl, pid, which, r = 11) {
+  const g = el('g', {class:'adial', 'data-p':pid, 'data-d':which}, g0);
+  el('title', {}, g).textContent = `${lbl} = ${val} · คลิกเพื่อ +1 · Shift+คลิก หรือคลิกขวาเพื่อ −1`;
+  el('circle', {class:'adial-ring', cx, cy, r:r + 3, fill:'transparent'}, g);
+  el('circle', {cx, cy, r, fill:'#fdfdfd', stroke:'#2b2f34', 'stroke-width':1.4}, g);
+  for (let i = 0; i < steps; i++) el('line', {x1:cx, y1:cy - r, x2:cx, y2:cy - r + 2.5, stroke:'#555', 'stroke-width':0.8, transform:`rotate(${i * 360 / steps} ${cx} ${cy})`}, g);
+  el('path', {d:`M${cx} ${cy + r * 0.27} L${cx - r * 0.22} ${cy} L${cx} ${cy - r * 0.82} L${cx + r * 0.22} ${cy} Z`, fill:'#c62828', transform:`rotate(${(val % steps) * 360 / steps} ${cx} ${cy})`}, g);
+  el('circle', {cx, cy, r:r * 0.18, fill:'#2b2f34'}, g);
+  rt(g, cx, cy + r + 9, `${lbl} ${val}`, r < 11 ? 6 : 6.5, '#444', {'text-anchor':'middle'});
 }
-const BANDS = {47000:['#e0c000', '#7b2fbf', '#ff7f00'], 2200:['#d32f2f', '#d32f2f', '#d32f2f']};
+const BANDS = {3900:['#ff7f00', '#f5f5f5', '#d32f2f'], 47000:['#e0c000', '#7b2fbf', '#ff7f00'], 2200:['#d32f2f', '#d32f2f', '#d32f2f']};
 function drawReal(p, ty, g) {
   const w = ty.w, h = ty.h, cx = w / 2;
   switch (p.t) {
+    case 'conv':
     case 'smoke': case 'heat': case 'multi': {
       rr(g, 14, 2, 102, 102, 16, '#e4e7ea', '#b9bec4', {class:'rbody'});
       el('circle', {cx:65, cy:52, r:45, fill:'url(#gWhite)', stroke:'#c3c8ce', 'stroke-width':1.2}, g);
@@ -1123,6 +1143,8 @@ function drawReal(p, ty, g) {
       el('circle', {class:'dled', cx:91, cy:52, r:3.4}, g);
       if (p.t === 'multi') el('circle', {class:'dled', cx:39, cy:52, r:3.4}, g);
       rr(g, 24, 92, 82, 16, 3, '#eceef0', '#b9bec4');
+      if (p.t === 'conv') rt(g, 65, 90, 'CONVENTIONAL', 6.5, '#7a8088', {'text-anchor':'middle'});
+      else { dial(g, 26, 16, Math.floor((p.addr || 0) / 10), 16, 'T', p.id, 't', 8); dial(g, 104, 16, (p.addr || 0) % 10, 10, 'O', p.id, 'o', 8); }
       [[-12, 0], [0, -0.5], [12, -1]].forEach(([dx, d]) => el('circle', {class:'smoke', cx:65 + dx, cy:14, r:7, style:`animation-delay:${d}s`}, g));
       break;
     }
@@ -1137,15 +1159,15 @@ function drawReal(p, ty, g) {
       [[-12, 0], [0, -0.5], [12, -1]].forEach(([dx, d]) => el('circle', {class:'smoke', cx:65 + dx, cy:18, r:6, style:`animation-delay:${d}s`}, g));
       break;
     }
-    case 'mm': case 'cm': case 'rm': case 'iso': {
+    case 'mm': case 'cm': case 'rm': case 'fzm': case 'iso': {
       rr(g, 6, 2, w - 12, h - 4, 7, 'url(#gFace)', '#b9bec4', {class:'rbody'});
       el('circle', {cx:cx, cy:9, r:2.2, fill:'#c3c8ce'}, g); el('circle', {cx:cx, cy:h - 9, r:2.2, fill:'#c3c8ce'}, g);
       rt(g, cx, 22, ty.short, 9, '#3a4048', {'text-anchor':'middle', 'font-weight':600});
       if (p.t === 'iso') { el('circle', {class:'isoled', cx:cx, cy:44, r:5}, g); rt(g, cx, 64, 'FAULT ISOLATOR', 6.5, '#666', {'text-anchor':'middle'}); }
       else {
         const dy = Math.round(h / 2) + 2;
-        dial(g, cx - 17, dy, Math.floor((p.addr || 0) / 10), 16, 'TENS');
-        dial(g, cx + 17, dy, (p.addr || 0) % 10, 10, 'ONES');
+        dial(g, cx - 17, dy, Math.floor((p.addr || 0) / 10), 16, 'TENS', p.id, 't');
+        dial(g, cx + 17, dy, (p.addr || 0) % 10, 10, 'ONES', p.id, 'o');
         el('circle', {class:'mled', cx:cx, cy:32, r:3}, g);
       }
       break;
@@ -1239,7 +1261,7 @@ function drawReal(p, ty, g) {
       rt(g, 35, 26, '+', 12, '#ff6b6b', {'text-anchor':'middle'}); rt(g, 105, 26, '−', 12, '#c9ced4', {'text-anchor':'middle'});
       break;
     }
-    case 'eol47': case 'eol22': {
+    case 'eol47': case 'eol22': case 'eol39': {
       el('path', {d:'M0 38 H30 M80 38 H96 V58 H0', fill:'none', stroke:'#9aa1a9', 'stroke-width':2}, g);
       rr(g, 30, 30, 50, 16, 8, 'url(#gBeige)', '#a88a55', {class:'rbody'});
       BANDS[ty.val].forEach((c, i) => rr(g, 38 + i * 8, 30, 4, 16, 0, c));
@@ -1373,7 +1395,7 @@ function clickTerm(k) {
 }
 let drag = null;
 board.addEventListener('pointerdown', ev => {
-  if (ev.target.closest('.term') || ev.target.closest('.wire-hit') || ev.target.closest('.hot')) return;
+  if (ev.target.closest('.term') || ev.target.closest('.wire-hit') || ev.target.closest('.hot') || ev.target.closest('.adial')) return;
   const g = ev.target.closest('.part'); if (!g) return;
   const p = byId(g.dataset.p);
   if (p.t === 'facp') return;
@@ -1411,6 +1433,8 @@ board.addEventListener('pointerup', endDrag);
 board.addEventListener('pointercancel', endDrag);
 board.addEventListener('click', ev => {
   if (justDragged) return;
+  const ad = ev.target.closest('.adial');
+  if (ad) { stepAddr(ad.dataset.p, ad.dataset.d, ev.shiftKey ? -1 : 1); return; }
   const hot = ev.target.closest('.hot');
   if (hot) { triggerDevice(hot.dataset.trig); return; }
   const t = ev.target.closest('.term');
@@ -1533,6 +1557,7 @@ function renderInsp() {
     const nL = Math.max(CARDS.loops + 1, p.loop);
     kv += `<label for="iLoop">Loop</label><select id="iLoop">${Array.from({length:nL}, (_, i) => i + 1).map(i => `<option value="${i}" ${p.loop === i ? 'selected' : ''}>Loop ${i} · ${loopCard(i)}${i > CARDS.loops + 1 ? ' (ยังไม่ติด)' : ''}</option>`).join('')}</select>`;
     kv += `<label for="iAddr">Address (${ty.addrType})</label><input id="iAddr" type="number" min="1" max="159" value="${p.addr}">`;
+    kv += `<span></span><span class="note">TENS ${Math.floor(p.addr / 10)} · ONES ${p.addr % 10} — หรือคลิกปุ่มหมุนบนตัวอุปกรณ์ (มุมมองของจริง)</span>`;
   }
   const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
   $('insp').innerHTML = `<h3 id="iTitle">${refdes(p)} · ${label(p)}</h3><p>${ty.desc}</p>
@@ -1641,6 +1666,7 @@ menubar.addEventListener('click', ev => {
   if (k === 'new') $('clear').click();
   else if (k === 'guide') showGuide();
   else if (k === 'howto') modal('วิธีใช้โปรแกรม', $('howtoTpl').innerHTML);
+  else if (k === 'autoAddr') autoAddress();
   else if (k === 'vReal' || k === 'vSch') setView(k === 'vReal' ? 'real' : 'sch');
   else if (k === 'grid') { showGrid = !showGrid; gGrid.style.display = showGrid ? '' : 'none'; }
   else if ($(k) && !$(k).disabled) $(k).click();
@@ -1669,6 +1695,23 @@ function padd(type, src, l1, l2, l3, latch) {
 }
 function pclear(ev) { PX.events = PX.events.filter(e => e !== ev); plog('CLEARED', `CLEARED ${ev.type} · ${ev.l2}`); if (PX.view >= PX.events.length) PX.view = Math.max(0, PX.events.length - 1); }
 // troubles follow the wiring (non-latching); a shorted IDC latches as an alarm
+function stepAddr(id, which, delta) {
+  const p = byId(id); if (!p) return;
+  let t = Math.floor((p.addr || 0) / 10), o = (p.addr || 0) % 10;
+  if (which === 't') t = (t + delta + 16) % 16; else o = (o + delta + 10) % 10;
+  p.addr = t * 10 + o;
+  selP = id; changed();
+  hint(`ตั้ง Address ${refdes(p)} = ${addrStr(p)} (TENS ${t} · ONES ${o})` + (p.addr === 0 ? ' · Address 000 ใช้ไม่ได้' : ''));
+}
+board.addEventListener('contextmenu', ev => { const ad = ev.target.closest('.adial'); if (!ad) return; ev.preventDefault(); stepAddr(ad.dataset.p, ad.dataset.d, -1); });
+function autoAddress() {
+  for (const L of loopsList()) for (const ty of ['D', 'M']) {
+    parts.filter(p => T(p) && T(p).addrType === ty && p.loop === L.n).sort((a, b) => a.y - b.y || a.x - b.x).forEach((p, i) => p.addr = i + 1);
+  }
+  parts.filter(p => p.t === 'ann').forEach((p, i) => p.addr = i + 1);
+  changed();
+  hint('เรียง Address ใหม่แล้ว: แยกตาม Loop และประเภท (D = หัว, M = โมดูล) ไล่จากบนลงล่าง ซ้ายไปขวา');
+}
 function triggerDevice(id) {
   const p = byId(id); if (!p) return;
   if (!running) { selectPart(id); hint(`กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) ก่อน แล้วคลิกที่ ${refdes(p)} อีกครั้งเพื่อสั่งงาน`); return; }
@@ -1676,17 +1719,19 @@ function triggerDevice(id) {
   const det = T(p).cat === 'det';
   plog('INFO', `${refdes(p)} ${det ? (p.act ? 'SMOKE APPLIED' : 'SMOKE CLEARED') : (p.act ? 'ACTIVATED' : 'RESTORED')} (FIELD)`);
   save(); drawAll(); render();
-  const ev = PX.events.find(e => e.src === p.id);
+  const zm = T(p).role === 'zone' ? parts.find(m => m.t === 'fzm' && result.outs[m.id] && result.outs[m.id].devOK.includes(p)) : null;
+  const ev = PX.events.find(e => e.src === p.id || (zm && e.src === zm.id + ':zone'));
   if (!p.act) hint(`${refdes(p)} คืนสภาพแล้ว ` + (ev ? 'แต่ตู้ยังค้างเหตุไว้ (Latching) กด SYSTEM RESET ที่หน้าตู้' : ''));
-  else if (ev) hint(`${refdes(p)} ${det ? 'มีควัน' : p.t === 'pull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
-  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ Monitor module ที่ตอบบน SLC'}`);
+  else if (ev) hint(`${refdes(p)} ${det ? (T(p).role === 'zone' ? 'มีควัน (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : 'มีควัน') : p.t === 'pull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
+  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
 }
 function syncActive(R) {
   for (const p of parts.filter(q => q.act)) {
-    if (T(p).cat === 'det') { if (R.resp[p.id]) padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); }
+    if (T(p).role === 'slc') { if (R.resp[p.id]) padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); }
     else {
-      const mm = parts.find(m => m.t === 'mm' && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
-      if (mm && R.resp[mm.id]) padd(T(p).ev === 'SUPV' ? 'SUPERVISORY' : 'FIRE ALARM', p.id, T(mm).short, `${T(p).short} ${refdes(p)}`, addrStr(mm), true);
+      const mm = parts.find(m => (m.t === 'mm' || (m.t === 'fzm' && R.power[m.id])) && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
+      if (mm && R.resp[mm.id] && T(p).role === 'zone') padd('FIRE ALARM', mm.id + ':zone', T(mm).short, `CONV SMOKE ZONE ${refdes(mm)}`, addrStr(mm), true);
+      else if (mm && R.resp[mm.id]) padd(T(p).ev === 'SUPV' ? 'SUPERVISORY' : 'FIRE ALARM', p.id, T(mm).short, `${T(p).short} ${refdes(p)}`, addrStr(mm), true);
     }
   }
 }
