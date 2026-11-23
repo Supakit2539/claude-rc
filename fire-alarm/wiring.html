@@ -111,6 +111,10 @@ details.pane > summary::after{content:"▾"} details.pane:not([open]) > summary:
 .cardsel label.fixed{cursor:default;opacity:.8}
 .cardsel input{margin-top:2px}
 .cardsel small{display:block;color:var(--chrome-muted);font-size:.72rem}
+.loopcards{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;padding:4px 2px}
+.stepper{display:flex;align-items:center;gap:4px;flex:none}
+.stepper .btn{min-width:28px;padding:2px 8px;font-weight:700}
+.stepper output{font-family:var(--font-mono);min-width:18px;text-align:center}
 
 /* sheet */
 .center{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;min-width:0}
@@ -377,7 +381,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <div><h3>ตู้ FACP และการ์ด</h3><ul>
       <li><b>CPU / Main board</b>: SLC Loop 1, NAC 1–2, AUX 24V, ANN-BUS (RS-485 ไปจอแสดงผลระยะไกล) และรีเลย์ Alarm</li>
       <li><b>Main power supply</b>: รับ AC 220V จ่าย 24V และชาร์จแบตเตอรี่ 12V × 2 ที่ต่ออนุกรม</li>
-      <li><b>การ์ด Loop 2</b>: เพิ่ม SLC อีก loop Address แยกจาก Loop 1 (L2D001 คนละตัวกับ L1D001)</li>
+      <li><b>การ์ด Loop</b>: ติดเพิ่มได้หลายใบ (สูงสุด 8 loop) แต่ละใบให้ SLC อีกหนึ่ง loop Address แยกกันต่อ loop (L2D001 คนละตัวกับ L1D001)</li>
       <li><b>การ์ด DVC / Audio</b>: วงจรลำโพง 25V ต่อเฉพาะลำโพงที่มีหม้อแปลง ห้ามต่อฮอร์น</li>
     </ul></div>
     <div><h3>SLC Loop และ Isolator</h3><ul>
@@ -404,7 +408,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
   <ul style="margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px">
     <li><b>วางอุปกรณ์</b>: คลิกชื่อในคลังอุปกรณ์ หรือลากลงบนแผ่นงาน แล้วลากตัวอุปกรณ์เพื่อจัดตำแหน่ง (บนมือถือ แตะเลือกก่อนแล้วจึงลาก)</li>
     <li><b>ต่อสาย</b>: คลิกปลายขา (วงกลมเล็ก) ตัวแรก แล้วคลิกปลายขาปลายทาง สีสายเลือกได้ที่แถบเครื่องมือ (A = อัตโนมัติ: + แดง, − ดำ)</li>
-    <li><b>การ์ดในตู้</b>: ติด/ถอดการ์ด Loop 2 และ DVC ได้ที่ "ตู้ FACP · การ์ด"</li>
+    <li><b>การ์ดในตู้</b>: เพิ่ม/ถอดการ์ด Loop (ปุ่ม + / −) และการ์ด DVC ได้ที่ "ตู้ FACP · การ์ด"</li>
     <li><b>Properties</b>: ตั้ง Loop และ Address ของอุปกรณ์ที่เลือก</li>
     <li><b>ERC</b>: ตรวจวงจรทุกครั้งที่แก้ไข ข้อความแสดงสิ่งที่ตู้จริงจะเห็น สายที่กะพริบคือจุดที่ตู้ตรวจสายขาดไม่ได้</li>
     <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง สายที่มีไฟจะแสดงการไหลของกระแส แล้วสั่งเหตุจากอุปกรณ์ใน Stimulus ดูว่าฮอร์นดัง พัดลมดับ ลิฟต์ถูกเรียก</li>
@@ -416,7 +420,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
 "use strict";
 const $ = id => document.getElementById(id);
 const SVGNS = 'http://www.w3.org/2000/svg';
-const BW = 1700, BH = 1200;
+const BW = 1700;
+let BH = 1200;
 
 /* ================= catalogue ================= */
 // terminal: [key, label, x, y, side, pol]
@@ -462,7 +467,14 @@ const TYPES = {
 const CATS = [['det','หัวตรวจจับ'],['mod','โมดูล SLC'],['field','อุปกรณ์ปลายทาง'],['aux','อุปกรณ์เสริม']];
 
 /* FACP chassis: terminals depend on installed cards */
-const CARDS = {loop2:false, dvc:false};
+const CARDS = {loops:0, dvc:false};   // loops = number of SLC loop expansion cards (Loop 2 ... Loop 8)
+const MAXLOOPS = 8;
+function facpLayout() {
+  const n = CARDS.loops;
+  const loopY = i => 600 + (i - 2) * 150;             // card for Loop i (i >= 2)
+  const dvcY = 600 + n * 150 + 22, psuY = dvcY + 133;
+  return {n, loopY, dvcY, psuY, H:psuY + 270};
+}
 const FW = 300;
 function facpTerms() {
   const r = (k, lb, y, pol) => [k, lb, FW, y, 'r', pol];
@@ -473,9 +485,10 @@ function facpTerms() {
     r('aa','ANN A',436,''), r('ab','ANN B',460,''),
     r('rc','ALM C',510,''), r('rno','ALM NO',534,''), r('rnc','ALM NC',558,''),
   ];
-  if (CARDS.loop2) t.push(r('l2b+','SLC2 B+',648,'+'), r('l2b-','SLC2 B−',672,'-'), r('l2a+','SLC2 A+',704,'+'), r('l2a-','SLC2 A−',728,'-'));
-  if (CARDS.dvc) t.push(r('sp+','SPK +',820,'+'), r('sp-','SPK −',844,'-'));
-  t.push(r('t+','BAT +',1080,'+'), r('t-','BAT −',1104,'-'));
+  const Y = facpLayout();
+  for (let i = 2; i <= Y.n + 1; i++) { const y = Y.loopY(i); t.push(r(`l${i}b+`, `SLC${i} B+`, y + 48, '+'), r(`l${i}b-`, `SLC${i} B−`, y + 72, '-'), r(`l${i}a+`, `SLC${i} A+`, y + 104, '+'), r(`l${i}a-`, `SLC${i} A−`, y + 128, '-')); }
+  if (CARDS.dvc) t.push(r('sp+','SPK +',Y.dvcY + 48,'+'), r('sp-','SPK −',Y.dvcY + 72,'-'));
+  t.push(r('t+','BAT +',Y.psuY + 175,'+'), r('t-','BAT −',Y.psuY + 199,'-'));
   return t;
 }
 const FACP_GROUPS = [['SLC LOOP 1',80],['CLASS A RETURN',140],['NAC 1',214],['NAC 2',280],['AUX 24VDC',354],['ANN-BUS RS-485',428],['ALARM RELAY',502]];
@@ -544,7 +557,9 @@ function load() {
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!s || !Array.isArray(s.parts) || !s.parts.some(p => p.id === 'P')) return false;
     parts = s.parts.filter(p => p.t === 'facp' || TYPES[p.t]);
-    Object.assign(CARDS, s.cards || {});
+    const c = s.cards || {};
+    CARDS.dvc = !!c.dvc;
+    CARDS.loops = Number.isFinite(c.loops) ? Math.max(0, Math.min(MAXLOOPS - 1, c.loops)) : (c.loop2 ? 1 : 0);
     rebuildTerms();
     wires = (s.wires || []).filter(w => TERM[w.a] && TERM[w.b]);
     wseq = wires.reduce((m, w) => Math.max(m, w.id), 0) + 1;
@@ -574,7 +589,7 @@ const ROLE_TH = {nac:'อุปกรณ์ NAC (ฮอร์น/สโตรบ
 
 function loopsList() {
   const L = [{n:1, b:['P.l1b+','P.l1b-'], a:['P.l1a+','P.l1a-']}];
-  if (CARDS.loop2) L.push({n:2, b:['P.l2b+','P.l2b-'], a:['P.l2a+','P.l2a-']});
+  for (let i = 2; i <= CARDS.loops + 1; i++) L.push({n:i, b:[`P.l${i}b+`, `P.l${i}b-`], a:[`P.l${i}a+`, `P.l${i}a-`]});
   return L;
 }
 function outPorts() {
@@ -752,10 +767,10 @@ function analyze() {
     } else if (!short0 && nResp) it.push(['inf', 'Class B (ไม่ใช้ขั้ว A)']);
     if (short0 && !short && !aUsed) it.push(['inf', 'Class B ได้ไฟจากฝั่งตู้ทางเดียว อุปกรณ์ทุกตัวหลัง Isolator ที่เปิดจึงหลุดด้วย']);
     if (!isoOn.length && nResp) it.push(['inf', 'ไม่มี Isolator: ช็อตจุดเดียวทำให้ทั้ง loop ล่ม']);
-    add('slc' + L.n, `SLC Loop ${L.n}${L.n === 2 ? ' (การ์ด Loop 2)' : ' (CPU)'}`, it, st);
+    add('slc' + L.n, `SLC Loop ${L.n}${L.n > 1 ? ` (การ์ด Loop ${L.n})` : ' (CPU)'}`, it, st);
   }
-  const noLoop = slcDevs.filter(d => d.loop === 2 && !CARDS.loop2);
-  if (noLoop.length) add('l2x', 'การ์ด Loop 2', [['err', `${noLoop.map(nameOf).join(', ')} ตั้งไว้ Loop 2 แต่ยังไม่ได้ติดการ์ด Loop 2 ในตู้`]], 'err');
+  const noLoop = slcDevs.filter(d => d.loop > CARDS.loops + 1);
+  if (noLoop.length) add('l2x', 'การ์ด Loop ที่ยังไม่ได้ติด', noLoop.map(d => ['err', `${nameOf(d)} ตั้งไว้ Loop ${d.loop} แต่ในตู้ยังไม่มีการ์ด Loop ${d.loop}`]), 'err');
 
   /* ---- supervised outputs ---- */
   for (const o of outPorts()) {
@@ -868,6 +883,8 @@ function refdes(p) {
   return pre + (parts.filter(q => PREFIX[q.t] === pre).indexOf(p) + 1);
 }
 function drawAll() {
+  BH = Math.max(1200, facpLayout().H + 60);
+  board.setAttribute('viewBox', `0 0 ${BW} ${BH}`);
   rebuildTerms();
   board.innerHTML = '';
   const defs = el('defs', {}, board);
@@ -953,14 +970,19 @@ function drawFacp(g) {
   const blk = (cls, y, h, ttl) => { el('rect', {class:'blk ' + cls, x:10, y, width:180, height:h, rx:3}, g); el('text', {class:'blkttl', x:20, y:y + 16}, g).textContent = ttl; };
   blk('', 36, 540, 'CPU / MAIN BOARD');
   FACP_GROUPS.forEach(([lb, y]) => el('text', {class:'glabel', x:22, y:y + 22}, g).textContent = lb);
-  if (CARDS.loop2) { blk('', 600, 150, 'SLOT 1 · LOOP 2 CARD'); el('text', {class:'glabel', x:22, y:662}, g).textContent = 'SLC LOOP 2'; el('text', {class:'glabel', x:22, y:718}, g).textContent = 'CLASS A RETURN'; }
-  else blk('empty', 600, 150, 'SLOT 1 · (EMPTY)');
-  if (CARDS.dvc) { blk('', 772, 110, 'SLOT 2 · DVC / AUDIO AMP'); el('text', {class:'glabel', x:22, y:822}, g).textContent = 'SPEAKER 25V'; el('text', {class:'glabel', x:22, y:842}, g).textContent = 'MIC · MESSAGE · 50W'; }
-  else blk('empty', 772, 110, 'SLOT 2 · (EMPTY)');
-  blk('', 905, 250, 'MAIN POWER SUPPLY');
-  el('text', {class:'glabel', x:22, y:945}, g).textContent = '~ AC 220V  L · N · G';
-  el('text', {class:'glabel', x:22, y:965}, g).textContent = '24VDC OUT · CHARGER';
-  el('text', {class:'glabel', x:22, y:1094}, g).textContent = 'BATTERY 24V';
+  const Y = facpLayout();
+  for (let i = 2; i <= Y.n + 1; i++) {
+    const y = Y.loopY(i);
+    blk('', y, 140, `SLOT ${i - 1} · LOOP ${i} CARD`);
+    el('text', {class:'glabel', x:22, y:y + 62}, g).textContent = `SLC LOOP ${i}`;
+    el('text', {class:'glabel', x:22, y:y + 118}, g).textContent = 'CLASS A RETURN';
+  }
+  if (CARDS.dvc) { blk('', Y.dvcY, 110, 'AUDIO SLOT · DVC / AMP'); el('text', {class:'glabel', x:22, y:Y.dvcY + 50}, g).textContent = 'SPEAKER 25V'; el('text', {class:'glabel', x:22, y:Y.dvcY + 70}, g).textContent = 'MIC · MESSAGE · 50W'; }
+  else blk('empty', Y.dvcY, 110, 'AUDIO SLOT · (EMPTY)');
+  blk('', Y.psuY, 250, 'MAIN POWER SUPPLY');
+  el('text', {class:'glabel', x:22, y:Y.psuY + 40}, g).textContent = '~ AC 220V  L · N · G';
+  el('text', {class:'glabel', x:22, y:Y.psuY + 60}, g).textContent = '24VDC OUT · CHARGER';
+  el('text', {class:'glabel', x:22, y:Y.psuY + 189}, g).textContent = 'BATTERY 24V';
 }
 function drawTerms() {
   gTerms.innerHTML = '';
@@ -1156,11 +1178,25 @@ function renderCards() {
   $('cards').innerHTML = `
     <label class="fixed"><input type="checkbox" checked disabled><span><b>CPU / Main board</b><small>SLC Loop 1 · NAC 1–2 · AUX 24V · ANN-BUS · รีเลย์ Alarm</small></span></label>
     <label class="fixed"><input type="checkbox" checked disabled><span><b>Main power supply</b><small>AC 220V · 24VDC · ชาร์จแบตเตอรี่</small></span></label>
-    <label for="cLoop2"><input type="checkbox" id="cLoop2" ${CARDS.loop2 ? 'checked' : ''}><span><b>การ์ด Loop 2</b><small>เพิ่ม SLC Loop ที่ 2 (Option slot 1)</small></span></label>
-    <label for="cDvc"><input type="checkbox" id="cDvc" ${CARDS.dvc ? 'checked' : ''}><span><b>การ์ด DVC / Audio amp</b><small>เสียงประกาศอพยพ วงจรลำโพง 25V (Option slot 2)</small></span></label>`;
+    <div class="loopcards"><span><b>การ์ด Loop (SLC expander)</b><small>ติดแล้ว ${CARDS.loops} ใบ · ตู้มีทั้งหมด ${CARDS.loops + 1} loop (สูงสุด ${MAXLOOPS})</small></span>
+      <span class="stepper"><button class="btn" type="button" id="loopMinus" aria-label="ถอดการ์ด Loop ใบสุดท้าย" ${CARDS.loops ? '' : 'disabled'}>−</button><output id="loopN">${CARDS.loops}</output><button class="btn" type="button" id="loopPlus" aria-label="เพิ่มการ์ด Loop" ${CARDS.loops < MAXLOOPS - 1 ? '' : 'disabled'}>+</button></span></div>
+    <label for="cDvc"><input type="checkbox" id="cDvc" ${CARDS.dvc ? 'checked' : ''}><span><b>การ์ด DVC / Audio amp</b><small>เสียงประกาศอพยพ วงจรลำโพง 25V (Audio slot)</small></span></label>`;
 }
+$('cards').addEventListener('click', ev => {
+  const b = ev.target.closest('#loopPlus, #loopMinus'); if (!b || b.disabled) return;
+  const add = b.id === 'loopPlus';
+  if (add) CARDS.loops = Math.min(MAXLOOPS - 1, CARDS.loops + 1);
+  else {
+    const gone = CARDS.loops + 1;
+    const lost = wires.filter(w => w.a.startsWith(`P.l${gone}`) || w.b.startsWith(`P.l${gone}`)).length;
+    CARDS.loops = Math.max(0, CARDS.loops - 1);
+    if (lost) hint(`ถอดการ์ด Loop ${gone} แล้ว สาย ${lost} เส้นที่ต่อกับการ์ดถูกลบ`);
+  }
+  rebuildTerms(); wires = wires.filter(w => TERM[w.a] && TERM[w.b]);
+  changed();
+  if (add) hint(`ติดการ์ด Loop ${CARDS.loops + 1} แล้ว ขั้ว SLC${CARDS.loops + 1} อยู่ที่ขอบขวาของตู้ ตั้ง Loop ของอุปกรณ์ได้ใน Properties`);
+});
 $('cards').addEventListener('change', ev => {
-  if (ev.target.id === 'cLoop2') CARDS.loop2 = ev.target.checked;
   if (ev.target.id === 'cDvc') CARDS.dvc = ev.target.checked;
   rebuildTerms(); wires = wires.filter(w => TERM[w.a] && TERM[w.b]);
   changed();
@@ -1175,7 +1211,8 @@ function renderInsp() {
   let kv = '';
   if (ty.addrType === 'A') kv += `<label for="iAddr">Address</label><input id="iAddr" type="number" min="1" max="8" value="${p.addr}">`;
   else if (ty.addrType) {
-    kv += `<label for="iLoop">Loop</label><select id="iLoop"><option value="1" ${p.loop === 1 ? 'selected' : ''}>Loop 1</option><option value="2" ${p.loop === 2 ? 'selected' : ''}>Loop 2</option></select>`;
+    const nL = Math.max(CARDS.loops + 1, p.loop);
+    kv += `<label for="iLoop">Loop</label><select id="iLoop">${Array.from({length:nL}, (_, i) => i + 1).map(i => `<option value="${i}" ${p.loop === i ? 'selected' : ''}>Loop ${i}${i > CARDS.loops + 1 ? ' (ไม่มีการ์ด)' : ''}</option>`).join('')}</select>`;
     kv += `<label for="iAddr">Address (${ty.addrType})</label><input id="iAddr" type="number" min="1" max="159" value="${p.addr}">`;
   }
   const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
@@ -1203,7 +1240,7 @@ const end = (e, pol) => e.id + (pol === '+' ? '.a' : '.b');
 function build(full) {
   parts = [{id:'P', t:'facp', x:20, y:20, n:1}];
   wires = []; wseq = 1; alarm = null; selP = null;
-  CARDS.loop2 = full; CARDS.dvc = full;
+  CARDS.loops = full ? 1 : 0; CARDS.dvc = full;
   const A = (t, x, y, e) => addPart(t, x, y, e);
   const iso1 = A('iso', 370, 175), s1 = A('smoke', 370, 30, {addr:1}), s2 = A('smoke', 520, 30, {addr:2}), iso2 = A('iso', 670, 175), h1 = A('heat', 670, 30, {addr:3});
   const mm1 = A('mm', 880, 30, {addr:1});
@@ -1252,7 +1289,7 @@ function build(full) {
 $('exBasic').addEventListener('click', () => build(false));
 $('exFull').addEventListener('click', () => build(true));
 function newBlank() {
-  parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loop2 = false; CARDS.dvc = false;
+  parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loops = 0; CARDS.dvc = false;
   addPart('bat', 380, 1040); addPart('bat', 560, 1040);
   wires = []; selP = null; selW = null; alarm = null; changed();
   $('fileName').textContent = 'ไม่มีชื่อ.fsim';
