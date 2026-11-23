@@ -222,6 +222,26 @@ table.erc td.ic{width:22px;text-align:center;font-weight:700}
 .shortrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .shortrow select{width:auto;max-width:100%}
 
+/* front panel (CPU2-3030D) */
+.pnl-band{display:flex;justify-content:space-between;align-items:center;background:#b10d25;color:#fff;margin:-10px -10px 0;padding:6px 10px;border-radius:6px 6px 0 0;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em}
+.pnl-band b{letter-spacing:.16em}
+.lcd.off{background:#2f3628;color:#2f3628;box-shadow:inset 0 0 10px rgba(0,0,0,.6)}
+.lcd{font-size:12.5px;line-height:1.15}
+.piezo{display:flex;justify-content:space-between;gap:8px;font-family:var(--font-mono);font-size:.64rem;color:var(--enc-muted);letter-spacing:.05em}
+.piezo .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3a3f45;margin-right:5px;vertical-align:middle}
+.piezo .dot.on{background:#ffd34d;box-shadow:0 0 7px #ffd34d}
+.piezo .dot.pulse{background:#ffd34d;animation:blink .5s steps(1) infinite}
+.keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.pbtn{position:relative;overflow:hidden;border:1px solid #000;border-radius:6px;padding:7px 2px 6px;color:#fff;font-family:var(--font-mono);font-size:.56rem;font-weight:600;letter-spacing:.02em;line-height:1.2;box-shadow:0 2px 0 rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.22);text-align:center;min-height:46px;cursor:pointer;touch-action:manipulation}
+.pbtn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.55)}
+.pbtn[disabled]{opacity:.45;cursor:default}
+.pbtn small{display:block;font-family:var(--font-body);font-weight:500;font-size:.62rem;opacity:.85;margin-top:2px;letter-spacing:0}
+.k-ack{background:#2d6d3c}.k-sil{background:#a77800}.k-drill{background:#b10d25}.k-reset{background:#2b5a8c}.k-sm{background:#3b4148;min-height:32px}
+.pbtn .hold{position:absolute;left:0;bottom:0;height:3px;width:0;background:#fff;opacity:.85}
+.pbtn.holding .hold{width:100%;transition:width 2s linear}
+.pbtn:focus-visible{outline:2px solid #fff;outline-offset:1px}
+table.hist td.m{font-family:var(--font-mono);font-size:.74rem;white-space:nowrap}
+
 /* status bar */
 .statusbar{display:flex;align-items:center;gap:0;background:var(--chrome-2);border-top:1px solid var(--chrome-line);font-size:.74rem;color:var(--chrome-muted);min-width:0}
 .statusbar > span{padding:3px 10px;border-right:1px solid var(--chrome-line);white-space:nowrap}
@@ -273,7 +293,6 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <span class="file" id="fileName">ระบบพื้นฐาน.fsim</span>
     <span class="model" title="รุ่นตู้ที่จำลอง">NFS2-3030</span>
     <span class="sp"></span>
-    <a id="simLink" href="index.html">เครื่องจำลองการใช้งานตู้</a>
   </header>
 
   <nav class="menubar" id="menubar" aria-label="เมนู">
@@ -342,21 +361,39 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
       <div class="tabs"><span class="tab" id="sheetTab">Sheet 1 · ผังต่อสาย</span></div>
       <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="แผ่นงานผังต่อสาย"></svg></div>
       <section class="msgs" aria-label="ผลตรวจวงจร">
-        <div class="pane-h"><span>ผลตรวจวงจร (ERC) · <span id="score" class="chip c-muted"></span></span>
-          <span class="ftabs" role="group" aria-label="กรองข้อความ"><button type="button" id="fIss" aria-pressed="true">ปัญหา</button><button type="button" id="fAll" aria-pressed="false">ทั้งหมด</button></span></div>
+        <div class="pane-h"><span class="ftabs" role="tablist" aria-label="แผงล่าง"><button type="button" id="tabErc" aria-pressed="true">ผลตรวจวงจร (ERC)</button><button type="button" id="tabHist" aria-pressed="false">ประวัติเหตุการณ์ (History)</button> <span id="score" class="chip c-muted"></span></span>
+          <span class="ftabs" id="ercFilters" role="group" aria-label="กรองข้อความ"><button type="button" id="fIss" aria-pressed="true">ปัญหา</button><button type="button" id="fAll" aria-pressed="false">ทั้งหมด</button></span>
+          <span class="ftabs" id="histTools" hidden><button type="button" id="clrLog">ล้างประวัติ</button></span></div>
         <div class="res" id="res"></div>
       </section>
     </section>
 
     <aside class="dock right" aria-label="แผงคุณสมบัติ">
       <section class="pane"><div class="pane-h">คุณสมบัติ · Properties</div><div class="pane-b insp" id="insp"></div></section>
-      <section class="pane"><div class="pane-h">เครื่องมือวัด · FACP display</div>
-        <div class="pane-b"><div class="pnl"><div class="pnl-h"><span>CPU2-3030D DISPLAY</span><span id="pnlCount"></span></div><div class="lcd" id="lcd" aria-live="polite"></div><div class="leds" id="leds"></div></div></div></section>
+      <section class="pane"><div class="pane-h">หน้าตู้ · CPU2-3030D <button class="btn" id="soundBtn" type="button" aria-pressed="false" style="text-transform:none;letter-spacing:0">เปิดเสียง</button></div>
+        <div class="pane-b"><div class="pnl" aria-label="หน้าตู้ NFS2-3030">
+          <div class="pnl-band"><b>NFS2-3030</b><span id="pnlCount">CPU2-3030D</span></div>
+          <div class="lcd off" id="lcd" aria-live="polite"></div>
+          <div class="leds" id="leds"></div>
+          <div class="piezo"><span><span class="dot" id="piezoDot"></span>PIEZO <span id="piezoTxt">QUIET</span></span><span id="evCount"></span></div>
+          <div class="keys">
+            <button class="pbtn k-ack" id="kAck" type="button">ACK<br>/ STEP<small>รับทราบ</small></button>
+            <button class="pbtn k-sil" id="kSil" type="button">SIGNAL<br>SILENCE<small>หยุดเสียง</small></button>
+            <button class="pbtn k-drill" id="kDrill" type="button">DRILL<br>HOLD 2s<small>อพยพ</small><span class="hold"></span></button>
+            <button class="pbtn k-reset" id="kReset" type="button">SYSTEM<br>RESET<small>รีเซ็ต</small></button>
+          </div>
+          <div class="keys">
+            <button class="pbtn k-sm" id="kPrev" type="button" aria-label="เหตุการณ์ก่อนหน้า">◀ PREV</button>
+            <button class="pbtn k-sm" id="kNext" type="button" aria-label="เหตุการณ์ถัดไป">NEXT ▶</button>
+            <button class="pbtn k-sm" id="kLamp" type="button">LAMP TEST</button>
+            <button class="pbtn k-sm" id="kHist" type="button">HISTORY</button>
+          </div>
+        </div></div></section>
       <section class="pane"><div class="pane-h">สัญญาณทดสอบ · Stimulus</div>
         <div class="pane-b">
           <div class="row" id="tests"></div>
           <div class="shortrow"><label for="shortSel" class="note">จำลอง SLC ช็อตที่</label><select id="shortSel"></select><button class="btn" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
-          <p class="note" id="testMsg">กด ▶ เริ่มจำลอง แล้วสั่งเหตุจากอุปกรณ์</p>
+          <p class="note" id="testMsg">กด ▶ เริ่มจำลอง เพื่อจ่ายไฟให้ตู้ แล้วสั่งเหตุจากอุปกรณ์ และใช้ปุ่มหน้าตู้ตอบสนอง</p>
         </div></section>
     </aside>
   </main>
@@ -413,7 +450,9 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>การ์ดในตู้</b>: เพิ่ม/ลด loop (LCM-320 / LEM-320) ด้วยปุ่ม + / − และติดชุดเสียง DVC ได้ที่ "ตู้ NFS2-3030 · การ์ด"</li>
     <li><b>Properties</b>: ตั้ง Loop และ Address ของอุปกรณ์ที่เลือก</li>
     <li><b>ERC</b>: ตรวจวงจรทุกครั้งที่แก้ไข ข้อความแสดงสิ่งที่ตู้จริงจะเห็น สายที่กะพริบคือจุดที่ตู้ตรวจสายขาดไม่ได้</li>
-    <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง สายที่มีไฟจะแสดงการไหลของกระแส แล้วสั่งเหตุจากอุปกรณ์ใน Stimulus ดูว่าฮอร์นดัง พัดลมดับ ลิฟต์ถูกเรียก</li>
+    <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) สายที่มีไฟจะแสดงการไหลของกระแส สั่งเหตุจากอุปกรณ์ใน Stimulus ดูว่าฮอร์นดัง พัดลมดับ ลิฟต์ถูกเรียก</li>
+    <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
+    <li><b>History</b>: ทุกเหตุการณ์และการกดปุ่มถูกบันทึกในแท็บ "ประวัติเหตุการณ์" ใต้แผ่นงาน</li>
   </ul>
 </template>
 
@@ -861,7 +900,9 @@ function analyze() {
 /* ================= functional simulation ================= */
 function simulate(R) {
   const S = {sound:new Set(), relayOn:new Set(), psuOn:new Set(), active:new Set()};
-  if (!running || !alarm || alarm.kind !== 'FIRE') return S;
+  const fire = PX.events.some(e => e.type === 'FIRE ALARM');
+  const signals = (fire && !PX.silenced) || PX.drill;
+  if (!running || PX.resetting || (!fire && !PX.drill)) return S;
   const works = r => r && !r.shorted && r.state !== 'skip';
   const active = new Set();
   ['P.n1', 'P.n2', 'P.n3', 'P.n4', 'P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
@@ -869,10 +910,10 @@ function simulate(R) {
   for (let k = 0; k < 3; k++) for (const p of parts.filter(q => q.t === 'psu')) {
     if ([...active].some(id => R.outs[id].devOK.includes(p))) { S.psuOn.add(p.id); ['.1', '.2'].forEach(s => { if (works(R.outs[p.id + s])) active.add(p.id + s); }); }
   }
-  S.active = active;
-  active.forEach(id => R.outs[id].devOK.forEach(d => { if (d.t !== 'psu') S.sound.add(d.id); }));
-  S.relayOn.add('P');
-  parts.filter(p => p.t === 'rm' && R.resp[p.id]).forEach(p => S.relayOn.add(p.id));
+  S.active = signals ? active : new Set();
+  if (!signals) S.psuOn.clear();
+  S.active.forEach(id => R.outs[id].devOK.forEach(d => { if (d.t !== 'psu') S.sound.add(d.id); }));
+  if (fire) { S.relayOn.add('P'); parts.filter(p => p.t === 'rm' && R.resp[p.id]).forEach(p => S.relayOn.add(p.id)); }
   return S;
 }
 
@@ -1335,6 +1376,186 @@ menubar.addEventListener('click', ev => {
 menubar.addEventListener('mouseover', ev => { const top = ev.target.closest('.menu > button'); if (top && menubar.querySelector('.menu.open') && !top.parentElement.classList.contains('open')) { closeMenus(); top.parentElement.classList.add('open'); } });
 document.addEventListener('click', ev => { if (!ev.target.closest('#menubar')) closeMenus(); });
 
+/* ================= front panel engine (CPU2-3030D) ================= */
+const PX = {events:[], view:0, log:[], seq:0, silenced:false, drill:false, resetting:false, lamp:false, flash:null};
+const PRI = {'FIRE ALARM':0, 'PREALARM':1, 'SUPERVISORY':2, 'TROUBLE':3};
+const pz = (n, w = 2) => String(n).padStart(w, '0');
+function stamp(t = new Date()) { let h = t.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12; return `${pz(h)}:${pz(t.getMinutes())}:${pz(t.getSeconds())}${ap} ${pz(t.getMonth() + 1)}${pz(t.getDate())}${pz(t.getFullYear() % 100)}`; }
+function plog(type, text) { PX.log.unshift({t:new Date(), type, text}); if (PX.log.length > 400) PX.log.pop(); }
+const phas = t => PX.events.some(e => e.type === t);
+const punacked = t => PX.events.some(e => e.type === t && !e.acked);
+function padd(type, src, l1, l2, l3, latch) {
+  if (PX.events.some(e => e.type === type && e.src === src)) return false;
+  const ev = {id:++PX.seq, type, src, l1, l2, l3, latch, acked:false, t:new Date()};
+  PX.events.push(ev);
+  PX.events.sort((a, b) => PRI[a.type] - PRI[b.type] || a.id - b.id);
+  PX.view = Math.max(0, PX.events.findIndex(e => !e.acked));
+  plog(type, `${l2}${l3 ? ' · ' + l3 : ''}`);
+  if (type === 'FIRE ALARM') PX.silenced = false;   // resound on a subsequent alarm
+  return true;
+}
+function pclear(ev) { PX.events = PX.events.filter(e => e !== ev); plog('CLEARED', `CLEARED ${ev.type} · ${ev.l2}`); if (PX.view >= PX.events.length) PX.view = Math.max(0, PX.events.length - 1); }
+// troubles follow the wiring (non-latching); a shorted IDC latches as an alarm
+function syncPanel(R) {
+  if (!running || PX.resetting) return;
+  const seen = new Set();
+  for (const [lvl, msg] of R.panel) {
+    if (lvl === 'TROUBLE') { seen.add('T:' + msg); padd('TROUBLE', 'T:' + msg, '', msg, '', false); }
+    if (lvl === 'ALARM') padd('FIRE ALARM', 'A:' + msg, 'MONITOR', msg, '', true);
+  }
+  PX.events.filter(e => e.type === 'TROUBLE' && !seen.has(e.src)).forEach(pclear);
+}
+function pflash(a, b) { PX.flash = {lines:[a, b || ''], until:Date.now() + 1800}; renderPanel(); setTimeout(renderPanel, 1850); }
+function needPower() { if (running) return false; $('testMsg').textContent = 'ตู้ยังไม่มีไฟ กด ▶ เริ่มจำลอง ก่อน'; return true; }
+function keyAck() {
+  if (needPower() || PX.resetting) return;
+  const un = PX.events.filter(e => !e.acked);
+  if (!un.length) { if (PX.events.length) { PX.view = (PX.view + 1) % PX.events.length; renderPanel(); } return; }
+  un.forEach(e => e.acked = true); plog('ACK', `ACKNOWLEDGE (${un.length})`); render();
+}
+function keySilence() {
+  if (needPower() || PX.resetting) return;
+  if (!(phas('FIRE ALARM') || PX.drill)) { pflash('NO SIGNALS TO SILENCE'); return; }
+  if (PX.silenced && !PX.drill) return;
+  PX.silenced = true; PX.drill = false; PX.events.forEach(e => e.acked = true);
+  plog('SILENCE', 'SIGNALS SILENCED'); render();
+}
+function keyDrill() { if (needPower() || PX.resetting) return; PX.drill = true; PX.silenced = false; plog('DRILL', 'MANUAL EVACUATE (DRILL)'); render(); }
+function keyReset() {
+  if (needPower() || PX.resetting) return;
+  plog('RESET', 'SYSTEM RESET');
+  PX.resetting = true; PX.events = []; PX.silenced = false; PX.drill = false; PX.view = 0;
+  render();
+  setTimeout(() => {
+    PX.resetting = false; render();
+    const still = PX.events.filter(e => e.type !== 'TROUBLE');
+    $('testMsg').textContent = still.length ? `รีเซ็ตแล้ว แต่ต้นเหตุยังอยู่ ${still.length} จุด จึงขึ้นใหม่` : 'SYSTEM RESET เรียบร้อย';
+  }, 3000);
+}
+function keyLamp() { if (needPower()) return; PX.lamp = true; renderPanel(); setTimeout(() => { PX.lamp = false; renderPanel(); }, 3000); }
+$('kAck').addEventListener('click', keyAck);
+$('kSil').addEventListener('click', keySilence);
+$('kReset').addEventListener('click', keyReset);
+$('kLamp').addEventListener('click', keyLamp);
+$('kPrev').addEventListener('click', () => { if (PX.events.length) { PX.view = (PX.view - 1 + PX.events.length) % PX.events.length; renderPanel(); } });
+$('kNext').addEventListener('click', () => { if (PX.events.length) { PX.view = (PX.view + 1) % PX.events.length; renderPanel(); } });
+$('kHist').addEventListener('click', () => { setTab('hist'); document.querySelector('.msgs').scrollIntoView({behavior:'smooth', block:'nearest'}); });
+// DRILL needs a 2-second hold, as on the panel
+let holdT = null;
+const kd = $('kDrill');
+function holdStart(ev) {
+  if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
+  if (ev.type === 'keydown') { ev.preventDefault(); if (ev.repeat) return; }
+  if (holdT || needPower()) return;
+  kd.classList.add('holding');
+  holdT = setTimeout(() => { holdT = null; kd.classList.remove('holding'); keyDrill(); }, 2000);
+}
+function holdEnd() { if (!holdT) return; clearTimeout(holdT); holdT = null; kd.classList.remove('holding'); pflash('DRILL: HOLD KEY FOR 2 SECONDS'); }
+kd.addEventListener('pointerdown', holdStart); kd.addEventListener('keydown', holdStart);
+['pointerup', 'pointerleave', 'pointercancel', 'keyup', 'blur'].forEach(t => kd.addEventListener(t, holdEnd));
+kd.addEventListener('contextmenu', e => e.preventDefault());
+
+const PW = 40, PROWS = 16;
+const PL = (a = '', b = '') => { a = String(a); b = String(b); return (a + ' '.repeat(Math.max(1, PW - a.length - b.length)) + b).slice(0, PW); };
+const TSHORT = {'FIRE ALARM':'FIRE', PREALARM:'PREAL', SUPERVISORY:'SUPV', TROUBLE:'TRBL'};
+function lcdLines() {
+  const fill = arr => { while (arr.length < PROWS) arr.splice(arr.length - 1, 0, PL('')); return arr.slice(0, PROWS); };
+  if (PX.lamp) return Array(PROWS).fill('█'.repeat(PW));
+  const c = t => PX.events.filter(e => e.type === t).length;
+  const foot = PL(`ALM:${pz(c('FIRE ALARM'), 3)} SUP:${pz(c('SUPERVISORY'), 3)} TBL:${pz(c('TROUBLE'), 3)}`, `DIS:000`);
+  if (PX.resetting) return fill([PL('SYSTEM RESET IN PROGRESS'), PL(''), PL('PLEASE WAIT...'), PL(stamp()), foot]);
+  if (PX.flash && Date.now() < PX.flash.until) return fill([PL(PX.flash.lines[0]), PL(PX.flash.lines[1]), PL(''), PL(stamp()), foot]);
+  const sep = '─'.repeat(PW);
+  if (!PX.events.length) {
+    const head = PX.drill ? [PL('MANUAL EVACUATE', 'DRILL'), PL('ALL SILENCEABLE OUTPUTS ON'), PL('PRESS SIGNAL SILENCE TO STOP'), PL(stamp())]
+                          : [PL('SYSTEM NORMAL'), PL('NFS2-3030'), PL(''), PL(stamp())];
+    const loops = loopsList().map(L => { const prog = parts.filter(d => T(d) && T(d).role === 'slc' && d.loop === L.n); return PL(`LOOP ${L.n} ${loopCard(L.n)}`, `${pz(prog.filter(d => result.resp[d.id]).length, 3)}/${pz(prog.length, 3)} OK`); });
+    return fill([...head, sep, ...loops.slice(0, 10), foot]);
+  }
+  const e = PX.events[Math.min(PX.view, PX.events.length - 1)];
+  const n = PX.events.length, i = PX.events.indexOf(e) + 1;
+  const list = PX.events.slice(0, 9).map(x => {
+    const m = (x.l3 || x.l2).match(/L\d+[DM]\d{3}/); const addr = m ? m[0] : '';
+    const txt = x.type === 'TROUBLE' ? x.l2.replace(addr, '').trim() : x.l2;
+    return ((x === e ? '>' : ' ') + (x.acked ? ' ' : '*') + TSHORT[x.type].padEnd(6) + (addr ? addr.padEnd(8) : '') + txt).slice(0, PW).padEnd(PW);
+  });
+  if (n > 9) list.push(PL(`  ... ${n - 9} MORE (PRESS NEXT)`));
+  return fill([PL((e.acked ? '' : '*') + e.type, e.l1), PL(e.l2), PL(e.l3, PX.silenced ? 'SILENCED' : PX.drill ? 'DRILL' : ''), PL(stamp(e.t), `${pz(i, 3)} OF ${pz(n, 3)}`), sep, ...list, foot]);
+}
+const PLEDS = [
+  ['POWER', '#3fd16f', () => 'on'],
+  ['FIRE ALARM', '#ff2a3d', () => punacked('FIRE ALARM') ? 'blink' : phas('FIRE ALARM') ? 'on' : ''],
+  ['PRE-ALARM', '#ff2a3d', () => ''],
+  ['SECURITY', '#3d8bff', () => ''],
+  ['SUPERVISORY', '#ffc93a', () => punacked('SUPERVISORY') ? 'blink' : phas('SUPERVISORY') ? 'on' : ''],
+  ['SYSTEM TROUBLE', '#ffc93a', () => punacked('TROUBLE') ? 'blink' : phas('TROUBLE') ? 'on' : ''],
+  ['SIGNALS SILENCED', '#ffc93a', () => PX.silenced ? 'on' : ''],
+  ['POINTS DISABLED', '#ffc93a', () => ''],
+  ['CPU FAILURE', '#ffc93a', () => ''],
+];
+function renderPanel() {
+  const lcd = $('lcd');
+  lcd.classList.toggle('off', !running);
+  lcd.textContent = running ? lcdLines().join('\n') : Array(PROWS).fill(' '.repeat(PW)).join('\n');
+  $('leds').innerHTML = PLEDS.map(([n, c, f]) => { const st = !running ? '' : PX.lamp ? 'on' : f(); return `<div class="led ${st ? 'lit' : ''} ${st === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`; }).join('');
+  const dot = $('piezoDot'), txt = $('piezoTxt'); dot.className = 'dot';
+  if (!running || PX.resetting) txt.textContent = running ? 'QUIET' : 'OFF';
+  else if (punacked('FIRE ALARM')) { dot.classList.add('on'); txt.textContent = 'STEADY'; }
+  else if (PX.events.some(e => !e.acked)) { dot.classList.add('pulse'); txt.textContent = 'PULSING'; }
+  else txt.textContent = 'QUIET';
+  const c = t => PX.events.filter(e => e.type === t).length;
+  $('evCount').textContent = `ALM ${c('FIRE ALARM')} · SUP ${c('SUPERVISORY')} · TBL ${c('TROUBLE')}`;
+  $('pnlCount').textContent = running ? 'CPU2-3030D · ON' : 'CPU2-3030D · OFF';
+  ['kAck', 'kSil', 'kDrill', 'kReset', 'kPrev', 'kNext', 'kLamp'].forEach(id => $(id).disabled = !running);
+}
+setInterval(() => { if (running && !PX.lamp) renderPanel(); }, 1000);
+
+/* bottom pane tabs: ERC / History */
+let bottomTab = 'erc';
+function setTab(t) {
+  bottomTab = t;
+  $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist'));
+  $('ercFilters').hidden = t !== 'erc'; $('histTools').hidden = t !== 'hist';
+  render();
+}
+$('tabErc').addEventListener('click', () => setTab('erc'));
+$('tabHist').addEventListener('click', () => setTab('hist'));
+$('clrLog').addEventListener('click', () => { PX.log = []; render(); });
+const LOGCLS = {'FIRE ALARM':'c-err', SUPERVISORY:'c-warn', TROUBLE:'c-warn', CLEARED:'c-ok', ACK:'c-info', SILENCE:'c-warn', DRILL:'c-err', RESET:'c-info', INFO:'c-muted', POWER:'c-info'};
+function renderHistory() {
+  $('res').innerHTML = PX.log.length
+    ? `<table class="erc hist"><thead><tr><th>เวลา</th><th>ประเภท</th><th>รายละเอียด</th></tr></thead><tbody>${PX.log.map(r => `<tr><td class="m">${stamp(r.t)}</td><td><span class="chip ${LOGCLS[r.type] || 'c-muted'}">${r.type}</span></td><td class="m" style="white-space:normal">${r.text}</td></tr>`).join('')}</tbody></table>`
+    : '<p class="note" style="padding:10px">ยังไม่มีเหตุการณ์ กด ▶ เริ่มจำลอง แล้วสั่งเหตุจาก Stimulus หรือทำสายขาด/ช็อต</p>';
+}
+
+/* ================= audio: panel piezo + NAC horns (temporal-3) ================= */
+let audio = null, soundOn = false, lastS = null;
+function initAudio() {
+  if (audio) return audio;
+  const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return null;
+  const ctx = new Ctx(), master = ctx.createGain(); master.gain.value = 0.16; master.connect(ctx.destination);
+  const pzO = ctx.createOscillator(); pzO.type = 'square'; pzO.frequency.value = 2900; const pzG = ctx.createGain(); pzG.gain.value = 0; pzO.connect(pzG); pzG.connect(master); pzO.start();
+  const h1 = ctx.createOscillator(); h1.type = 'sawtooth'; h1.frequency.value = 520; const h2 = ctx.createOscillator(); h2.type = 'square'; h2.frequency.value = 3100;
+  const h2g = ctx.createGain(); h2g.gain.value = 0.25; const hG = ctx.createGain(); hG.gain.value = 0;
+  h1.connect(hG); h2.connect(h2g); h2g.connect(hG); hG.connect(master); h1.start(); h2.start();
+  return audio = {ctx, pzG, hG};
+}
+setInterval(() => {
+  if (!audio) return;
+  const now = performance.now() / 1000, ph = now % 4;
+  const t3 = ph < 0.5 || (ph >= 1 && ph < 1.5) || (ph >= 2 && ph < 2.5);
+  const horn = soundOn && running && lastS && lastS.sound.size > 0 && t3;
+  let p = false;
+  if (soundOn && running && !PX.resetting) { if (punacked('FIRE ALARM')) p = true; else if (PX.events.some(e => !e.acked)) p = (now % 1) < 0.5; }
+  audio.hG.gain.setTargetAtTime(horn ? 0.5 : 0, audio.ctx.currentTime, 0.01);
+  audio.pzG.gain.setTargetAtTime(p ? 0.1 : 0, audio.ctx.currentTime, 0.005);
+}, 50);
+$('soundBtn').addEventListener('click', () => {
+  const A = initAudio(); if (!A) { $('soundBtn').textContent = 'ไม่รองรับเสียง'; return; }
+  soundOn = !soundOn; if (soundOn && A.ctx.state === 'suspended') A.ctx.resume();
+  $('soundBtn').textContent = soundOn ? 'ปิดเสียง' : 'เปิดเสียง'; $('soundBtn').setAttribute('aria-pressed', String(soundOn));
+});
+
 /* ================= run / stop ================= */
 let running = false, runStart = 0, runTimer = null;
 function toggleRun() {
@@ -1343,8 +1564,8 @@ function toggleRun() {
   b.classList.toggle('on', running);
   b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
   b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
-  if (!running) { alarm = null; clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
-  else { runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'กำลังจำลอง: สายที่มีไฟแสดงการไหลของกระแส สั่งเหตุจากอุปกรณ์ด้านบนได้'; }
+  if (!running) { PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: สั่งเหตุจากอุปกรณ์ด้านบน แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
   simClock(); renderTests(); render();
 }
 function simClock() {
@@ -1353,7 +1574,7 @@ function simClock() {
   $('sbSim').classList.toggle('on', running);
 }
 $('runBtn').addEventListener('click', toggleRun);
-$('rstBtn').addEventListener('click', () => { alarm = null; $('testMsg').textContent = running ? 'SYSTEM RESET แล้ว' : 'รีเซ็ตแล้ว'; render(); });
+$('rstBtn').addEventListener('click', keyReset);
 
 /* ================= tests ================= */
 function renderTests() {
@@ -1369,11 +1590,11 @@ $('tests').addEventListener('click', ev => {
   const k = b.dataset.t;
   const p = byId(k); if (!p || !running) return;
   if (T(p).cat === 'det') {
-    if (result.resp[p.id]) { alarm = {kind:'FIRE', txt:`${addrStr(p)} ${T(p).dt}`}; $('testMsg').textContent = `${label(p)} ส่ง Alarm เข้าตู้`; }
+    if (result.resp[p.id]) { padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); $('testMsg').textContent = `${label(p)} ส่ง Alarm เข้าตู้`; }
     else $('testMsg').textContent = `ตู้ไม่ได้รับสัญญาณ: ${label(p)} ไม่ตอบบน SLC`;
   } else {
     const mm = parts.find(m => m.t === 'mm' && result.outs[m.id] && result.outs[m.id].devOK.includes(p));
-    if (mm && result.resp[mm.id]) { const kind = T(p).ev; alarm = {kind, txt:`${addrStr(mm)} ${T(p).short}`}; $('testMsg').textContent = `${nameOf(p)} สั่งผ่าน ${label(mm)}` + (kind === 'SUPV' ? ' เป็น Supervisory (ไม่สั่งกริ่ง)' : ''); }
+    if (mm && result.resp[mm.id]) { const kind = T(p).ev; padd(kind === 'SUPV' ? 'SUPERVISORY' : 'FIRE ALARM', p.id, T(mm).short, `${T(p).short} ${refdes(p)}`, addrStr(mm), true); $('testMsg').textContent = `${nameOf(p)} สั่งผ่าน ${label(mm)}` + (kind === 'SUPV' ? ' เป็น Supervisory (ไม่สั่งกริ่ง)' : ''); }
     else $('testMsg').textContent = mm ? `ตู้ไม่ได้รับสัญญาณ: ${label(mm)} ไม่ตอบบน SLC` : `ตู้ไม่ได้รับสัญญาณ: ${nameOf(p)} ไม่ได้ต่อคร่อม IDC ของ Monitor module`;
   }
   render();
@@ -1393,9 +1614,8 @@ const LW = 34;
 const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repeat(Math.max(1, LW - a.length - b.length)) + b).slice(0, LW); };
 function render() {
   result = analyze();
-  const idcAlarm = result.panel.find(p => p[0] === 'ALARM');
-  if (idcAlarm && !alarm) alarm = {kind:'FIRE', txt:idcAlarm[1]};
-  const S = simulate(result);
+  syncPanel(result);
+  const S = simulate(result); lastS = S;
   netNow = netFn(); liveRoots = new Set(); hotRoots = new Set();
   if (running) {
     Object.keys(TERM).filter(k => k.startsWith('P.') && !/^P\.r/.test(k)).forEach(k => { if (termUsed(k)) liveRoots.add(netNow(k)); });
@@ -1406,7 +1626,7 @@ function render() {
   parts.forEach(p => {
     const g = $('part-' + p.id); if (!g || p.t === 'facp') return;
     g.classList.toggle('on', S.sound.has(p.id));
-    g.classList.toggle('alm', !!alarm && T(p).cat === 'det' && alarm.txt.startsWith(addrStr(p) + ' '));
+    g.classList.toggle('alm', running && T(p).cat === 'det' && PX.events.some(e => e.type === 'FIRE ALARM' && e.src === p.id));
     g.classList.toggle('open', result.isoOpen.includes(p.id));
   });
   for (const r of result.relays) {
@@ -1417,18 +1637,9 @@ function render() {
     else st.textContent = closed ? 'RECALL' : 'NORMAL';
   }
   parts.filter(p => p.t === 'psu').forEach(p => { $('st-' + p.id).textContent = S.psuOn.has(p.id) ? 'NAC ACTIVE' : 'STANDBY'; });
-  const seen = new Set(); const tr = result.panel.filter(p => p[0] === 'TROUBLE' && !seen.has(p[1]) && seen.add(p[1]));
-  let lines;
-  if (alarm && alarm.kind === 'FIRE') lines = [pad('FIRE ALARM', 'ACTIVE'), pad(alarm.txt), pad(tr.length ? `+ ${tr.length} TROUBLE` : ''), pad(S.sound.size ? `SIGNALS ON: ${S.sound.size}` : 'NO SIGNAL ACTIVE')];
-  else if (alarm && alarm.kind === 'SUPV') lines = [pad('SUPERVISORY', 'ACTIVE'), pad(alarm.txt), pad(tr.length ? `+ ${tr.length} TROUBLE` : ''), pad('')];
-  else if (tr.length) lines = [pad('TROUBLE', `${tr.length} EVENT${tr.length > 1 ? 'S' : ''}`), ...tr.slice(0, 3).map(t => pad(t[1]))];
-  else lines = [pad('SYSTEM NORMAL'), pad('ALL POINTS OK'), pad('AC OK  BATTERY 24V'), pad('')];
-  while (lines.length < 4) lines.push(pad(''));
-  $('lcd').textContent = lines.join('\n');
-  $('pnlCount').textContent = tr.length > 3 && !alarm ? `+${tr.length - 3} MORE` : '';
-  $('leds').innerHTML = [['AC POWER', '#3fd16f', 'on'], ['FIRE ALARM', '#ff2a3d', alarm && alarm.kind === 'FIRE' ? 'blink' : ''], ['SUPERVISORY', '#ffc93a', alarm && alarm.kind === 'SUPV' ? 'blink' : ''], ['SYSTEM TROUBLE', '#ffc93a', tr.length ? 'blink' : '']]
-    .map(([n, c, s]) => `<div class="led ${s ? 'lit' : ''} ${s === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`).join('');
-  parts.filter(p => p.t === 'ann').forEach(p => { $('annt-' + p.id).textContent = !result.ann[p.id] ? 'COMM FAIL' : alarm ? (alarm.kind === 'FIRE' ? 'FIRE ALARM' : 'SUPERVISORY') : tr.length ? 'TROUBLE' : 'NORMAL'; });
+  renderPanel();
+  const annTxt = !running ? 'NO POWER' : phas('FIRE ALARM') ? 'FIRE ALARM' : phas('SUPERVISORY') ? 'SUPERVISORY' : phas('TROUBLE') ? 'TROUBLE' : 'NORMAL';
+  parts.filter(p => p.t === 'ann').forEach(p => { $('annt-' + p.id).textContent = !result.ann[p.id] ? 'COMM FAIL' : annTxt; });
   const LBL = {ok:['ผ่าน', 'c-ok'], err:['ต้องแก้', 'c-err'], todo:['ยังไม่ต่อ', 'c-muted'], warn:['ระวัง', 'c-warn']};
   const IC = {ok:['✓', 'c-ok'], err:['✕', 'c-err'], warn:['!', 'c-warn'], inf:['·', 'c-muted']};
   let rows = '';
@@ -1438,7 +1649,8 @@ function render() {
     rows += `<tr class="grp"><td class="ic ${LBL[c.state][1]}">${IC[c.state === 'todo' ? 'inf' : c.state][0]}</td><td>${c.title}</td><td><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></td></tr>`;
     rows += items.map(([l, t]) => `<tr><td class="ic ${IC[l][1]}">${IC[l][0]}</td><td colspan="2">${t}</td></tr>`).join('');
   }
-  $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
+  if (bottomTab === 'hist') renderHistory();
+  else $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
   const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
   $('sbErr').textContent = `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
   const circs = result.circ.filter(c => !['x', 'loose', 'l2x'].includes(c.key));
