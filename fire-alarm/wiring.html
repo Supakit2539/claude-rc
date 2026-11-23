@@ -579,6 +579,9 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>CBE / Zone (ภาคผนวก E)</b>: อุปกรณ์ตรวจจับมี Zone map ค่าเริ่ม Z0yy ตามลูป · Control/Relay module ค่าเริ่ม Z000 (General alarm = ทุก Fire alarm) · เอาต์พุตทำงานเมื่อโซนใน Zone map ของมัน Active · หน้า MODULE POINT PROGRAMMING (2) ของ Control module: LOCAL MODE, ZONE MAP, WALK TEST, SWITCH INHIBIT, SILENCEABLE (NO = ไม่ดับเมื่อกด SIGNAL SILENCE) · Disable ทั้งโซน: ALTER STATUS › DISABLE/ENABLE › พิมพ์ Zyyy (ห้าม Z000)</li>
+    <li><b>PANEL PROGRAM MENU</b>: PANEL SETTINGS (LOCAL CONTROL = NO ปิดปุ่ม ACK/SILENCE/RESET/DRILL และ Piezo · PIEZO ON/OFF) · PANEL TIMERS (VERIFY TIME 0–240 วินาที, SILENCE INHIBIT 0–5 นาที, AUTO SILENCE 10/15/20 นาที, VERIFY=PREALARM) · MORE › หน้า 2: PASSWORD CHANGE (เฉพาะ Master: เปลี่ยน Master และ User 1–9 พร้อม REFERENCE และ MODE: PROGRAM/ALTER STATUS, ALTER STATUS, NONE) · LOOP CONFIGURATION (INSTALLED, DETECTOR/MODULE POLL, RAPID POLL, WIRING CLASS, BLINK MODE)</li>
+    <li><b>ALTER STATUS</b>: WALK TEST (BASIC/ADVANCED, PARAMETER LOOPS/PANEL/DEVICES/ZONE › START TEST › ทดสอบอุปกรณ์จะถูกบันทึกเป็น TEST ในประวัติ เอาต์พุตที่ตั้ง WALK TEST: ON และ NAC ดัง 4 วินาที · Advanced ค้างจนกด NEXT TEST · ABORT จบ · หมดเวลา 1 ชั่วโมง · เริ่มไม่ได้ถ้ามีเหตุ Active) · CHANGE TIME/DATE (พิมพ์ HHMM A/P MMDDYY เช่น 0822A011526) · MORE › CONTROL ON/OFF (FORCE ON/OFF ของ Control/Relay module · SWITCH INHIBIT ห้ามสั่ง · SYSTEM RESET คืนเป็น AUTOMATIC) · Alarm Verification: หัวที่ตั้ง ON จะแจ้ง Alarm เมื่อยังมีควันครบ VERIFY TIME หรือมี Alarm อื่นอยู่แล้ว · System trouble ตามภาคผนวก H: PROG MODE ACTIVATED, BASIC WALK TEST, ADV WALK TEST</li>
     <li><b>ตารางโปรแกรม (ตัวช่วย)</b>: เมนู จำลอง › ตารางโปรแกรมตู้ ดู/แก้ทุกจุดในตารางเดียว (เดิมคือ PROGRAM) ใส่รหัส 00000 แล้วเลือก AUTOPROGRAM เพื่อสแกนหา Address บน SLC และลงโปรแกรม · POINT PROGRAM เพื่อตั้ง Type Code ชื่อจุด ชื่อท้าย/ตำแหน่ง และ Zone · DISABLE/ENABLE เพื่อปิด/เปิดจุด อุปกรณ์ที่ยังไม่ได้ลงโปรแกรม ตู้จะไม่รับเหตุ</li>
     <li><b>History</b>: ทุกเหตุการณ์และการกดปุ่มถูกบันทึกในแท็บ "ประวัติเหตุการณ์" ใต้แผ่นงาน</li>
   </ul>
@@ -1094,20 +1097,21 @@ function analyze() {
 /* ================= functional simulation ================= */
 function simulate(R) {
   const S = {sound:new Set(), relayOn:new Set(), psuOn:new Set(), active:new Set()};
+  if (!running || PX.resetting) { lastOut = null; return S; }
+  const O = outputState(R); lastOut = O;
   const fire = PX.events.some(e => e.type === 'FIRE ALARM');
-  const signals = (fire && !PX.silenced) || PX.drill;
-  if (!running || PX.resetting || (!fire && !PX.drill)) return S;
+  const nacOn = (fire && !PX.silenced) || PX.drill || O.pulse;   // panel NACs: general alarm Z000, silenceable
   const works = r => r && !r.shorted && r.state !== 'skip';
   const active = new Set();
-  ['P.n1', 'P.n2', 'P.n3', 'P.n4', 'P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
-  parts.filter(p => p.t === 'cm').forEach(p => { if (works(R.outs[p.id]) && R.resp[p.id] && R.power[p.id]) active.add(p.id); });
+  if (nacOn) ['P.n1', 'P.n2', 'P.n3', 'P.n4', 'P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
+  parts.filter(p => p.t === 'cm').forEach(p => { if (O.on.has(p.id) && works(R.outs[p.id]) && R.power[p.id]) active.add(p.id); });
   for (let k = 0; k < 3; k++) for (const p of parts.filter(q => q.t === 'psu')) {
     if ([...active].some(id => R.outs[id].devOK.includes(p))) { S.psuOn.add(p.id); ['.1', '.2'].forEach(s => { if (works(R.outs[p.id + s])) active.add(p.id + s); }); }
   }
-  S.active = signals ? active : new Set();
-  if (!signals) S.psuOn.clear();
+  S.active = active;
   S.active.forEach(id => R.outs[id].devOK.forEach(d => { if (d.t !== 'psu') S.sound.add(d.id); }));
-  if (fire) { S.relayOn.add('P'); parts.filter(p => p.t === 'rm' && R.resp[p.id]).forEach(p => S.relayOn.add(p.id)); }
+  if (fire) S.relayOn.add('P');
+  parts.filter(p => p.t === 'rm' && O.on.has(p.id)).forEach(p => S.relayOn.add(p.id));
   return S;
 }
 
@@ -1888,13 +1892,13 @@ document.addEventListener('click', ev => { if (!ev.target.closest('#menubar')) c
 const PX = {events:[], view:0, log:[], seq:0, silenced:false, drill:false, resetting:false, lamp:false, flash:null};
 const PRI = {'FIRE ALARM':0, 'PREALARM':1, 'SUPERVISORY':2, 'TROUBLE':3};
 const pz = (n, w = 2) => String(n).padStart(w, '0');
-function stamp(t = new Date()) { let h = t.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12; return `${pz(h)}:${pz(t.getMinutes())}:${pz(t.getSeconds())}${ap} ${pz(t.getMonth() + 1)}${pz(t.getDate())}${pz(t.getFullYear() % 100)}`; }
-function plog(type, text) { PX.log.unshift({t:new Date(), type, text}); if (PX.log.length > 400) PX.log.pop(); }
+function stamp(t = nowD()) { let h = t.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12; return `${pz(h)}:${pz(t.getMinutes())}:${pz(t.getSeconds())}${ap} ${pz(t.getMonth() + 1)}${pz(t.getDate())}${pz(t.getFullYear() % 100)}`; }
+function plog(type, text) { PX.log.unshift({t:nowD(), type, text}); if (PX.log.length > 400) PX.log.pop(); }
 const phas = t => PX.events.some(e => e.type === t);
 const punacked = t => PX.events.some(e => e.type === t && !e.acked);
 function padd(type, src, l1, l2, l3, latch) {
   if (PX.events.some(e => e.type === type && e.src === src)) return false;
-  const ev = {id:++PX.seq, type, src, l1, l2, l3, latch, acked:false, t:new Date()};
+  const ev = {id:++PX.seq, type, src, l1, l2, l3, latch, acked:false, t:nowD()};
   PX.events.push(ev);
   PX.events.sort((a, b) => PRI[a.type] - PRI[b.type] || a.id - b.id);
   PX.view = Math.max(0, PX.events.findIndex(e => !e.acked));
@@ -1979,15 +1983,27 @@ function progReport(R) {
   R.circ.push({key:'prog', title:'โปรแกรมในตู้ (Panel program)', items:it, state:st});
 }
 function syncActive(R) {
-  const fire = (key, src, fallback) => { const pr = PROG[key]; if (!pr || !pr.on) return; const [code, lb, l3] = pointLines(key, pr); padd(SUPV_CODES.includes(pr.type) ? 'SUPERVISORY' : (fallback || 'FIRE ALARM'), src, code, lb, l3, true); };
-  for (const p of parts.filter(q => q.act)) {
-    if (T(p).role === 'slc') { if (R.resp[p.id] && (p.t !== 'beam' || R.beam[p.id])) fire(addrStr(p), p.id); }
+  const fire = (key, src, p) => {
+    const pr = PROG[key]; if (!pr || !pr.on) return;
+    if ((pr.zmap || []).length && pr.zmap.every(z => z == null || PSET.zdis.includes(z)) && pr.zmap.some(z => z != null)) return;   // all its zones disabled
+    const supv = SUPV_CODES.includes(pr.type);
+    if (PX.walk) { if (walkParticipates(key) && !['SMOKE CONVEN', 'HEAT DETECT'].includes(pr.type)) walkHit(p, key, supv ? 'SUPV' : 'ALARM'); return; }
+    if (!supv && !verifyGate(p, key)) return;
+    SRCKEY[src] = key;
+    if (!supv && !firstAlarmT) firstAlarmT = Date.now();
+    const [code, lb, l3] = pointLines(key, pr); padd(supv ? 'SUPERVISORY' : 'FIRE ALARM', src, code, lb, l3, true);
+  };
+  for (const p of parts) {
+    if (!p.act) { p.verT = 0; if (!(PX.walk && PX.walk.adv)) p.wtLogged = false; continue; }
+    if (T(p).role === 'slc') { if (R.resp[p.id] && (p.t !== 'beam' || R.beam[p.id])) fire(addrStr(p), p.id, p); }
     else {
       const mm = parts.find(m => (m.t === 'mm' || (m.t === 'fzm' && R.power[m.id])) && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
-      if (mm && R.resp[mm.id] && T(p).role === 'zone') fire(addrStr(mm), mm.id + ':zone');
-      else if (mm && R.resp[mm.id]) fire(addrStr(mm), p.id);
+      if (mm && R.resp[mm.id] && T(p).role === 'zone') fire(addrStr(mm), mm.id + ':zone', p);
+      else if (mm && R.resp[mm.id]) fire(addrStr(mm), p.id, p);
     }
   }
+  // verification prealarms end when the alarm is confirmed or the device restores
+  PX.events.filter(e => e.type === 'PREALARM' && e.src.startsWith('V:')).forEach(e => { const q = byId(e.src.slice(2)); if (!q || !q.verT) pclear(e); });
 }
 function syncPanel(R) {
   if (!running || PX.resetting) return;
@@ -2000,7 +2016,11 @@ function syncPanel(R) {
     if (lvl === 'TROUBLE') trouble(msg);
     if (lvl === 'ALARM') { const pr = PROG[k]; padd(pr && SUPV_CODES.includes(pr.type) ? 'SUPERVISORY' : 'FIRE ALARM', 'A:' + msg, pr ? pr.type : 'MONITOR', pr ? pr.label : msg, msg, true); }
   }
-  if (PM && PM.level) trouble('PROGRAM MODE ACTIVATED');
+  if (PM && PM.level) trouble('PROG MODE ACTIVATED');
+  if (PX.walk) trouble(PX.walk.adv ? 'ADV WALK TEST' : 'BASIC WALK TEST');
+  if (!PSET.local) trouble('LOCAL CONTROL DISABLED');
+  PSET.zdis.forEach(z => trouble(`ZONE Z${pz(z, 3)} DISABLED`));
+  parts.filter(p => p.force).forEach(p => trouble(`${addrStr(p)} FORCED ${p.force.toUpperCase()}`));
   for (const [k, pr] of Object.entries(PROG)) {
     const p = partAt(k);
     if (!pr.on) { trouble(`${k} DISABLED`); continue; }
@@ -2012,23 +2032,26 @@ function syncPanel(R) {
 }
 function pflash(a, b) { PX.flash = {lines:[a, b || ''], until:Date.now() + 1800}; renderPanel(); setTimeout(renderPanel, 1850); }
 function needPower() { if (running) return false; $('testMsg').textContent = 'ตู้ยังไม่มีไฟ กด ▶ เริ่มจำลอง ก่อน'; return true; }
+const localOff = () => { if (PSET.local) return false; pflash('LOCAL CONTROL DISABLED'); return true; };
 function keyAck() {
-  if (needPower() || PX.resetting) return;
+  if (needPower() || PX.resetting || localOff()) return;
   const un = PX.events.filter(e => !e.acked);
   if (!un.length) { if (PX.events.length) { PX.view = (PX.view + 1) % PX.events.length; renderPanel(); } return; }
   un.forEach(e => e.acked = true); plog('ACK', `ACKNOWLEDGE (${un.length})`); render();
 }
 function keySilence() {
-  if (needPower() || PX.resetting) return;
+  if (needPower() || PX.resetting || localOff()) return;
+  if (PSET.silInh && firstAlarmT && Date.now() - firstAlarmT < PSET.silInh * 60000) { pflash('SILENCE INHIBITED', `WAIT ${Math.ceil((PSET.silInh * 60000 - (Date.now() - firstAlarmT)) / 1000)} SEC`); return; }
   if (!(phas('FIRE ALARM') || PX.drill)) { pflash('NO SIGNALS TO SILENCE'); return; }
   if (PX.silenced && !PX.drill) return;
   PX.silenced = true; PX.drill = false; PX.events.forEach(e => e.acked = true);
   plog('SILENCE', 'SIGNALS SILENCED'); render();
 }
-function keyDrill() { if (needPower() || PX.resetting) return; PX.drill = true; PX.silenced = false; plog('DRILL', 'MANUAL EVACUATE (DRILL)'); render(); }
+function keyDrill() { if (needPower() || PX.resetting || localOff()) return; PX.drill = true; PX.silenced = false; plog('DRILL', 'MANUAL EVACUATE (DRILL)'); render(); }
 function keyReset() {
-  if (needPower() || PX.resetting) return;
+  if (needPower() || PX.resetting || localOff()) return;
   plog('RESET', 'SYSTEM RESET');
+  parts.forEach(p => { p.force = null; p.verT = 0; }); firstAlarmT = 0;
   PX.resetting = true; PX.events = []; PX.silenced = false; PX.drill = false; PX.view = 0;
   render();
   setTimeout(() => {
@@ -2090,7 +2113,7 @@ function lcdLines() {
 const PLEDS = [
   ['POWER', '#3fd16f', () => 'on'],
   ['FIRE ALARM', '#ff2a3d', () => punacked('FIRE ALARM') ? 'blink' : phas('FIRE ALARM') ? 'on' : ''],
-  ['PRE-ALARM', '#ff2a3d', () => ''],
+  ['PRE-ALARM', '#ff2a3d', () => phas('PREALARM') ? 'on' : ''],
   ['SECURITY', '#3d8bff', () => ''],
   ['SUPERVISORY', '#ffc93a', () => punacked('SUPERVISORY') ? 'blink' : phas('SUPERVISORY') ? 'on' : ''],
   ['SYSTEM TROUBLE', '#ffc93a', () => punacked('TROUBLE') ? 'blink' : phas('TROUBLE') ? 'on' : ''],
@@ -2110,7 +2133,7 @@ const SK_ROWS = [3, 6, 9, 12, 15];   // LCD rows beside soft keys 1-5 (left) and
 const ctr = t => { t = String(t).slice(0, PW); const l = Math.floor((PW - t.length) / 2); return ' '.repeat(l) + t; };
 const two = (l, r) => { l = String(l || ''); r = String(r || ''); return (l + ' '.repeat(Math.max(1, PW - l.length - r.length)) + r).slice(0, PW); };
 function dateLine() {
-  const d = new Date(), D = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()], M = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][d.getMonth()];
+  const d = nowD(), D = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()], M = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][d.getMonth()];
   let h = d.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12;
   return `${pz(h)}:${pz(d.getMinutes())}:${pz(d.getSeconds())}${ap}   ${D} ${M} ${pz(d.getDate())}, ${d.getFullYear()}`;
 }
@@ -2140,10 +2163,11 @@ Object.assign(TYPECODES, {
 });
 SUPV_CODES.length = 0; SUPV_CODES.push(...SUPV_TC);
 const modKind = t => ['cm', 'rm'].includes(t) ? 'CONTROL' : 'MONITOR';
-const blankEntry = (key, t) => ({t:t || null, type:'', fs:t ? fsOf(t) : 'NONE', mtype:t ? modKind(t) : 'MONITOR', label:'', ext:'', zmap:[Math.min(99, +/^L(\d+)/.exec(key)[1])], ver:false, local:false, cam:0, pre:'ALERT', sil:'NO', sens:{oa:7, ua:7, op:5, up:5}, on:true});
+const blankEntry = (key, t) => ({t:t || null, type:'', fs:t ? fsOf(t) : 'NONE', mtype:t ? modKind(t) : 'MONITOR', label:'', ext:'', zmap:[['cm', 'rm'].includes(t) ? 0 : Math.min(99, +/^L(\d+)/.exec(key)[1])], ver:false, local:false, cam:0, pre:'ALERT', sil:t === 'cm' ? 'YES - RESOUND FIRE' : 'NO', walk:false, inh:false, sens:{oa:7, ua:7, op:5, up:5}, on:true});
 function normEntry(key, pr) {   // older saved programs -> manual-style fields
   const b = blankEntry(key, pr.t);
   const e = {...b, ...pr};
+  if (pr.walk === undefined && ['cm', 'rm'].includes(pr.t)) { e.zmap = [0]; e.sil = b.sil; }   // pre-CBE saves: control outputs follow general alarm
   if (!Array.isArray(e.zmap)) e.zmap = [pr.zone ?? b.zmap[0]];
   if (pr.adj || pr.noun) e.label = [pr.adj, pr.noun, pr.label].filter(Boolean).join(' ').slice(0, 20);
   if (pr.type && !TC_D.includes(pr.type) && !TC_MON.includes(pr.type) && !TC_CTL.includes(pr.type)) e.type = isDet(key) ? (TYPECODES[pr.t] || TC_D)[0] : (TYPECODES[pr.t] || TC_MON)[0];
@@ -2169,6 +2193,7 @@ const keysSorted = () => Object.keys(PROG).sort((a, b) => { const pa = /^L(\d+)(
 function pointKeys(dm) { return keysSorted().filter(k => !dm || k[k.search(/[DM]/)] === dm); }
 
 function pmScreen() {
+  { const x = pmScreenExt(); if (x) return x; }
   const P = PM, E = P.edit;
   const cur = f => P.cursor === f ? '_' : '';
   switch (P.scr) {
@@ -2270,7 +2295,7 @@ function pmScreen() {
 const zmapTxt = zm => zm.filter(z => z != null).map(z => 'Z' + pz(z, 3)).join(', ') || 'NONE';
 function pmGo(scr, extra = {}) { PM = {...PM, scr, ...extra}; renderPanel(); }
 function pmBackTo() {
-  return {main:null, counts:'main', mel:'main', rs:'main', rsPt:'rs', pw:'main', badpw:'pw', denied:'main', pas:'main', na:P0 => P0.from || 'pas', ppm1:'pas', net:'ppm1', ppMenu:'pas',
+  return {...EXT_BACK, main:null, counts:'main', mel:'main', rs:'main', rsPt:'rs', pw:'main', badpw:'pw', denied:'main', pas:'main', na:P0 => P0.from || 'pas', ppm1:'pas', net:'ppm1', ppMenu:'pas',
     det1:'ppMenu', det2:'det1', det3:'det2', sens:'det2', zmap:P0 => P0.zfrom, mod1:'ppMenu', mod2:'mod1', notFound:P0 => P0.from, del:'pas', delPt:'del', confirm:P0 => P0.from,
     ap:'pas', apRun:'ap', apConf:'ap', apItem:'apConf', as1:'pas', as2:'as1', dsel:'as1', ssel:'as1', den:'dsel', sensA:'ssel', msg:P0 => P0.from}[PM.scr];
 }
@@ -2366,6 +2391,7 @@ function pmSoft(i) {
   if (!running) { needPower(); return; }
   if (!PM) { PM = {scr:'main'}; renderPanel(); return; }      // any soft key opens the Main Menu
   const P = PM, E = P.edit;
+  if (pmSoftExt(i)) return;
   switch (P.scr) {
     case 'main':
       if (i === 2) pmGo('counts');
@@ -2402,8 +2428,7 @@ function pmSoft(i) {
     }
     case 'ppm1':
       if (i === 2) pmGo('net', {node:NODE_LABEL, cursor:null});
-      else if ([3, 4, 5, 7, 8, 9].includes(i)) pmNA(({3:'NETWORK MAPPING', 4:'PANEL SETTINGS', 5:'PANEL TIMERS', 7:'LCD DISPLAY', 8:'ACS PROGRAMMING', 9:'SUPERVISION'})[i], 'ppm1');
-      else if (i === 10) pmNA('PANEL PROGRAM MENU (2)', 'ppm1');
+      else if ([3, 7, 8, 9].includes(i)) pmNA(({3:'NETWORK MAPPING', 7:'LCD DISPLAY', 8:'ACS PROGRAMMING', 9:'SUPERVISION'})[i], 'ppm1');
       break;
     case 'net':
       if (i === 2) { PM.cursor = 'node'; PM.node = ''; renderPanel(); }
@@ -2561,21 +2586,24 @@ function pmKey(k) {
     if (P.scr === 'badpw') { pmGo('pw', {buf:''}); return; }
     pmBack(); return;
   }
+  if (pmKeyExt(k)) return;
   const typing = k.length === 1 || k === 'BKSP';
   const edit = (obj, f, max) => { obj[f] = k === 'BKSP' ? (obj[f] || '').slice(0, -1) : ((obj[f] || '') + k).slice(0, max); };
   switch (P.scr) {
     case 'pw':
       if (typing && (k !== ' ')) { if (k === 'BKSP') P.buf = P.buf.slice(0, -1); else if (P.buf.length < 8) P.buf += k; renderPanel(); }
       else if (k === 'ENTER') {
-        const lvl = P.buf === PSW.master ? 'prog' : P.buf === PSW.user ? 'prog' : null;
+        const ui = USERS.findIndex(u => u.pw && u.pw === P.buf && u.mode !== 'NONE');
+        const lvl = P.buf === PSW.master ? 'prog' : ui >= 0 ? (USERS[ui].mode === 'ALTER STATUS' ? 'alter' : 'prog') : null;
         if (!lvl) {
           plog('INFO', 'INVALID PASSWORD');
           const h = [...P.buf].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
           const code = Array.from({length:5}, (_, j) => ((h >>> (j * 5)) ^ (j * 2654435761 >>> 0)).toString(16).toUpperCase().padStart(4, '0').slice(-4)).join('-');
           pmGo('badpw', {code}); return;
         }
-        plog('INFO', `PROGRAM MODE ACTIVATED (${P.buf === PSW.master ? 'MASTER' : 'USER 1'})`);
-        PM = {scr:'pas', level:lvl}; render(); renderPanel();
+        const role = P.buf === PSW.master ? 'master' : 'user' + (ui + 1);
+        plog('INFO', `PROGRAM MODE ACTIVATED (${role.toUpperCase()})`);
+        PM = {scr:'pas', level:lvl, role}; render(); renderPanel();
       }
       break;
     case 'badpw': if (k === 'ENTER') pmGo('pw', {buf:''}); break;
@@ -2644,6 +2672,366 @@ document.querySelector('.pnl').addEventListener('keydown', ev => {
   if (!k) return;
   ev.preventDefault(); ev.stopPropagation(); pmKey(k);
 });
+/* ================= manual features, part 2 =================
+   Panel Settings (3.2.4), Panel Timers (3.2.5-3.2.6), Panel Program Menu 2 / Password Change (3.3.1, 1.7.1),
+   Walk Test (4.6), Program Time/Date (4.7), Control On/Off (4.8), CBE zones (Appendix E),
+   control-module programming (Fig 3.49) and system trouble names (Appendix H). */
+const PSET_DEF = {local:true, piezo:true, pss:false, order:'USA', dispAddr:true, verify:30, maxv:20, acDelay:'NONE', silInh:0, autoSil:0, verPre:false, pas:false, tfmt:'12', dfmt:'MM/DD/YY', tz:'USA EASTERN'};
+let PSET = {...PSET_DEF};
+let USERS = Array.from({length:9}, (_, i) => ({ref:'', pw:i === 0 ? '11111111' : '', mode:i === 0 ? 'PROGRAM/ALTER STATUS' : 'NONE'}));
+let CLOCK = 0;   // ms offset set by PROGRAM TIME/DATE
+try {
+  Object.assign(PSET, JSON.parse(localStorage.getItem('facp-panel') || '{}'));
+  const pw = JSON.parse(localStorage.getItem('facp-pw') || 'null'); if (pw) { PSW.master = pw.master; USERS = pw.users; }
+  CLOCK = +localStorage.getItem('facp-clock') || 0;
+} catch (e) {}
+const savePanel = () => { try { localStorage.setItem('facp-panel', JSON.stringify(PSET)); localStorage.setItem('facp-pw', JSON.stringify({master:PSW.master, users:USERS})); localStorage.setItem('facp-clock', String(CLOCK)); } catch (e) {} };
+const nowD = () => new Date(Date.now() + CLOCK);
+const WT_PARAMS = ['LOOPS', 'PANEL', 'DEVICES', 'ZONE'];
+const TZS = ['USA EASTERN', 'USA CENTRAL', 'USA MOUNTAIN', 'USA PACIFIC', 'GMT+7'];
+const SRCKEY = {};   // event source -> point key, for CBE
+let firstAlarmT = 0, lastOut = null;
+if (!Array.isArray(PSET.zdis)) PSET.zdis = [];
+if (!PSET.loops) PSET.loops = {};
+const loopCfg = n => ({inst:true, blink:true, dpoll:'FLASHSCAN', mpoll:'FLASHSCAN', rapid:true, cls:'B', ...(PSET.loops[n] || {})});
+
+/* ---------- CBE: zones active now (Appendix E) ---------- */
+function activeZones() {
+  const z = new Set();
+  const fires = PX.events.filter(e => e.type === 'FIRE ALARM');
+  if (fires.length) z.add('Z0');                                   // general alarm zone Z000
+  for (const e of fires) { const k = SRCKEY[e.src] || ptKey(e.l3 || '') ; const pr = k && PROG[k]; if (pr && pr.zmap) pr.zmap.forEach(n => n != null && z.add('Z' + n)); }
+  if (PX.events.some(e => e.type === 'SUPERVISORY')) z.add('ZF4');
+  if (PX.events.some(e => e.type === 'TROUBLE' && !/AC FAIL/.test(e.l2))) z.add('ZF1');
+  if (PX.events.some(e => e.type === 'PREALARM')) z.add('ZF9');
+  if (parts.some(p => p.verT)) z.add('ZF10');
+  if (Object.values(PROG).some(p => !p.on)) z.add('ZF15');
+  if (PX.drill) { z.add('ZF16'); }
+  PSET.zdis.forEach(n => z.delete('Z' + n));
+  return z;
+}
+const zmapHit = (pr, Z) => (pr.zmap || []).some(n => n != null && Z.has('Z' + n)) || (pr.zf || []).some(f => Z.has(f));
+// outputs the panel is driving: control/relay modules by zone map, forced state, silenceable, walk test
+function outputState(R) {
+  const Z = activeZones(), on = new Set(), now = Date.now();
+  const pulse = PX.walk && PX.walk.pulseUntil > now;
+  for (const p of parts.filter(q => q.t === 'cm' || q.t === 'rm')) {
+    const k = addrStr(p), pr = PROG[k];
+    if (!R.resp[p.id] || !pr || !pr.on) continue;
+    if (p.force === 'off') continue;
+    if (p.force === 'on') { on.add(p.id); continue; }
+    if (pulse && pr.walk) { on.add(p.id); continue; }
+    if (PX.walk) continue;                                            // walk test suspends normal CBE
+    const sil = (pr.sil || (p.t === 'rm' ? 'NO' : 'YES - RESOUND FIRE')) !== 'NO';
+    let act = zmapHit(pr, Z);
+    if (PX.drill && sil && p.t === 'cm') act = true;                 // drill activates silenceable fire outputs
+    if (act && sil && PX.silenced) act = false;
+    if (act) on.add(p.id);
+  }
+  return {Z, on, pulse};
+}
+
+/* ---------- alarm verification and timers ---------- */
+function verifyGate(p, key) {   // true = report alarm now
+  const pr = PROG[key];
+  if (!pr || !pr.ver) { p.verT = 0; return true; }
+  if (PX.events.some(e => e.type === 'FIRE ALARM')) { p.verT = 0; return true; }   // a second alarm ends verification
+  if (!p.verT) { p.verT = Date.now(); plog('INFO', `${key} ALARM VERIFICATION STARTED (${PSET.verify}s)`); }
+  if (Date.now() - p.verT >= PSET.verify * 1000) { p.verT = 0; return true; }
+  if (PSET.verPre) padd('PREALARM', 'V:' + p.id, 'VERIFY', pr.label || key, key, false);
+  return false;
+}
+setInterval(() => {
+  if (!running) return;
+  if (parts.some(p => p.verT)) render();
+  const fire = PX.events.some(e => e.type === 'FIRE ALARM');
+  if (fire && PSET.autoSil && !PX.silenced && firstAlarmT && Date.now() - firstAlarmT >= PSET.autoSil * 60000) {
+    PX.silenced = true; plog('SILENCE', `AUTO SILENCE (${PSET.autoSil} MIN)`); render();
+  }
+  if (PX.walk && Date.now() - PX.walk.last > 3600000) { plog('INFO', 'WALK TEST TIMED OUT'); PX.walk = null; render(); }
+  if (PX.walk && PX.walk.pulseUntil && Date.now() > PX.walk.pulseUntil) { PX.walk.pulseUntil = 0; render(); }
+}, 1000);
+
+/* ---------- walk test ---------- */
+function walkParticipates(key) {
+  const W = PX.walk; if (!W) return false;
+  const pr = PROG[key]; if (!pr || !pr.on) return false;
+  if (W.param === 'PANEL') return true;
+  if (W.param === 'LOOPS') return !!W.loops[+/^L(\d+)/.exec(key)[1]];
+  if (W.param === 'DEVICES') return key === W.dev;
+  if (W.param === 'ZONE') return (pr.zmap || [])[0] === W.zone;
+  return false;
+}
+function walkHit(p, key, kind) {
+  if (p.wtLogged) return;
+  p.wtLogged = true;
+  const pr = PROG[key];
+  PX.walk.count++; PX.walk.last = Date.now();
+  PX.walk.lastTxt = `${kind} ${key} ${(pr && pr.label) || ''}`.trim();
+  PX.walk.pulseUntil = PX.walk.adv ? Infinity : Date.now() + 4000;
+  plog('TEST', PX.walk.lastTxt);
+}
+
+/* ---------- extra menu screens ---------- */
+function pmScreenExt() {
+  const P = PM, E = P.edit, cur = f => P.cursor === f ? '_' : '';
+  const H = () => { const r = [...progHead()]; return r; };
+  switch (P.scr) {
+    case 'pset': { const S = P.set, r = []; r[0] = ctr('PANEL SETTINGS');
+      return scr(r, {1:`LOCAL CONTROL: ${S.local ? 'YES' : 'NO'}`, 2:`PIEZO: ${S.piezo ? 'ON' : 'OFF'}`, 3:`PROPRIETARY SUPERVISING STATION: ${S.pss ? 'YES' : 'NO'}`, 4:`EVENT ORDERING: ${S.order}`, 5:`DISPLAY ADDRESS: ${S.dispAddr ? 'YES' : 'NO'}`, 6:'REMINDER MENU', 7:'MORE', 9:'ACCEPT', 10:'BACK'}); }
+    case 'ptim1': { const S = P.set, r = []; r[0] = ctr('PANEL TIMERS');
+      return scr(r, {1:`VERIFY TIME: ${P.cursor === 'verify' ? P.buf + '_' : S.verify}`, 2:`MAXIMUM VERIFICATION COUNT: ${P.cursor === 'maxv' ? P.buf + '_' : pz(S.maxv)}`, 3:`AC FAIL DELAY: ${S.acDelay === 'NONE' ? 'NONE' : S.acDelay + ' HOURS'}`, 4:`SILENCE INHIBIT:${pz(S.silInh)}:00`, 5:`AUTO SILENCE: ${S.autoSil ? S.autoSil + ' MIN' : 'OFF'}`, 6:`VERIFY=PREALARM: ${S.verPre ? 'YES' : 'NO'}`, 8:'MORE', 9:'ACCEPT', 10:'BACK'}); }
+    case 'ptim2': { const S = P.set, r = []; r[0] = ctr('PANEL TIMERS');
+      return scr(r, {1:`PAS: ${S.pas ? 'ON' : 'OFF'}`, 2:'PRESIGNAL DELAY: MM:SS', 3:'DEFAULT TIMERS', 9:'ACCEPT', 10:'BACK'}); }
+    case 'ppm2': { const r = []; r[0] = ctr('PANEL PROGRAM MENU');
+      return scr(r, {1:'PASSWORD CHANGE', 2:'WEEKLY OCCUPANCY SCHEDULES', 3:'REMOTE DISPLAY MENU', 4:'LOOP CONFIGURATION', 5:'CUSTOM ACTION MESSAGE', 6:'EVENT LOGGING', 7:'HOLIDAY MENU', 10:'BACK'}); }
+    case 'pwc': { const r = []; r[0] = ctr('CHANGE PASSWORD'); return scr(r, {2:'MASTER PASSWORD', 3:'USER PASSWORD', 10:'BACK'}); }
+    case 'pwm': { const r = []; r[0] = ctr('CHANGE MASTER PASSWORD');
+      return scr(r, {2:`ENTER PASSWORD  ${'*'.repeat(P.a.length)}${P.step === 0 ? '_' : ''}`, 3:`RE-ENTER PASSWORD  ${'*'.repeat(P.b.length)}${P.step === 1 ? '_' : ''}`, 10:'BACK'}); }
+    case 'pwu': { const U = P.u, r = []; r[0] = ctr('CHANGE USER PASSWORD');
+      return scr(r, {1:`USER:${P.ui + 1}  REFERENCE:${U.ref}${cur('ref')}`, 2:`ENTER PASSWORD  ${P.cursor === 'pa' ? '*'.repeat(P.a.length) + '_' : U.pw ? '********' : ''}`, 3:`RE-ENTER PASSWORD  ${P.cursor === 'pb' ? '*'.repeat(P.b.length) + '_' : ''}`, 4:`MODE: ${U.mode}`, 6:'REFERENCE', 9:'ACCEPT', 10:'BACK'}); }
+    case 'wt': { const W = P.wt, r = H(); r[4] = ctr('WALK TEST');
+      return scr(r, {2:`BASIC/ADVANCED: ${W.adv ? 'ADVANCED' : 'BASIC'}`, 3:'SILENT/AUDIBLE: AUDIBLE', 4:`PARAMETER: ${W.param}`, 5:`DISABLE ACS BOARDS: ${W.acs ? 'YES' : 'NO'}`, 9:'ACCEPT', 10:'BACK'}); }
+    case 'wtSel': { const W = P.wt, r = H(), running = !!PX.walk;
+      r[4] = ctr('WALK TEST SELECT'); r[5] = `SETTINGS: ${W.adv ? 'ADVANCED' : 'BASIC'},AUDIBLE,${W.param === 'ZONE' ? 'ZONES' : W.param}`;
+      if (W.param === 'LOOPS') { const ls = loopsList().map(L => `L${L.n}:${W.loops[L.n] ? 'YES' : 'NO '}${P.lpos === L.n ? '<' : ' '}`); for (let i = 0; i < ls.length; i += 3) r[7 + i / 3] = ls.slice(i, i + 3).join('  '); }
+      if (W.param === 'DEVICES') r[7] = `DEVICE:${P.buf || W.dev || 'L01D001'}${running ? '' : '_'}`;
+      if (W.param === 'ZONE') r[7] = `POINT SELECT: Z${pz(W.zone, 3)}  (ZONE)${running ? '' : (P.zbuf ? '  ' + P.zbuf + '_' : '')}`;
+      if (running) { r[10] = ctr(`WALK TEST IN PROGRESS · ${pz(PX.walk.count, 3)} TESTED`); r[11] = ctr(PX.walk.lastTxt || ''); }
+      const keys = running ? {9:W.adv ? 'NEXT TEST' : '', 10:'ABORT'} : {4:W.param === 'DEVICES' ? 'NEXT POINT' : '', 5:W.param === 'DEVICES' ? 'PREVIOUS POINT' : '', 9:'START TEST', 10:'BACK'};
+      return scr(r, keys); }
+    case 'td': { const r = H(); r[4] = ctr('PROGRAM TIME/DATE');
+      r[6] = P.cursor === 'td' ? `  ENTER HHMM A/P MMDDYY: ${P.buf}_` : '';
+      return scr(r, {3:`TIME/DATE: ${fmtTD(nowD())}`, 4:`TIME FORMAT: ${P.set.tfmt === '12' ? 'H:MM AM/PM' : 'HH:MM 24H'}`, 5:`DATE FORMAT: ${P.set.dfmt}`, 6:`TIME ZONE: ${P.set.tz}`, 9:'ACCEPT', 10:'BACK'}); }
+    case 'cs': { const r = H(); r[4] = ctr('CONTROL ON/OFF POINT SELECT'); r[7] = `  ${P.buf || 'LyyMzzz'}_ (MODULE)`;
+      return scr(r, {2:'POINT SELECT:', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'}); }
+    case 'cof': { const pr = PROG[P.key], p = partAt(P.key), isOn = lastOut && p && lastOut.on.has(p.id), r = H();
+      r[4] = `CONTROL ON/OFF:  ${P.key}`; r[5] = two(p && p.force ? 'FORCED' : 'AUTOMATIC', isOn ? 'ON' : 'OFF'); r[7] = two(pr.label || P.key, pr.ext); r[8] = two(`Z${pz((pr.zmap || [0])[0] ?? 0, 3)}`, pr.type);
+      return scr(r, {5:isOn ? 'FORCE OFF' : 'FORCE ON', 10:'BACK'}); }
+    case 'lsel': { const r = []; r[0] = ctr('LOOP CONFIGURATION'); r[4] = `  L${P.buf || pz(P.loop)}${P.cursor === 'loop' ? '_' : ''} (LOOP)`;
+      return scr(r, {1:'LOOP SELECTION', 4:'NEXT LOOP', 5:'PREVIOUS LOOP', 9:'ACCEPT', 10:'BACK'}); }
+    case 'lcfg': { const C = P.cfg, r = []; r[0] = ctr('LOOP CONFIGURATION'); r[1] = ctr(`LOOP ${pz(P.loop)}`);
+      return scr(r, {1:`INSTALLED: ${C.inst ? 'YES' : 'NO'}`, 2:`DETECTOR POLL: ${C.dpoll}`, 3:`MODULE POLL: ${C.mpoll}`, 4:`RAPID POLL: ${C.rapid ? 'ENABLED' : 'DISABLED'}`, 5:`WIRING CLASS: ${C.cls}`, 6:`BLINK MODE: ${C.blink ? 'ON' : 'OFF'}`, 9:'ACCEPT', 10:'BACK'}); }
+    case 'denZ': { const r = H(), off = PSET.zdis.includes(P.zone); r[4] = `DISABLE/ENABLE: Z${pz(P.zone, 3)}`; r[5] = two('GENERAL ZONE', off ? 'DISABLED' : 'ENABLED');
+      r[7] = `  ${Object.keys(PROG).filter(k => (PROG[k].zmap || []).includes(P.zone)).length} POINT(S) MAPPED TO THIS ZONE`;
+      return scr(r, {5:off ? 'ENABLE' : 'DISABLE', 10:'BACK'}); }
+    case 'mod2': {
+      if (E.mtype !== 'CONTROL') return null;
+      const r = []; r[0] = ctr('MODULE POINT PROGRAMMING'); r[1] = ctr(P.key); r[7] = '  ' + zmapTxt(E.zmap).slice(0, 38);
+      return scr(r, {1:`LOCAL MODE:${E.local ? 'ON' : 'OFF'}`, 2:'ZONE MAP:', 3:`WALK TEST: ${E.walk ? 'ON' : 'OFF'}`, 4:`SWITCH INHIBIT: ${E.inh ? 'YES' : 'NO'}`, 5:`SILENCEABLE:${E.sil}`, 9:'ACCEPT', 10:'BACK'}); }
+  }
+  return null;
+}
+function stepCtl(dir) {   // NEXT/PREVIOUS POINT over control and relay modules only
+  const ks = pointKeys('M').filter(k => { const q = partAt(k); return q && ['cm', 'rm'].includes(q.t); }); if (!ks.length) return;
+  const cur = parsePoint(PM.buf || '', 'M'); let i = cur ? ks.indexOf(cur) : -1;
+  i = i < 0 ? (dir > 0 ? 0 : ks.length - 1) : (i + dir + ks.length) % ks.length;
+  PM.buf = ks[i].replace(/^L(\d+)M/, (_, a) => `L${pz(+a)}M`); renderPanel();
+}
+function fmtTD(d) {
+  const D = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()];
+  let h = d.getHours(), t;
+  if (PSET.tfmt === '24') t = `${pz(h)}:${pz(d.getMinutes())}`; else { const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12; t = `${pz(h)}:${pz(d.getMinutes())}${ap}`; }
+  const dd = pz(d.getDate()), mm = pz(d.getMonth() + 1), yy = pz(d.getFullYear() % 100);
+  return `${t} ${D} ${PSET.dfmt === 'DD/MM/YY' ? `${dd}/${mm}/${yy}` : `${mm}/${dd}/${yy}`}`;
+}
+const EXT_BACK = {pset:'ppm1', ptim1:'ppm1', ptim2:'ptim1', ppm2:'ppm1', pwc:'ppm2', pwm:'pwc', pwu:'pwc', wt:'as1', wtSel:'wt', td:'as1', cs:'as2', cof:'cs', lsel:'ppm2', lcfg:'lsel', denZ:'dsel'};
+function pmSoftExt(i) {
+  const P = PM, E = P.edit;
+  switch (P.scr) {
+    case 'ppm1':
+      if (i === 4) { pmGo('pset', {set:{...PSET}}); return true; }
+      if (i === 5) { pmGo('ptim1', {set:{...PSET}, cursor:null, buf:''}); return true; }
+      if (i === 10) { pmGo('ppm2'); return true; }
+      return false;
+    case 'pset': { const S = P.set;
+      if (i === 1) S.local = !S.local; else if (i === 2) S.piezo = !S.piezo; else if (i === 3) S.pss = !S.pss; else if (i === 4) S.order = S.order === 'USA' ? 'CANADA' : 'USA'; else if (i === 5) S.dispAddr = !S.dispAddr;
+      else if (i === 6 || i === 7) { pmNA(i === 6 ? 'REMINDER MENU' : 'PANEL SETTINGS (2)', 'pset'); return true; }
+      else if (i === 9) { Object.assign(PSET, S); savePanel(); plog('INFO', 'PANEL SETTINGS CHANGED'); render(); pmGo('ppm1'); return true; }
+      else if (i === 10) { pmGo('ppm1'); return true; }
+      renderPanel(); return true; }
+    case 'ptim1': { const S = P.set;
+      if (i === 1) { P.cursor = 'verify'; P.buf = ''; }
+      else if (i === 2) { P.cursor = 'maxv'; P.buf = ''; }
+      else if (i === 3) S.acDelay = next(['NONE', ...Array.from({length:12}, (_, n) => n + 1)], S.acDelay);
+      else if (i === 4) S.silInh = (S.silInh + 1) % 6;
+      else if (i === 5) S.autoSil = next([0, 10, 15, 20], S.autoSil);
+      else if (i === 6) S.verPre = !S.verPre;
+      else if (i === 8) { pmGo('ptim2'); return true; }
+      else if (i === 9) { Object.assign(PSET, S); savePanel(); plog('INFO', 'PANEL TIMERS CHANGED'); render(); pmGo('ppm1'); return true; }
+      else if (i === 10) { pmGo('ppm1'); return true; }
+      renderPanel(); return true; }
+    case 'ptim2': { const S = P.set;
+      if (i === 1) S.pas = !S.pas;
+      else if (i === 2) { pmNA('PRESIGNAL DELAY', 'ptim2'); return true; }
+      else if (i === 3) { Object.assign(S, {verify:30, maxv:20, acDelay:'NONE', silInh:0, autoSil:0, verPre:false, pas:false}); }
+      else if (i === 9) { Object.assign(PSET, S); savePanel(); plog('INFO', 'PANEL TIMERS CHANGED'); pmGo('ppm1'); return true; }
+      else if (i === 10) { pmGo('ptim1'); return true; }
+      renderPanel(); return true; }
+    case 'ppm2':
+      if (i === 1) { if (P.role !== 'master') { pmMsg(['ONLY THE MASTER PASSWORD', 'CAN CHANGE PASSWORDS'], 'ppm2'); return true; } pmGo('pwc'); return true; }
+      if (i === 4) { pmGo('lsel', {loop:1, buf:'', cursor:null}); return true; }
+      if ([2, 3, 5, 6, 7].includes(i)) { pmNA(({2:'WEEKLY OCCUPANCY SCHEDULES', 3:'REMOTE DISPLAY MENU', 5:'CUSTOM ACTION MESSAGE', 6:'EVENT LOGGING', 7:'HOLIDAY MENU'})[i], 'ppm2'); return true; }
+      if (i === 10) { pmGo('ppm1'); return true; }
+      return true;
+    case 'pwc':
+      if (i === 2) { pmGo('pwm', {a:'', b:'', step:0}); return true; }
+      if (i === 3) { pmGo('pwu', {ui:0, u:{...USERS[0], pw:USERS[0].pw}, a:'', b:'', cursor:null}); return true; }
+      if (i === 10) { pmGo('ppm2'); return true; }
+      return true;
+    case 'pwm': if (i === 10) { pmGo('pwc'); return true; } return true;
+    case 'pwu': {
+      if (i === 1) { P.ui = (P.ui + 1) % 9; P.u = {...USERS[P.ui]}; P.a = P.b = ''; P.cursor = null; }
+      else if (i === 6) P.cursor = 'ref';
+      else if (i === 2) { P.cursor = 'pa'; P.a = ''; }
+      else if (i === 3) { P.cursor = 'pb'; P.b = ''; }
+      else if (i === 4) P.u.mode = next(['PROGRAM/ALTER STATUS', 'ALTER STATUS', 'NONE'], P.u.mode);
+      else if (i === 9) {
+        if (P.a || P.b) { if (P.a !== P.b) { pmMsg(['PASSWORDS DO NOT MATCH'], 'pwu'); return true; } P.u.pw = P.a; }
+        USERS[P.ui] = {...P.u}; savePanel(); plog('INFO', `USER ${P.ui + 1} PASSWORD CHANGED`); pmMsg([`USER ${P.ui + 1} PASSWORD SAVED`], 'pwc'); return true;
+      }
+      else if (i === 10) { pmGo('pwc'); return true; }
+      renderPanel(); return true; }
+    case 'as1':
+      if (i === 7) { if (PX.walk) { pmGo('wtSel', {wt:{...PX.walk}}); return true; } pmGo('wt', {wt:{adv:false, param:'PANEL', acs:true, loops:Object.fromEntries(loopsList().map(L => [L.n, true])), dev:'', zone:1, count:0}}); return true; }
+      if (i === 8) { pmGo('td', {set:{...PSET}, cursor:null, buf:''}); return true; }
+      return false;
+    case 'as2':
+      if (i === 2) { pmGo('cs', {buf:''}); return true; }
+      return false;
+    case 'wt': { const W = P.wt;
+      if (i === 2) W.adv = !W.adv; else if (i === 4) W.param = next(WT_PARAMS, W.param); else if (i === 5) W.acs = !W.acs;
+      else if (i === 3) { pmMsg(['SILENT/AUDIBLE IS FOR FUTURE USE', 'WALK TEST IS AUDIBLE'], 'wt'); return true; }
+      else if (i === 9) { if (W.param === 'ZONE' && W.adv) { pmMsg(['ZONE PARAMETER IS FOR', 'BASIC WALK TEST ONLY'], 'wt'); return true; } pmGo('wtSel', {lpos:loopsList()[0].n, buf:'', zbuf:''}); return true; }
+      else if (i === 10) { pmGo('as1'); return true; }
+      renderPanel(); return true; }
+    case 'wtSel': { const W = P.wt;
+      if (PX.walk) {
+        if (i === 10) { plog('TEST', `WALK TEST ABORTED · ${PX.walk.count} DEVICE(S) TESTED`); PX.walk = null; parts.forEach(p => p.wtLogged = false); render(); pmGo('as1'); return true; }
+        if (i === 9 && PX.walk.adv) { PX.walk.pulseUntil = 0; parts.forEach(p => { if (!p.act) p.wtLogged = false; }); plog('TEST', 'NEXT TEST'); render(); renderPanel(); return true; }
+        return true;
+      }
+      if ((i === 4 || i === 5) && W.param === 'DEVICES') { PM.buf = W.dev; stepPoint(i === 4 ? 1 : -1, ''); W.dev = parsePoint(PM.buf, 'D') || W.dev; PM.buf = ''; renderPanel(); return true; }
+      if (i === 9) {
+        if (PX.events.some(e => e.type !== 'TROUBLE')) { pmMsg(['WALK TEST NOT STARTED', 'ACTIVE DEVICES PRESENT'], 'wtSel'); return true; }
+        if (W.param === 'DEVICES') { W.dev = parsePoint(P.buf || W.dev, 'D') || W.dev; if (!W.dev || !PROG[W.dev]) { pmMsg(['SELECT A PROGRAMMED DEVICE'], 'wtSel'); return true; } }
+        if (W.param === 'ZONE' && P.zbuf) W.zone = +P.zbuf;
+        PX.walk = {...W, count:0, last:Date.now(), lastTxt:'', pulseUntil:0};
+        parts.forEach(p => p.wtLogged = false);
+        plog('TEST', `${W.adv ? 'ADVANCED' : 'BASIC'} WALK TEST STARTED · ${W.param}${W.param === 'DEVICES' ? ' ' + W.dev : W.param === 'ZONE' ? ' Z' + pz(W.zone, 3) : ''}`);
+        render(); renderPanel(); return true;
+      }
+      if (i === 10) { pmGo('wt'); return true; }
+      return true; }
+    case 'td':
+      if (i === 3) { P.cursor = 'td'; P.buf = ''; }
+      else if (i === 4) P.set.tfmt = P.set.tfmt === '12' ? '24' : '12';
+      else if (i === 5) P.set.dfmt = P.set.dfmt === 'MM/DD/YY' ? 'DD/MM/YY' : 'MM/DD/YY';
+      else if (i === 6) P.set.tz = next(TZS, P.set.tz);
+      else if (i === 9) { Object.assign(PSET, {tfmt:P.set.tfmt, dfmt:P.set.dfmt, tz:P.set.tz}); savePanel(); plog('INFO', `TIME/DATE CHANGED ${fmtTD(nowD())}`); pmGo('as1'); return true; }
+      else if (i === 10) { pmGo('as1'); return true; }
+      renderPanel(); return true;
+    case 'cs':
+      if (i === 4 || i === 5) { stepCtl(i === 4 ? 1 : -1); return true; }
+      if (i === 9) { const k = parsePoint(P.buf, 'M'); const p = k && partAt(k); if (!k || !PROG[k] || !p || !['cm', 'rm'].includes(p.t)) { pmMsg(['SELECT A PROGRAMMED', 'CONTROL OR RELAY MODULE'], 'cs'); return true; } pmGo('cof', {key:k}); return true; }
+      if (i === 10) { pmGo('as2'); return true; }
+      return true;
+    case 'cof': {
+      if (i === 5) { const p = partAt(P.key), isOn = lastOut && lastOut.on.has(p.id); const pr = PROG[P.key];
+        if (pr.inh) { pmMsg(['SWITCH INHIBIT: OUTPUT', 'CANNOT BE FORCED'], 'cof'); return true; }
+        p.force = isOn ? 'off' : 'on'; plog('INFO', `${P.key} FORCED ${isOn ? 'OFF' : 'ON'}`); render(); renderPanel(); return true; }
+      if (i === 10) { pmGo('cs'); return true; }
+      return true; }
+    case 'lsel':
+      if (i === 1) { P.cursor = 'loop'; P.buf = ''; }
+      else if (i === 4 || i === 5) { P.loop = (P.loop - 1 + (i === 4 ? 1 : 9)) % 10 + 1; P.buf = ''; }
+      else if (i === 9) { if (P.buf) P.loop = Math.min(10, Math.max(1, +P.buf)); pmGo('lcfg', {cfg:loopCfg(P.loop), buf:'', cursor:null}); return true; }
+      else if (i === 10) { pmGo('ppm2'); return true; }
+      renderPanel(); return true;
+    case 'lcfg': { const C = P.cfg;
+      if (i === 1) C.inst = !C.inst; else if (i === 2) C.dpoll = C.dpoll === 'FLASHSCAN' ? 'CLIP' : 'FLASHSCAN'; else if (i === 3) C.mpoll = C.mpoll === 'FLASHSCAN' ? 'CLIP' : 'FLASHSCAN';
+      else if (i === 4) C.rapid = !C.rapid; else if (i === 5) C.cls = C.cls === 'A' ? 'B' : 'A'; else if (i === 6) C.blink = !C.blink;
+      else if (i === 9) { PSET.loops[P.loop] = {...C}; savePanel(); plog('INFO', `LOOP ${pz(P.loop)} CONFIGURATION CHANGED`); render(); pmGo('lsel'); return true; }
+      else if (i === 10) { pmGo('lsel'); return true; }
+      renderPanel(); return true; }
+    case 'denZ':
+      if (i === 5) { const z = P.zone, on = PSET.zdis.includes(z); PSET.zdis = on ? PSET.zdis.filter(x => x !== z) : [...PSET.zdis, z]; savePanel(); plog('INFO', `ZONE Z${pz(z, 3)} ${on ? 'ENABLED' : 'DISABLED'}`); render(); renderPanel(); return true; }
+      if (i === 10) { pmGo('dsel'); return true; }
+      return true;
+    case 'dsel':
+      if (i === 9) { const m = /^Z(\d{1,3})$/.exec((P.buf || '').replace(/\s/g, '')); if (!m) return false;
+        if (+m[1] === 0) { pmMsg(['GENERAL ALARM ZONE Z000', 'CANNOT BE DISABLED'], 'dsel'); return true; }
+        pmGo('denZ', {zone:+m[1]}); return true; }
+      return false;
+    case 'mod2':
+      if (E.mtype !== 'CONTROL') return false;
+      if (i === 1) { E.local = !E.local; PM.dirty = true; }
+      else if (i === 2) { pmGo('zmap', {zfrom:'mod2', zpos:0, zbuf:''}); return true; }
+      else if (i === 3) { E.walk = !E.walk; PM.dirty = true; }
+      else if (i === 4) { E.inh = !E.inh; PM.dirty = true; }
+      else if (i === 5) { E.sil = next(['NO', 'YES - RESOUND FIRE', 'YES - RESOUND SUPERV', 'YES - RESOUND SECURITY', 'YES - NO RESOUND'], E.sil); PM.dirty = true; }
+      else if (i === 9) { acceptPoint(false); return true; }
+      else if (i === 10) { pmBack(); return true; }
+      renderPanel(); return true;
+  }
+  return false;
+}
+function pmKeyExt(k) {
+  const P = PM;
+  const typing = k.length === 1 || k === 'BKSP';
+  switch (P.scr) {
+    case 'lsel':
+      if (P.cursor === 'loop' && (/^\d$/.test(k) || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(-2); renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoftExt(9); return true; }
+      if (k === 'NEXT' || k === 'PREV') { pmSoftExt(k === 'NEXT' ? 4 : 5); return true; }
+      return false;
+    case 'ptim1':
+      if (P.cursor && (/^\d$/.test(k) || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 3); renderPanel(); return true; }
+      if (P.cursor && k === 'ENTER') { const v = +P.buf || 0; if (P.cursor === 'verify') P.set.verify = Math.min(240, v); else P.set.maxv = Math.min(20, v); P.cursor = null; renderPanel(); return true; }
+      return false;
+    case 'pwm':
+      if (typing && k !== ' ') { const f = P.step === 0 ? 'a' : 'b'; P[f] = k === 'BKSP' ? P[f].slice(0, -1) : (P[f] + k).slice(0, 8); renderPanel(); return true; }
+      if (k === 'ENTER') {
+        if (P.step === 0) { P.step = 1; renderPanel(); return true; }
+        if (!P.a || P.a !== P.b) { pmMsg(['PASSWORDS DO NOT MATCH'], 'pwm'); P.a = P.b = ''; P.step = 0; return true; }
+        PSW.master = P.a; savePanel(); plog('INFO', 'MASTER PASSWORD CHANGED'); pmMsg(['MASTER PASSWORD CHANGED'], 'pwc'); return true;
+      }
+      return false;
+    case 'pwu':
+      if (P.cursor === 'ref' && typing) { P.u.ref = k === 'BKSP' ? P.u.ref.slice(0, -1) : (P.u.ref + k).slice(0, 20); renderPanel(); return true; }
+      if ((P.cursor === 'pa' || P.cursor === 'pb') && typing && k !== ' ') { const f = P.cursor === 'pa' ? 'a' : 'b'; P[f] = k === 'BKSP' ? P[f].slice(0, -1) : (P[f] + k).slice(0, 8); renderPanel(); return true; }
+      if (k === 'ENTER' && P.cursor) { P.cursor = P.cursor === 'pa' ? 'pb' : null; renderPanel(); return true; }
+      return false;
+    case 'wtSel': {
+      const W = P.wt; if (PX.walk) return true;
+      if (W.param === 'LOOPS') {
+        const L = loopsList().map(x => x.n), idx = L.indexOf(P.lpos);
+        if (k === 'UP' || k === 'DOWN' || k === 'LEFT' || k === 'RIGHT') { P.lpos = L[(idx + (k === 'DOWN' || k === 'RIGHT' ? 1 : L.length - 1)) % L.length]; renderPanel(); return true; }
+        if (k === 'NEXT' || k === 'PREV') { W.loops[P.lpos] = !W.loops[P.lpos]; renderPanel(); return true; }
+      }
+      if (W.param === 'DEVICES' && typing && k !== ' ') { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 7); renderPanel(); return true; }
+      if (W.param === 'ZONE' && (/^\d$/.test(k) || k === 'BKSP')) { P.zbuf = k === 'BKSP' ? P.zbuf.slice(0, -1) : (P.zbuf + k).slice(-3); renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoftExt(9); return true; }
+      return false; }
+    case 'td':
+      if (P.cursor === 'td' && typing && k !== ' ') { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 11); renderPanel(); return true; }
+      if (P.cursor === 'td' && k === 'ENTER') {
+        const m = /^(\d{2})(\d{2})([AP])?(\d{2})(\d{2})(\d{2})$/.exec(P.buf);
+        if (!m) { pmMsg(['FORMAT: HHMM A/P MMDDYY', 'EXAMPLE 0822A011526'], 'td'); return true; }
+        let h = +m[1]; if (m[3]) h = (h % 12) + (m[3] === 'P' ? 12 : 0);
+        const target = new Date(2000 + +m[6], +m[4] - 1, +m[5], h, +m[2], new Date().getSeconds());
+        CLOCK = target.getTime() - Date.now(); P.cursor = null; renderPanel(); return true;
+      }
+      return false;
+    case 'cs':
+      if (typing && k !== ' ') { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 7); renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoftExt(9); return true; }
+      if (k === 'NEXT' || k === 'PREV') { stepCtl(k === 'NEXT' ? 1 : -1); return true; }
+      return false;
+  }
+  return false;
+}
+
 function renderPanel() {
   const lcd = $('lcd');
   lcd.classList.toggle('off', !running);
@@ -2657,6 +3045,7 @@ function renderPanel() {
   $('leds').innerHTML = PLEDS.map(([n, c, f]) => { const st = !running ? '' : PX.lamp ? 'on' : f(); return `<div class="led ${st ? 'lit' : ''} ${st === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`; }).join('');
   const dot = $('piezoDot'), txt = $('piezoTxt'); dot.className = 'dot';
   if (!running || PX.resetting) txt.textContent = running ? 'QUIET' : 'OFF';
+  else if (!PSET.local || !PSET.piezo) txt.textContent = 'DISABLED';
   else if (punacked('FIRE ALARM')) { dot.classList.add('on'); txt.textContent = 'STEADY'; }
   else if (PX.events.some(e => !e.acked)) { dot.classList.add('pulse'); txt.textContent = 'PULSING'; }
   else txt.textContent = 'QUIET';
@@ -2678,7 +3067,7 @@ function setTab(t) {
 $('tabErc').addEventListener('click', () => setTab('erc'));
 $('tabHist').addEventListener('click', () => setTab('hist'));
 $('clrLog').addEventListener('click', () => { PX.log = []; render(); });
-const LOGCLS = {'FIRE ALARM':'c-err', SUPERVISORY:'c-warn', TROUBLE:'c-warn', CLEARED:'c-ok', ACK:'c-info', SILENCE:'c-warn', DRILL:'c-err', RESET:'c-info', INFO:'c-muted', POWER:'c-info'};
+const LOGCLS = {'FIRE ALARM':'c-err', SUPERVISORY:'c-warn', TROUBLE:'c-warn', CLEARED:'c-ok', ACK:'c-info', SILENCE:'c-warn', DRILL:'c-err', RESET:'c-info', INFO:'c-muted', POWER:'c-info', TEST:'c-info', PREALARM:'c-warn'};
 function renderHistory() {
   $('res').innerHTML = PX.log.length
     ? `<table class="erc hist"><thead><tr><th>เวลา</th><th>ประเภท</th><th>รายละเอียด</th></tr></thead><tbody>${PX.log.map(r => `<tr><td class="m">${stamp(r.t)}</td><td><span class="chip ${LOGCLS[r.type] || 'c-muted'}">${r.type}</span></td><td class="m" style="white-space:normal">${r.text}</td></tr>`).join('')}</tbody></table>`
@@ -2851,7 +3240,7 @@ setInterval(() => {
   const t3 = ph < 0.5 || (ph >= 1 && ph < 1.5) || (ph >= 2 && ph < 2.5);
   const horn = soundOn && running && lastS && lastS.sound.size > 0 && t3;
   let p = false;
-  if (soundOn && running && !PX.resetting) { if (punacked('FIRE ALARM')) p = true; else if (PX.events.some(e => !e.acked)) p = (now % 1) < 0.5; }
+  if (soundOn && running && !PX.resetting && PSET.local && PSET.piezo) { if (punacked('FIRE ALARM')) p = true; else if (PX.events.some(e => !e.acked)) p = (now % 1) < 0.5; }
   audio.hG.gain.setTargetAtTime(horn ? 0.5 : 0, audio.ctx.currentTime, 0.01);
   audio.pzG.gain.setTargetAtTime(p ? 0.1 : 0, audio.ctx.currentTime, 0.005);
 }, 50);
