@@ -477,6 +477,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     </ul></div>
     <div><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
       <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO (แมนนวล, Flow, Tamper) + EOL 47kΩ ที่ตัวสุดท้าย</li>
+      <li><b>ฐาน Isolator (B224BI)</b>: ฐานหัวที่มี Isolator ในตัว สาย SLC เข้าที่ IN+/IN− และออกไปตัวถัดไปที่ OUT+/OUT− เมื่อช็อตจะตัดเฉพาะช่วงที่เสียเหมือน ISO-X (ไฟเหลืองติด) เลือกได้ใน Properties ของหัวควัน/หัวความร้อน/Multi</li>
       <li><b>Beam detector (FSB-200)</b>: ต่อ SLC+/SLC− เหมือนหัวทั่วไป (มี Address) และต่อไฟ 24V จาก AUX วางแผ่นสะท้อนตรงข้ามระดับเดียวกัน ระยะ 5–70 ม. (10 หน่วยกริด = 1 ม.)</li>
       <li><b>หัว Conventional (ไม่มี Address)</b> ทั้งหัวควันและหัวความร้อน: ต่อ SLC ตรงไม่ได้ ต้องผ่านโมดูลโซน FZM-1 (ไฟ 24V จาก AUX) ต่อหัว 2 สายขนานกันตามขั้ว + EOL 3.9kΩ ที่หัวตัวสุดท้าย ทั้งโซนใช้ Address เดียวของ FZM-1</li>
       <li><b>ตั้ง Address</b>: คลิกปุ่มหมุน TENS / ONES บนหัวหรือโมดูล (+1, Shift/คลิกขวา −1) หรือพิมพ์ใน Properties หรือเมนู แก้ไข › เรียง Address อัตโนมัติ</li>
@@ -610,7 +611,11 @@ let result = null;
 const COLORS = {red:'var(--w-red)', blk:'var(--w-blk)', blu:'var(--w-blu)', yel:'var(--w-yel)'};
 const byId = id => parts.find(p => p.id === id);
 const T = p => TYPES[p.t];
-function termsOf(p) { return p.t === 'facp' ? facpTerms() : T(p).terms; }
+const ISO_BASE_TYPES = ['smoke', 'heat', 'multi'];
+const ISO_BASE_TERMS = [['i+','IN+',20,110,'b','+'],['i-','IN−',48,110,'b','-'],['o+','OUT+',82,110,'b','+'],['o-','OUT−',110,110,'b','-']];
+const isoBase = p => p.base === 'iso' && ISO_BASE_TYPES.includes(p.t);
+function termsOf(p) { return p.t === 'facp' ? facpTerms() : isoBase(p) ? ISO_BASE_TERMS : T(p).terms; }
+const slcKeys = p => isoBase(p) ? ['i+', 'i-'] : ['s+', 's-'];
 let TERM = {};
 const STUB = 14;
 const SD = {r:[1, 0], l:[-1, 0], t:[0, -1], b:[0, 1]};
@@ -674,7 +679,7 @@ function load() {
 }
 
 /* ================= electrical model ================= */
-const isoParts = () => parts.filter(p => p.t === 'iso');
+const isoParts = () => parts.filter(p => p.t === 'iso' || isoBase(p));
 function netFn(skip, closed) {
   const par = new Map();
   const find = k => { if (!par.has(k)) par.set(k, k); let r = k; while (par.get(r) !== r) r = par.get(r); let c = k; while (par.get(c) !== r) { const n = par.get(c); par.set(c, r); c = n; } return r; };
@@ -682,6 +687,7 @@ function netFn(skip, closed) {
   for (const w of wires) { if (w.cut || w.id === skip) continue; join(w.a, w.b); }
   // isolator: + passes straight through; − goes through a switch that opens on a short
   for (const i of isoParts()) { join(i.id + '.i+', i.id + '.o+'); if (!closed || closed.has(i.id)) join(i.id + '.i-', i.id + '.o-'); }
+  for (const p of parts) if (isoBase(p)) { join(p.id + '.s+', p.id + '.i+'); join(p.id + '.s-', p.id + '.i-'); }
   return find;
 }
 const termUsed = k => wires.some(w => w.a === k || w.b === k);
@@ -1093,7 +1099,7 @@ function drawPart(p) {
   const topPins = tms.some(t => t[4] === 't'), botPins = tms.some(t => t[4] === 'b');
   el('rect', {class:'selbox', x:-8, y:-22, width:ty.w + 16, height:ty.h + 40, rx:3}, g);
   el('text', {class:'ref', x:0, y:topPins ? -18 : -6}, g).textContent = refdes(p);
-  const v = ty.addrType ? addrStr(p) : VAL[p.t] || '';
+  const v = ty.addrType ? addrStr(p) + (isoBase(p) ? ' · ISO BASE' : '') : VAL[p.t] || '';
   if (botPins) el('text', {class:'val', x:ty.w, y:-6, 'text-anchor':'end'}, g).textContent = v;
   else el('text', {class:'val', x:ty.w, y:ty.h + 13, 'text-anchor':'end'}, g).textContent = v;
   if (VIEW === 'real') drawReal(p, ty, g);
@@ -1126,6 +1132,7 @@ function drawIcon(p, ty, g) {
         if (ty.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} 66 l6 -8 l6 8`}, g);
         if (ty.dt === 'DUCT') el('rect', {class:'ico', x:cx - 34, y:52, width:68, height:24, rx:3}, g);
         if (ty.dt === 'MULTI') el('path', {class:'ico', d:`M${cx - 28} 46 l7 6 M${cx + 28} 46 l-7 6`}, g);
+        if (isoBase(p)) { el('path', {class:'ico', d:'M40 94 h18 l12 -7 M74 94 h16'}, g); el('circle', {class:'isoled', cx:104, cy:92, r:4}, g); }
       } else el('rect', {class:'ico', x:cx - 18, y:44, width:36, height:30, rx:3}, g);
       break;
     case 'iso': el('path', {class:'ico', d:'M48 53 h12 l14 -9 M78 53 h14'}, g); el('circle', {class:'isoled', cx:70, cy:34, r:5}, g); break;
@@ -1224,7 +1231,8 @@ function drawReal(p, ty, g) {
       else { el('circle', {cx:65, cy:52, r:11, fill:'#eef0f2', stroke:'#c9ced4'}, g); if (p.t === 'multi') el('circle', {cx:65, cy:52, r:3.5, fill:'#3b3f44'}, g); }
       el('circle', {class:'dled', cx:91, cy:52, r:3.4}, g);
       if (p.t === 'multi') el('circle', {class:'dled', cx:39, cy:52, r:3.4}, g);
-      rr(g, 24, 92, 82, 16, 3, '#eceef0', '#b9bec4');
+      if (isoBase(p)) { rr(g, 8, 92, 114, 16, 3, '#f3e9c4', '#b9a66a'); el('circle', {class:'isoled', cx:65, cy:100, r:3.6}, g); rt(g, 65, 89, 'ISOLATOR BASE', 6.5, '#8a6d00', {'text-anchor':'middle', 'font-weight':700}); }
+      else rr(g, 24, 92, 82, 16, 3, '#eceef0', '#b9bec4');
       if (p.t === 'conv' || p.t === 'convh') rt(g, 65, 90, 'CONVENTIONAL', 6.5, '#7a8088', {'text-anchor':'middle'});
       else { dial(g, 26, 16, Math.floor((p.addr || 0) / 10), 16, 'T', p.id, 't', 8); dial(g, 104, 16, (p.addr || 0) % 10, 10, 'O', p.id, 'o', 8); }
       [[-12, 0], [0, -0.5], [12, -1]].forEach(([dx, d]) => el('circle', {class:'smoke', cx:65 + dx, cy:14, r:7, style:`animation-delay:${d}s`}, g));
@@ -1574,22 +1582,22 @@ $('swatches').addEventListener('click', ev => { const b = ev.target.closest('.sw
 
 /* palette */
 const LIBICON = {det:'<circle cx="11" cy="9" r="6"/><circle cx="11" cy="9" r="2"/>', mod:'<rect x="3" y="3" width="16" height="12" rx="1"/><path d="M0 6h3M0 12h3M19 6h3M19 12h3"/>', field:'<path d="M3 6h5l6-4v14l-6-4H3z"/>', aux:'<rect x="3" y="4" width="16" height="10" rx="1"/><path d="M8 4V2M14 4V2"/>'};
-$('palette').innerHTML = CATS.map(([c, n]) => `<details open><summary>${n}</summary>${Object.entries(TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button class="lib-item" type="button" draggable="true" data-t="${k}"><svg viewBox="0 0 22 18">${LIBICON[c]}</svg><span>${t.name}<span class="lib-code">${PREFIX[k]} · ${t.short}</span></span></button>`).join('')}</details>`).join('');
-$('palette').addEventListener('dragstart', ev => { const b = ev.target.closest('.lib-item'); if (!b) return; ev.dataTransfer.setData('text/plain', 'facp:' + b.dataset.t); ev.dataTransfer.effectAllowed = 'copy'; });
+$('palette').innerHTML = CATS.map(([c, n]) => `<details open><summary>${n}</summary>${Object.entries(TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button class="lib-item" type="button" draggable="true" data-t="${k}"><svg viewBox="0 0 22 18">${LIBICON[c]}</svg><span>${t.name}<span class="lib-code">${PREFIX[k]} · ${t.short}</span></span></button>` + (k === 'smoke' ? `<button class="lib-item" type="button" draggable="true" data-t="smoke" data-base="iso"><svg viewBox="0 0 22 18">${LIBICON[c]}<path d="M4 16h5l3-2M14 16h4"/></svg><span>หัวควัน + ฐาน Isolator<span class="lib-code">SD · FSP-951 + B224BI</span></span></button>` : '')).join('')}</details>`).join('');
+$('palette').addEventListener('dragstart', ev => { const b = ev.target.closest('.lib-item'); if (!b) return; ev.dataTransfer.setData('text/plain', 'facp:' + b.dataset.t + (b.dataset.base ? ':' + b.dataset.base : '')); ev.dataTransfer.effectAllowed = 'copy'; });
 $('boardWrap').addEventListener('dragover', ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; });
 $('boardWrap').addEventListener('drop', ev => {
   ev.preventDefault();
   const d = ev.dataTransfer.getData('text/plain'); if (!d.startsWith('facp:')) return;
-  const t = d.slice(5); if (!TYPES[t]) return;
+  const [t, base] = d.slice(5).split(':'); if (!TYPES[t]) return;
   const q = svgPt(ev), ty = TYPES[t];
   const x = Math.max(FW + 70, Math.min(BW - ty.w - 4, Math.round((q.x - ty.w / 2) / 10) * 10)), y = Math.max(30, Math.min(BH - ty.h - 4, Math.round((q.y - ty.h / 2) / 10) * 10));
-  const p = addPart(t, x, y); selP = p.id; alarm = null; changed();
+  const p = addPart(t, x, y, base ? {base} : {}); selP = p.id; alarm = null; changed();
   hint(`วาง ${refdes(p)} · ${nameOf(p)} แล้ว ต่อสายที่ปลายขาของอุปกรณ์`);
 });
 $('palette').addEventListener('click', ev => {
   const b = ev.target.closest('.lib-item'); if (!b) return;
   const t = b.dataset.t; const [x, y] = freeSpot(t);
-  const p = addPart(t, x, y);
+  const p = addPart(t, x, y, b.dataset.base ? {base:b.dataset.base} : {});
   selP = p.id; alarm = null;
   changed();
   hint(`วาง ${refdes(p)} · ${nameOf(p)} แล้ว (กรอบเส้นประ) ลากย้ายได้ แล้วต่อสายที่ปลายขาของอุปกรณ์`);
@@ -1637,6 +1645,7 @@ function renderInsp() {
   if (ty.addrType === 'A') kv += `<label for="iAddr">Address</label><input id="iAddr" type="number" min="1" max="32" value="${p.addr}">`;
   else if (ty.addrType) {
     const nL = Math.max(CARDS.loops + 1, p.loop);
+    if (ISO_BASE_TYPES.includes(p.t)) kv += `<label for="iBase">ฐาน (Base)</label><select id="iBase"><option value="std" ${isoBase(p) ? '' : 'selected'}>B300-6 · ฐานมาตรฐาน (2 ขั้ว)</option><option value="iso" ${isoBase(p) ? 'selected' : ''}>B224BI · ฐาน Isolator (IN/OUT)</option></select>`;
     kv += `<label for="iLoop">Loop</label><select id="iLoop">${Array.from({length:nL}, (_, i) => i + 1).map(i => `<option value="${i}" ${p.loop === i ? 'selected' : ''}>Loop ${i} · ${loopCard(i)}${i > CARDS.loops + 1 ? ' (ยังไม่ติด)' : ''}</option>`).join('')}</select>`;
     kv += `<label for="iAddr">Address (${ty.addrType})</label><input id="iAddr" type="number" min="1" max="159" value="${p.addr}">`;
     kv += `<span></span><span class="note">TENS ${Math.floor(p.addr / 10)} · ONES ${p.addr % 10} — หรือคลิกปุ่มหมุนบนตัวอุปกรณ์ (มุมมองของจริง)</span>`;
@@ -1647,10 +1656,27 @@ function renderInsp() {
     ${kv ? `<div class="kv">${kv}</div>` : ''}
     <div class="row"><button class="btn dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
 }
+function setBase(p, v) {
+  const toIso = v === 'iso';
+  if (toIso === isoBase(p)) return;
+  const map = toIso ? {'s+':'i+', 's-':'i-'} : {'i+':'s+', 'i-':'s-'};
+  let dropped = 0;
+  wires = wires.filter(w => {
+    for (const end of ['a', 'b']) {
+      const [id, k] = w[end].split('.');
+      if (id !== p.id) continue;
+      if (map[k]) w[end] = id + '.' + map[k]; else { dropped++; return false; }
+    }
+    return true;
+  });
+  p.base = toIso ? 'iso' : undefined;
+  hint(toIso ? `${refdes(p)} เปลี่ยนเป็นฐาน Isolator (B224BI): สาย SLC เดิมย้ายไปขั้ว IN ต่อขาออกไปอุปกรณ์ถัดไปที่ OUT+/OUT−` : `${refdes(p)} เปลี่ยนเป็นฐานมาตรฐาน` + (dropped ? ` สายที่ขั้ว OUT ${dropped} เส้นถูกลบ` : ''));
+}
 $('insp').addEventListener('input', ev => {
   const p = byId(selP); if (!p) return;
   if (ev.target.id === 'iAddr') p.addr = parseInt(ev.target.value, 10) || 0;
   else if (ev.target.id === 'iLoop') p.loop = +ev.target.value;
+  else if (ev.target.id === 'iBase') { setBase(p, ev.target.value); changed(); return; }
   else return;
   changed({keepInsp:true});
   $('iTitle').textContent = `${refdes(p)} · ${label(p)}`;
@@ -2007,12 +2033,12 @@ function renderTests() {
   $('shortSel').innerHTML = slc.map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${label(p)}</option>`).join('');
   syncShortBtn();
 }
-function shortWire() { const d = $('shortSel').value; return wires.find(w => w.fault && w.a === d + '.s+'); }
+function shortWire() { const d = $('shortSel').value, p = byId(d); if (!p) return null; return wires.find(w => w.fault && w.a === d + '.' + slcKeys(p)[0]); }
 function syncShortBtn() { $('shortBtn').textContent = shortWire() ? 'ยกเลิกจุดช็อต' : 'สร้างจุดช็อต'; $('shortBtn').disabled = !$('shortSel').value; }
 $('shortSel').addEventListener('change', syncShortBtn);
 $('shortBtn').addEventListener('click', () => {
   const d = $('shortSel').value; if (!d) return; const ex = shortWire();
-  if (ex) wires = wires.filter(w => w !== ex); else wires.push({id:wseq++, a:d + '.s+', b:d + '.s-', color:'yel', cut:false, fault:true});
+  if (ex) wires = wires.filter(w => w !== ex); else { const [kp, kn] = slcKeys(byId(d)); wires.push({id:wseq++, a:d + '.' + kp, b:d + '.' + kn, color:'yel', cut:false, fault:true}); }
   changed();
   $('testMsg').textContent = ex ? `ยกเลิกจุดช็อตที่ ${label(byId(d))}` : `สาย SLC+ กับ SLC− ช็อตกันที่ ${label(byId(d))} ดูว่า Isolator ตัดช่วงไหน`;
 });
