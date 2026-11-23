@@ -240,6 +240,13 @@ svg.board.real .part.selp .selbox{stroke:var(--sel)}
 @keyframes lensf{0%{fill:#fffef0;filter:drop-shadow(0 0 10px #fff6a0)}15%{fill:rgba(255,255,255,.88);filter:none}}
 @media (prefers-reduced-motion:reduce){.part.act .dled,.part.on .lens{animation-duration:3s}}
 
+/* beam detector */
+.beamline{stroke:#ff3b3b;stroke-width:2;stroke-dasharray:10 6;opacity:.75;animation:beamf 1.2s linear infinite}
+.beamline.far{stroke:var(--warn);opacity:.6}
+.beamline.act{stroke:#8a8f96;stroke-dasharray:3 9;opacity:.9}
+@keyframes beamf{to{stroke-dashoffset:-32}}
+.beamlbl{font-family:var(--font-mono);font-size:11px;fill:var(--val);paint-order:stroke;stroke:var(--paper);stroke-width:3px}
+@media (prefers-reduced-motion:reduce){.beamline{animation:none}}
 /* address dials */
 .adial{cursor:pointer}
 .adial:hover .adial-ring{stroke:var(--sel);stroke-width:1.6}
@@ -470,6 +477,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     </ul></div>
     <div><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
       <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO (แมนนวล, Flow, Tamper) + EOL 47kΩ ที่ตัวสุดท้าย</li>
+      <li><b>Beam detector (FSB-200)</b>: ต่อ SLC+/SLC− เหมือนหัวทั่วไป (มี Address) และต่อไฟ 24V จาก AUX วางแผ่นสะท้อนตรงข้ามระดับเดียวกัน ระยะ 5–70 ม. (10 หน่วยกริด = 1 ม.)</li>
       <li><b>หัว Conventional (ไม่มี Address)</b> ทั้งหัวควันและหัวความร้อน: ต่อ SLC ตรงไม่ได้ ต้องผ่านโมดูลโซน FZM-1 (ไฟ 24V จาก AUX) ต่อหัว 2 สายขนานกันตามขั้ว + EOL 3.9kΩ ที่หัวตัวสุดท้าย ทั้งโซนใช้ Address เดียวของ FZM-1</li>
       <li><b>ตั้ง Address</b>: คลิกปุ่มหมุน TENS / ONES บนหัวหรือโมดูล (+1, Shift/คลิกขวา −1) หรือพิมพ์ใน Properties หรือเมนู แก้ไข › เรียง Address อัตโนมัติ</li>
       <li><b>Control</b>: ไฟ 24V จาก AUX, OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ</li>
@@ -516,6 +524,11 @@ const TYPES = {
   heat:  {cat:'det', name:'หัวความร้อน (FST-951)', short:'FST-951', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'HEAT', desc:'หัวตรวจจับความร้อนแบบ Fixed/Rate-of-rise ต่อเหมือนหัวควัน ใช้ในครัว ห้องเครื่อง หรือที่มีควันรบกวน'},
   multi: {cat:'det', name:'หัว Multi-criteria (FAPT-951)', short:'FAPT-951', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'MULTI', desc:'หัวตรวจจับแบบผสม ควัน + ความร้อน ลดการแจ้งเตือนผิดพลาด ต่อ SLC เหมือนหัวทั่วไป'},
   duct:  {cat:'det', name:'หัวควันในท่อลม (DNR)', short:'DNR+FSP-951R', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'DUCT', desc:'หัวควันติดในกล่องสุ่มลมของท่อ AHU ใช้สั่งดับพัดลมเมื่อมีควันในระบบปรับอากาศ'},
+  beam:  {cat:'det', name:'Beam detector (FSB-200)', short:'FSB-200 BEAM', w:150, h:110, addrType:'D', role:'slc', dt:'BEAM',
+          terms:[['s+','SLC+',0,32,'l','+'],['s-','SLC−',0,54,'l','-'],['v+','24V+',0,78,'l','+'],['v-','24V−',0,100,'l','-']],
+          desc:'หัวตรวจจับควันแบบลำแสง (Reflected beam) มี Address บน SLC เหมือนหัวทั่วไป แต่ต้องรับไฟ 24V จาก AUX ด้วย ตัวส่ง/รับยิงลำแสงไปยังแผ่นสะท้อน (Reflector) ที่ติดตั้งตรงข้ามในระดับเดียวกัน ระยะ 5–70 ม. ใช้ในพื้นที่เพดานสูงหรือโถงกว้าง (บนแผ่นงาน 10 หน่วยกริด = 1 ม.)'},
+  refl:  {cat:'det', name:'แผ่นสะท้อน (Reflector)', short:'REFLECTOR', w:70, h:110, terms:[], role:'refl',
+          desc:'แผ่นสะท้อนแสงของ Beam detector ไม่ต้องเดินสาย วางให้ตรงกับตัวส่ง/รับ (ระดับเดียวกัน) ระยะ 5–70 ม.'},
   convh: {cat:'det', name:'หัวความร้อน Conventional (2-wire)', short:'CONV HEAT', w:130, h:110, terms:[['+','+',35,110,'b','+'],['-','−',95,110,'b','-']], role:'zone', dt:'CONV HEAT',
           desc:'หัวความร้อนแบบธรรมดา (Conventional) 2 สาย ไม่มี Address แบบอุณหภูมิคงที่/อัตราเพิ่ม (Fixed / Rate-of-rise) ใช้ในครัว ห้องเครื่อง ลานจอดรถ ต่อผ่านโมดูลโซน FZM-1 ร่วมกับหัวควัน Conventional ในโซนเดียวกันได้ + ไป ZONE+, − ไป ZONE−'},
   conv:  {cat:'det', name:'หัวควัน Conventional (2-wire)', short:'CONV 2-WIRE', w:130, h:110, terms:[['+','+',35,110,'b','+'],['-','−',95,110,'b','-']], role:'zone', dt:'CONV SMOKE',
@@ -752,6 +765,18 @@ function analyzeOut(o, f) {
   return out;
 }
 
+function beamPair(p) {
+  const ty = T(p), cy = p.y + ty.h / 2;
+  let best = null;
+  for (const r of parts.filter(q => q.t === 'refl')) {
+    const rcy = r.y + T(r).h / 2;
+    if (Math.abs(rcy - cy) > 30) continue;
+    const gap = r.x >= p.x + ty.w ? r.x - (p.x + ty.w) : p.x >= r.x + T(r).w ? p.x - (r.x + T(r).w) : -1;
+    if (gap < 0) continue;
+    if (!best || gap < best.gap) best = {refl:r, gap, right:r.x > p.x};
+  }
+  return best ? {...best, m:best.gap / 10} : {refl:null};
+}
 function analyzeBat(tp, tn) {
   const f = netFn();
   const BP = f(tp), BN = f(tn);
@@ -899,6 +924,23 @@ function analyze() {
     add('o-' + o.id, o.title, r.items, st);
   }
 
+  /* ---- beam detectors: 24V and reflector alignment ---- */
+  R.beam = {};
+  for (const p of parts.filter(q => q.t === 'beam')) {
+    const it = []; let st = 'ok';
+    const pw = powered(p);
+    if (pw) it.push(['ok', 'มีไฟ 24V จาก AUX ของ AMPS-24']);
+    else { it.push(['err', powerRev(p) ? 'ไฟ 24V กลับขั้ว' : 'ไม่มีไฟ 24V เข้าหัว Beam ตัวส่งลำแสงไม่ทำงาน']); st = 'err'; }
+    const b = beamPair(p);
+    if (!b.refl) { it.push(['err', 'ไม่พบแผ่นสะท้อน (Reflector) ที่วางตรงกับหัวในระดับเดียวกัน ลำแสงไม่ครบ']); st = 'err'; }
+    else if (b.m < 5 || b.m > 70) { it.push(['err', `ระยะถึงแผ่นสะท้อน ${b.m.toFixed(1)} ม. อยู่นอกช่วง 5–70 ม.`]); st = 'err'; }
+    else it.push(['ok', `ลำแสงถึง ${refdes(b.refl)} ระยะ ${b.m.toFixed(1)} ม. (อยู่ในช่วง 5–70 ม.)`]);
+    if (!R.resp[p.id]) { it.unshift(['err', 'หัวไม่ตอบบน SLC']); st = 'err'; }
+    else if (st !== 'ok') R.panel.push(['TROUBLE', `${addrStr(p)} BEAM TROUBLE`]);
+    R.beam[p.id] = st === 'ok';
+    add('beam-' + p.id, `${nameOf(p)} ${addrStr(p)}`, it, st);
+  }
+
   /* ---- remote power supplies ---- */
   for (const p of parts.filter(q => q.t === 'psu')) {
     const it = []; let st = 'ok';
@@ -954,7 +996,7 @@ function analyze() {
   }
 
   /* ---- loose field parts ---- */
-  const loose = parts.filter(p => p.t !== 'facp' && !partUsed(p) && ['nac', 'spk', 'contact', 'zone', 'eol', 'bat', 'iso'].includes(T(p).role));
+  const loose = parts.filter(p => p.t !== 'facp' && p.t !== 'refl' && !partUsed(p) && ['nac', 'spk', 'contact', 'zone', 'eol', 'bat', 'iso'].includes(T(p).role));
   if (loose.length) add('loose', 'อุปกรณ์ที่ยังไม่ได้ต่อสาย', loose.map(p => ['inf', nameOf(p)]), 'todo');
   return R;
 }
@@ -986,8 +1028,8 @@ let gParts, gWires, gRubber, gTerms, gGrid;
 let showGrid = true, liveRoots = new Set(), hotRoots = new Set(), netNow = null;
 const isHeat = p => p.t === 'heat' || p.t === 'convh';
 const ACTLBL = {pull:'PULLED', flow:'FLOW', tamper:'CLOSED'};
-const PREFIX = {convh:'CHD', conv:'CD', fzm:'ZM', eol39:'R', smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
-const VAL = {convh:'NON-ADDR 57°C', conv:'NON-ADDR', eol39:'3.9kΩ', smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
+const PREFIX = {beam:'BD', refl:'RF', convh:'CHD', conv:'CD', fzm:'ZM', eol39:'R', smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
+const VAL = {refl:'5–70 m', convh:'NON-ADDR 57°C', conv:'NON-ADDR', eol39:'3.9kΩ', smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
 function refdes(p) {
   if (p.t === 'facp') return 'U1';
   const pre = PREFIX[p.t];
@@ -1029,6 +1071,14 @@ function drawAll() {
   el('rect', {x:0, y:0, width:BW, height:BH, fill:'url(#gDot)'}, gGrid);
   el('rect', {class:'sheet-frame', x:4, y:4, width:BW - 8, height:BH - 8}, gGrid);
   gGrid.style.display = showGrid ? '' : 'none';
+  const gBeam = el('g', {}, board);
+  for (const p of parts.filter(q => q.t === 'beam')) {
+    const b = beamPair(p); if (!b.refl) continue;
+    const ty = T(p), y = p.y + 69, x1 = b.right ? p.x + ty.w : p.x, x2 = b.right ? b.refl.x : b.refl.x + T(b.refl).w;
+    const ok = b.m >= 5 && b.m <= 70;
+    el('line', {class:'beamline' + (ok ? '' : ' far'), id:'beam-' + p.id, x1, y1:y, x2, y2:b.refl.y + T(b.refl).h / 2}, gBeam);
+    el('text', {class:'beamlbl', x:(x1 + x2) / 2, y:y - 8, 'text-anchor':'middle'}, gBeam).textContent = `${b.m.toFixed(1)} m` + (ok ? '' : ' (นอกช่วง 5–70 m)');
+  }
   gParts = el('g', {}, board);
   parts.forEach(drawPart);
   gWires = el('g', {}, board);
@@ -1054,19 +1104,23 @@ function drawPart(p) {
     drawIcon(p, ty, g);
   }
   if (['nac', 'spk'].includes(ty.role)) el('rect', {class:'flash', x:0, y:0, width:ty.w, height:ty.h, rx:2}, g);
-  if (ty.cat === 'det' || ty.role === 'contact') {
+  if ((ty.cat === 'det' && ty.role !== 'refl') || ty.role === 'contact') {
     const det = ty.cat === 'det';
     el('text', {class:'actlbl', x:det ? 8 : ty.w - 6, y:det ? (VIEW === 'real' ? 120 : 90) : (VIEW === 'real' ? ty.h + 13 : ty.h - 6), 'text-anchor':det ? 'start' : 'end', id:'act-' + p.id}, g).textContent = p.act ? (det ? (isHeat(p) ? 'HEAT!' : 'SMOKE!') : ACTLBL[p.t]) : '';
-    const hot = det ? el('circle', {class:'hot', cx:ty.w / 2, cy:64, r:26, 'data-trig':p.id}, g) : el('rect', {class:'hot', x:56, y:26, width:68, height:44, rx:4, 'data-trig':p.id}, g);
-    el('title', {}, hot).textContent = det ? (isHeat(p) ? 'คลิกเพื่อให้ความร้อนกับหัว / คลิกอีกครั้งเพื่อให้หัวเย็นลง' : 'คลิกเพื่อพ่นควันเข้าหัว / คลิกอีกครั้งเพื่อไล่ควันออก') : p.t === 'pull' ? 'คลิกเพื่อดึงแมนนวล / คลิกอีกครั้งเพื่อใช้กุญแจรีเซ็ต' : 'คลิกเพื่อสั่งสวิตช์ทำงาน / คลิกอีกครั้งเพื่อคืนสภาพ';
+    const hot = det ? el('circle', {class:'hot', cx:p.t === 'beam' ? 111 : ty.w / 2, cy:p.t === 'beam' ? 69 : 64, r:p.t === 'beam' ? 22 : 26, 'data-trig':p.id}, g) : el('rect', {class:'hot', x:56, y:26, width:68, height:44, rx:4, 'data-trig':p.id}, g);
+    el('title', {}, hot).textContent = p.t === 'beam' ? 'คลิกเพื่อปล่อยควันขวางลำแสง / คลิกอีกครั้งเพื่อไล่ควันออก' : det ? (isHeat(p) ? 'คลิกเพื่อให้ความร้อนกับหัว / คลิกอีกครั้งเพื่อให้หัวเย็นลง' : 'คลิกเพื่อพ่นควันเข้าหัว / คลิกอีกครั้งเพื่อไล่ควันออก') : p.t === 'pull' ? 'คลิกเพื่อดึงแมนนวล / คลิกอีกครั้งเพื่อใช้กุญแจรีเซ็ต' : 'คลิกเพื่อสั่งสวิตช์ทำงาน / คลิกอีกครั้งเพื่อคืนสภาพ';
   }
 }
 function drawIcon(p, ty, g) {
   const w = ty.w, h = ty.h, cx = w / 2;
   switch (ty.role) {
+    case 'refl': for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) el('path', {class:'ico', d:`M${17 + i * 10} ${36 + j * 12} l5 5 l-5 5 l-5 -5 z`}, g); break;
     case 'zone': el('circle', {class:'ico main', cx, cy:64, r:20}, g); el('path', {class:'ico', d:p.t === 'convh' ? `M${cx - 6} 68 l6 -8 l6 8` : `M${cx - 8} 64 h16`}, g); break;
     case 'slc':
-      if (ty.cat === 'det') {
+      if (ty.dt === 'BEAM') {
+        el('rect', {class:'ico', x:40, y:40, width:70, height:48, rx:4}, g); el('circle', {class:'ico main', cx:96, cy:64, r:10}, g);
+        el('path', {class:'ico', d:'M110 58 h30 M110 70 h30', 'stroke-dasharray':'4 3'}, g);
+      } else if (ty.cat === 'det') {
         el('circle', {class:'ico main', cx, cy:64, r:20}, g); el('circle', {class:'ico', cx, cy:64, r:8}, g);
         [[-12, 0], [0, -0.5], [12, -1]].forEach(([dx, d]) => el('circle', {class:'smoke', cx:cx + dx, cy:40, r:6, style:`animation-delay:${d}s`}, g));
         if (ty.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} 66 l6 -8 l6 8`}, g);
@@ -1145,6 +1199,21 @@ const BANDS = {3900:['#ff7f00', '#f5f5f5', '#d32f2f'], 47000:['#e0c000', '#7b2fb
 function drawReal(p, ty, g) {
   const w = ty.w, h = ty.h, cx = w / 2;
   switch (p.t) {
+    case 'beam': {
+      rr(g, 6, 4, 140, 102, 6, 'url(#gFace)', '#9aa1a9', {class:'rbody'});
+      rr(g, 28, 12, 110, 24, 4, '#e9ecef', '#b9bec4'); rt(g, 83, 28, 'BEAM DETECTOR', 8, '#3a4048', {'text-anchor':'middle', 'font-weight':700});
+      rr(g, 84, 44, 54, 50, 6, '#1b1e22', '#000');
+      el('circle', {cx:111, cy:69, r:18, fill:'#2c3a4a', stroke:'#0b0d10'}, g); el('circle', {cx:105, cy:63, r:6, fill:'rgba(160,200,255,.45)'}, g);
+      el('circle', {class:'dled', cx:36, cy:48, r:3.4}, g); el('circle', {class:'mled', cx:48, cy:48, r:3}, g);
+      dial(g, 44, 74, Math.floor((p.addr || 0) / 10), 16, 'T', p.id, 't', 8); dial(g, 68, 74, (p.addr || 0) % 10, 10, 'O', p.id, 'o', 8);
+      [[0, 0], [10, -0.5], [20, -1]].forEach(([dx, d]) => el('circle', {class:'smoke', cx:150 + dx, cy:58, r:7, style:`animation-delay:${d}s`}, g));
+      break;
+    }
+    case 'refl': {
+      rr(g, 6, 4, 58, 102, 4, '#d7dbe0', '#8a9097', {class:'rbody'});
+      for (let i = 0; i < 5; i++) for (let j = 0; j < 8; j++) el('path', {d:`M${14 + i * 10} ${14 + j * 11} l5 5 l-5 5 l-5 -5 z`, fill:(i + j) % 2 ? '#b0453a' : '#d9564a', stroke:'#7a2a22', 'stroke-width':0.5}, g);
+      break;
+    }
     case 'conv': case 'convh':
     case 'smoke': case 'heat': case 'multi': {
       rr(g, 14, 2, 102, 102, 16, '#e4e7ea', '#b9bec4', {class:'rbody'});
@@ -1574,7 +1643,7 @@ function renderInsp() {
   }
   const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
   $('insp').innerHTML = `<h3 id="iTitle">${refdes(p)} · ${label(p)}</h3><p>${ty.desc}</p>
-    <dl class="kv"><dt>Ref</dt><dd>${refdes(p)}</dd><dt>Value</dt><dd>${VAL[p.t] || '-'}</dd><dt>Pins</dt><dd>${pins || 'A, B'}</dd><dt>Position</dt><dd>${p.x / 10}, ${p.y / 10}</dd></dl>
+    <dl class="kv"><dt>Ref</dt><dd>${refdes(p)}</dd><dt>Value</dt><dd>${VAL[p.t] || '-'}</dd><dt>Pins</dt><dd>${pins || (termsOf(p).length ? 'A, B' : '— (ไม่ต้องเดินสาย)')}</dd><dt>Position</dt><dd>${p.x / 10}, ${p.y / 10}</dd></dl>
     ${kv ? `<div class="kv">${kv}</div>` : ''}
     <div class="row"><button class="btn dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
 }
@@ -1736,11 +1805,11 @@ function triggerDevice(id) {
   const ev = PX.events.find(e => e.src === p.id || (zm && e.src === zm.id + ':zone'));
   if (!p.act) hint(`${refdes(p)} คืนสภาพแล้ว ` + (ev ? 'แต่ตู้ยังค้างเหตุไว้ (Latching) กด SYSTEM RESET ที่หน้าตู้' : ''));
   else if (ev) hint(`${refdes(p)} ${det ? ((isHeat(p) ? 'ร้อนเกินกำหนด' : 'มีควัน') + (T(p).role === 'zone' ? ' (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : '')) : p.t === 'pull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
-  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
+  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${p.t === 'beam' ? 'หัว Beam ต้องตอบบน SLC มีไฟ 24V และมีแผ่นสะท้อนวางตรงกันในระยะ 5–70 ม.' : T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
 }
 function syncActive(R) {
   for (const p of parts.filter(q => q.act)) {
-    if (T(p).role === 'slc') { if (R.resp[p.id]) padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); }
+    if (T(p).role === 'slc') { if (R.resp[p.id] && (p.t !== 'beam' || R.beam[p.id])) padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); }
     else {
       const mm = parts.find(m => (m.t === 'mm' || (m.t === 'fzm' && R.power[m.id])) && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
       if (mm && R.resp[mm.id] && T(p).role === 'zone') padd('FIRE ALARM', mm.id + ':zone', T(mm).short, `CONV ZONE ${refdes(mm)}`, addrStr(mm), true);
@@ -1966,6 +2035,7 @@ function render() {
     const g = $('part-' + p.id); if (!g || p.t === 'facp') return;
     g.classList.toggle('on', S.sound.has(p.id));
     g.classList.toggle('act', !!p.act);
+    if (p.t === 'beam') { const bl = $('beam-' + p.id); if (bl) bl.classList.toggle('act', !!p.act); }
     g.classList.toggle('open', result.isoOpen.includes(p.id));
   });
   for (const r of result.relays) {
