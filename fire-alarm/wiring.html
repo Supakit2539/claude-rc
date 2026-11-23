@@ -273,6 +273,18 @@ svg.board.real .part.selp .selbox{stroke:var(--sel)}
 .piezo .dot.pulse{background:#ffd34d;animation:blink .5s steps(1) infinite}
 .keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .keys.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.softkeys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:-6px}
+.sk{height:20px;border:1px solid #000;border-radius:4px;background:linear-gradient(#4a5058,#30353b);color:#cfd4d9;font-size:.6rem;cursor:pointer;touch-action:manipulation}
+.sk:active{transform:translateY(1px)}
+.sk:focus-visible,.kp:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.keypad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.keypad.abc{grid-template-columns:repeat(7,minmax(0,1fr))}
+.kp{min-height:28px;border:1px solid #000;border-radius:5px;background:linear-gradient(#e9ebee,#c9ced4);color:#1b1e22;font-family:var(--font-mono);font-size:.72rem;font-weight:700;cursor:pointer;touch-action:manipulation;box-shadow:0 1px 0 rgba(0,0,0,.5)}
+.kp:active{transform:translateY(1px)}
+.kp.fn{background:linear-gradient(#5a6068,#3b4148);color:#fff}
+.kp.ent{background:linear-gradient(#3a8a4f,#2d6d3c);color:#fff}
+.kp.esc{background:linear-gradient(#8a3a3a,#6d2d2d);color:#fff}
+.pnl:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
 .k-prog{background:#5b3f8c;min-height:32px}
 /* panel programming dialog */
 .pg-lcd{background:radial-gradient(ellipse at 50% 40%,var(--lcd-glow),var(--lcd-bg) 70%);color:var(--lcd-fg);font-family:var(--font-lcd);font-size:17px;line-height:1.15;padding:8px 10px;border-radius:4px;white-space:pre-wrap;box-shadow:inset 0 0 10px rgba(0,0,0,.35);margin-bottom:12px}
@@ -378,7 +390,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <div class="menu"><button type="button" aria-haspopup="true">จำลอง</button><div class="drop" role="menu">
       <button type="button" data-do="runBtn">เริ่ม / หยุดจำลอง <kbd>F5</kbd></button>
       <button type="button" data-do="rstBtn">SYSTEM RESET</button>
-      <hr><button type="button" data-do="kProg">โปรแกรมตู้ (PROGRAM)…</button></div></div>
+      <hr><button type="button" data-do="pgTable">ตารางโปรแกรมตู้ (ตัวช่วยดู/แก้)…</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">ช่วยเหลือ</button><div class="drop" role="menu">
       <button type="button" data-do="guide">หลักการต่อสายแต่ละส่วน</button>
       <button type="button" data-do="howto">วิธีใช้โปรแกรม</button></div></div>
@@ -444,6 +456,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
         <div class="pane-b"><div class="pnl" aria-label="หน้าตู้ NFS2-3030">
           <div class="pnl-band"><b>NFS2-3030</b><span id="pnlCount">CPU2-3030D</span></div>
           <div class="lcd off" id="lcd" aria-live="polite"></div>
+          <div class="softkeys" id="softkeys" role="group" aria-label="Soft keys">
+          </div>
           <div class="leds" id="leds"></div>
           <div class="piezo"><span><span class="dot" id="piezoDot"></span>PIEZO <span id="piezoTxt">QUIET</span></span><span id="evCount"></span></div>
           <div class="keys">
@@ -457,8 +471,9 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
             <button class="pbtn k-sm" id="kNext" type="button" aria-label="เหตุการณ์ถัดไป">NEXT ▶</button>
             <button class="pbtn k-sm" id="kLamp" type="button">LAMP TEST</button>
             <button class="pbtn k-sm" id="kHist" type="button">HISTORY</button>
-            <button class="pbtn k-prog" id="kProg" type="button">PROGRAM</button>
+            <button class="pbtn k-sm" id="kAbc" type="button" aria-pressed="false">ABC</button>
           </div>
+          <div class="keypad" id="keypad" role="group" aria-label="Keypad"></div>
         </div></div></section>
       <section class="pane"><div class="pane-h">จำลองความผิดปกติของสาย</div>
         <div class="pane-b">
@@ -534,7 +549,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) สายที่มีไฟจะแสดงการไหลของกระแส</li>
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
-    <li><b>PROGRAM (ตั้งโปรแกรมตู้)</b>: กดปุ่ม PROGRAM ที่หน้าตู้ ใส่รหัส 00000 แล้วเลือก AUTOPROGRAM เพื่อสแกนหา Address บน SLC และลงโปรแกรม · POINT PROGRAM เพื่อตั้ง Type Code ชื่อจุด ชื่อท้าย/ตำแหน่ง และ Zone · DISABLE/ENABLE เพื่อปิด/เปิดจุด อุปกรณ์ที่ยังไม่ได้ลงโปรแกรม ตู้จะไม่รับเหตุ</li>
+    <li><b>ตั้งโปรแกรมที่หน้าตู้ (ใกล้เคียงตู้จริง ไม่ได้อ้างอิงคู่มือ)</b>: กด Soft key F1 "PROGRAM" (หรือ ENTER) › ใส่รหัสด้วยแป้นตัวเลข (00000 = Program, 11111 = Alter Status) › ENTER › เลือก 1 POINT PROG / 2 AUTOPROG / 3 ALTER STAT / 4 CLEAR ด้วย Soft key หรือตัวเลข · ใส่ Address: เลือก DETECTOR/MODULE, LOOP แล้วพิมพ์ 3 หลัก ENTER · ในหน้าจุด ▲▼ เลือกช่อง ◄► เปลี่ยนค่า ปุ่ม ABC สลับพิมพ์ตัวอักษร แล้วกด ACCEPT (F4) · ESC ย้อนกลับ · คลิกที่หน้าตู้แล้วใช้คีย์บอร์ดคอมพิวเตอร์ได้ (F1–F8 = Soft key)</li>
+    <li><b>ตารางโปรแกรม (ตัวช่วย)</b>: เมนู จำลอง › ตารางโปรแกรมตู้ ดู/แก้ทุกจุดในตารางเดียว (เดิมคือ PROGRAM) ใส่รหัส 00000 แล้วเลือก AUTOPROGRAM เพื่อสแกนหา Address บน SLC และลงโปรแกรม · POINT PROGRAM เพื่อตั้ง Type Code ชื่อจุด ชื่อท้าย/ตำแหน่ง และ Zone · DISABLE/ENABLE เพื่อปิด/เปิดจุด อุปกรณ์ที่ยังไม่ได้ลงโปรแกรม ตู้จะไม่รับเหตุ</li>
     <li><b>History</b>: ทุกเหตุการณ์และการกดปุ่มถูกบันทึกในแท็บ "ประวัติเหตุการณ์" ใต้แผ่นงาน</li>
   </ul>
 </template>
@@ -1704,7 +1720,7 @@ function renderInsp() {
   }
   const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
   $('insp').innerHTML = `<h3 id="iTitle">${refdes(p)} · ${label(p)}</h3><p>${ty.desc}</p>
-    ${ty.role === 'slc' ? (() => { const pr = PROG[addrStr(p)]; return pr ? `<p><b>ในโปรแกรมตู้:</b> ${pr.type} · "${pr.label}" ${pr.ext ? '· ' + pr.ext : ''} · Z${pz(pr.zone, 3)} · ${pr.on ? 'Enable' : '<b>Disable</b>'} <button class="btn" type="button" id="iProg">แก้ที่ตู้</button></p>` : `<p><b>ยังไม่ได้ลงโปรแกรมในตู้</b> ตู้จะไม่รับเหตุจากจุดนี้ <button class="btn" type="button" id="iProg">AUTOPROGRAM</button></p>`; })() : ''}
+    ${ty.role === 'slc' ? (() => { const pr = PROG[addrStr(p)]; return pr ? `<p><b>ในโปรแกรมตู้:</b> ${pr.type} · "${pr.label}" ${pr.ext ? '· ' + pr.ext : ''} · Z${pz(pr.zone, 3)} · ${pr.on ? 'Enable' : '<b>Disable</b>'} <button class="btn" type="button" id="iProg">ตารางโปรแกรม</button></p>` : `<p><b>ยังไม่ได้ลงโปรแกรมในตู้</b> ตู้จะไม่รับเหตุจากจุดนี้ <button class="btn" type="button" id="iProg">AUTOPROGRAM</button></p>`; })() : ''}
     <dl class="kv"><dt>Ref</dt><dd>${refdes(p)}</dd><dt>Value</dt><dd>${VAL[p.t] || '-'}</dd><dt>Pins</dt><dd>${pins || (termsOf(p).length ? 'A, B' : '— (ไม่ต้องเดินสาย)')}</dd><dt>Position</dt><dd>${p.x / 10}, ${p.y / 10}</dd></dl>
     ${kv ? `<div class="kv">${kv}</div>` : ''}
     <div class="row"><button class="btn dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
@@ -1827,6 +1843,7 @@ menubar.addEventListener('click', ev => {
   closeMenus();
   const k = it.dataset.do;
   if (k === 'new') $('clear').click();
+  else if (k === 'pgTable') openProgram();
   else if (k === 'guide') showGuide();
   else if (k === 'howto') modal('วิธีใช้โปรแกรม', $('howtoTpl').innerHTML);
   else if (k === 'autoAddr') autoAddress();
@@ -2047,10 +2064,264 @@ const PLEDS = [
   ['POINTS DISABLED', '#ffc93a', () => Object.values(PROG).some(p => !p.on) ? 'on' : ''],
   ['CPU FAILURE', '#ffc93a', () => ''],
 ];
+/* ================= front-panel programming (soft keys + keypad) =================
+   Approximation of the CPU2-3030D procedure; not taken from the programming manual. */
+let PM = null;   // null = normal display; otherwise {scr, level, ...}
+const PSW = {prog:'00000', status:'11111'};
+const SKW = 10;
+const skRows = labels => [0, 4].map(o => labels.slice(o, o + 4).map(l => (l || '').slice(0, SKW - 1).padEnd(SKW)).join(''));
+function normalSoft() { return ['PROGRAM', 'READ STAT', 'HISTORY', '', '', '', '', 'LAMP TEST']; }
+const fit = arr => { const a = arr.slice(0, 14); while (a.length < 14) a.push(''); return a.map(x => PL(x)); };
+const keysSorted = () => Object.keys(PROG).sort((a, b) => { const pa = /^L(\d+)([DM])(\d+)/.exec(a), pb = /^L(\d+)([DM])(\d+)/.exec(b); return pa[1] - pb[1] || pa[2].localeCompare(pb[2]) || pa[3] - pb[3]; });
+function pmDeviceAt(key) { const p = partAt(key); return p ? `${T(p).short} (${refdes(p)})` : 'NO DEVICE FOUND'; }
+function pmCodes(key) { return /^L\d+D/.test(key) ? CODES_D : CODES_M; }
+function pmScreen() {
+  const P = PM;
+  switch (P.scr) {
+    case 'pw': return {lines:['PROGRAM/ALTER STATUS', '', 'ENTER PASSWORD:', '  ' + '*'.repeat(P.buf.length) + '_', '', 'PROGRAM LEVEL OR ALTER STATUS LEVEL', 'PASSWORD, THEN PRESS ENTER', '', '(SIMULATOR: 00000 / 11111)'], soft:['', '', '', '', '', '', '', 'BACK']};
+    case 'msg': return {lines:['', ...P.text, '', 'PRESS ENTER OR ESC'], soft:['', '', '', '', '', '', '', 'OK']};
+    case 'menu': {
+      const prog = P.level === 'prog';
+      return {lines:['PROGRAM/ALTER STATUS MENU', `LEVEL: ${prog ? 'PROGRAM' : 'ALTER STATUS'}`, '─'.repeat(PW),
+        prog ? '1  POINT PROGRAMMING' : '1  (PROGRAM LEVEL ONLY)', prog ? '2  AUTOPROGRAM' : '2  (PROGRAM LEVEL ONLY)', '3  ALTER STATUS (DISABLE/ENABLE)', prog ? '4  CLEAR PROGRAM' : '4  (PROGRAM LEVEL ONLY)',
+        '', `POINTS PROGRAMMED: ${pz(Object.keys(PROG).length, 3)}`, '', 'SELECT WITH SOFT KEY OR NUMBER'],
+        soft:['POINT PRG', 'AUTOPROG', 'ALTER STS', 'CLEAR', '', '', '', 'EXIT']};
+    }
+    case 'auto': return {lines:['AUTOPROGRAM', '', `LOOP: ${P.loop ? pz(P.loop) + ' ' + loopCard(P.loop) : 'ALL LOOPS'}`, '', 'THE PANEL WILL POLL EVERY DETECTOR AND', 'MODULE ADDRESS (001-159) ON THE', 'SELECTED SLC LOOP(S).', '', 'PRESS START'], soft:['LOOP', '', '', 'START', '', '', '', 'BACK']};
+    case 'scan': {
+      const pct = Math.round(P.step / P.total * 100), bar = '█'.repeat(Math.round(pct / 100 * 30)).padEnd(30, '·');
+      return {lines:['AUTOPROGRAM IN PROGRESS', '', `POLLING ${P.cur}`, '', `[${bar}] ${pct}%`, '', 'PLEASE WAIT...'], soft:['', '', '', '', '', '', '', '']};
+    }
+    case 'autoRes': {
+      const nNew = P.items.filter(x => x.st === 'NEW').length, nMiss = P.items.filter(x => x.missing).length;
+      return {lines:['AUTOPROGRAM RESULTS', '─'.repeat(PW), `NEW POINTS FOUND     : ${pz(nNew, 3)}`, `PROGRAMMED & FOUND   : ${pz(P.items.filter(x => x.st === 'OK').length, 3)}`,
+        `MISSING (NO ANSWER) : ${pz(nMiss, 3)}`, `DUPLICATE ADDRESSES : ${pz(P.dups.length, 3)}`, `TYPE MISMATCH       : ${pz(P.items.filter(x => x.st === 'TYPE?').length, 3)}`, '',
+        ...P.items.filter(x => x.st !== 'OK').slice(0, 5).map(x => `${(x.missing ? 'MISSING' : x.st).padEnd(8)}${x.k} ${x.missing ? '' : x.code}`)],
+        soft:['ACCPT ALL', 'REVIEW', nMiss ? 'DEL MISS' : '', '', '', '', '', 'BACK']};
+    }
+    case 'autoNew': {
+      const x = P.queue[P.i];
+      return {lines:[`NEW POINT ${P.i + 1} OF ${P.queue.length}`, '─'.repeat(PW), `ADDRESS     : ${x.k}`, `DEVICE      : ${T(x.p).short}`, `TYPE CODE   : ${x.code}`, `CUSTOM LABEL: ${refdes(x.p)}`, '', 'ACCEPT = ADD WITH DEFAULTS', 'EDIT   = ADD AND OPEN POINT PROGRAM', 'SKIP   = DO NOT ADD'],
+        soft:['ACCEPT', 'EDIT', 'SKIP', '', '', '', '', 'BACK']};
+    }
+    case 'entry': {
+      const what = P.mode === 'alter' ? 'ALTER STATUS · DISABLE/ENABLE' : 'POINT PROGRAMMING';
+      return {lines:[what, '', 'ENTER POINT ADDRESS', '', `   L${pz(P.loop)} ${P.dm} ${(P.buf + '___').slice(0, 3)}`, '', 'DETECTOR/MODULE: SOFT KEYS', 'LOOP: SOFT KEY OR UP/DOWN', 'ADDRESS: 3 DIGITS, THEN ENTER'],
+        soft:['DETECTOR', 'MODULE', 'LOOP +', 'LOOP -', '', '', '', 'BACK']};
+    }
+    case 'pt': {
+      const e = P.edit, f = ['type', 'label', 'ext', 'zone', 'on'], nm = ['TYPE CODE   ', 'CUSTOM LABEL', 'EXTENDED    ', 'ZONE MAP    ', 'STATUS      '];
+      const val = k => k === 'type' ? e.type : k === 'label' ? e.label + (P.field === 1 ? '_' : '') : k === 'ext' ? e.ext + (P.field === 2 ? '_' : '') : k === 'zone' ? 'Z' + pz(e.zone, 3) : e.on ? 'ENABLED' : 'DISABLED';
+      return {lines:[`POINT PROGRAMMING       ${P.key}${P.dirty ? ' *' : ''}`, `DEVICE: ${pmDeviceAt(P.key)}`, '─'.repeat(PW),
+        ...f.map((k, i) => `${P.field === i ? '>' : ' '}${nm[i]}: ${val(k)}`), '',
+        P.field === 0 ? '◄ ► CHANGE TYPE CODE' : P.field <= 2 ? 'TYPE A-Z 0-9 · BKSP DELETES (MAX 20)' : P.field === 3 ? 'DIGITS OR ◄ ► CHANGE ZONE' : '◄ ► ENABLE / DISABLE',
+        '▲ ▼ SELECT FIELD', P.dirty ? '* CHANGES NOT SAVED · PRESS ACCEPT' : ''],
+        soft:['PREV PT', 'NEXT PT', 'DELETE', 'ACCEPT', 'CLR FIELD', '', '', 'BACK']};
+    }
+    case 'notprog': return {lines:['POINT PROGRAMMING', '', `${P.key} IS NOT PROGRAMMED`, `DEVICE: ${pmDeviceAt(P.key)}`, '', 'ADD POINT = CREATE WITH DEFAULTS'], soft:['ADD POINT', '', '', '', '', '', '', 'BACK']};
+    case 'del': return {lines:['DELETE POINT', '', `${P.key}  ${PROG[P.key] ? PROG[P.key].label : ''}`, '', 'PRESS ENTER TO DELETE', 'PRESS ESC TO CANCEL'], soft:['', '', '', '', '', '', '', 'BACK']};
+    case 'alterPt': {
+      const pr = PROG[P.key];
+      return {lines:['ALTER STATUS', '─'.repeat(PW), `POINT  : ${P.key}`, `LABEL  : ${pr.label}`, `TYPE   : ${pr.type}`, `STATUS : ${pr.on ? 'ENABLED' : 'DISABLED'}`, '', 'DISABLED POINTS DO NOT REPORT', 'ALARMS OR TROUBLES'], soft:['DISABLE', 'ENABLE', '', '', '', '', '', 'BACK']};
+    }
+    case 'clear': return {lines:['CLEAR PROGRAM', '', 'ALL POINT PROGRAMMING WILL BE ERASED', '', 'PRESS ENTER TO CONFIRM', 'PRESS ESC TO CANCEL'], soft:['', '', '', '', '', '', '', 'BACK']};
+  }
+  return {lines:[], soft:[]};
+}
+function pmGo(scr, extra = {}) { PM = {...PM, scr, ...extra}; renderPanel(); }
+function pmMsg(text, back) { PM = {...PM, scr:'msg', text, back}; renderPanel(); }
+function pmOpenPoint(key, ret) {
+  if (!PROG[key]) { pmGo('notprog', {key, ret}); return; }
+  pmGo('pt', {key, edit:{...PROG[key]}, field:0, dirty:false, ret});
+}
+function pmEntryDone() {
+  const P = PM; if (P.buf.length === 0) return;
+  const key = `L${P.loop}${P.dm}${pz(+P.buf, 3)}`;
+  if (+P.buf < 1 || +P.buf > 159) { pmMsg(['INVALID ADDRESS', 'RANGE 001-159'], 'entry'); return; }
+  if (P.mode === 'alter') { if (!PROG[key]) pmMsg([`${key} IS NOT PROGRAMMED`], 'entry'); else pmGo('alterPt', {key}); }
+  else pmOpenPoint(key, 'entry');
+}
+function pmStartScan() {
+  const loops = loopsList().filter(L => !PM.loop || L.n === PM.loop);
+  PM = {...PM, scr:'scan', step:0, total:loops.length * 318, cur:'', loops};
+  const tick = () => {
+    if (!PM || PM.scr !== 'scan') return;
+    PM.step = Math.min(PM.total, PM.step + 14);
+    const li = Math.min(loops.length - 1, Math.floor(PM.step / 318)), r = PM.step % 318;
+    PM.cur = `L${loops[li].n}${r < 159 ? 'D' : 'M'}${pz(r % 159 + 1, 3)}`;
+    renderPanel();
+    if (PM.step < PM.total) setTimeout(tick, 25); else pmScanDone(loops);
+  };
+  tick();
+}
+function pmScanDone(loops) {
+  const items = [], dups = [];
+  for (const L of loops) {
+    const sc = result.scan[L.n] || {found:[], dup:[]};
+    const seenK = new Set();
+    for (const p of sc.found) {
+      const k = `L${L.n}${T(p).addrType}${pz(p.addr, 3)}`; seenK.add(k);
+      const pr = PROG[k];
+      items.push({k, p, loop:L.n, code:pr ? pr.type : defaultCode(p), st:!pr ? 'NEW' : TYPECODES[p.t].includes(pr.type) ? 'OK' : 'TYPE?'});
+    }
+    dups.push(...sc.dup);
+    Object.keys(PROG).filter(k => new RegExp(`^L${L.n}[DM]`).test(k) && !seenK.has(k)).forEach(k => items.push({k, missing:true}));
+  }
+  plog('INFO', `AUTOPROGRAM SCAN: ${items.filter(x => x.st === 'NEW').length} NEW · ${items.filter(x => x.missing).length} MISSING`);
+  PM = {...PM, scr:'autoRes', items, dups};
+  renderPanel();
+}
+function pmAdd(x) { x.p.loop = x.loop; PROG[x.k] = progEntry(x.p); plog('INFO', `${x.k} ADDED TO PROGRAM`); }
+function pmSave() { save(); render(); }
+function pmSoft(i) {
+  if (!running) { needPower(); return; }
+  if (!PM) {   // normal screen soft keys
+    if (i === 1) { PM = {scr:'pw', buf:'', level:null}; plog('INFO', 'PROGRAM/ALTER STATUS SELECTED'); renderPanel(); }
+    else if (i === 2) pflash(`READ STATUS: ${pz(Object.keys(PROG).length, 3)} POINTS`, `${pz(Object.values(PROG).filter(p => !p.on).length, 3)} DISABLED`);
+    else if (i === 3) $('kHist').click();
+    else if (i === 8) keyLamp();
+    return;
+  }
+  const P = PM;
+  if (i === 8) { pmKey('ESC'); return; }
+  switch (P.scr) {
+    case 'menu':
+      if (i <= 4) pmKey(String(i));
+      break;
+    case 'msg': pmKey('ENTER'); break;
+    case 'auto':
+      if (i === 1) { const L = loopsList().map(l => l.n); const idx = L.indexOf(P.loop); pmGo('auto', {loop:idx + 1 < L.length ? L[idx + 1] : 0}); }
+      if (i === 4) pmStartScan();
+      break;
+    case 'autoRes': {
+      const news = P.items.filter(x => x.st === 'NEW');
+      if (i === 1) { news.forEach(pmAdd); pmSave(); pmMsg(['AUTOPROGRAM COMPLETE', `${pz(news.length, 3)} NEW POINT(S) ACCEPTED`], 'menu'); }
+      if (i === 2) { if (news.length) pmGo('autoNew', {queue:news, i:0}); else pmMsg(['NO NEW POINTS TO REVIEW'], 'autoRes'); }
+      if (i === 3 && P.items.some(x => x.missing)) { P.items.filter(x => x.missing).forEach(x => { delete PROG[x.k]; plog('INFO', `${x.k} DELETED (MISSING)`); }); pmSave(); P.items = P.items.filter(x => !x.missing); renderPanel(); }
+      break;
+    }
+    case 'autoNew': {
+      const x = P.queue[P.i];
+      const next = () => { if (P.i + 1 < P.queue.length) pmGo('autoNew', {i:P.i + 1}); else pmMsg(['AUTOPROGRAM COMPLETE', 'REVIEW FINISHED'], 'menu'); };
+      if (i === 1) { pmAdd(x); pmSave(); next(); }
+      if (i === 2) { pmAdd(x); pmSave(); PM.reviewPos = P.i; pmOpenPoint(x.k, 'autoNew'); }
+      if (i === 3) next();
+      break;
+    }
+    case 'entry':
+      if (i === 1) pmGo('entry', {dm:'D'});
+      if (i === 2) pmGo('entry', {dm:'M'});
+      if (i === 3 || i === 4) { const L = loopsList().map(l => l.n); const idx = L.indexOf(P.loop); pmGo('entry', {loop:L[(idx + (i === 3 ? 1 : L.length - 1)) % L.length]}); }
+      break;
+    case 'notprog':
+      if (i === 1) { const p = partAt(P.key); PROG[P.key] = p ? progEntry(p) : {t:null, type:pmCodes(P.key)[0], label:P.key, ext:'', zone:1, on:true}; plog('INFO', `${P.key} ADDED TO PROGRAM`); pmSave(); pmOpenPoint(P.key, P.ret); }
+      break;
+    case 'pt': {
+      const ks = keysSorted(), idx = ks.indexOf(P.key);
+      if (i === 1 || i === 2) { if (P.dirty) { pmMsg(['CHANGES NOT SAVED', 'PRESS ACCEPT FIRST OR CLR'], 'pt'); return; } const k = ks[(idx + (i === 2 ? 1 : ks.length - 1)) % ks.length]; if (k) pmOpenPoint(k, P.ret); }
+      if (i === 3) pmGo('del');
+      if (i === 4) { PROG[P.key] = {...P.edit}; plog('INFO', `${P.key} PROGRAMMED · ${P.edit.type} · ${P.edit.label}${P.edit.on ? '' : ' · DISABLED'}`); pmSave(); PM.dirty = false; pmMsg(['POINT ACCEPTED', P.key], 'pt'); }
+      if (i === 5) { const e = P.edit; if (P.field === 1) e.label = ''; else if (P.field === 2) e.ext = ''; else if (P.field === 3) e.zone = 0; PM.dirty = true; renderPanel(); }
+      break;
+    }
+    case 'alterPt':
+      if (i === 1 || i === 2) { PROG[P.key].on = i === 2; plog('INFO', `${P.key} ${i === 2 ? 'ENABLED' : 'DISABLED'}`); pmSave(); renderPanel(); }
+      break;
+  }
+}
+function pmKey(k) {
+  if (!running) { needPower(); return; }
+  if (!PM) { if (k === 'ENTER') pmSoft(1); return; }
+  const P = PM;
+  if (k === 'ESC') {
+    const back = {pw:null, menu:null, msg:P.back || 'menu', auto:'menu', autoRes:'menu', autoNew:'autoRes', entry:'menu', notprog:'entry', alterPt:'entry', clear:'menu', del:'pt', pt:P.ret || 'entry', scan:'auto'}[P.scr];
+    if (back === null) { if (P.level) plog('INFO', 'PROGRAMMING EXIT'); PM = null; render(); return; }
+    if (back === 'entry' && !P.mode) PM.mode = 'point';
+    pmGo(back); return;
+  }
+  switch (P.scr) {
+    case 'pw':
+      if (/^\d$/.test(k) && P.buf.length < 8) { P.buf += k; renderPanel(); }
+      else if (k === 'BKSP') { P.buf = P.buf.slice(0, -1); renderPanel(); }
+      else if (k === 'ENTER') {
+        const lvl = P.buf === PSW.prog ? 'prog' : P.buf === PSW.status ? 'status' : null;
+        if (!lvl) { plog('INFO', 'INVALID PASSWORD'); PM = {scr:'msg', text:['INVALID PASSWORD'], back:'pw', buf:''}; renderPanel(); return; }
+        plog('INFO', `PASSWORD ACCEPTED · ${lvl === 'prog' ? 'PROGRAM' : 'ALTER STATUS'} LEVEL`);
+        PM = {scr:'menu', level:lvl}; renderPanel();
+      }
+      break;
+    case 'msg': if (k === 'ENTER') { if (P.back === 'pw') PM = {scr:'pw', buf:''}; pmGo(P.back || 'menu'); } break;
+    case 'menu': {
+      const prog = P.level === 'prog';
+      if (k === '1') prog ? pmGo('entry', {mode:'point', loop:1, dm:'D', buf:''}) : pmMsg(['ACCESS DENIED', 'PROGRAM LEVEL PASSWORD REQUIRED'], 'menu');
+      if (k === '2') prog ? pmGo('auto', {loop:0}) : pmMsg(['ACCESS DENIED', 'PROGRAM LEVEL PASSWORD REQUIRED'], 'menu');
+      if (k === '3') pmGo('entry', {mode:'alter', loop:1, dm:'D', buf:''});
+      if (k === '4') prog ? pmGo('clear') : pmMsg(['ACCESS DENIED', 'PROGRAM LEVEL PASSWORD REQUIRED'], 'menu');
+      break;
+    }
+    case 'auto': if (k === 'ENTER') pmStartScan(); if (k === 'LEFT' || k === 'RIGHT') pmSoft(1); break;
+    case 'entry':
+      if (/^\d$/.test(k) && P.buf.length < 3) { P.buf += k; renderPanel(); }
+      else if (k === 'BKSP') { P.buf = P.buf.slice(0, -1); renderPanel(); }
+      else if (k === 'D' || k === 'M') pmGo('entry', {dm:k});
+      else if (k === 'UP') pmSoft(3); else if (k === 'DOWN') pmSoft(4);
+      else if (k === 'ENTER') pmEntryDone();
+      break;
+    case 'notprog': if (k === 'ENTER') pmSoft(1); break;
+    case 'del': if (k === 'ENTER') { delete PROG[P.key]; plog('INFO', `${P.key} DELETED FROM PROGRAM`); pmSave(); pmMsg([`${P.key} DELETED`], 'entry'); } break;
+    case 'clear': if (k === 'ENTER') { PROG = {}; plog('INFO', 'PROGRAM CLEARED'); pmSave(); pmMsg(['PROGRAM CLEARED'], 'menu'); } break;
+    case 'alterPt': if (k === 'LEFT' || k === 'RIGHT') { PROG[P.key].on = !PROG[P.key].on; plog('INFO', `${P.key} ${PROG[P.key].on ? 'ENABLED' : 'DISABLED'}`); pmSave(); renderPanel(); } break;
+    case 'pt': {
+      const e = P.edit;
+      if (k === 'UP') { PM.field = (P.field + 4) % 5; renderPanel(); return; }
+      if (k === 'DOWN') { PM.field = (P.field + 1) % 5; renderPanel(); return; }
+      if (k === 'ENTER') { pmSoft(4); return; }
+      const codes = pmCodes(P.key);
+      if (P.field === 0 && (k === 'LEFT' || k === 'RIGHT')) { const ix = codes.indexOf(e.type); e.type = codes[(ix + (k === 'RIGHT' ? 1 : codes.length - 1)) % codes.length]; }
+      else if ((P.field === 1 || P.field === 2) && (k.length === 1 || k === 'BKSP')) { const fk = P.field === 1 ? 'label' : 'ext'; e[fk] = k === 'BKSP' ? e[fk].slice(0, -1) : (e[fk] + k).slice(0, 20); }
+      else if (P.field === 3 && /^\d$/.test(k)) e.zone = +(String(e.zone) + k).slice(-2);
+      else if (P.field === 3 && (k === 'LEFT' || k === 'RIGHT')) e.zone = Math.max(0, Math.min(99, e.zone + (k === 'RIGHT' ? 1 : -1)));
+      else if (P.field === 3 && k === 'BKSP') e.zone = Math.floor(e.zone / 10);
+      else if (P.field === 4 && (k === 'LEFT' || k === 'RIGHT')) e.on = !e.on;
+      else return;
+      PM.dirty = true; renderPanel();
+      break;
+    }
+  }
+}
+// build the soft keys and keypad
+$('softkeys').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map(i => `<button class="sk" type="button" data-sk="${i}" aria-label="Soft key ${i}">▲ F${i}</button>`).join('');
+let abc = false;
+function buildKeypad() {
+  const num = [['1'], ['2'], ['3'], ['▲', 'UP', 'fn'], ['ESC', 'ESC', 'esc'], ['4'], ['5'], ['6'], ['▼', 'DOWN', 'fn'], ['⌫', 'BKSP', 'fn'], ['7'], ['8'], ['9'], ['◄', 'LEFT', 'fn'], ['►', 'RIGHT', 'fn'], ['.', '.'], ['0'], ['-', '-'], ['SPACE', ' ', 'fn'], ['ENTER', 'ENTER', 'ent']];
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c => [c]).concat([['SP', ' ', 'fn'], ['⌫', 'BKSP', 'fn'], ['ESC', 'ESC', 'esc'], ['ENTER', 'ENTER', 'ent']]);
+  const list = abc ? letters : num;
+  $('keypad').className = 'keypad' + (abc ? ' abc' : '');
+  $('keypad').innerHTML = list.map(([lb, k, cls]) => `<button class="kp ${cls || ''}" type="button" data-key="${(k || lb).replace(/"/g, '&quot;')}" aria-label="${lb === ' ' ? 'space' : lb}">${lb}</button>`).join('');
+  $('kAbc').setAttribute('aria-pressed', String(abc)); $('kAbc').textContent = abc ? '123' : 'ABC';
+}
+buildKeypad();
+$('kAbc').addEventListener('click', () => { abc = !abc; buildKeypad(); });
+$('softkeys').addEventListener('click', ev => { const b = ev.target.closest('[data-sk]'); if (b) pmSoft(+b.dataset.sk); });
+$('keypad').addEventListener('click', ev => { const b = ev.target.closest('[data-key]'); if (b) pmKey(b.dataset.key); });
+document.querySelector('.pnl').tabIndex = 0;
+document.querySelector('.pnl').addEventListener('keydown', ev => {
+  if (ev.target.closest('button') && (ev.key === 'Enter' || ev.key === ' ')) return;
+  const map = {Enter:'ENTER', Escape:'ESC', Backspace:'BKSP', ArrowUp:'UP', ArrowDown:'DOWN', ArrowLeft:'LEFT', ArrowRight:'RIGHT'};
+  let k = map[ev.key] || (ev.key.length === 1 ? ev.key.toUpperCase() : null);
+  if (/^F[1-8]$/.test(ev.key)) { ev.preventDefault(); pmSoft(+ev.key.slice(1)); return; }
+  if (!k) return;
+  ev.preventDefault(); ev.stopPropagation(); pmKey(k);
+});
 function renderPanel() {
   const lcd = $('lcd');
   lcd.classList.toggle('off', !running);
-  lcd.textContent = running ? lcdLines().join('\n') : Array(PROWS).fill(' '.repeat(PW)).join('\n');
+  let rows;
+  if (!running) rows = Array(PROWS).fill(' '.repeat(PW));
+  else if (PX.lamp) rows = lcdLines();
+  else if (PM) { const sc = pmScreen(); rows = [...fit(sc.lines), ...skRows(sc.soft)]; }
+  else { const base = lcdLines(); rows = [...base.slice(0, 13), base[PROWS - 1], ...skRows(normalSoft())]; }
+  lcd.textContent = rows.join('\n');
   $('leds').innerHTML = PLEDS.map(([n, c, f]) => { const st = !running ? '' : PX.lamp ? 'on' : f(); return `<div class="led ${st ? 'lit' : ''} ${st === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`; }).join('');
   const dot = $('piezoDot'), txt = $('piezoTxt'); dot.className = 'dot';
   if (!running || PX.resetting) txt.textContent = running ? 'QUIET' : 'OFF';
@@ -2097,7 +2368,7 @@ function openProgram(screen, focusPart) {
 function pgClose() { $('pgModal').hidden = true; pgScan = null; plog('INFO', 'PROGRAM MODE EXIT'); save(); render(); }
 $('pgClose').addEventListener('click', pgClose);
 $('pgModal').addEventListener('click', ev => { if (ev.target.id === 'pgModal') pgClose(); });
-$('kProg').addEventListener('click', () => openProgram());
+/* (the table view stays available from the menu and Properties as a helper) */
 const loopOpts = sel => loopsList().map(L => `<option value="${L.n}" ${L.n === sel ? 'selected' : ''}>Loop ${L.n} · ${loopCard(L.n)}</option>`).join('');
 function pgShow(scr, next) {
   const b = $('pgBody');
