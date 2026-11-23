@@ -222,6 +222,17 @@ table.erc td.ic{width:22px;text-align:center;font-weight:700}
 .shortrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .shortrow select{width:auto;max-width:100%}
 
+/* device hotspots: smoke into a head, pull a manual station */
+.hot{fill:transparent;cursor:pointer}
+.hot:hover{fill:rgba(215,25,47,.10);stroke:var(--err);stroke-width:1.2;stroke-dasharray:3 3}
+.part.act rect.body{stroke:var(--err);stroke-width:2.6}
+.part.act .ico.main{fill:var(--err);stroke:var(--err)}
+.part .smoke{fill:#9aa3ad;opacity:0;pointer-events:none}
+.part.act .smoke{animation:puff 1.6s ease-out infinite}
+@keyframes puff{0%{opacity:.75;transform:translateY(0)}100%{opacity:0;transform:translateY(-18px)}}
+.part .actlbl{font-family:var(--font-mono);font-size:10px;font-weight:700;fill:var(--err)}
+@media (prefers-reduced-motion:reduce){.part.act .smoke{animation:none;opacity:.5}}
+
 /* front panel (CPU2-3030D) */
 .pnl-band{display:flex;justify-content:space-between;align-items:center;background:#b10d25;color:#fff;margin:-10px -10px 0;padding:6px 10px;border-radius:6px 6px 0 0;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em}
 .pnl-band b{letter-spacing:.16em}
@@ -389,11 +400,10 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
             <button class="pbtn k-sm" id="kHist" type="button">HISTORY</button>
           </div>
         </div></div></section>
-      <section class="pane"><div class="pane-h">สัญญาณทดสอบ · Stimulus</div>
+      <section class="pane"><div class="pane-h">จำลองความผิดปกติของสาย</div>
         <div class="pane-b">
-          <div class="row" id="tests"></div>
           <div class="shortrow"><label for="shortSel" class="note">จำลอง SLC ช็อตที่</label><select id="shortSel"></select><button class="btn" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
-          <p class="note" id="testMsg">กด ▶ เริ่มจำลอง เพื่อจ่ายไฟให้ตู้ แล้วสั่งเหตุจากอุปกรณ์ และใช้ปุ่มหน้าตู้ตอบสนอง</p>
+          <p class="note" id="testMsg">สั่ง Alarm ได้ที่ตัวอุปกรณ์บนแผ่นงาน: กด ▶ เริ่มจำลอง แล้วคลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง</p>
         </div></section>
     </aside>
   </main>
@@ -450,7 +460,8 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>การ์ดในตู้</b>: เพิ่ม/ลด loop (LCM-320 / LEM-320) ด้วยปุ่ม + / − และติดชุดเสียง DVC ได้ที่ "ตู้ NFS2-3030 · การ์ด"</li>
     <li><b>Properties</b>: ตั้ง Loop และ Address ของอุปกรณ์ที่เลือก</li>
     <li><b>ERC</b>: ตรวจวงจรทุกครั้งที่แก้ไข ข้อความแสดงสิ่งที่ตู้จริงจะเห็น สายที่กะพริบคือจุดที่ตู้ตรวจสายขาดไม่ได้</li>
-    <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) สายที่มีไฟจะแสดงการไหลของกระแส สั่งเหตุจากอุปกรณ์ใน Stimulus ดูว่าฮอร์นดัง พัดลมดับ ลิฟต์ถูกเรียก</li>
+    <li><b>จำลอง</b>: กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) สายที่มีไฟจะแสดงการไหลของกระแส</li>
+    <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>History</b>: ทุกเหตุการณ์และการกดปุ่มถูกบันทึกในแท็บ "ประวัติเหตุการณ์" ใต้แผ่นงาน</li>
   </ul>
@@ -922,6 +933,7 @@ const board = $('board');
 function el(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
 let gParts, gWires, gRubber, gTerms, gGrid;
 let showGrid = true, liveRoots = new Set(), hotRoots = new Set(), netNow = null;
+const ACTLBL = {pull:'PULLED', flow:'FLOW', tamper:'CLOSED'};
 const PREFIX = {smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
 const VAL = {smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
 function refdes(p) {
@@ -966,6 +978,12 @@ function drawPart(p) {
   if (ty.h > 90 && p.t !== 'bat') el('text', {class:'sub', x:8, y:30}, g).textContent = nameOf(p);
   drawIcon(p, ty, g);
   if (['nac', 'spk'].includes(ty.role)) el('rect', {class:'flash', x:0, y:0, width:ty.w, height:ty.h, rx:2}, g);
+  if (ty.cat === 'det' || ty.role === 'contact') {
+    const det = ty.cat === 'det';
+    el('text', {class:'actlbl', x:det ? 8 : ty.w - 6, y:det ? 90 : ty.h - 6, 'text-anchor':det ? 'start' : 'end', id:'act-' + p.id}, g).textContent = p.act ? (det ? 'SMOKE!' : ACTLBL[p.t]) : '';
+    const hot = det ? el('circle', {class:'hot', cx:ty.w / 2, cy:64, r:26, 'data-trig':p.id}, g) : el('rect', {class:'hot', x:56, y:26, width:68, height:44, rx:4, 'data-trig':p.id}, g);
+    el('title', {}, hot).textContent = det ? 'คลิกเพื่อพ่นควันเข้าหัว / คลิกอีกครั้งเพื่อไล่ควันออก' : p.t === 'pull' ? 'คลิกเพื่อดึงแมนนวล / คลิกอีกครั้งเพื่อใช้กุญแจรีเซ็ต' : 'คลิกเพื่อสั่งสวิตช์ทำงาน / คลิกอีกครั้งเพื่อคืนสภาพ';
+  }
 }
 function drawIcon(p, ty, g) {
   const w = ty.w, h = ty.h, cx = w / 2;
@@ -973,6 +991,7 @@ function drawIcon(p, ty, g) {
     case 'slc':
       if (ty.cat === 'det') {
         el('circle', {class:'ico main', cx, cy:64, r:20}, g); el('circle', {class:'ico', cx, cy:64, r:8}, g);
+        [[-12, 0], [0, -0.5], [12, -1]].forEach(([dx, d]) => el('circle', {class:'smoke', cx:cx + dx, cy:40, r:6, style:`animation-delay:${d}s`}, g));
         if (ty.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} 66 l6 -8 l6 8`}, g);
         if (ty.dt === 'DUCT') el('rect', {class:'ico', x:cx - 34, y:52, width:68, height:24, rx:3}, g);
         if (ty.dt === 'MULTI') el('path', {class:'ico', d:`M${cx - 28} 46 l7 6 M${cx + 28} 46 l-7 6`}, g);
@@ -980,7 +999,7 @@ function drawIcon(p, ty, g) {
       break;
     case 'iso': el('path', {class:'ico', d:'M48 53 h12 l14 -9 M78 53 h14'}, g); el('circle', {class:'isoled', cx:70, cy:34, r:5}, g); break;
     case 'contact':
-      if (p.t === 'pull') { el('rect', {class:'ico', x:64, y:30, width:52, height:34, rx:3}, g); el('path', {class:'ico', d:'M76 56 h26 v-12'}, g); }
+      if (p.t === 'pull') { el('rect', {class:'ico', x:64, y:30, width:52, height:34, rx:3}, g); el('path', {class:'ico', d:'M76 56 h26 v-12'}, g); el('rect', {class:'ico main', x:72, y:36, width:12, height:10, rx:2}, g); }
       else if (p.t === 'flow') el('path', {class:'ico', d:'M60 52 h60 M82 44 l10 8 l-10 8'}, g);
       else el('path', {class:'ico', d:'M70 62 h40 M90 62 v-20 M80 42 h20'}, g);
       break;
@@ -1103,7 +1122,7 @@ function clickTerm(k) {
 }
 let drag = null;
 board.addEventListener('pointerdown', ev => {
-  if (ev.target.closest('.term') || ev.target.closest('.wire-hit')) return;
+  if (ev.target.closest('.term') || ev.target.closest('.wire-hit') || ev.target.closest('.hot')) return;
   const g = ev.target.closest('.part'); if (!g) return;
   const p = byId(g.dataset.p);
   if (p.t === 'facp') return;
@@ -1141,6 +1160,8 @@ board.addEventListener('pointerup', endDrag);
 board.addEventListener('pointercancel', endDrag);
 board.addEventListener('click', ev => {
   if (justDragged) return;
+  const hot = ev.target.closest('.hot');
+  if (hot) { triggerDevice(hot.dataset.trig); return; }
   const t = ev.target.closest('.term');
   if (t) { clickTerm(t.dataset.k); return; }
   const w = ev.target.closest('.wire-hit');
@@ -1396,6 +1417,27 @@ function padd(type, src, l1, l2, l3, latch) {
 }
 function pclear(ev) { PX.events = PX.events.filter(e => e !== ev); plog('CLEARED', `CLEARED ${ev.type} · ${ev.l2}`); if (PX.view >= PX.events.length) PX.view = Math.max(0, PX.events.length - 1); }
 // troubles follow the wiring (non-latching); a shorted IDC latches as an alarm
+function triggerDevice(id) {
+  const p = byId(id); if (!p) return;
+  if (!running) { selectPart(id); hint(`กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) ก่อน แล้วคลิกที่ ${refdes(p)} อีกครั้งเพื่อสั่งงาน`); return; }
+  p.act = !p.act;
+  const det = T(p).cat === 'det';
+  plog('INFO', `${refdes(p)} ${det ? (p.act ? 'SMOKE APPLIED' : 'SMOKE CLEARED') : (p.act ? 'ACTIVATED' : 'RESTORED')} (FIELD)`);
+  save(); drawAll(); render();
+  const ev = PX.events.find(e => e.src === p.id);
+  if (!p.act) hint(`${refdes(p)} คืนสภาพแล้ว ` + (ev ? 'แต่ตู้ยังค้างเหตุไว้ (Latching) กด SYSTEM RESET ที่หน้าตู้' : ''));
+  else if (ev) hint(`${refdes(p)} ${det ? 'มีควัน' : p.t === 'pull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
+  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ Monitor module ที่ตอบบน SLC'}`);
+}
+function syncActive(R) {
+  for (const p of parts.filter(q => q.act)) {
+    if (T(p).cat === 'det') { if (R.resp[p.id]) padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); }
+    else {
+      const mm = parts.find(m => m.t === 'mm' && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
+      if (mm && R.resp[mm.id]) padd(T(p).ev === 'SUPV' ? 'SUPERVISORY' : 'FIRE ALARM', p.id, T(mm).short, `${T(p).short} ${refdes(p)}`, addrStr(mm), true);
+    }
+  }
+}
 function syncPanel(R) {
   if (!running || PX.resetting) return;
   const seen = new Set();
@@ -1404,6 +1446,7 @@ function syncPanel(R) {
     if (lvl === 'ALARM') padd('FIRE ALARM', 'A:' + msg, 'MONITOR', msg, '', true);
   }
   PX.events.filter(e => e.type === 'TROUBLE' && !seen.has(e.src)).forEach(pclear);
+  syncActive(R);
 }
 function pflash(a, b) { PX.flash = {lines:[a, b || ''], until:Date.now() + 1800}; renderPanel(); setTimeout(renderPanel, 1850); }
 function needPower() { if (running) return false; $('testMsg').textContent = 'ตู้ยังไม่มีไฟ กด ▶ เริ่มจำลอง ก่อน'; return true; }
@@ -1564,8 +1607,8 @@ function toggleRun() {
   b.classList.toggle('on', running);
   b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
   b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
-  if (!running) { PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
-  else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: สั่งเหตุจากอุปกรณ์ด้านบน แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
+  if (!running) { parts.forEach(q => { q.act = false; }); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: คลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
   simClock(); renderTests(); render();
 }
 function simClock() {
@@ -1578,27 +1621,11 @@ $('rstBtn').addEventListener('click', keyReset);
 
 /* ================= tests ================= */
 function renderTests() {
-  const ini = parts.filter(p => T(p) && (T(p).cat === 'det' || T(p).role === 'contact'));
-  $('tests').innerHTML = ini.map(p => `<button class="btn" type="button" data-t="${p.id}" ${running ? '' : 'disabled'} title="${label(p)}">${T(p).cat === 'det' ? 'เหตุที่' : 'สั่ง'} ${refdes(p)}</button>`).join('') || '<span class="note">ยังไม่มีอุปกรณ์ตรวจจับบนแผ่นงาน</span>';
   const slc = parts.filter(p => T(p) && T(p).role === 'slc');
   const cur = $('shortSel').value;
   $('shortSel').innerHTML = slc.map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${label(p)}</option>`).join('');
   syncShortBtn();
 }
-$('tests').addEventListener('click', ev => {
-  const b = ev.target.closest('button'); if (!b) return;
-  const k = b.dataset.t;
-  const p = byId(k); if (!p || !running) return;
-  if (T(p).cat === 'det') {
-    if (result.resp[p.id]) { padd('FIRE ALARM', p.id, T(p).short, `${T(p).dt} ${refdes(p)}`, addrStr(p), true); $('testMsg').textContent = `${label(p)} ส่ง Alarm เข้าตู้`; }
-    else $('testMsg').textContent = `ตู้ไม่ได้รับสัญญาณ: ${label(p)} ไม่ตอบบน SLC`;
-  } else {
-    const mm = parts.find(m => m.t === 'mm' && result.outs[m.id] && result.outs[m.id].devOK.includes(p));
-    if (mm && result.resp[mm.id]) { const kind = T(p).ev; padd(kind === 'SUPV' ? 'SUPERVISORY' : 'FIRE ALARM', p.id, T(mm).short, `${T(p).short} ${refdes(p)}`, addrStr(mm), true); $('testMsg').textContent = `${nameOf(p)} สั่งผ่าน ${label(mm)}` + (kind === 'SUPV' ? ' เป็น Supervisory (ไม่สั่งกริ่ง)' : ''); }
-    else $('testMsg').textContent = mm ? `ตู้ไม่ได้รับสัญญาณ: ${label(mm)} ไม่ตอบบน SLC` : `ตู้ไม่ได้รับสัญญาณ: ${nameOf(p)} ไม่ได้ต่อคร่อม IDC ของ Monitor module`;
-  }
-  render();
-});
 function shortWire() { const d = $('shortSel').value; return wires.find(w => w.fault && w.a === d + '.s+'); }
 function syncShortBtn() { $('shortBtn').textContent = shortWire() ? 'ยกเลิกจุดช็อต' : 'สร้างจุดช็อต'; $('shortBtn').disabled = !$('shortSel').value; }
 $('shortSel').addEventListener('change', syncShortBtn);
@@ -1626,7 +1653,7 @@ function render() {
   parts.forEach(p => {
     const g = $('part-' + p.id); if (!g || p.t === 'facp') return;
     g.classList.toggle('on', S.sound.has(p.id));
-    g.classList.toggle('alm', running && T(p).cat === 'det' && PX.events.some(e => e.type === 'FIRE ALARM' && e.src === p.id));
+    g.classList.toggle('act', !!p.act);
     g.classList.toggle('open', result.isoOpen.includes(p.id));
   });
   for (const r of result.relays) {
