@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>body{margin:0}[hidden]{display:none!important}</style>
-<title>Fire Alarm Panel Simulator</title>
+<title>NFS2-3030 Panel Simulator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=VT323&display=swap">
@@ -69,7 +69,7 @@ button{font:inherit;cursor:pointer}
 .panel-body{padding:16px 18px 0;display:flex;flex-direction:column;gap:16px}
 .lcd-frame{background:#0d0f11;border-radius:8px;padding:10px;border:1px solid var(--enc-line);overflow-x:auto}
 .lcd{background:radial-gradient(ellipse at 50% 40%,var(--lcd-glow),var(--lcd-bg) 70%);color:var(--lcd-fg);font-family:var(--font-lcd);
-  font-size:clamp(13px,3.9vw,21px);line-height:1.12;padding:8px 10px;border-radius:4px;white-space:pre;min-width:max-content;
+  font-size:clamp(12px,3.6vw,18px);line-height:1.12;padding:8px 10px;border-radius:4px;white-space:pre;min-width:max-content;
   box-shadow:inset 0 0 12px rgba(0,0,0,.35);letter-spacing:.02em}
 .lcd.off{background:#3a4330;color:transparent}
 .leds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
@@ -180,9 +180,9 @@ kbd{font-family:var(--font-mono);font-size:.78rem;border:1px solid var(--line);b
 <div class="wrap">
   <header class="top">
     <div class="t">
-      <span class="eyebrow">Addressable FACP · SLC Loop 1 · Training mode</span>
-      <h1>เครื่องจำลองตู้ควบคุมแจ้งเหตุเพลิงไหม้</h1>
-      <p class="lead">จำลองตู้ควบคุมแบบ Addressable ตามลำดับการทำงานของตู้ Notifier: อุปกรณ์บน SLC loop รายงานสถานะเป็นรายจุด ตู้แสดงผลบน LCD ไฟสถานะกะพริบจนกว่าจะกด Acknowledge แล้วสั่งอุปกรณ์เอาต์พุตตาม Cause &amp; Effect คลิกอุปกรณ์บนผังอาคารเพื่อสร้างเหตุการณ์</p>
+      <span class="eyebrow">NFS2-3030 · CPU2-3030D · LCM-320 / LEM-320 · Training mode</span>
+      <h1>เครื่องจำลองการใช้งานตู้ NFS2-3030</h1>
+      <p class="lead">จำลองหน้าตู้ NFS2-3030 (CPU2-3030D) ในอาคาร 3 ชั้น อุปกรณ์ชั้น 1–2 อยู่บน SLC Loop 1 (LCM-320) ชั้น 3 อยู่บน Loop 2 (LEM-320) ตู้แสดงเหตุการณ์รายจุดบนจอ LCD 16 บรรทัด ไฟสถานะกะพริบจนกว่าจะกด Acknowledge แล้วสั่ง NAC 1–3 บน CPU และโมดูล FRM-1 ตาม Cause &amp; Effect คลิกอุปกรณ์บนผังอาคารเพื่อสร้างเหตุการณ์</p>
     </div>
     <div class="tools">
       <button class="btn" id="soundBtn" type="button" aria-pressed="false">เปิดเสียง</button>
@@ -195,14 +195,14 @@ kbd{font-family:var(--font-mono);font-size:.78rem;border:1px solid var(--line);b
     <!-- ============ PANEL ============ -->
     <div class="col">
       <section class="panel panel-sticky" aria-label="ตู้ควบคุม">
-        <div class="panel-band"><b>FIRE ALARM CONTROL PANEL</b><span>FACP-01 · BLDG A</span></div>
+        <div class="panel-band"><b>NFS2-3030</b><span>CPU2-3030D · CHS-M3 · BLDG A</span></div>
         <div class="panel-body">
           <div class="lcd-frame"><div class="lcd" id="lcd" aria-live="polite"></div></div>
           <div class="leds" id="leds"></div>
           <div class="piezo"><span><span class="dot" id="piezoDot"></span>PIEZO <span id="piezoTxt">QUIET</span></span><span id="evCount">EVENTS 0</span></div>
           <div class="keys">
             <button class="pbtn k-ack" id="kAck" type="button">ACKNOWLEDGE<br>/ STEP<small>รับทราบ</small></button>
-            <button class="pbtn k-sil" id="kSil" type="button">ALARM<br>SILENCE<small>หยุดเสียงกริ่ง</small></button>
+            <button class="pbtn k-sil" id="kSil" type="button">SIGNAL<br>SILENCE<small>หยุดเสียงกริ่ง</small></button>
             <button class="pbtn k-drill" id="kDrill" type="button">DRILL<br>HOLD 2 SEC<small>อพยพ/ซ้อม</small><span class="hold"></span></button>
             <button class="pbtn k-reset" id="kReset" type="button">SYSTEM<br>RESET<small>รีเซ็ตระบบ</small></button>
           </div>
@@ -226,7 +226,7 @@ kbd{font-family:var(--font-mono);font-size:.78rem;border:1px solid var(--line);b
     <!-- ============ BUILDING ============ -->
     <div class="col">
       <section class="card" aria-label="ผังอาคาร">
-        <div class="card-h"><h2>ผังอาคาร · อุปกรณ์บน SLC Loop 1</h2><span class="eyebrow">คลิกอุปกรณ์เพื่อเลือก</span></div>
+        <div class="card-h"><h2>ผังอาคาร · SLC Loop 1 (ชั้น 1–2) · Loop 2 (ชั้น 3)</h2><span class="eyebrow">คลิกอุปกรณ์เพื่อเลือก</span></div>
         <div class="plan-wrap"><svg class="plan" id="plan" viewBox="0 0 800 548" role="img" aria-label="ผังอาคาร 3 ชั้นพร้อมตำแหน่งอุปกรณ์"></svg></div>
         <div class="legend">
           <span><i class="sw"></i>S ควัน</span><span><i class="sw"></i>H ความร้อน</span><span><i class="sw"></i>D ควันท่อลม</span>
@@ -280,7 +280,7 @@ kbd{font-family:var(--font-mono);font-size:.78rem;border:1px solid var(--line);b
           <li>หลังกด Silence <label><input type="checkbox" id="strobeCont" checked> สโตรบยังกะพริบจนกว่าจะ Reset</label></li>
           <li>ลิฟต์: ควันในโถงลิฟต์ชั้นอื่นเรียกลงชั้น 1 (Primary) ควันโถงลิฟต์ชั้น 1 เรียกไปชั้น 2 (Alternate)</li>
         </ul>
-        <p class="note">เครื่องจำลองนี้ใช้เพื่อการเรียนรู้หลักการทำงานเท่านั้น ไม่ใช่ซอฟต์แวร์หรือคู่มือของผู้ผลิต การใช้งานตู้จริงให้ยึดคู่มือของรุ่นนั้นและมาตรฐาน วสท./NFPA 72</p>
+        <p class="note">เครื่องจำลองนี้ใช้ฝึกลำดับการใช้งานเท่านั้น ไม่ใช่ซอฟต์แวร์ของ Notifier/Honeywell ข้อความบนจอและรูปแบบ Address เป็นแบบจำลอง ตู้ NFS2-3030 จริงยังมีปุ่มเมนู ปุ่มตัวเลข และการตั้งค่าอีกมาก ให้ยึดคู่มือใช้งาน (Operations Manual) ของ NFS2-3030 และมาตรฐาน วสท./NFPA 72</p>
       </div>
     </div>
   </section>
@@ -316,19 +316,20 @@ const DEV = [
   {a:'L1D007', t:'photo', f:2, x:610, y:30,  lb:'FL2 SERVER ROOM',       z:'Z002'},
   {a:'L1D008', t:'photo', f:2, x:335, y:120, lb:'FL2 ELEVATOR LOBBY',    z:'Z002', elev:true},
   {a:'L1M005', t:'pull',  f:2, x:100, y:75,  lb:'FL2 STAIR EXIT',        z:'Z002'},
-  {a:'L1D009', t:'photo', f:3, x:480, y:75,  lb:'FL3 CORRIDOR',          z:'Z003'},
-  {a:'L1D010', t:'photo', f:3, x:200, y:30,  lb:'FL3 MEETING ROOM',      z:'Z003'},
-  {a:'L1D011', t:'heat',  f:3, x:670, y:120, lb:'FL3 FILE STORAGE',      z:'Z003'},
-  {a:'L1D012', t:'photo', f:3, x:335, y:120, lb:'FL3 ELEVATOR LOBBY',    z:'Z003', elev:true},
-  {a:'L1M006', t:'pull',  f:3, x:100, y:75,  lb:'FL3 STAIR EXIT',        z:'Z003'},
+  {a:'L2D001', t:'photo', f:3, x:480, y:75,  lb:'FL3 CORRIDOR',          z:'Z003'},
+  {a:'L2D002', t:'photo', f:3, x:200, y:30,  lb:'FL3 MEETING ROOM',      z:'Z003'},
+  {a:'L2D003', t:'heat',  f:3, x:670, y:120, lb:'FL3 FILE STORAGE',      z:'Z003'},
+  {a:'L2D004', t:'photo', f:3, x:335, y:120, lb:'FL3 ELEVATOR LOBBY',    z:'Z003', elev:true},
+  {a:'L2M001', t:'pull',  f:3, x:100, y:75,  lb:'FL3 STAIR EXIT',        z:'Z003'},
 ];
 DEV.forEach(d => { d.cond = 'normal'; d.disabled = false; d.type = TYPES[d.t]; });
 const NACS = [
-  {a:'NAC1', lb:'NAC 1 FLOOR 1',    floors:[1], open:false},
-  {a:'NAC2', lb:'NAC 2 FLOOR 2-3',  floors:[2,3], open:false},
+  {a:'NAC1', lb:'NAC 1 FLOOR 1', floors:[1], open:false},
+  {a:'NAC2', lb:'NAC 2 FLOOR 2', floors:[2], open:false},
+  {a:'NAC3', lb:'NAC 3 FLOOR 3', floors:[3], open:false},
 ];
 const HS = []; // horn/strobe appliances
-[1,2,3].forEach(f => { [250, 560].forEach(x => HS.push({f, x, y:75, nac: f === 1 ? 'NAC1' : 'NAC2'})); });
+[1,2,3].forEach(f => { [250, 560].forEach(x => HS.push({f, x, y:75, nac:'NAC' + f})); });
 
 const ROOMS = {
   1: [[80,0,360,60,'ล็อบบี้'],[440,0,160,60,'ครัว'],[600,0,180,60,'ห้อง AHU'],[80,90,210,60,'ห้องรักษาความปลอดภัย'],[440,90,160,60,'ห้องเก็บของ'],[600,90,180,60,'ห้องปั๊ม/ไรเซอร์']],
@@ -536,14 +537,15 @@ function audioTick() {
 
 /* ---------- rendering ---------- */
 const LEDS = [
-  ['AC POWER', '#3fd16f', () => S.ac ? 'on' : ''],
+  ['POWER', '#3fd16f', () => S.ac || S.battery ? 'on' : ''],
   ['FIRE ALARM', '#ff2a3d', () => unacked('FIRE ALARM') ? 'blink' : has('FIRE ALARM') ? 'on' : ''],
   ['PRE-ALARM', '#ff2a3d', () => unacked('PREALARM') ? 'blink' : has('PREALARM') ? 'on' : ''],
+  ['SECURITY', '#3d8bff', () => ''],
   ['SUPERVISORY', '#ffc93a', () => unacked('SUPERVISORY') ? 'blink' : has('SUPERVISORY') ? 'on' : ''],
   ['SYSTEM TROUBLE', '#ffc93a', () => unacked('TROUBLE') ? 'blink' : has('TROUBLE') ? 'on' : ''],
-  ['ALARM SILENCED', '#ffc93a', () => S.silenced ? 'on' : ''],
-  ['POINT DISABLED', '#ffc93a', () => DEV.some(d => d.disabled) ? 'on' : ''],
-  ['DRILL / EVAC', '#ff2a3d', () => S.drill ? 'on' : ''],
+  ['SIGNALS SILENCED', '#ffc93a', () => S.silenced ? 'on' : ''],
+  ['POINTS DISABLED', '#ffc93a', () => DEV.some(d => d.disabled) ? 'on' : ''],
+  ['CPU FAILURE', '#ffc93a', () => ''],
 ];
 function renderLeds() {
   $('leds').innerHTML = LEDS.map(([n, c, f]) => {
@@ -553,23 +555,40 @@ function renderLeds() {
 }
 const W = 40;
 const L = (a = '', b = '') => { a = String(a); b = String(b); const sp = Math.max(1, W - a.length - b.length); return (a + ' '.repeat(sp) + b).slice(0, W); };
+const ROWS = 16;
+const TSHORT = {'FIRE ALARM':'FIRE', PREALARM:'PREAL', SUPERVISORY:'SUPV', TROUBLE:'TRBL'};
+const loopOf = a => a.startsWith('L2') ? 2 : 1;
 function lcdLines() {
-  if (S.lamp) return Array(4).fill('█'.repeat(W));
-  if (S.resetting) return [L('SYSTEM RESET IN PROGRESS'), L(''), L('PLEASE WAIT...'), L(stamp())];
-  if (S.flash && Date.now() < S.flash.until) return [L(S.flash.lines[0] || ''), L(S.flash.lines[1] || ''), L(''), L(stamp())];
+  const fill = arr => { while (arr.length < ROWS) arr.splice(arr.length - 1, 0, L('')); return arr.slice(0, ROWS); };
+  if (S.lamp) return Array(ROWS).fill('█'.repeat(W));
+  const c = t => S.events.filter(e => e.type === t).length;
+  const foot = L(`ALM:${pad(c('FIRE ALARM'),3)} SUP:${pad(c('SUPERVISORY'),3)} TBL:${pad(c('TROUBLE'),3)}`, `DIS:${pad(DEV.filter(d => d.disabled).length,3)}`);
+  if (S.resetting) return fill([L('SYSTEM RESET IN PROGRESS'), L(''), L('PLEASE WAIT...'), L(stamp()), foot]);
+  if (S.flash && Date.now() < S.flash.until) return fill([L(S.flash.lines[0] || ''), L(S.flash.lines[1] || ''), L(''), L(stamp()), foot]);
+  const sep = '─'.repeat(W);
   if (!S.events.length) {
-    if (S.drill) return [L('MANUAL EVACUATE', 'DRILL'), L('ALL SILENCEABLE OUTPUTS ON'), L('PRESS ALARM SILENCE TO STOP'), L(stamp())];
-    return [L('SYSTEM NORMAL'), L('BLDG A  ADDRESSABLE FACP'), L(`SLC1: ${DEV.length} DEV  NAC: ${NACS.length}`), L(stamp())];
+    const head = S.drill ? [L('MANUAL EVACUATE', 'DRILL'), L('ALL SILENCEABLE OUTPUTS ON'), L('PRESS SIGNAL SILENCE TO STOP'), L(stamp())]
+                         : [L('SYSTEM NORMAL'), L('NFS2-3030  BLDG A'), L(''), L(stamp())];
+    const n1 = DEV.filter(d => loopOf(d.a) === 1).length, n2 = DEV.length - n1;
+    return fill([...head, sep,
+      L('LOOP 1  LCM-320 #1', `${pad(n1,3)} POINTS OK`), L('LOOP 2  LEM-320 #1', `${pad(n2,3)} POINTS OK`),
+      L('NAC 1-3 CPU2-3030', NACS.some(n => n.open) ? 'TROUBLE' : 'NORMAL'),
+      L('AMPS-24 AC POWER', S.ac ? 'OK' : 'FAIL'), L('AMPS-24 BATTERY', S.battery ? 'OK' : 'TROUBLE'), foot]);
   }
   const e = S.events[Math.min(S.view, S.events.length - 1)];
   const n = S.events.length, i = S.events.indexOf(e) + 1;
   const ack = e.acked ? '' : '*';
-  return [
+  const list = S.events.slice(0, 9).map(x => {
+    const addr = /^L\d[DM]\d{3}$/.test(x.src) ? x.src : '';
+    return ((x === e ? '>' : ' ') + (x.acked ? ' ' : '*') + TSHORT[x.type].padEnd(6) + addr.padEnd(7) + x.l2).slice(0, W).padEnd(W);
+  });
+  if (S.events.length > 9) list.push(L(`  ... ${S.events.length - 9} MORE (PRESS NEXT)`));
+  return fill([
     L(ack + e.type, e.l1),
     L(e.l2),
     L(e.l3, S.silenced ? 'SILENCED' : (S.drill ? 'DRILL' : '')),
     L(stamp(e.t), `${pad(i,3)} OF ${pad(n,3)}`),
-  ];
+    sep, ...list, foot]);
 }
 function renderLcd() {
   $('lcd').textContent = lcdLines().join('\n');
@@ -708,14 +727,14 @@ $('detail').addEventListener('click', ev => {
 
 function renderOuts(o) {
   const items = [
-    ['NAC 1 / NAC 2 ฮอร์น', o.sounding ? (NACS.some(n => n.open) ? 'ON (บางวงจรเสีย)' : 'ON · TEMPORAL-3') : 'OFF', o.sounding, S.silenced && o.fire ? 'ถูก Silence แล้ว (Alarm Silenced)' : 'Silenceable: หยุดได้ด้วย Alarm Silence'],
+    ['NAC 1–3 (CPU2-3030) ฮอร์น', o.sounding ? (NACS.some(n => n.open) ? 'ON (บางวงจรเสีย)' : 'ON · TEMPORAL-3') : 'OFF', o.sounding, S.silenced && o.fire ? 'ถูก Silence แล้ว (Alarm Silenced)' : 'Silenceable: หยุดได้ด้วย Alarm Silence'],
     ['สโตรบ', o.strobing ? 'FLASHING' : 'OFF', o.strobing, 'กะพริบ 1 Hz แบบ synchronized'],
-    ['ลิฟต์ (Elevator recall)', o.elev === 'PRI' ? 'RECALL → ชั้น 1' : o.elev === 'ALT' ? 'RECALL → ชั้น 2' : 'NORMAL', !!o.elev, o.elev === 'ALT' ? 'ควันที่โถงลิฟต์ชั้น 1 ใช้ชั้นสำรอง (Alternate)' : 'สั่งจากหัวควันโถงลิฟต์เท่านั้น'],
-    ['ปิดพัดลม AHU-1 (HVAC shutdown)', o.hvac ? 'SHUTDOWN' : 'RUNNING', o.hvac, 'Non-silenceable: ค้างจนกว่า Reset'],
-    ['ประตูกันไฟ (Door holder)', o.doors ? 'RELEASED' : 'HELD OPEN', o.doors, 'ปล่อยแม่เหล็กให้ประตูปิดเอง'],
+    ['ลิฟต์ (FRM-1 → Elevator recall)', o.elev === 'PRI' ? 'RECALL → ชั้น 1' : o.elev === 'ALT' ? 'RECALL → ชั้น 2' : 'NORMAL', !!o.elev, o.elev === 'ALT' ? 'ควันที่โถงลิฟต์ชั้น 1 ใช้ชั้นสำรอง (Alternate)' : 'สั่งจากหัวควันโถงลิฟต์เท่านั้น'],
+    ['ปิดพัดลม AHU-1 (FRM-1)', o.hvac ? 'SHUTDOWN' : 'RUNNING', o.hvac, 'Non-silenceable: ค้างจนกว่า Reset'],
+    ['ประตูกันไฟ (FRM-1 → Door holder)', o.doors ? 'RELEASED' : 'HELD OPEN', o.doors, 'ปล่อยแม่เหล็กให้ประตูปิดเอง'],
     ['รีเลย์ Alarm → ส่งสัญญาณศูนย์รับแจ้ง', o.fire ? 'FIRE SENT' : 'IDLE', o.fire, 'DACT / Fire dept. notification'],
-    ['รีเลย์ Supervisory', o.supv ? 'ACTIVE' : 'IDLE', o.supv, 'แจ้งช่างระบบสปริงเกลอร์'],
-    ['รีเลย์ Trouble', o.trbl ? 'TROUBLE' : 'NORMAL', o.trbl, 'Fail-safe: ปกติมีไฟเลี้ยง หลุดเมื่อมี trouble'],
+    ['รีเลย์ Supervisory (CPU2-3030)', o.supv ? 'ACTIVE' : 'IDLE', o.supv, 'แจ้งช่างระบบสปริงเกลอร์'],
+    ['รีเลย์ Trouble (CPU2-3030)', o.trbl ? 'TROUBLE' : 'NORMAL', o.trbl, 'Fail-safe: ปกติมีไฟเลี้ยง หลุดเมื่อมี trouble'],
   ];
   $('outs').innerHTML = items.map(([n, v, on, d]) =>
     `<div class="out ${on ? 'act' : ''}"><div class="row"><span class="n">${n}</span></div>
@@ -761,10 +780,10 @@ const SCEN = [
       setTimeout(() => { setCond(dev('L1D007'), 'alarm'); }, 2500); return 'L1D007'; }],
   ['มีคนดึงแมนนวล ทางออกชั้น 1', () => { setCond(dev('L1M001'), 'alarm'); return 'L1M001'; }],
   ['ควันในโถงลิฟต์ ชั้น 1', () => { setCond(dev('L1D002'), 'alarm'); return 'L1D002'; }],
-  ['สปริงเกลอร์ทำงาน ห้องเอกสาร ชั้น 3', () => { setCond(dev('L1D011'), 'alarm'); setTimeout(() => setCond(dev('L1M003'), 'alarm'), 1500); return 'L1D011'; }],
+  ['สปริงเกลอร์ทำงาน ห้องเอกสาร ชั้น 3', () => { setCond(dev('L2D003'), 'alarm'); setTimeout(() => setCond(dev('L1M003'), 'alarm'), 1500); return 'L2D003'; }],
   ['ควันในท่อลม AHU-1', () => { setCond(dev('L1D004'), 'alarm'); return 'L1D004'; }],
   ['วาล์วสปริงเกลอร์ถูกปิด', () => { setCond(dev('L1M004'), 'alarm'); return 'L1M004'; }],
-  ['หัวตรวจจับถูกถอด ชั้น 3', () => { setCond(dev('L1D010'), 'trouble'); return 'L1D010'; }],
+  ['หัวตรวจจับถูกถอด ชั้น 3', () => { setCond(dev('L2D002'), 'trouble'); return 'L2D002'; }],
 ];
 $('scen').innerHTML = SCEN.map(([n], i) => `<button class="btn" type="button" data-i="${i}">${n}</button>`).join('');
 $('scen').addEventListener('click', ev => {
@@ -823,7 +842,7 @@ $('soundBtn').addEventListener('click', () => {
 
 /* ---------- boot ---------- */
 buildPlan();
-log('INFO', 'PANEL POWER UP · SLC 1 LOOP OK');
+log('INFO', 'NFS2-3030 POWER UP · SLC LOOP 1-2 OK');
 render();
 setInterval(() => { renderLcd(); }, 1000);
 setInterval(audioTick, 50);
