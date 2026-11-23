@@ -477,6 +477,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     </ul></div>
     <div><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
       <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO (แมนนวล, Flow, Tamper) + EOL 47kΩ ที่ตัวสุดท้าย</li>
+      <li><b>แมนนวล Addressable (NBG-12LX)</b>: มีโมดูลในตัว ต่อ SLC+/SLC− เข้า loop ตรง ไม่ต้องใช้ FMM-1 และ EOL ใช้ Address ช่วง M · ส่วนแมนนวล Conventional ต้องต่อผ่าน FMM-1 (หรือโซน FZM-1) พร้อม EOL</li>
       <li><b>ฐาน Isolator (B224BI)</b>: ฐานหัวที่มี Isolator ในตัว สาย SLC เข้าที่ IN+/IN− และออกไปตัวถัดไปที่ OUT+/OUT− เมื่อช็อตจะตัดเฉพาะช่วงที่เสียเหมือน ISO-X (ไฟเหลืองติด) เลือกได้ใน Properties ของหัวควัน/หัวความร้อน/Multi</li>
       <li><b>Beam detector (FSB-200)</b>: ต่อ SLC+/SLC− เหมือนหัวทั่วไป (มี Address) และต่อไฟ 24V จาก AUX วางแผ่นสะท้อนตรงข้ามระดับเดียวกัน ระยะ 5–70 ม. (10 หน่วยกริด = 1 ม.)</li>
       <li><b>หัว Conventional (ไม่มี Address)</b> ทั้งหัวควันและหัวความร้อน: ต่อ SLC ตรงไม่ได้ ต้องผ่านโมดูลโซน FZM-1 (ไฟ 24V จาก AUX) ต่อหัว 2 สายขนานกันตามขั้ว + EOL 3.9kΩ ที่หัวตัวสุดท้าย ทั้งโซนใช้ Address เดียวของ FZM-1</li>
@@ -549,7 +550,10 @@ const TYPES = {
   iso:   {cat:'mod', name:'Isolator module (ISO-X)', short:'ISO-X', w:140, h:80, role:'iso',
           terms:[['i+','IN+',0,42,'l','+'],['i-','IN−',0,64,'l','-'],['o+','OUT+',140,42,'r','+'],['o-','OUT−',140,64,'r','-']],
           desc:'ตัดช่วงสาย SLC ที่ลัดวงจรออก ขา IN ต่อจากฝั่งตู้ ขา OUT ไปอุปกรณ์ถัดไป ไม่มี Address'},
-  pull:  {cat:'field', name:'แมนนวล (Pull)', short:'PULL STATION', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สถานีแจ้งเหตุด้วยมือ หน้าสัมผัส NO ต่อเข้า IDC ของ Monitor module'},
+  apull: {cat:'field', name:'แมนนวล Addressable (NBG-12LX)', short:'NBG-12LX', w:130, h:104, addrType:'M', role:'slc', dt:'PULL STATION',
+          terms:[['s+','SLC+',0,45,'l','+'],['s-','SLC−',0,66,'l','-']],
+          desc:'สถานีแจ้งเหตุด้วยมือแบบ Addressable มีโมดูลในตัว ต่อ SLC+/SLC− เข้า loop ได้ตรงโดยไม่ต้องใช้ FMM-1 และไม่ต้องมี EOL ใช้ Address ช่วงโมดูล (M) ตั้งที่ปุ่มหมุน TENS/ONES ด้านใน'},
+  pull:  {cat:'field', name:'แมนนวล Conventional (Pull)', short:'PULL STATION', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สถานีแจ้งเหตุด้วยมือแบบธรรมดา มีแค่หน้าสัมผัส NO ไม่มี Address ต้องต่อเข้า IDC ของ Monitor module (FMM-1) หรือโซนของ FZM-1 พร้อม EOL'},
   flow:  {cat:'field', name:'Flow switch', short:'WATERFLOW', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สวิตช์ตรวจน้ำไหลในท่อสปริงเกลอร์ หน้าสัมผัส NO ต่อเข้า Monitor module แจ้งเป็น Fire alarm'},
   tamper:{cat:'field', name:'Tamper switch', short:'VALVE TAMPER', w:130, h:80, terms:TC, role:'contact', ev:'SUPV', desc:'สวิตช์ตรวจวาล์วถูกปิด ต่อเข้า Monitor module แจ้งเป็น Supervisory ไม่สั่งกริ่ง'},
   hs:    {cat:'field', name:'Horn/Strobe', short:'HORN/STROBE', w:130, h:80, terms:T2, role:'nac', desc:'ฮอร์นพร้อมไฟกะพริบ มีขั้ว + / − ต่อบนวงจร NAC ของตู้, Control module หรือ Remote power supply'},
@@ -1033,8 +1037,8 @@ function el(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag)
 let gParts, gWires, gRubber, gTerms, gGrid;
 let showGrid = true, liveRoots = new Set(), hotRoots = new Set(), netNow = null;
 const isHeat = p => p.t === 'heat' || p.t === 'convh';
-const ACTLBL = {pull:'PULLED', flow:'FLOW', tamper:'CLOSED'};
-const PREFIX = {beam:'BD', refl:'RF', convh:'CHD', conv:'CD', fzm:'ZM', eol39:'R', smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
+const ACTLBL = {apull:'PULLED', pull:'PULLED', flow:'FLOW', tamper:'CLOSED'};
+const PREFIX = {apull:'AMCP', beam:'BD', refl:'RF', convh:'CHD', conv:'CD', fzm:'ZM', eol39:'R', smoke:'SD', heat:'HD', multi:'MD', duct:'DD', mm:'MM', cm:'CM', rm:'RM', iso:'ISO', pull:'MCP', flow:'FS', tamper:'TS', hs:'HS', strobe:'ST', bell:'BL', spk:'LS', ahu:'AHU', elev:'EL', ann:'ANN', psu:'PS', bat:'BT', eol47:'R', eol22:'R'};
 const VAL = {refl:'5–70 m', convh:'NON-ADDR 57°C', conv:'NON-ADDR', eol39:'3.9kΩ', smoke:'PHOTO', heat:'57°C ROR', multi:'PHOTO+HEAT', duct:'DUCT SMOKE', iso:'FAULT ISO', pull:'NO CONTACT', flow:'NO CONTACT', tamper:'NO CONTACT', hs:'24VDC', strobe:'24VDC 15cd', bell:'24VDC', spk:'25V 1W', ahu:'CTRL 24VAC', elev:'DRY INPUT', ann:'RS-485', psu:'24VDC 6A', bat:'12V 7Ah', eol47:'47kΩ', eol22:'2.2kΩ'};
 function refdes(p) {
   if (p.t === 'facp') return 'U1';
@@ -1110,11 +1114,11 @@ function drawPart(p) {
     drawIcon(p, ty, g);
   }
   if (['nac', 'spk'].includes(ty.role)) el('rect', {class:'flash', x:0, y:0, width:ty.w, height:ty.h, rx:2}, g);
-  if ((ty.cat === 'det' && ty.role !== 'refl') || ty.role === 'contact') {
+  if ((ty.cat === 'det' && ty.role !== 'refl') || ty.role === 'contact' || p.t === 'apull') {
     const det = ty.cat === 'det';
-    el('text', {class:'actlbl', x:det ? 8 : ty.w - 6, y:det ? (VIEW === 'real' ? 120 : 90) : (VIEW === 'real' ? ty.h + 13 : ty.h - 6), 'text-anchor':det ? 'start' : 'end', id:'act-' + p.id}, g).textContent = p.act ? (det ? (isHeat(p) ? 'HEAT!' : 'SMOKE!') : ACTLBL[p.t]) : '';
+    el('text', {class:'actlbl', x:8, y:det ? (VIEW === 'real' ? 120 : 90) : (VIEW === 'real' ? ty.h + 13 : ty.h - 6), 'text-anchor':'start', id:'act-' + p.id}, g).textContent = p.act ? (det ? (isHeat(p) ? 'HEAT!' : 'SMOKE!') : ACTLBL[p.t]) : '';
     const hot = det ? el('circle', {class:'hot', cx:p.t === 'beam' ? 111 : ty.w / 2, cy:p.t === 'beam' ? 69 : 64, r:p.t === 'beam' ? 22 : 26, 'data-trig':p.id}, g) : el('rect', {class:'hot', x:56, y:26, width:68, height:44, rx:4, 'data-trig':p.id}, g);
-    el('title', {}, hot).textContent = p.t === 'beam' ? 'คลิกเพื่อปล่อยควันขวางลำแสง / คลิกอีกครั้งเพื่อไล่ควันออก' : det ? (isHeat(p) ? 'คลิกเพื่อให้ความร้อนกับหัว / คลิกอีกครั้งเพื่อให้หัวเย็นลง' : 'คลิกเพื่อพ่นควันเข้าหัว / คลิกอีกครั้งเพื่อไล่ควันออก') : p.t === 'pull' ? 'คลิกเพื่อดึงแมนนวล / คลิกอีกครั้งเพื่อใช้กุญแจรีเซ็ต' : 'คลิกเพื่อสั่งสวิตช์ทำงาน / คลิกอีกครั้งเพื่อคืนสภาพ';
+    el('title', {}, hot).textContent = p.t === 'beam' ? 'คลิกเพื่อปล่อยควันขวางลำแสง / คลิกอีกครั้งเพื่อไล่ควันออก' : det ? (isHeat(p) ? 'คลิกเพื่อให้ความร้อนกับหัว / คลิกอีกครั้งเพื่อให้หัวเย็นลง' : 'คลิกเพื่อพ่นควันเข้าหัว / คลิกอีกครั้งเพื่อไล่ควันออก') : p.t === 'pull' || p.t === 'apull' ? 'คลิกเพื่อดึงแมนนวล / คลิกอีกครั้งเพื่อใช้กุญแจรีเซ็ต' : 'คลิกเพื่อสั่งสวิตช์ทำงาน / คลิกอีกครั้งเพื่อคืนสภาพ';
   }
 }
 function drawIcon(p, ty, g) {
@@ -1133,7 +1137,8 @@ function drawIcon(p, ty, g) {
         if (ty.dt === 'DUCT') el('rect', {class:'ico', x:cx - 34, y:52, width:68, height:24, rx:3}, g);
         if (ty.dt === 'MULTI') el('path', {class:'ico', d:`M${cx - 28} 46 l7 6 M${cx + 28} 46 l-7 6`}, g);
         if (isoBase(p)) { el('path', {class:'ico', d:'M40 94 h18 l12 -7 M74 94 h16'}, g); el('circle', {class:'isoled', cx:104, cy:92, r:4}, g); }
-      } else el('rect', {class:'ico', x:cx - 18, y:44, width:36, height:30, rx:3}, g);
+      } else if (p.t === 'apull') { el('rect', {class:'ico', x:64, y:30, width:52, height:34, rx:3}, g); el('path', {class:'ico', d:'M76 56 h26 v-12'}, g); el('rect', {class:'ico main', x:72, y:36, width:12, height:10, rx:2}, g); el('text', {class:'val', x:90, y:84, 'text-anchor':'middle'}, g).textContent = 'ADDR'; }
+      else el('rect', {class:'ico', x:cx - 18, y:44, width:36, height:30, rx:3}, g);
       break;
     case 'iso': el('path', {class:'ico', d:'M48 53 h12 l14 -9 M78 53 h14'}, g); el('circle', {class:'isoled', cx:70, cy:34, r:5}, g); break;
     case 'contact':
@@ -1260,6 +1265,18 @@ function drawReal(p, ty, g) {
         dial(g, cx + 17, dy, (p.addr || 0) % 10, 10, 'ONES', p.id, 'o');
         el('circle', {class:'mled', cx:cx, cy:32, r:3}, g);
       }
+      break;
+    }
+    case 'apull': {
+      rr(g, 6, 3, 118, 98, 6, 'url(#gRed)', '#7a0f14', {class:'rbody'});
+      rt(g, 65, 17, 'FIRE ALARM', 9, '#fff', {'text-anchor':'middle', 'font-weight':700});
+      rr(g, 52, 24, 58, 40, 4, '#8f1218', '#6c0c11');
+      rr(g, 56, 28, 50, 18, 3, '#f5f5f5', '#9a9a9a', {class:'handle'});
+      rt(g, 81, 41, 'PULL', 8, '#b31b22', {'text-anchor':'middle', 'font-weight':700, class:'rtxt handle'});
+      rr(g, 44, 70, 76, 28, 4, '#f2f3f4', '#9aa1a9');
+      dial(g, 60, 82, Math.floor((p.addr || 0) / 10), 16, 'T', p.id, 't', 7); dial(g, 84, 82, (p.addr || 0) % 10, 10, 'O', p.id, 'o', 7);
+      el('circle', {class:'mled', cx:108, cy:78, r:3}, g);
+      rt(g, 108, 94, 'ADDR', 6, '#555', {'text-anchor':'middle'});
       break;
     }
     case 'pull': {
@@ -1830,8 +1847,8 @@ function triggerDevice(id) {
   const zm = T(p).role === 'zone' ? parts.find(m => m.t === 'fzm' && result.outs[m.id] && result.outs[m.id].devOK.includes(p)) : null;
   const ev = PX.events.find(e => e.src === p.id || (zm && e.src === zm.id + ':zone'));
   if (!p.act) hint(`${refdes(p)} คืนสภาพแล้ว ` + (ev ? 'แต่ตู้ยังค้างเหตุไว้ (Latching) กด SYSTEM RESET ที่หน้าตู้' : ''));
-  else if (ev) hint(`${refdes(p)} ${det ? ((isHeat(p) ? 'ร้อนเกินกำหนด' : 'มีควัน') + (T(p).role === 'zone' ? ' (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : '')) : p.t === 'pull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
-  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${p.t === 'beam' ? 'หัว Beam ต้องตอบบน SLC มีไฟ 24V และมีแผ่นสะท้อนวางตรงกันในระยะ 5–70 ม.' : T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
+  else if (ev) hint(`${refdes(p)} ${det ? ((isHeat(p) ? 'ร้อนเกินกำหนด' : 'มีควัน') + (T(p).role === 'zone' ? ' (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : '')) : p.t === 'pull' || p.t === 'apull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
+  else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${p.t === 'beam' ? 'หัว Beam ต้องตอบบน SLC มีไฟ 24V และมีแผ่นสะท้อนวางตรงกันในระยะ 5–70 ม.' : T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : p.t === 'apull' ? 'แมนนวลไม่ตอบบน SLC (ตรวจสาย/Address/Loop · ต่อ SLC ตรง ไม่ต้องผ่าน FMM-1)' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
 }
 function syncActive(R) {
   for (const p of parts.filter(q => q.act)) {
