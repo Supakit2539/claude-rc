@@ -579,6 +579,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>ค่าควัน/ความร้อนแบบ Analog (ภาคผนวก D)</b>: เลือกหัว Addressable แล้วเลื่อนแถบ "ระดับควัน" ในแผง Properties (หัวควัน %/ft, หัวความร้อน °C, Beam % บังลำแสง) · ตู้เทียบกับค่าที่ตั้งใน SENSITIVITY: Alarm AL:1–9 และ Prealarm PA:0–9 (PA:0 = ปิด, PA:1 = AUTO) ค่าโรงงาน Photo AL:8 = 2.12%/ft, PA:8 = 1.33%/ft · เกิน Prealarm แต่ยังไม่ถึง Alarm ขึ้น PREALARM: ALERT หายเองเมื่อควันลด / ACTION ค้างจน RESET และสั่งโซนในช่องที่ 10 ของ Zone map · แถบ "ฝุ่นสะสม" ≥92% ขึ้น MAINTENANCE REQ, 100% MAINT.URGENT, ≤5% LOW THRESHOLD · READ STATUS แสดง VALUES % OF ALARM / PREALARM, ACTION/STATUS, PEAKS, VERIFY COUNT · คลิกที่หัวยังใช้พ่นควันเต็มที่/ไล่ควันได้เหมือนเดิม</li>
     <li><b>CBE / Zone (ภาคผนวก E)</b>: อุปกรณ์ตรวจจับมี Zone map ค่าเริ่ม Z0yy ตามลูป · Control/Relay module ค่าเริ่ม Z000 (General alarm = ทุก Fire alarm) · เอาต์พุตทำงานเมื่อโซนใน Zone map ของมัน Active · หน้า MODULE POINT PROGRAMMING (2) ของ Control module: LOCAL MODE, ZONE MAP, WALK TEST, SWITCH INHIBIT, SILENCEABLE (NO = ไม่ดับเมื่อกด SIGNAL SILENCE) · Disable ทั้งโซน: ALTER STATUS › DISABLE/ENABLE › พิมพ์ Zyyy (ห้าม Z000)</li>
     <li><b>PANEL PROGRAM MENU</b>: PANEL SETTINGS (LOCAL CONTROL = NO ปิดปุ่ม ACK/SILENCE/RESET/DRILL และ Piezo · PIEZO ON/OFF) · PANEL TIMERS (VERIFY TIME 0–240 วินาที, SILENCE INHIBIT 0–5 นาที, AUTO SILENCE 10/15/20 นาที, VERIFY=PREALARM) · MORE › หน้า 2: PASSWORD CHANGE (เฉพาะ Master: เปลี่ยน Master และ User 1–9 พร้อม REFERENCE และ MODE: PROGRAM/ALTER STATUS, ALTER STATUS, NONE) · LOOP CONFIGURATION (INSTALLED, DETECTOR/MODULE POLL, RAPID POLL, WIRING CLASS, BLINK MODE)</li>
     <li><b>ALTER STATUS</b>: WALK TEST (BASIC/ADVANCED, PARAMETER LOOPS/PANEL/DEVICES/ZONE › START TEST › ทดสอบอุปกรณ์จะถูกบันทึกเป็น TEST ในประวัติ เอาต์พุตที่ตั้ง WALK TEST: ON และ NAC ดัง 4 วินาที · Advanced ค้างจนกด NEXT TEST · ABORT จบ · หมดเวลา 1 ชั่วโมง · เริ่มไม่ได้ถ้ามีเหตุ Active) · CHANGE TIME/DATE (พิมพ์ HHMM A/P MMDDYY เช่น 0822A011526) · MORE › CONTROL ON/OFF (FORCE ON/OFF ของ Control/Relay module · SWITCH INHIBIT ห้ามสั่ง · SYSTEM RESET คืนเป็น AUTOMATIC) · Alarm Verification: หัวที่ตั้ง ON จะแจ้ง Alarm เมื่อยังมีควันครบ VERIFY TIME หรือมี Alarm อื่นอยู่แล้ว · System trouble ตามภาคผนวก H: PROG MODE ACTIVATED, BASIC WALK TEST, ADV WALK TEST</li>
@@ -1751,6 +1752,12 @@ function renderInsp() {
     kv += `<label for="iAddr">Address (${ty.addrType})</label><input id="iAddr" type="number" min="1" max="159" value="${p.addr}">`;
     kv += `<span></span><span class="note">TENS ${Math.floor(p.addr / 10)} · ONES ${p.addr % 10} — หรือคลิกปุ่มหมุนบนตัวอุปกรณ์ (มุมมองของจริง)</span>`;
   }
+  if (isAnalog(p)) {
+    const S = sensTab(p), heat = S.unit === '°C';
+    kv += `<label for="iLvl">${heat ? 'อุณหภูมิที่หัว' : p.t === 'beam' ? 'ควันบังลำแสง' : 'ระดับควัน (obscuration)'}</label><input id="iLvl" type="range" min="${S.base}" max="${S.max}" step="${S.step}" value="${levelOf(p)}">`;
+    kv += `<span></span><span class="note" id="iLvlTxt">${lvlNote(p)}</span>`;
+    if (!heat) kv += `<label for="iDirt">ฝุ่นสะสม (Drift comp.)</label><input id="iDirt" type="range" min="0" max="100" step="1" value="${p.dirt ?? 20}"><span></span><span class="note" id="iDirtTxt">${dirtNote(p)}</span>`;
+  }
   const pins = termsOf(p).filter(t => t[1]).map(t => t[1]).join(', ');
   $('insp').innerHTML = `<h3 id="iTitle">${refdes(p)} · ${label(p)}</h3><p>${ty.desc}</p>
     ${ty.role === 'slc' ? (() => { const pr = PROG[addrStr(p)]; return pr ? `<p><b>ในโปรแกรมตู้:</b> ${pr.type} · "${pr.label}" ${pr.ext ? '· ' + pr.ext : ''} · Z${pz(pr.zone, 3)} · ${pr.on ? 'Enable' : '<b>Disable</b>'} <button class="btn" type="button" id="iProg">ตารางโปรแกรม</button></p>` : `<p><b>ยังไม่ได้ลงโปรแกรมในตู้</b> ตู้จะไม่รับเหตุจากจุดนี้ <button class="btn" type="button" id="iProg">AUTOPROGRAM</button></p>`; })() : ''}
@@ -1758,6 +1765,12 @@ function renderInsp() {
     ${kv ? `<div class="kv">${kv}</div>` : ''}
     <div class="row"><button class="btn dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
 }
+function lvlNote(p) {
+  const s = sensOf(p), v = levelOf(p), S = sensTab(p), f = x => fmtLvl(p, x);
+  const st = v >= s.alarm ? '<b class="c-err">ALARM</b>' : s.pre != null && v >= s.pre ? '<b class="c-warn">PREALARM</b>' : 'ปกติ';
+  return `ตอนนี้ ${f(v)} · ${st} · Alarm AL:${s.oa} = ${f(s.alarm)} · Prealarm ${s.op === 0 ? 'PA:0 (ปิด)' : `PA:${s.op}${s.op === 1 ? ' AUTO' : ''} = ${f(s.pre)}`} (ค่าจากโปรแกรมตู้ ตารางภาคผนวก D)`;
+}
+function dirtNote(p) { const d = p.dirt ?? 20, t = dirtTrouble(d); return `${d}% · ${dirtStatus(d)}${t ? ` · ตู้แจ้ง Trouble <b>${t}</b>` : ''} (≤5% LOW THRESHOLD, 92–99% MAINTENANCE REQ, 100% MAINT.URGENT)`; }
 function setBase(p, v) {
   const toIso = v === 'iso';
   if (toIso === isoBase(p)) return;
@@ -1776,6 +1789,12 @@ function setBase(p, v) {
 }
 $('insp').addEventListener('input', ev => {
   const p = byId(selP); if (!p) return;
+  if (ev.target.id === 'iLvl' || ev.target.id === 'iDirt') {
+    if (ev.target.id === 'iLvl') p.lvl = +ev.target.value; else p.dirt = +ev.target.value;
+    render(); save();
+    $('iLvlTxt').innerHTML = lvlNote(p); if ($('iDirtTxt')) $('iDirtTxt').innerHTML = dirtNote(p);
+    return;
+  }
   if (ev.target.id === 'iAddr') p.addr = parseInt(ev.target.value, 10) || 0;
   else if (ev.target.id === 'iLoop') p.loop = +ev.target.value;
   else if (ev.target.id === 'iBase') { setBase(p, ev.target.value); changed(); return; }
@@ -1934,7 +1953,7 @@ function progKeyOf(p) {
 function triggerDevice(id) {
   const p = byId(id); if (!p) return;
   if (!running) { selectPart(id); hint(`กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) ก่อน แล้วคลิกที่ ${refdes(p)} อีกครั้งเพื่อสั่งงาน`); return; }
-  p.act = !p.act;
+  if (isAnalog(p)) { const S = sensTab(p); p.lvl = p.act ? S.base : Math.max(S.full, sensOf(p).alarm * 1.3); analogTick(); } else p.act = !p.act;
   const det = T(p).cat === 'det';
   plog('INFO', `${refdes(p)} ${det ? (isHeat(p) ? (p.act ? 'HEAT APPLIED' : 'COOLED DOWN') : (p.act ? 'SMOKE APPLIED' : 'SMOKE CLEARED')) : (p.act ? 'ACTIVATED' : 'RESTORED')} (FIELD)`);
   save(); drawAll(); render();
@@ -1991,7 +2010,7 @@ function syncActive(R) {
     if (!supv && !verifyGate(p, key)) return;
     SRCKEY[src] = key;
     if (!supv && !firstAlarmT) firstAlarmT = Date.now();
-    const [code, lb, l3] = pointLines(key, pr); padd(supv ? 'SUPERVISORY' : 'FIRE ALARM', src, code, lb, l3, true);
+    const [code, lb, l3] = pointLines(key, pr); if (padd(supv ? 'SUPERVISORY' : 'FIRE ALARM', src, code, lb, l3, true) && p) p.vcount = (p.vcount || 0) + 1;
   };
   for (const p of parts) {
     if (!p.act) { p.verT = 0; if (!(PX.walk && PX.walk.adv)) p.wtLogged = false; continue; }
@@ -2002,6 +2021,7 @@ function syncActive(R) {
       else if (mm && R.resp[mm.id]) fire(addrStr(mm), p.id, p);
     }
   }
+  syncPrealarm(R);
   // verification prealarms end when the alarm is confirmed or the device restores
   PX.events.filter(e => e.type === 'PREALARM' && e.src.startsWith('V:')).forEach(e => { const q = byId(e.src.slice(2)); if (!q || !q.verT) pclear(e); });
 }
@@ -2026,6 +2046,7 @@ function syncPanel(R) {
     if (!pr.on) { trouble(`${k} DISABLED`); continue; }
     if (!p) trouble(`${k} INVALID REPLY`);
     else if (!TYPECODES[p.t].includes(pr.type) && R.resp[p.id]) trouble(`${k} INVALID TYPE`);
+    else if (isAnalog(p) && p.t !== 'heat' && R.resp[p.id] && dirtTrouble(p.dirt ?? 20)) trouble(`${k} ${dirtTrouble(p.dirt ?? 20)}`);
   }
   PX.events.filter(e => e.type === 'TROUBLE' && !seen.has(e.src)).forEach(pclear);
   syncActive(R);
@@ -2113,7 +2134,7 @@ function lcdLines() {
 const PLEDS = [
   ['POWER', '#3fd16f', () => 'on'],
   ['FIRE ALARM', '#ff2a3d', () => punacked('FIRE ALARM') ? 'blink' : phas('FIRE ALARM') ? 'on' : ''],
-  ['PRE-ALARM', '#ff2a3d', () => phas('PREALARM') ? 'on' : ''],
+  ['PRE-ALARM', '#ff2a3d', () => punacked('PREALARM') ? 'blink' : phas('PREALARM') ? 'on' : ''],
   ['SECURITY', '#3d8bff', () => ''],
   ['SUPERVISORY', '#ffc93a', () => punacked('SUPERVISORY') ? 'blink' : phas('SUPERVISORY') ? 'on' : ''],
   ['SYSTEM TROUBLE', '#ffc93a', () => punacked('TROUBLE') ? 'blink' : phas('TROUBLE') ? 'on' : ''],
@@ -2163,7 +2184,7 @@ Object.assign(TYPECODES, {
 });
 SUPV_CODES.length = 0; SUPV_CODES.push(...SUPV_TC);
 const modKind = t => ['cm', 'rm'].includes(t) ? 'CONTROL' : 'MONITOR';
-const blankEntry = (key, t) => ({t:t || null, type:'', fs:t ? fsOf(t) : 'NONE', mtype:t ? modKind(t) : 'MONITOR', label:'', ext:'', zmap:[['cm', 'rm'].includes(t) ? 0 : Math.min(99, +/^L(\d+)/.exec(key)[1])], ver:false, local:false, cam:0, pre:'ALERT', sil:t === 'cm' ? 'YES - RESOUND FIRE' : 'NO', walk:false, inh:false, sens:{oa:7, ua:7, op:5, up:5}, on:true});
+const blankEntry = (key, t) => ({t:t || null, type:'', fs:t ? fsOf(t) : 'NONE', mtype:t ? modKind(t) : 'MONITOR', label:'', ext:'', zmap:[['cm', 'rm'].includes(t) ? 0 : Math.min(99, +/^L(\d+)/.exec(key)[1])], ver:false, local:false, cam:0, pre:'ALERT', sil:t === 'cm' ? 'YES - RESOUND FIRE' : 'NO', walk:false, inh:false, sens:t && ANALOG[t] ? {oa:SENS[ANALOG[t]].dA, ua:SENS[ANALOG[t]].dA, op:SENS[ANALOG[t]].dP, up:SENS[ANALOG[t]].dP} : {oa:7, ua:7, op:5, up:5}, on:true});
 function normEntry(key, pr) {   // older saved programs -> manual-style fields
   const b = blankEntry(key, pr.t);
   const e = {...b, ...pr};
@@ -2211,8 +2232,9 @@ function pmScreen() {
     }
     case 'rs': return scr([ctr('READ STATUS'), '', two('POINT SELECT:', ''), `  ${P.buf || (P.dm === 'M' ? 'LyyMzzz' : 'LyyDzzz')}${'_'} (${P.dm === 'M' ? 'MODULE' : 'DETECTOR'})`], {1:'POINT SELECT', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'});
     case 'rsPt': {
-      const pr = PROG[P.key], p = partAt(P.key), act = p && p.act ? 'ACTIVE' : 'INACTIVE';
-      return scr([ctr('READ STATUS'), two(`POINT: ${P.key}`, pr.on ? 'ENABLED' : 'DISABLED'), two('AUTOMATIC', act), two(pointLabelOf(P.key, pr), pr.ext), two(`Z${pz(pr.zmap[0] ?? 0, 3)}`, pr.type), p ? `DEVICE: ${T(p).short}` : 'DEVICE: NO ANSWER'], {10:'BACK'});
+      const pr = PROG[P.key], p = partAt(P.key), act = ptState(p);
+      const zs = (pr.zmap || []).map(z => z == null ? '' : 'Z' + pz(z, 3)), zl = a => a.map(z => z.padStart(5)).join(',');
+      return scr([ctr(dateLine()), ctr(`READ ADDRESS:  ${P.key}`), two(pr.on ? 'AUTOMATIC' : 'DISABLED', act), two(pointLabelOf(P.key, pr), pr.ext), two(p ? T(p).short : 'NO ANSWER', `Z${pz(pr.zmap[0] ?? 0, 3)}  ${pr.type}`), zl(zs.slice(0, 5)), zl(zs.slice(5, 10)), ...detStatusLines(P.key)], {10:'BACK'});
     }
     case 'pw': return scr([ctr(NODE_LABEL), '', '', ctr(dateLine()), '', ctr('PROGRAM/ALTER STATUS'), '', two('ENTER PASSWORD', '*'.repeat(P.buf.length) + '_')], {9:'ACCEPT', 10:'BACK'});
     case 'badpw': return scr([ctr(NODE_LABEL), '', '', ctr(dateLine()), '', '', 'INVALID PASSWORD:', '  ' + P.code, '', 'PRESS ESCAPE TO RE-ENTER'], {10:'BACK'});
@@ -2282,8 +2304,8 @@ function pmScreen() {
     case 'dsel': case 'ssel': { const r = [...progHead()]; r[4] = ctr(P.scr === 'dsel' ? 'DISABLE POINT SELECT' : 'SENSITIVITY SELECT'); r[7] = `  ${P.buf || (P.dm === 'M' ? 'LyyMzzz' : 'LyyDzzz')}_ (${P.dm === 'M' ? 'MODULE' : 'DETECTOR'})`; return scr(r, {2:'POINT SELECT:', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'}); }
     case 'den': {
       const pr = PROG[P.key], p = partAt(P.key), r = [...progHead()];
-      r[4] = `DISABLE/ENABLE: ${P.key}`; r[5] = two('AUTOMATIC', p && p.act ? 'ACTIVE' : 'INACTIVE'); r[7] = two(pointLabelOf(P.key, pr), pr.ext); r[8] = two(`Z${pz(pr.zmap[0] ?? 0, 3)}`, pr.type);
-      if (isDet(P.key)) r[10] = `VALUES: ${pz(p && p.act ? 100 : 11, 3)}% OF ALARM, ${pz(p && p.act ? 100 : 45, 3)}% OF PREALARM`;
+      r[4] = `DISABLE/ENABLE: ${P.key}`; r[5] = two(pr.on ? 'AUTOMATIC' : 'DISABLED', ptState(p)); r[7] = two(pointLabelOf(P.key, pr), pr.ext); r[8] = two(`Z${pz(pr.zmap[0] ?? 0, 3)}`, pr.type);
+      detStatusLines(P.key).forEach((t, j) => r[10 + j] = t);
       return scr(r, {5:pr.on ? 'DISABLE' : 'ENABLE', 10:'BACK'});
     }
     case 'sensA': { const pr = PROG[P.key], r = [...progHead()]; r[4] = `ADDRESS: ${P.key}`; r[5] = two(pointLabelOf(P.key, pr), pr.type);
@@ -2545,7 +2567,7 @@ function pmSoft(i) {
     case 'as1':
       if (i === 2) pmGo('dsel', {buf:'', dm:'D'});
       else if (i === 3) pmGo('ssel', {buf:'', dm:'D'});
-      else if (i === 4) pmMsg(['VERIFY COUNTERS CLEARED'], 'as1');
+      else if (i === 4) { parts.forEach(q => q.vcount = 0); plog('INFO', 'VERIFY COUNTS CLEARED'); pmMsg(['VERIFY COUNTERS CLEARED'], 'as1'); }
       else if (i === 5) pmConfirm(['CLEAR HISTORY', ''], () => { PX.log = []; plog('INFO', 'HISTORY CLEARED'); render(); pmMsg(['HISTORY CLEARED'], 'as1'); }, 'as1');
       else if (i === 7 || i === 8) pmNA(i === 7 ? 'WALK TEST' : 'CHANGE TIME/DATE', 'as1');
       else if (i === 9) pmGo('as2');
@@ -2704,6 +2726,7 @@ function activeZones() {
   if (PX.events.some(e => e.type === 'SUPERVISORY')) z.add('ZF4');
   if (PX.events.some(e => e.type === 'TROUBLE' && !/AC FAIL/.test(e.l2))) z.add('ZF1');
   if (PX.events.some(e => e.type === 'PREALARM')) z.add('ZF9');
+  PX.events.filter(e => e.type === 'PREALARM' && e.action).forEach(e => { const n = ((PROG[e.key] || {}).zmap || [])[9]; if (n != null) z.add('Z' + n); });
   if (parts.some(p => p.verT)) z.add('ZF10');
   if (Object.values(PROG).some(p => !p.on)) z.add('ZF15');
   if (PX.drill) { z.add('ZF16'); }
@@ -2770,6 +2793,73 @@ function walkHit(p, key, kind) {
   PX.walk.lastTxt = `${kind} ${key} ${(pr && pr.label) || ''}`.trim();
   PX.walk.pulseUntil = PX.walk.adv ? Infinity : Date.now() + 4000;
   plog('TEST', PX.walk.lastTxt);
+}
+
+/* ---------- analog detector readings (Appendix D: pre-alarm, sensitivity, maintenance) ---------- */
+const ANALOG = {smoke:'photo', duct:'photo', multi:'accl', heat:'heat', beam:'beam'};
+const SENS = {
+  photo:{unit:'%/ft', A:[0.50, 0.73, 0.96, 1.19, 1.43, 1.66, 1.89, 2.12, 2.35], P:[0, 0.30, 0.47, 0.64, 0.81, 0.99, 1.16, 1.33, 1.50], dA:8, dP:8, base:0, full:3.0, max:4, step:0.01},
+  accl:{unit:'%/ft', A:[0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 4.00], P:[0.50, 1.00, 1.00, 1.50, 1.50, 2.00, 2.00, 2.50, 2.50], dA:5, dP:5, base:0, full:4.5, max:5, step:0.01},
+  heat:{unit:'°C', A:[43, 57, 63, 68, 74, 88, 88, 88, 88], P:[40, 43, 57, 65, 70, 75, 75, 75, 75], dA:3, dP:3, base:25, full:95, max:110, step:1},
+  beam:{unit:'%', A:[25, 30, 40, 50, 40, 45], P:[50, 55, 60, 65, 70, 75, 80, 85, 90], dA:3, dP:0, base:0, full:70, max:100, step:1},   // beam PA = % of alarm level
+};
+const isAnalog = p => !!(p && ANALOG[p.t]);
+const sensTab = p => SENS[ANALOG[p.t]];
+const levelOf = p => { const S = sensTab(p); return p.lvl == null ? S.base : p.lvl; };
+function sensOf(p) {
+  const S = sensTab(p), pr = PROG[addrStr(p)];
+  const oa = Math.min(S.A.length, (pr && pr.sens && pr.sens.oa) || S.dA), op = pr && pr.sens ? pr.sens.op : S.dP;
+  const alarm = S.A[oa - 1];
+  let pre = null;
+  if (op === 1) pre = +(alarm * 0.6).toFixed(2);                        // PA:1 self-optimizing
+  else if (op > 1) pre = ANALOG[p.t] === 'beam' ? +(alarm * S.P[op - 1] / 100).toFixed(1) : S.P[op - 1];
+  if (pre != null && pre >= alarm) pre = null;
+  return {oa, op, alarm, pre};
+}
+const fmtLvl = (p, v = levelOf(p)) => { const S = sensTab(p); return S.unit === '°C' ? `${Math.round(v)}°C` : S.unit === '%' ? `${Math.round(v)}%` : `${v.toFixed(2)}%/ft`; };
+const ptState = p => !p ? 'INACTIVE' : p.act ? 'ACTIVE' : PX.events.some(e => e.type === 'PREALARM' && e.src === 'PA:' + p.id) ? 'PREALARM' : 'INACTIVE';
+function analogTick() {
+  for (const p of parts) {
+    if (!isAnalog(p)) continue;
+    const v = levelOf(p), s = sensOf(p);
+    p.act = v >= s.alarm;
+    p.peak = Math.max(p.peak || 0, v);
+    if (p.dirt == null) p.dirt = 20;
+  }
+}
+function dirtStatus(d) { return d < 50 ? 'NONE/VERY CLEAN' : d < 70 ? 'NONE/FAIRLY CLEAN' : d < 80 ? 'NEEDS CLEANING' : 'NEEDS IMMEDIATE CLEANING'; }
+function dirtTrouble(d) { return d >= 100 ? 'MAINT.URGENT' : d >= 92 ? 'MAINTENANCE REQ' : d <= 5 ? 'LOW THRESHOLD' : null; }
+// Read Status lines 11-14 (Figure D.6)
+function detStatusLines(key) {
+  const p = partAt(key); if (!isAnalog(p)) return [];
+  const v = levelOf(p), s = sensOf(p), S = sensTab(p), heat = S.unit === '°C';
+  const pa = x => pz(Math.min(999, Math.round(x)), 3);
+  const val = heat ? `VALUES: ${Math.round(v)} DEGREES C` : `VALUES: ${pa(v / s.alarm * 100)}% OF ALARM, ${s.pre ? pa(v / s.pre * 100) : '000'}% OF PREALARM`;
+  const u = x => heat ? `${x}C` : S.unit === '%' ? `${x}%` : `${x.toFixed(2)}%`;
+  const lv = `ALARM: ${s.oa}= ${u(s.alarm)}, PREALARM: ${s.op}=${s.op === 0 ? ' NONE' : s.op === 1 ? ' AUTO' : ' ' + u(s.pre)}`;
+  return [val, lv, heat ? '' : `ACTION/STATUS: ${dirtStatus(p.dirt ?? 20)}`, `PEAKS:${pa(heat ? p.peak || v : (p.peak || 0) / s.alarm * 100).replace(/^0/, '')}${heat ? 'C' : '%'} VERIFY COUNT:${pz(p.vcount || 0)}`];
+}
+// pre-alarm (Alert = non-latching, Action = latching + 10th zone) and maintenance troubles
+function syncPrealarm(R) {
+  if (!PX.walk) for (const p of parts.filter(isAnalog)) {
+    const k = addrStr(p), pr = PROG[k];
+    if (!pr || !pr.on || !R.resp[p.id] || (p.t === 'beam' && !R.beam[p.id])) continue;
+    const v = levelOf(p), s = sensOf(p);
+    if (s.pre == null || v < s.pre || v >= s.alarm) continue;
+    const action = pr.pre === 'ACTION';
+    const [code, lb, l3] = pointLines(k, pr);
+    if (padd('PREALARM', 'PA:' + p.id, action ? 'ACTION' : 'ALERT', lb, l3, action)) {
+      const e = PX.events.find(x => x.src === 'PA:' + p.id); e.action = action; e.key = k;
+      plog('INFO', `${k} ${action ? 'ACTION' : 'ALERT'} PREALARM ${fmtLvl(p)} (PA:${s.op})`);
+    }
+  }
+  PX.events.filter(e => e.type === 'PREALARM' && e.src.startsWith('PA:')).forEach(e => {
+    const q = byId(e.src.slice(3));
+    if (!q) return pclear(e);
+    if (PX.events.some(x => x.type === 'FIRE ALARM' && x.src === q.id)) return pclear(e);      // a subsequent alarm clears it
+    const s = sensOf(q);
+    if (!e.action && (s.pre == null || levelOf(q) < s.pre)) pclear(e);                       // Alert restores by itself
+  });
 }
 
 /* ---------- extra menu screens ---------- */
@@ -3258,7 +3348,7 @@ function toggleRun() {
   b.classList.toggle('on', running);
   b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
   b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
-  if (!running) { parts.forEach(q => { q.act = false; }); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  if (!running) { parts.forEach(q => { q.act = false; q.lvl = undefined; }); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
   else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: คลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
   simClock(); renderTests(); render();
 }
@@ -3293,6 +3383,7 @@ $('shortBtn').addEventListener('click', () => {
 const LW = 34;
 const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repeat(Math.max(1, LW - a.length - b.length)) + b).slice(0, LW); };
 function render() {
+  analogTick();
   result = analyze();
   syncPanel(result);
   const S = simulate(result); lastS = S;
@@ -3307,6 +3398,7 @@ function render() {
     const g = $('part-' + p.id); if (!g || p.t === 'facp') return;
     g.classList.toggle('on', S.sound.has(p.id));
     g.classList.toggle('act', !!p.act);
+    if (isAnalog(p)) { const al = $('act-' + p.id); if (al) al.textContent = p.act ? (isHeat(p) ? 'HEAT! ' : 'SMOKE! ') + fmtLvl(p) : levelOf(p) > sensTab(p).base ? fmtLvl(p) : ''; }
     if (p.t === 'beam') { const bl = $('beam-' + p.id); if (bl) bl.classList.toggle('act', !!p.act); }
     g.classList.toggle('open', result.isoOpen.includes(p.id));
   });
