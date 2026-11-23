@@ -83,6 +83,8 @@ button{font:inherit;cursor:pointer}
 .pbtn{position:relative;overflow:hidden;border:1px solid #000;border-radius:8px;padding:10px 4px 8px;color:#fff;font-family:var(--font-mono);font-size:.68rem;font-weight:600;letter-spacing:.06em;line-height:1.25;
   box-shadow:0 3px 0 rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.25);text-align:center;min-height:58px}
 .pbtn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.55)}
+.pbtn,.btn{touch-action:manipulation}
+@media (max-width:480px){.pbtn{font-size:.56rem;letter-spacing:0;padding-inline:2px}.panel-body{padding-inline:12px}.panel-band b{font-size:.72rem;letter-spacing:.1em}}
 .pbtn small{display:block;font-family:var(--font-body);font-weight:500;font-size:.66rem;letter-spacing:0;opacity:.85;margin-top:3px}
 .k-ack{background:#2d6d3c}.k-sil{background:#a77800}.k-drill{background:#b10d25}.k-reset{background:#2b5a8c}
 .k-sm{background:#3b4148;min-height:40px}
@@ -105,7 +107,7 @@ svg.plan{display:block;width:100%;min-width:560px;height:auto}
 .dev{cursor:pointer}
 .dev circle,.dev rect{stroke:var(--fg);stroke-width:1.4;fill:var(--surface)}
 .dev text{font-family:var(--font-mono);font-size:10px;font-weight:600;fill:var(--fg);pointer-events:none}
-.dev .ring{fill:none;stroke:none}
+.dev .ring{fill:transparent;stroke:none}
 .dev.sel .ring{stroke:var(--info);stroke-width:2.5;stroke-dasharray:3 3}
 .dev.pull rect{fill:var(--accent);stroke:var(--accent)}
 .dev.pull text{fill:var(--accent-ink)}

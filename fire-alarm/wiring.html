@@ -78,7 +78,32 @@ button,select,input{font:inherit}
 
 /* board */
 .board-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--board);max-height:min(86vh,1100px)}
-svg.board{display:block;width:100%;min-width:1100px;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+svg.board{display:block;width:1100px;max-width:none;height:auto;touch-action:pan-x pan-y;user-select:none;-webkit-user-select:none}
+.part.selp{touch-action:none}
+.zoom{display:flex;gap:6px;align-items:center}
+.zoom .btn{min-width:36px;justify-content:center}
+.zoom output{font-family:var(--font-mono);font-size:.78rem;color:var(--muted);min-width:42px;text-align:center}
+details.card > summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::after{content:"▾";color:var(--muted)}
+details.card:not([open]) > summary::after{content:"▸"}
+button,.pal-btn,.sw,select{touch-action:manipulation}
+@media (pointer:coarse){
+  .term circle.hit{r:14px}
+  .term circle.screw{r:8.5px}
+  .btn{padding:9px 13px}
+  .btn.sm{padding:8px 11px}
+}
+@media (max-width:820px){
+  .board-wrap{max-height:72vh}
+  .pal-items{display:flex;overflow-x:auto;gap:6px;padding-bottom:4px;scroll-snap-type:x proximity}
+  .pal-btn{flex:none;width:136px;scroll-snap-align:start}
+  .pal{gap:8px}
+  .lead{font-size:.9rem}
+  h1{font-size:1.3rem}
+  .res{max-height:none}
+  .grid > .col:nth-child(2){order:-1}
+}
 .gridline{stroke:var(--board-grid);stroke-width:1}
 .part{cursor:grab}
 .part.dragging{cursor:grabbing}
@@ -176,7 +201,7 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
     <div class="t">
       <span class="eyebrow">Wiring lab · Build your own system</span>
       <h1>ฝึกต่อสายระบบแจ้งเหตุเพลิงไหม้ Addressable</h1>
-      <p class="lead">เลือกอุปกรณ์จากคลังทางซ้ายมาวางบนบอร์ด ลากย้ายตำแหน่งได้ ติดการ์ดเสริมในตู้ FACP แล้วต่อสายจากขั้วถึงขั้ว ระบบตรวจทุกวงจรทันทีว่าตู้จะแสดงอะไร: ลัดวงจร สายขาด กลับขั้ว Address ซ้ำ ค่า EOL ผิด หรือต่ออุปกรณ์ผิดประเภทกับวงจร</p>
+      <p class="lead">เลือกอุปกรณ์จากคลังอุปกรณ์มาวางบนบอร์ด ลากย้ายตำแหน่งได้ ติดการ์ดเสริมในตู้ FACP แล้วต่อสายจากขั้วถึงขั้ว ระบบตรวจทุกวงจรทันทีว่าตู้จะแสดงอะไร: ลัดวงจร สายขาด กลับขั้ว Address ซ้ำ ค่า EOL ผิด หรือต่ออุปกรณ์ผิดประเภทกับวงจร</p>
     </div>
     <div class="row">
       <a class="btn" id="simLink" href="index.html">เครื่องจำลองการใช้งานตู้</a>
@@ -185,12 +210,12 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
 
   <div class="grid">
     <div class="col">
-      <section class="card" aria-label="การ์ดในตู้">
-        <div class="card-h"><h2>การ์ดในตู้ FACP</h2></div>
+      <details class="card" id="cardsBox" open>
+        <summary><h2>การ์ดในตู้ FACP</h2></summary>
         <div class="cardsel" id="cards"></div>
-      </section>
+      </details>
       <section class="card" aria-label="คลังอุปกรณ์">
-        <div class="card-h"><h2>เพิ่มอุปกรณ์</h2><span class="eyebrow">คลิกเพื่อวาง</span></div>
+        <div class="card-h"><h2>เพิ่มอุปกรณ์</h2><span class="eyebrow">แตะ/คลิกเพื่อวาง</span></div>
         <div class="pal" id="palette"></div>
       </section>
     </div>
@@ -200,6 +225,7 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
         <div class="card-h">
           <h2>บอร์ดต่อสาย</h2>
           <div class="row"><span class="note">สีสาย</span><div class="swatches" id="swatches" role="group" aria-label="สีสาย"></div></div>
+          <div class="zoom" role="group" aria-label="ซูมบอร์ด"><button class="btn sm" type="button" id="zOut" aria-label="ซูมออก">−</button><output id="zLbl">100%</output><button class="btn sm" type="button" id="zIn" aria-label="ซูมเข้า">+</button><button class="btn sm" type="button" id="zFit">พอดีจอ</button></div>
         </div>
         <div class="hint" id="hint"></div>
         <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="บอร์ดต่อสายอุปกรณ์"></svg></div>
@@ -829,7 +855,8 @@ function drawWires() {
 }
 
 /* ================= interaction ================= */
-const HINT = 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
+const TOUCH = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+const HINT = TOUCH ? 'แตะขั้วสกรูตัวแรก แล้วแตะขั้วปลายทางเพื่อต่อสาย · ปัดเพื่อเลื่อนบอร์ด · แตะอุปกรณ์เพื่อเลือก แล้วลากเพื่อย้าย · แตะสายเพื่อลบหรือจำลองสายขาด' : 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
 function hint(t) { $('hint').textContent = t || HINT; }
 function autoColor(k) {
   const t = TERM[k];
@@ -856,6 +883,7 @@ board.addEventListener('pointerdown', ev => {
   const g = ev.target.closest('.part'); if (!g) return;
   const p = byId(g.dataset.p);
   if (p.t === 'facp') return;
+  if (ev.pointerType === 'touch' && selP !== p.id) return;
   const pt = svgPt(ev);
   drag = {p, g, dx:pt.x - p.x, dy:pt.y - p.y, moved:false, sx:pt.x, sy:pt.y};
   g.classList.add('dragging');
@@ -910,6 +938,8 @@ function selectPart(id) {
   selP = id;
   document.querySelectorAll('#board .part').forEach(g => g.classList.toggle('selp', g.dataset.p === id));
   renderInsp();
+  const p = byId(id);
+  if (p && p.t !== 'facp' && narrow()) hint(`เลือก ${nameOf(p)} แล้ว ลากเพื่อย้ายได้ · ตั้ง Address/ลบ ได้ที่ "อุปกรณ์ที่เลือก" ใต้บอร์ด`);
 }
 function delSel() { wires = wires.filter(w => w.id !== selW); selW = null; hint(); changed(); }
 $('delW').addEventListener('click', delSel);
@@ -936,6 +966,7 @@ $('palette').addEventListener('click', ev => {
   changed();
   hint(`วาง ${nameOf(p)} แล้ว (กรอบสีน้ำเงิน) ลากย้ายได้ แล้วต่อสายจากขั้วของอุปกรณ์`);
   const wrap = $('boardWrap'), sc = board.getBoundingClientRect().width / BW;
+  if (narrow()) wrap.scrollIntoView({behavior:'smooth', block:'start'});
   wrap.scrollTo({left:Math.max(0, x * sc - 60), top:Math.max(0, y * sc - 60), behavior:'smooth'});
 });
 
@@ -1129,8 +1160,28 @@ function render() {
 }
 function changed(opts = {}) { save(); drawAll(); renderCards(); if (!opts.keepInsp) renderInsp(); renderTests(); render(); }
 
+/* ================= zoom ================= */
+const narrow = () => window.innerWidth <= 820;
+let zoom = 1;
+const fitZoom = () => Math.max(0.3, ($('boardWrap').clientWidth - 2) / BW);
+function setZoom(z, keepCenter = true) {
+  const wrap = $('boardWrap');
+  const old = board.getBoundingClientRect().width || BW * zoom;
+  const cx = (wrap.scrollLeft + wrap.clientWidth / 2) / old, cy = (wrap.scrollTop + wrap.clientHeight / 2) / (old * BH / BW);
+  zoom = Math.min(2, Math.max(0.3, z));
+  board.style.width = Math.round(BW * zoom) + 'px';
+  $('zLbl').textContent = Math.round(zoom * 100) + '%';
+  if (keepCenter) { const nw = BW * zoom; wrap.scrollLeft = cx * nw - wrap.clientWidth / 2; wrap.scrollTop = cy * nw * BH / BW - wrap.clientHeight / 2; }
+}
+$('zIn').addEventListener('click', () => setZoom(zoom * 1.25));
+$('zOut').addEventListener('click', () => setZoom(zoom / 1.25));
+$('zFit').addEventListener('click', () => setZoom(fitZoom()));
+$('boardWrap').addEventListener('wheel', ev => { if (!ev.ctrlKey) return; ev.preventDefault(); setZoom(zoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)); }, {passive:false});
+
 /* ================= boot ================= */
 hint();
+setZoom(TOUCH || narrow() ? 0.75 : Math.max(fitZoom(), 0.62), false);
+if (narrow()) $('cardsBox').open = false;
 if (!load()) build(false); else changed();
 })();
 </script>
