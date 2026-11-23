@@ -9,13 +9,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=VT323&display=swap">
 <style>
-/* Layout: wiring board (left, wide) + inspector column (panel display, tools, check results); reference guide below. */
+/* Layout: device catalogue + FACP cards (left), wiring board (centre, wide), inspector/panel/results (right); guide below. */
 :root{
   --bg:#e8ecef; --surface:#ffffff; --surface-2:#f2f4f6; --fg:#1b2127; --muted:#5d6874; --line:#d3d9df;
   --board:#f6f7f4; --board-grid:#e3e6e0; --part:#ffffff; --part-line:#2a3038; --part-head:#eef1f4;
   --accent:#c8102e; --info:#2f6fb5; --ok:#1f8a4c; --warn:#b98900; --err:#d7192f;
   --w-red:#d62828; --w-blk:#1d1f22; --w-blu:#1f5fbf; --w-yel:#d9a400; --halo:rgba(255,255,255,.95);
-  --enc:#2b2f34; --enc-2:#1f2226; --enc-fg:#e6e9ec; --enc-muted:#9aa3ad; --lcd-bg:#a9c27a; --lcd-fg:#1d2a12; --lcd-glow:#c4da94;
+  --enc:#2b2f34; --enc-2:#1f2226; --enc-card:#1a3a2a; --enc-card-2:#2a2f45; --enc-fg:#e6e9ec; --enc-muted:#9aa3ad;
+  --lcd-bg:#a9c27a; --lcd-fg:#1d2a12; --lcd-glow:#c4da94;
   --font-body:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   --font-lcd:"VT323","IBM Plex Mono",ui-monospace,monospace;
@@ -34,44 +35,70 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
-.wrap{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:1680px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
-h1{font-size:1.6rem;font-weight:700} h2{font-size:1.08rem;font-weight:700} h3{font-size:.95rem;font-weight:600}
+h1{font-size:1.6rem;font-weight:700} h2{font-size:1.05rem;font-weight:700} h3{font-size:.92rem;font-weight:600}
 p{margin:0}
 a{color:var(--info)}
 .eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
 header.top .t{display:flex;flex-direction:column;gap:4px;min-width:0}
-.lead{color:var(--muted);max-width:75ch}
+.lead{color:var(--muted);max-width:80ch}
 button,select,input{font:inherit}
-.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:7px 12px;font-size:.86rem;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:7px 12px;font-size:.86rem;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn:hover{border-color:var(--muted)}
 .btn.pri{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .btn.dng{border-color:var(--err);color:var(--err)}
-.btn:focus-visible,.term:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+.btn.sm{padding:5px 9px;font-size:.8rem}
+.btn:focus-visible,.term:focus-visible,.part:focus-visible,.pal-btn:focus-visible{outline:3px solid var(--info);outline-offset:2px}
 .btn[disabled]{opacity:.45;cursor:default}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
-@media (max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
+.grid{display:grid;grid-template-columns:250px minmax(0,1fr) 360px;gap:16px;align-items:start}
+@media (max-width:1400px){.grid{grid-template-columns:240px minmax(0,1fr)} .grid > .col.right{grid-column:1 / -1;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)} .grid > .col.right{display:flex}}
 .col{display:flex;flex-direction:column;gap:16px;min-width:0}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .note{font-size:.8rem;color:var(--muted)}
 
+/* palette */
+.pal{display:flex;flex-direction:column;gap:12px}
+.pal-cat{display:flex;flex-direction:column;gap:6px}
+.pal-cat h3{font-size:.78rem;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pal-items{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pal-btn{border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:8px;padding:6px 8px;font-size:.8rem;text-align:left;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;gap:1px;min-width:0}
+.pal-btn:hover{border-color:var(--info)}
+.pal-btn b{font-weight:600}
+.pal-btn span{font-family:var(--font-mono);font-size:.64rem;color:var(--muted);overflow-wrap:anywhere}
+.cardsel{display:flex;flex-direction:column;gap:8px}
+.cardsel label{display:flex;gap:8px;align-items:flex-start;font-size:.84rem;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--surface-2);cursor:pointer}
+.cardsel label.fixed{cursor:default;opacity:.85}
+.cardsel input{margin-top:3px}
+.cardsel small{display:block;color:var(--muted);font-size:.74rem}
+
 /* board */
-.board-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--board);max-height:min(82vh,980px)}
-svg.board{display:block;width:100%;min-width:900px;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.board-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--board);max-height:min(86vh,1100px)}
+svg.board{display:block;width:100%;min-width:1100px;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 .gridline{stroke:var(--board-grid);stroke-width:1}
+.part{cursor:grab}
+.part.dragging{cursor:grabbing}
 .part rect.body{fill:var(--part);stroke:var(--part-line);stroke-width:1.4}
+.part.selp rect.body{stroke:var(--info);stroke-width:3}
 .part rect.head{fill:var(--part-head);stroke:none}
 .part .ttl{font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--fg)}
 .part .sub{font-family:var(--font-body);font-size:11px;fill:var(--muted)}
 .part .ico{fill:none;stroke:var(--part-line);stroke-width:1.4}
 .part .addr{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:var(--info)}
-.part.facp rect.body{fill:var(--enc);stroke:#000}
-.part.facp .ttl{fill:#fff}
-.part.facp .sub,.part.facp .glabel{fill:var(--enc-muted)}
-.glabel{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;fill:var(--muted)}
+.part.k-facp{cursor:default}
+.part.k-facp rect.body{fill:var(--enc);stroke:#000}
+.part.k-facp .ttl{fill:#fff}
+.part.k-facp .sub,.part.k-facp .glabel{fill:var(--enc-muted)}
+.part.k-facp.selp rect.body{stroke:var(--info)}
+.cardrect{stroke:#4b525a;stroke-width:1}
+.cardrect.cpu{fill:var(--enc-card)} .cardrect.opt{fill:var(--enc-card-2)} .cardrect.psu{fill:#1a1d20}
+.cardrect.empty{fill:none;stroke-dasharray:5 4;stroke:#5a616a}
+.cardttl{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:#fff;letter-spacing:.06em}
+.glabel{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;fill:var(--muted)}
 .tlabel{font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--fg);pointer-events:none}
 .term.facp-t .tlabel{fill:var(--enc-fg)}
 .term{cursor:crosshair}
@@ -81,29 +108,30 @@ svg.board{display:block;width:100%;min-width:900px;height:auto;touch-action:mani
 .term:hover circle.screw{fill:#ffe27a}
 .term.sel circle.screw{fill:var(--info);stroke:var(--info)}
 .term.pos circle.screw{stroke:var(--w-red);stroke-width:2}
-.wire{fill:none;stroke-linecap:round;cursor:pointer}
+.wire{fill:none;stroke-linecap:round;pointer-events:none}
 .wire-halo{fill:none;stroke:var(--halo);stroke-width:7;stroke-linecap:round;pointer-events:none}
 .wire-hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
 .wire.cut{stroke-dasharray:14 10}
+.wire.fault{stroke-dasharray:4 4}
 .wire.selw{stroke-width:5.5!important}
 .wire.bad{animation:badw 1s ease-in-out infinite}
-@keyframes badw{50%{opacity:.35}}
+@keyframes badw{50%{opacity:.3}}
 .rubber{fill:none;stroke:var(--info);stroke-width:2.5;stroke-dasharray:6 5;pointer-events:none}
-.hs .flash{fill:#fff;opacity:0}
-.hs.on .flash{animation:strobe 1s steps(1) infinite}
-.hs.on rect.body{stroke:var(--err);stroke-width:3}
+.part .flash{fill:#fff;opacity:0;pointer-events:none}
+.part.on .flash{animation:strobe 1s steps(1) infinite}
+.part.on rect.body{stroke:var(--err);stroke-width:3}
 @keyframes strobe{0%{opacity:.95}15%{opacity:0}}
 .fan{transform-box:fill-box;transform-origin:center}
-.ahu.run .fan{animation:spin 1s linear infinite}
+.part.run .fan{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.det.alm circle.ico{fill:var(--err);stroke:var(--err)}
-.iso .isoled{fill:#3a3f45;stroke:var(--part-line)}
-.iso.open .isoled{fill:#ffc93a;animation:blink 1s steps(1) infinite}
-.iso.open rect.body{stroke:var(--warn);stroke-width:2.5}
-.wire.fault{stroke-dasharray:4 4}
-.shortrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.shortrow select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);color:var(--fg)}
-@media (prefers-reduced-motion:reduce){.hs.on .flash,.ahu.run .fan,.wire.bad{animation-duration:3s}}
+.part.alm circle.ico.main{fill:var(--err);stroke:var(--err)}
+.part .isoled{fill:#3a3f45;stroke:var(--part-line)}
+.part.open .isoled{fill:#ffc93a;animation:isob 1s steps(1) infinite}
+@keyframes isob{50%{fill:#3a3f45}}
+.part.open rect.body{stroke:var(--warn);stroke-width:2.5}
+.annlcd{fill:#a9c27a;stroke:#3b4a2a}
+.anntxt{font-family:var(--font-lcd);font-size:15px;fill:#1d2a12;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.part.on .flash,.part.run .fan,.wire.bad,.part.open .isoled{animation-duration:3s}}
 
 /* panel display */
 .pnl{background:linear-gradient(180deg,var(--enc),var(--enc-2));border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;color:var(--enc-fg)}
@@ -117,22 +145,25 @@ svg.board{display:block;width:100%;min-width:900px;height:auto;touch-action:mani
 @keyframes blink{50%{background:#3a3f45;box-shadow:none}}
 
 /* results */
-.res{display:flex;flex-direction:column;gap:10px}
-.circ{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
+.res{display:flex;flex-direction:column;gap:8px;max-height:620px;overflow:auto}
+.circ{border:1px solid var(--line);border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;background:var(--surface-2)}
 .circ-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.circ-h b{font-size:.9rem}
-.chip{display:inline-block;font-family:var(--font-mono);font-size:.68rem;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.circ-h b{font-size:.86rem}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:.66rem;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
 .c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-err{color:var(--err)} .c-muted{color:var(--muted)} .c-info{color:var(--info)}
-.circ ul{margin:0;padding-left:1.1em;font-size:.84rem;display:flex;flex-direction:column;gap:3px}
+.circ ul{margin:0;padding-left:1.1em;font-size:.82rem;display:flex;flex-direction:column;gap:3px}
 .circ li.ok::marker{color:var(--ok)} .circ li.err::marker{color:var(--err)} .circ li.warn::marker{color:var(--warn)}
 .circ li.ok{list-style:"✓  "} .circ li.err{list-style:"✕  "} .circ li.warn{list-style:"!  "} .circ li.inf{list-style:"·  "}
-.addr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.addr-grid label{display:flex;flex-direction:column;gap:2px;font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
-.addr-grid input{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:var(--surface);color:var(--fg);font-family:var(--font-mono);font-size:.85rem}
+.insp{display:flex;flex-direction:column;gap:8px}
+.insp .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;font-size:.86rem}
+.insp input,.insp select,.shortrow select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:var(--surface);color:var(--fg);font-family:var(--font-mono);font-size:.85rem;width:100%}
+.insp p{font-size:.84rem;color:var(--muted)}
 .swatches{display:flex;gap:6px;flex-wrap:wrap}
-.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;display:grid;place-items:center;font-size:.62rem;font-weight:700;color:var(--fg);background:var(--surface)}
+.sw{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);cursor:pointer;display:grid;place-items:center;font-size:.62rem;font-weight:700;color:var(--fg);background:var(--surface)}
 .sw[aria-pressed="true"]{border-color:var(--info);box-shadow:0 0 0 2px var(--info)}
 .hint{font-size:.84rem;background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}
+.shortrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.shortrow select{width:auto;max-width:100%}
 .guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
 .guide ul{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:5px;font-size:.88rem}
 .guide .g{display:flex;flex-direction:column;gap:8px}
@@ -143,9 +174,9 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
 <div class="wrap">
   <header class="top">
     <div class="t">
-      <span class="eyebrow">Wiring lab · SLC · IDC · NAC · Relay · Battery</span>
+      <span class="eyebrow">Wiring lab · Build your own system</span>
       <h1>ฝึกต่อสายระบบแจ้งเหตุเพลิงไหม้ Addressable</h1>
-      <p class="lead">ต่อสายจากตู้ FACP ไปยังหัวตรวจจับควัน โมดูล Monitor, Control, Relay กับอุปกรณ์ปลายทาง แล้วกด <b>ตรวจสอบ</b> ดูว่าตู้จะแสดงผลอย่างไร: ลัดวงจร สายขาด กลับขั้ว Address ซ้ำ หรือวาง EOL ผิดตำแหน่ง จากนั้นทดลองสั่ง Alarm ว่าฮอร์นดังและพัดลมดับจริงไหม</p>
+      <p class="lead">เลือกอุปกรณ์จากคลังทางซ้ายมาวางบนบอร์ด ลากย้ายตำแหน่งได้ ติดการ์ดเสริมในตู้ FACP แล้วต่อสายจากขั้วถึงขั้ว ระบบตรวจทุกวงจรทันทีว่าตู้จะแสดงอะไร: ลัดวงจร สายขาด กลับขั้ว Address ซ้ำ ค่า EOL ผิด หรือต่ออุปกรณ์ผิดประเภทกับวงจร</p>
     </div>
     <div class="row">
       <a class="btn" id="simLink" href="index.html">เครื่องจำลองการใช้งานตู้</a>
@@ -154,30 +185,42 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
 
   <div class="grid">
     <div class="col">
+      <section class="card" aria-label="การ์ดในตู้">
+        <div class="card-h"><h2>การ์ดในตู้ FACP</h2></div>
+        <div class="cardsel" id="cards"></div>
+      </section>
+      <section class="card" aria-label="คลังอุปกรณ์">
+        <div class="card-h"><h2>เพิ่มอุปกรณ์</h2><span class="eyebrow">คลิกเพื่อวาง</span></div>
+        <div class="pal" id="palette"></div>
+      </section>
+    </div>
+
+    <div class="col">
       <section class="card" aria-label="บอร์ดต่อสาย">
         <div class="card-h">
           <h2>บอร์ดต่อสาย</h2>
-          <div class="row">
-            <span class="note">สีสาย</span>
-            <div class="swatches" id="swatches" role="group" aria-label="สีสาย"></div>
-          </div>
+          <div class="row"><span class="note">สีสาย</span><div class="swatches" id="swatches" role="group" aria-label="สีสาย"></div></div>
         </div>
-        <div class="hint" id="hint">คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทาง เพื่อลากสาย · คลิกที่สายเพื่อลบหรือจำลองสายขาด · กด Esc เพื่อยกเลิก</div>
-        <div class="board-wrap"><svg class="board" id="board" viewBox="0 0 1240 900" aria-label="บอร์ดต่อสายอุปกรณ์"></svg></div>
+        <div class="hint" id="hint"></div>
+        <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="บอร์ดต่อสายอุปกรณ์"></svg></div>
         <div class="row">
           <button class="btn" id="undo" type="button">ย้อนสายล่าสุด</button>
           <button class="btn" id="delW" type="button" disabled>ลบสายที่เลือก</button>
           <button class="btn" id="cutW" type="button" disabled>จำลองสายขาด</button>
           <span style="flex:1"></span>
-          <button class="btn" id="ansB" type="button">เฉลย Class B</button>
-          <button class="btn" id="ansA" type="button">เฉลย Class A</button>
-          <button class="btn" id="start" type="button">เริ่มแบบฝึก</button>
-          <button class="btn dng" id="clear" type="button">ล้างสายทั้งหมด</button>
+          <button class="btn" id="exBasic" type="button">ตัวอย่าง: ระบบพื้นฐาน</button>
+          <button class="btn" id="exFull" type="button">ตัวอย่าง: ระบบเต็ม</button>
+          <button class="btn dng" id="clear" type="button">เริ่มใหม่ (ตู้เปล่า)</button>
         </div>
       </section>
     </div>
 
-    <div class="col">
+    <div class="col right">
+      <section class="card" aria-label="อุปกรณ์ที่เลือก">
+        <div class="card-h"><h2>อุปกรณ์ที่เลือก</h2></div>
+        <div class="insp" id="insp"></div>
+      </section>
+
       <section class="pnl" aria-label="หน้าจอตู้">
         <div class="pnl-h"><span>FACP DISPLAY</span><span id="pnlCount"></span></div>
         <div class="lcd" id="lcd" aria-live="polite"></div>
@@ -187,54 +230,45 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
       <section class="card" aria-label="ทดสอบการทำงาน">
         <div class="card-h"><h2>ทดสอบการทำงาน</h2><span class="eyebrow">Functional test</span></div>
         <div class="row" id="tests"></div>
-        <div class="shortrow"><label for="shortSel" class="note">จำลองสาย SLC ช็อตที่</label>
-          <select id="shortSel"></select>
-          <button class="btn" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
-        <p class="note" id="testMsg">ต่อสายให้ครบแล้วลองดึงแมนนวลหรือพ่นควันใส่หัว</p>
+        <div class="shortrow"><label for="shortSel" class="note">จำลอง SLC ช็อตที่</label><select id="shortSel"></select><button class="btn sm" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
+        <p class="note" id="testMsg">ต่อสายให้ครบแล้วลองสั่ง Alarm จากอุปกรณ์</p>
       </section>
 
       <section class="card" aria-label="ผลตรวจ">
         <div class="card-h"><h2>ผลตรวจแต่ละวงจร</h2><span class="chip c-muted" id="score"></span></div>
         <div class="res" id="res"></div>
       </section>
-
-      <section class="card" aria-label="ตั้ง Address">
-        <div class="card-h"><h2>ตั้ง Address (ปุ่มหมุนที่อุปกรณ์)</h2></div>
-        <div class="addr-grid" id="addr"></div>
-        <p class="note">หัวตรวจจับ (D) กับโมดูล (M) ใช้ช่วงหมายเลขแยกกัน 1–159 ต่อ Loop ตั้งซ้ำกันในกลุ่มเดียวกันไม่ได้</p>
-      </section>
     </div>
   </div>
 
   <section class="card" aria-label="หลักการต่อสาย">
-    <h2>หลักการต่อสายแต่ละวงจร</h2>
+    <h2>หลักการต่อสายแต่ละส่วน</h2>
     <div class="guide">
-      <div class="g"><h3>SLC Loop (สายสื่อสาร)</h3><ul>
-        <li>สาย 2 เส้น <code>SLC+</code> / <code>SLC−</code> ต่อพ่วงหัวและโมดูลทุกตัวแบบขนาน ขั้วต้องตรงกันทุกตัว</li>
-        <li><b>Class B</b>: ออกจากขั้ว B แล้วจบที่อุปกรณ์ตัวสุดท้าย แยกสาย (T-tap) ได้ ไม่มี EOL</li>
-        <li><b>Class A</b>: ออกขั้ว B วนผ่านทุกตัวแล้วกลับเข้าขั้ว A สายขาดจุดเดียวยังสื่อสารได้ครบ ห้าม T-tap</li>
-        <li>นิยมใช้สายคู่ตีเกลียว 1.5 mm² มีชีลด์ ต่อชีลด์ลงกราวด์ที่ตู้ด้านเดียว</li>
-        <li><b>Isolator module</b>: ต่ออนุกรมใน loop ขา <code>IN</code> รับจากฝั่งตู้ ขา <code>OUT</code> ไปอุปกรณ์ถัดไป เมื่อสายช็อต Isolator ทั้งสองข้างของช่วงนั้นจะเปิดวงจร ตัดเฉพาะช่วงที่เสีย ควรติดต้น loop และคั่นทุกโซนหรือทุกชั้น จำนวนอุปกรณ์ระหว่าง Isolator ให้ดูตามคู่มือ (ทั่วไปไม่เกิน 25 ตัว)</li>
-        <li>ช็อตช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator ช่วยไม่ได้ จึงควรติดตัวแรกใกล้ตู้ที่สุด ใน Class A ช่วงที่ช็อตถูกตัดออก ส่วนที่เหลือได้ไฟจากทั้งสองฝั่ง</li>
+      <div class="g"><h3>ตู้ FACP และการ์ด</h3><ul>
+        <li><b>CPU / Main board</b>: มี SLC Loop 1, NAC 1–2, AUX 24V, ANN-BUS (RS-485 ไปจอแสดงผลระยะไกล) และรีเลย์ Alarm ในตัว</li>
+        <li><b>Main power supply</b>: รับไฟ AC 220V จ่าย 24V ให้ระบบ และชาร์จแบตเตอรี่ 12V × 2 ที่ต่ออนุกรม</li>
+        <li><b>การ์ด Loop 2</b>: เพิ่ม SLC อีกหนึ่ง loop Address แยกจาก Loop 1 (L2D001 คนละตัวกับ L1D001)</li>
+        <li><b>การ์ด DVC / Audio</b>: ระบบเสียงประกาศอพยพ ให้วงจรลำโพง 25V ต่อเฉพาะลำโพงที่มีหม้อแปลง ห้ามต่อฮอร์น</li>
       </ul></div>
-      <div class="g"><h3>Monitor module (รับสัญญาณหน้าสัมผัส)</h3><ul>
-        <li>ด้าน SLC ต่อเข้า loop เหมือนหัวตรวจจับ ด้าน <code>IDC</code> ต่อกับหน้าสัมผัส NO ของแมนนวล, Flow switch, Tamper</li>
-        <li>วาง EOL 47kΩ ที่อุปกรณ์ตัว<b>สุดท้าย</b> ตู้จึงจับสายขาดได้ (Open = Trouble)</li>
-        <li>หน้าสัมผัสปิด = ลัดวงจร IDC = ตู้มองเป็น <b>ALARM</b> (สายช็อตจึงทำให้ Alarm ได้)</li>
+      <div class="g"><h3>SLC Loop และ Isolator</h3><ul>
+        <li>สาย <code>SLC+</code>/<code>SLC−</code> ต่อพ่วงหัวและโมดูลทุกตัว ขั้วต้องตรงกัน</li>
+        <li><b>Class B</b> ออกขั้ว B จบที่ตัวสุดท้าย แยกสาย (T-tap) ได้ · <b>Class A</b> วนกลับเข้าขั้ว A ห้าม T-tap</li>
+        <li>ตั้ง Loop ของอุปกรณ์ในช่อง "อุปกรณ์ที่เลือก" ให้ตรงกับ loop ที่ต่อจริง ไม่งั้นตู้จะเห็นเป็น Unprogrammed</li>
+        <li>Isolator: ขา IN จากฝั่งตู้ ขา OUT ไปอุปกรณ์ถัดไป เมื่อช็อตจะตัดเฉพาะช่วงที่เสีย ควรติดใกล้ตู้และคั่นทุกโซน</li>
       </ul></div>
-      <div class="g"><h3>Control module / NAC (สั่งฮอร์น-สโตรบ)</h3><ul>
-        <li>Control module ต้องมีไฟ 24VDC จากขั้ว AUX ของตู้ (หรือ Power supply ย่อย) แยกจาก SLC</li>
-        <li>ฮอร์นมีขั้ว: <code>+</code> ไป <code>OUT+</code>, <code>−</code> ไป <code>OUT−</code> ต่อพ่วงเข้า-ออกขั้วเดียวกัน แล้วจบที่ EOL 47kΩ</li>
-        <li>ตอนปกติตู้จ่ายไฟกลับขั้วเพื่อตรวจสาย ไดโอดในฮอร์นจะกันกระแส ถ้าต่อฮอร์นกลับขั้ว ตู้จะเห็นเป็น <b>SHORT</b></li>
-        <li>NAC บนตู้ใช้ EOL 2.2kΩ (ค่าตามคู่มือรุ่นของตู้)</li>
+      <div class="g"><h3>โมดูลและอุปกรณ์ปลายทาง</h3><ul>
+        <li><b>Monitor</b>: IDC ต่อหน้าสัมผัส NO ของแมนนวล, Flow switch, Tamper + EOL 47kΩ ที่ตัวสุดท้าย (Tamper แจ้งเป็น Supervisory)</li>
+        <li><b>Control</b>: ต้องมีไฟ 24V จาก AUX ขา OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ</li>
+        <li><b>Relay</b>: C/NO/NC เป็นหน้าสัมผัสแห้ง AHU ใช้ C–NC (ดับพัดลมตอน Alarm) ลิฟต์ใช้ C–NO (ปิดวงจรสั่ง Recall)</li>
+        <li>NAC บนตู้ใช้ EOL 2.2kΩ ฮอร์นต่อกลับขั้ว ตู้จะเห็นเป็น SHORT</li>
       </ul></div>
-      <div class="g"><h3>Relay module และแบตเตอรี่</h3><ul>
-        <li>Relay module ให้หน้าสัมผัสแห้ง <code>C / NO / NC</code> ไม่ตรวจสาย ใช้สั่ง AHU, ประตู, ลิฟต์</li>
-        <li>ปิดพัดลม AHU: ต่อสายควบคุมผ่าน <code>C–NC</code> ปกติวงจรปิด พัดลมทำงาน เมื่อ Alarm รีเลย์เปลี่ยนสถานะ พัดลมดับ</li>
-        <li>แบตเตอรี่ 12V 2 ลูก ต่อ<b>อนุกรม</b> ได้ 24V: <code>BAT+</code>→(+)ลูก 1, (−)ลูก 1→(+)ลูก 2, (−)ลูก 2→<code>BAT−</code></li>
+      <div class="g"><h3>อุปกรณ์เสริมภายนอก</h3><ul>
+        <li><b>Remote power supply (NAC extender)</b>: ขา IN รับสัญญาณจาก NAC ของตู้ (ต่อเหมือนฮอร์นตัวหนึ่ง แล้วย้าย EOL ของ NAC ตู้ไปไว้หลังขา IN) ขยาย NAC ได้อีก 2 วงจร ต้องมีแบตเตอรี่ของตัวเอง</li>
+        <li><b>Annunciator (จอแสดงผลระยะไกล)</b>: ต่อ ANN-BUS A→A, B→B และไฟ 24V จาก AUX ตั้ง Address 1–8 ห้ามซ้ำ</li>
+        <li>ทุกวงจรที่ตรวจสาย (IDC, NAC, ลำโพง) EOL ต้องอยู่ปลายสายเสมอ</li>
       </ul></div>
     </div>
-    <p class="note">ชื่อขั้วในแบบฝึกเป็นแบบกลาง ขั้วจริงของแต่ละรุ่น (เช่นตู้ Notifier, ฐานหัว และโมดูล) มีหมายเลขขั้วต่างกัน ให้ยึดคู่มือติดตั้งของรุ่นนั้น มาตรฐาน วสท. และ NFPA 72</p>
+    <p class="note">ชื่อการ์ดและขั้วในแบบฝึกเป็นแบบกลาง ตู้จริง (เช่น Notifier รุ่นต่างๆ) มีชื่อการ์ด หมายเลขขั้ว ค่า EOL และพิกัดกระแสต่างกัน ให้ยึดคู่มือติดตั้งของรุ่นที่ใช้ มาตรฐาน วสท. และ NFPA 72</p>
   </section>
 </div>
 
@@ -243,375 +277,536 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
 "use strict";
 const $ = id => document.getElementById(id);
 const SVGNS = 'http://www.w3.org/2000/svg';
+const BW = 1700, BH = 1200;
 
-/* ================= parts ================= */
+/* ================= catalogue ================= */
 // terminal: [key, label, x, y, side, pol]
-const PARTS = [
-  {id:'P', kind:'facp', x:20, y:20, w:250, h:860, ttl:'FACP', sub:'Fire Alarm Control Panel', terms:[
-    ['b+','SLC B+',250,110,'r','+'],['b-','SLC B−',250,140,'r','-'],['a+','SLC A+',250,190,'r','+'],['a-','SLC A−',250,220,'r','-'],
-    ['n+','NAC1 +',250,330,'r','+'],['n-','NAC1 −',250,360,'r','-'],
-    ['x+','AUX 24V+',250,470,'r','+'],['x-','AUX 24V−',250,500,'r','-'],
-    ['t+','BAT +',250,780,'r','+'],['t-','BAT −',250,810,'r','-'],
-  ], groups:[['SLC LOOP 1',95],['CLASS A RETURN',178],['NAC 1',318],['AUX 24VDC',458],['BATTERY 24V',768]]},
-  {id:'D1', kind:'det', dt:'SMOKE', x:330, y:30, w:130, h:120, ttl:'SMOKE', sub:'หัวควัน + ฐาน', addrType:'D', addr:1, terms:[['s+','SLC+',35,120,'b','+'],['s-','SLC−',95,120,'b','-']]},
-  {id:'D2', kind:'det', dt:'SMOKE', x:490, y:30, w:130, h:120, ttl:'SMOKE', sub:'หัวควัน + ฐาน', addrType:'D', addr:2, terms:[['s+','SLC+',35,120,'b','+'],['s-','SLC−',95,120,'b','-']]},
-  {id:'D3', kind:'det', dt:'HEAT', x:650, y:30, w:130, h:120, ttl:'HEAT', sub:'หัวความร้อน + ฐาน', addrType:'D', addr:3, terms:[['s+','SLC+',35,120,'b','+'],['s-','SLC−',95,120,'b','-']]},
-  {id:'MM', kind:'mod', x:850, y:30, w:150, h:130, ttl:'MONITOR MOD', sub:'รับสัญญาณหน้าสัมผัส', addrType:'M', addr:1, terms:[['s+','SLC+',0,70,'l','+'],['s-','SLC−',0,100,'l','-'],['i+','IDC+',150,70,'r','+'],['i-','IDC−',150,100,'r','-']]},
-  {id:'PS', kind:'pull', x:1070, y:15, w:140, h:95, ttl:'PULL STATION', sub:'แมนนวล (NO)', terms:[['1','T1',0,55,'l',''],['2','T2',0,78,'l','']]},
-  {id:'E1', kind:'eol', val:47000, x:1090, y:130, w:120, h:70, ttl:'EOL 47kΩ', terms:[['a','',0,38,'l',''],['b','',0,58,'l','']]},
-  {id:'CM', kind:'mod', x:850, y:240, w:150, h:190, ttl:'CONTROL MOD', sub:'สั่ง NAC (ฮอร์น)', addrType:'M', addr:2, terms:[['s+','SLC+',0,60,'l','+'],['s-','SLC−',0,90,'l','-'],['v+','24V+',0,140,'l','+'],['v-','24V−',0,170,'l','-'],['o+','OUT+',150,60,'r','+'],['o-','OUT−',150,90,'r','-']]},
-  {id:'H1', kind:'hs', x:1070, y:235, w:140, h:85, ttl:'HORN/STROBE', sub:'HS-1', terms:[['+','+',0,50,'l','+'],['-','−',0,72,'l','-']]},
-  {id:'E2', kind:'eol', val:47000, x:1090, y:350, w:120, h:70, ttl:'EOL 47kΩ', terms:[['a','',0,38,'l',''],['b','',0,58,'l','']]},
-  {id:'RM', kind:'mod', x:850, y:500, w:150, h:170, ttl:'RELAY MOD', sub:'หน้าสัมผัสแห้ง', addrType:'M', addr:3, terms:[['s+','SLC+',0,60,'l','+'],['s-','SLC−',0,90,'l','-'],['c','C',150,60,'r',''],['no','NO',150,95,'r',''],['nc','NC',150,130,'r','']]},
-  {id:'AHU', kind:'ahu', x:1070, y:520, w:150, h:120, ttl:'AHU-1 STARTER', sub:'วงจรสั่ง RUN', terms:[['r1','RUN1',0,70,'l',''],['r2','RUN2',0,100,'l','']]},
-  {id:'I1', kind:'iso', x:330, y:178, w:140, h:80, ttl:'ISOLATOR ISO-1', terms:[['i+','IN+',0,42,'l','+'],['i-','IN−',0,64,'l','-'],['o+','OUT+',140,42,'r','+'],['o-','OUT−',140,64,'r','-']]},
-  {id:'I2', kind:'iso', x:650, y:178, w:140, h:80, ttl:'ISOLATOR ISO-2', terms:[['i+','IN+',0,42,'l','+'],['i-','IN−',0,64,'l','-'],['o+','OUT+',140,42,'r','+'],['o-','OUT−',140,64,'r','-']]},
-  {id:'H2', kind:'hs', x:350, y:300, w:140, h:85, ttl:'HORN/STROBE', sub:'HS-2', terms:[['+','+',0,50,'l','+'],['-','−',0,72,'l','-']]},
-  {id:'H3', kind:'hs', x:540, y:300, w:140, h:85, ttl:'HORN/STROBE', sub:'HS-3', terms:[['+','+',0,50,'l','+'],['-','−',0,72,'l','-']]},
-  {id:'E3', kind:'eol', val:2200, x:720, y:315, w:110, h:70, ttl:'EOL 2.2kΩ', terms:[['a','',0,38,'l',''],['b','',0,58,'l','']]},
-  {id:'B1', kind:'bat', x:360, y:740, w:150, h:120, ttl:'BATTERY 12V', sub:'7Ah SLA #1', terms:[['+','+',35,0,'t','+'],['-','−',115,0,'t','-']]},
-  {id:'B2', kind:'bat', x:560, y:740, w:150, h:120, ttl:'BATTERY 12V', sub:'7Ah SLA #2', terms:[['+','+',35,0,'t','+'],['-','−',115,0,'t','-']]},
-];
-const P = Object.fromEntries(PARTS.map(p => [p.id, p]));
-const TERM = {};
-PARTS.forEach(p => p.terms.forEach(([k, lb, x, y, side, pol]) => { TERM[p.id + '.' + k] = {part:p, k, lb, x:p.x + x, y:p.y + y, side, pol}; }));
-const SLCDEV = ['D1','D2','D3','MM','CM','RM'];
-const ISOS = ['I1','I2'];
-const NAME = {I1:'Isolator ISO-1', I2:'Isolator ISO-2', D1:'หัวควัน #1', D2:'หัวควัน #2', D3:'หัวความร้อน', MM:'Monitor module', CM:'Control module', RM:'Relay module', PS:'แมนนวล', H1:'ฮอร์น HS-1', H2:'ฮอร์น HS-2', H3:'ฮอร์น HS-3', E1:'EOL 47k (#1)', E2:'EOL 47k (#2)', E3:'EOL 2.2k', AHU:'AHU', B1:'แบตเตอรี่ #1', B2:'แบตเตอรี่ #2'};
-const addrStr = id => P[id].addrType + String(P[id].addr).padStart(3, '0');
-const devName = id => P[id].addrType ? `${NAME[id]} ${addrStr(id)}` : NAME[id];
+const T2 = [['+','+',0,45,'l','+'],['-','−',0,66,'l','-']];
+const TC = [['c1','T1',0,45,'l',''],['c2','T2',0,66,'l','']];
+const TSLC_B = [['s+','SLC+',35,110,'b','+'],['s-','SLC−',95,110,'b','-']];
+const TYPES = {
+  smoke: {cat:'det', name:'หัวควัน Photo', short:'SMOKE', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'SMOKE', desc:'หัวตรวจจับควันแบบ Addressable ติดบนฐาน ต่อขั้ว SLC+/SLC− ของฐานเข้ากับ loop ตั้ง Address ที่ปุ่มหมุนบนหัว'},
+  heat:  {cat:'det', name:'หัวความร้อน', short:'HEAT', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'HEAT', desc:'หัวตรวจจับความร้อนแบบ Fixed/Rate-of-rise ต่อเหมือนหัวควัน ใช้ในครัว ห้องเครื่อง หรือที่มีควันรบกวน'},
+  multi: {cat:'det', name:'หัว Multi-criteria', short:'MULTI', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'MULTI', desc:'หัวตรวจจับแบบผสม ควัน + ความร้อน ลดการแจ้งเตือนผิดพลาด ต่อ SLC เหมือนหัวทั่วไป'},
+  duct:  {cat:'det', name:'หัวควันในท่อลม', short:'DUCT', w:130, h:110, terms:TSLC_B, addrType:'D', role:'slc', dt:'DUCT', desc:'หัวควันติดในกล่องสุ่มลมของท่อ AHU ใช้สั่งดับพัดลมเมื่อมีควันในระบบปรับอากาศ'},
+  mm:    {cat:'mod', name:'Monitor module', short:'MONITOR MOD', w:150, h:110, addrType:'M', role:'slc',
+          terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['i+','IDC+',150,50,'r','+'],['i-','IDC−',150,75,'r','-']],
+          desc:'รับสัญญาณหน้าสัมผัสแห้ง (NO) จากแมนนวล Flow switch หรือ Tamper ด้าน IDC ต้องมี EOL 47kΩ ที่ปลายสาย'},
+  cm:    {cat:'mod', name:'Control module', short:'CONTROL MOD', w:150, h:140, addrType:'M', role:'slc',
+          terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['v+','24V+',0,105,'l','+'],['v-','24V−',0,128,'l','-'],['o+','OUT+',150,50,'r','+'],['o-','OUT−',150,75,'r','-']],
+          desc:'สั่งงานวงจร NAC เฉพาะจุด ต้องรับไฟ 24V จาก AUX ของตู้ ขา OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ'},
+  rm:    {cat:'mod', name:'Relay module', short:'RELAY MOD', w:150, h:130, addrType:'M', role:'slc',
+          terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['c','C',150,50,'r',''],['no','NO',150,78,'r',''],['nc','NC',150,106,'r','']],
+          desc:'หน้าสัมผัสแห้ง Form-C ใช้สั่ง AHU ลิฟต์ ประตู ไม่ตรวจสาย'},
+  iso:   {cat:'mod', name:'Isolator module', short:'ISOLATOR', w:140, h:80, role:'iso',
+          terms:[['i+','IN+',0,42,'l','+'],['i-','IN−',0,64,'l','-'],['o+','OUT+',140,42,'r','+'],['o-','OUT−',140,64,'r','-']],
+          desc:'ตัดช่วงสาย SLC ที่ลัดวงจรออก ขา IN ต่อจากฝั่งตู้ ขา OUT ไปอุปกรณ์ถัดไป ไม่มี Address'},
+  pull:  {cat:'field', name:'แมนนวล (Pull)', short:'PULL STATION', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สถานีแจ้งเหตุด้วยมือ หน้าสัมผัส NO ต่อเข้า IDC ของ Monitor module'},
+  flow:  {cat:'field', name:'Flow switch', short:'WATERFLOW', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สวิตช์ตรวจน้ำไหลในท่อสปริงเกลอร์ หน้าสัมผัส NO ต่อเข้า Monitor module แจ้งเป็น Fire alarm'},
+  tamper:{cat:'field', name:'Tamper switch', short:'VALVE TAMPER', w:130, h:80, terms:TC, role:'contact', ev:'SUPV', desc:'สวิตช์ตรวจวาล์วถูกปิด ต่อเข้า Monitor module แจ้งเป็น Supervisory ไม่สั่งกริ่ง'},
+  hs:    {cat:'field', name:'Horn/Strobe', short:'HORN/STROBE', w:130, h:80, terms:T2, role:'nac', desc:'ฮอร์นพร้อมไฟกะพริบ มีขั้ว + / − ต่อบนวงจร NAC ของตู้, Control module หรือ Remote power supply'},
+  strobe:{cat:'field', name:'Strobe', short:'STROBE', w:130, h:80, terms:T2, role:'nac', desc:'ไฟกะพริบอย่างเดียว ใช้เตือนผู้บกพร่องทางการได้ยิน ต่อบนวงจร NAC'},
+  bell:  {cat:'field', name:'กระดิ่ง (Bell)', short:'BELL 24V', w:130, h:80, terms:T2, role:'nac', desc:'กระดิ่ง 24VDC มีไดโอดกันกลับ ต่อบนวงจร NAC'},
+  spk:   {cat:'field', name:'ลำโพง 25V', short:'SPEAKER', w:130, h:80, terms:T2, role:'spk', desc:'ลำโพงประกาศที่มีหม้อแปลง 25V ต่อเฉพาะวงจรลำโพงของการ์ด DVC'},
+  ahu:   {cat:'field', name:'AHU starter', short:'AHU STARTER', w:140, h:90, terms:[['r1','RUN1',0,50,'l',''],['r2','RUN2',0,72,'l','']], role:'rsink', want:'nc', desc:'วงจรสั่ง RUN ของพัดลม ต่อผ่าน C–NC ของรีเลย์: ปกติพัดลมทำงาน เมื่อ Alarm พัดลมดับ'},
+  elev:  {cat:'field', name:'ลิฟต์ (Recall)', short:'ELEVATOR CTRL', w:140, h:90, terms:[['r1','IN1',0,50,'l',''],['r2','IN2',0,72,'l','']], role:'rsink', want:'no', desc:'อินพุตสั่งลิฟต์ลงชั้นหลัก ต่อผ่าน C–NO ของรีเลย์ ปิดวงจรเมื่อ Alarm'},
+  ann:   {cat:'aux', name:'Annunciator', short:'ANNUNCIATOR', w:170, h:110, addrType:'A', role:'ann',
+          terms:[['a','ANN A',0,58,'l',''],['b','ANN B',0,82,'l',''],['v+','24V+',170,58,'r','+'],['v-','24V−',170,82,'r','-']],
+          desc:'จอแสดงผลระยะไกล ต่อ ANN-BUS (RS-485) A→A, B→B และไฟ 24V จาก AUX ตั้ง Address 1–8'},
+  psu:   {cat:'aux', name:'Remote power supply', short:'REMOTE PSU', w:190, h:200, role:'psu',
+          terms:[['in+','IN+',0,55,'l','+'],['in-','IN−',0,80,'l','-'],['o1+','OUT1+',190,55,'r','+'],['o1-','OUT1−',190,80,'r','-'],['o2+','OUT2+',190,120,'r','+'],['o2-','OUT2−',190,145,'r','-'],['t+','BAT+',60,200,'b','+'],['t-','BAT−',130,200,'b','-']],
+          desc:'แหล่งจ่ายไฟขยาย NAC (NAC extender) รับไฟ AC เอง ขา IN ต่อจาก NAC ของตู้ เมื่อตู้สั่ง NAC ตัวนี้จะสั่ง OUT1/OUT2 ย้าย EOL ของ NAC ตู้ไปไว้หลังขา IN และต้องมีแบตเตอรี่ของตัวเอง'},
+  bat:   {cat:'aux', name:'แบตเตอรี่ 12V', short:'BATTERY 12V', w:140, h:100, role:'bat', terms:[['+','+',35,0,'t','+'],['-','−',105,0,'t','-']], desc:'แบตเตอรี่ตะกั่วกรดแบบแห้ง 12V ใช้ 2 ลูกต่ออนุกรมได้ 24V'},
+  eol47: {cat:'aux', name:'EOL 47kΩ', short:'EOL 47kΩ', w:110, h:70, role:'eol', val:47000, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย สำหรับ IDC และ OUT ของโมดูล วงจรลำโพง และ NAC ของ Remote power supply'},
+  eol22: {cat:'aux', name:'EOL 2.2kΩ', short:'EOL 2.2kΩ', w:110, h:70, role:'eol', val:2200, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย สำหรับ NAC บนตู้ FACP'},
+};
+const CATS = [['det','หัวตรวจจับ'],['mod','โมดูล SLC'],['field','อุปกรณ์ปลายทาง'],['aux','อุปกรณ์เสริม']];
+
+/* FACP chassis: terminals depend on installed cards */
+const CARDS = {loop2:false, dvc:false};
+const FW = 300;
+function facpTerms() {
+  const r = (k, lb, y, pol) => [k, lb, FW, y, 'r', pol];
+  const t = [
+    r('l1b+','SLC1 B+',92,'+'), r('l1b-','SLC1 B−',116,'-'), r('l1a+','SLC1 A+',148,'+'), r('l1a-','SLC1 A−',172,'-'),
+    r('n1+','NAC1 +',222,'+'), r('n1-','NAC1 −',246,'-'), r('n2+','NAC2 +',288,'+'), r('n2-','NAC2 −',312,'-'),
+    r('x+','AUX 24V+',362,'+'), r('x-','AUX 24V−',386,'-'),
+    r('aa','ANN A',436,''), r('ab','ANN B',460,''),
+    r('rc','ALM C',510,''), r('rno','ALM NO',534,''), r('rnc','ALM NC',558,''),
+  ];
+  if (CARDS.loop2) t.push(r('l2b+','SLC2 B+',648,'+'), r('l2b-','SLC2 B−',672,'-'), r('l2a+','SLC2 A+',704,'+'), r('l2a-','SLC2 A−',728,'-'));
+  if (CARDS.dvc) t.push(r('sp+','SPK +',820,'+'), r('sp-','SPK −',844,'-'));
+  t.push(r('t+','BAT +',1080,'+'), r('t-','BAT −',1104,'-'));
+  return t;
+}
+const FACP_GROUPS = [['SLC LOOP 1',80],['CLASS A RETURN',140],['NAC 1',214],['NAC 2',280],['AUX 24VDC',354],['ANN-BUS RS-485',428],['ALARM RELAY',502]];
 
 /* ================= state ================= */
-let wires = [];   // {id, a, b, color, cut}
+let parts = [];  // {id, t, x, y, n, addr?, loop?}
+let wires = [];  // {id, a, b, color, cut, fault}
 let wseq = 1;
-let pending = null; // terminal key
-let selW = null;
+let pending = null, selW = null, selP = null;
 let color = 'auto';
-let alarm = null;   // {src, txt}
+let alarm = null;   // {kind:'FIRE'|'SUPV', txt}
 let result = null;
 const COLORS = {red:'var(--w-red)', blk:'var(--w-blk)', blu:'var(--w-blu)', yel:'var(--w-yel)'};
-
-function save() {
-  try { localStorage.setItem('facp-wiring-v1', JSON.stringify({wires, addr:SLCDEV.map(id => P[id].addr)})); } catch (e) {}
+const byId = id => parts.find(p => p.id === id);
+const T = p => TYPES[p.t];
+function termsOf(p) { return p.t === 'facp' ? facpTerms() : T(p).terms; }
+let TERM = {};
+function rebuildTerms() {
+  TERM = {};
+  for (const p of parts) for (const [k, lb, x, y, side, pol] of termsOf(p)) TERM[p.id + '.' + k] = {part:p, k, lb, x:p.x + x, y:p.y + y, side, pol};
 }
+function nameOf(p) {
+  if (p.t === 'facp') return 'ตู้ FACP';
+  const same = parts.filter(q => q.t === p.t);
+  return T(p).name + (same.length > 1 ? ' #' + p.n : '');
+}
+function addrStr(p) {
+  const ty = T(p);
+  if (!ty || !ty.addrType) return '';
+  if (ty.addrType === 'A') return 'ANN-' + String(p.addr).padStart(2, '0');
+  return `L${p.loop}${ty.addrType}${String(p.addr).padStart(3, '0')}`;
+}
+const label = p => p.t === 'facp' ? 'ตู้ FACP' : (T(p).addrType ? `${nameOf(p)} ${addrStr(p)}` : nameOf(p));
+
+function nextFree(t, loop) {
+  const ty = TYPES[t];
+  const used = new Set(parts.filter(p => TYPES[p.t] && TYPES[p.t].addrType === ty.addrType && (ty.addrType === 'A' || p.loop === loop)).map(p => p.addr));
+  let a = 1; while (used.has(a)) a++; return a;
+}
+function addPart(t, x, y, extra = {}) {
+  const n = parts.filter(p => p.t === t).reduce((m, p) => Math.max(m, p.n), 0) + 1;
+  const ty = TYPES[t];
+  const p = {id:t + n, t, n, x, y};
+  if (ty.addrType) { p.loop = extra.loop || 1; p.addr = extra.addr || nextFree(t, p.loop); }
+  Object.assign(p, extra);
+  parts.push(p);
+  return p;
+}
+function freeSpot(t) {
+  const ty = TYPES[t];
+  const occupied = (x, y) => parts.some(p => { const w = p.t === 'facp' ? FW : T(p).w, h = p.t === 'facp' ? BH - 40 : T(p).h; return x < p.x + w + 30 && x + ty.w + 30 > p.x && y < p.y + h + 30 && y + ty.h + 30 > p.y; });
+  for (let y = 30; y < BH - ty.h - 10; y += 20) for (let x = 360; x < BW - ty.w - 10; x += 20) if (!occupied(x, y)) return [x, y];
+  return [360, 40];
+}
+
+/* ================= persistence ================= */
+const KEY = 'facp-wiring-v3';
+function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS})); } catch (e) {} }
 function load() {
   try {
-    const s = JSON.parse(localStorage.getItem('facp-wiring-v1') || 'null');
-    if (!s || !Array.isArray(s.wires)) return false;
-    wires = s.wires.filter(w => TERM[w.a] && TERM[w.b]);
+    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (!s || !Array.isArray(s.parts) || !s.parts.some(p => p.id === 'P')) return false;
+    parts = s.parts.filter(p => p.t === 'facp' || TYPES[p.t]);
+    Object.assign(CARDS, s.cards || {});
+    rebuildTerms();
+    wires = (s.wires || []).filter(w => TERM[w.a] && TERM[w.b]);
     wseq = wires.reduce((m, w) => Math.max(m, w.id), 0) + 1;
-    if (Array.isArray(s.addr)) SLCDEV.forEach((id, i) => { if (Number.isFinite(s.addr[i])) P[id].addr = s.addr[i]; });
     return true;
   } catch (e) { return false; }
 }
 
-/* ================= analysis ================= */
+/* ================= electrical model ================= */
+const isoParts = () => parts.filter(p => p.t === 'iso');
 function netFn(skip, closed) {
   const par = new Map();
   const find = k => { if (!par.has(k)) par.set(k, k); let r = k; while (par.get(r) !== r) r = par.get(r); let c = k; while (par.get(c) !== r) { const n = par.get(c); par.set(c, r); c = n; } return r; };
   const join = (x, y) => { const a = find(x), b = find(y); if (a !== b) par.set(a, b); };
   for (const w of wires) { if (w.cut || w.id === skip) continue; join(w.a, w.b); }
-  // isolator: + passes straight through; − passes through a switch that opens on a short
-  for (const i of ISOS) { join(i + '.i+', i + '.o+'); if (!closed || closed.has(i)) join(i + '.i-', i + '.o-'); }
+  // isolator: + passes straight through; − goes through a switch that opens on a short
+  for (const i of isoParts()) { join(i.id + '.i+', i.id + '.o+'); if (!closed || closed.has(i.id)) join(i.id + '.i-', i.id + '.o-'); }
   return find;
 }
-const GROUP = {};
-['P.b+','P.b-','P.a+','P.a-',...SLCDEV.flatMap(d => [d + '.s+', d + '.s-']),...ISOS.flatMap(i => [i + '.i+', i + '.i-', i + '.o+', i + '.o-'])].forEach(k => GROUP[k] = 'SLC');
-['P.n+','P.n-'].forEach(k => GROUP[k] = 'NAC1');
-['P.x+','P.x-','CM.v+','CM.v-'].forEach(k => GROUP[k] = 'AUX 24V');
-['P.t+','P.t-','B1.+','B1.-','B2.+','B2.-'].forEach(k => GROUP[k] = 'แบตเตอรี่');
-['MM.i+','MM.i-'].forEach(k => GROUP[k] = 'IDC (Monitor)');
-['CM.o+','CM.o-'].forEach(k => GROUP[k] = 'OUT (Control)');
-['RM.c','RM.no','RM.nc','AHU.r1','AHU.r2'].forEach(k => GROUP[k] = 'รีเลย์/AHU');
-
-function across(f, x, y, sp, sn) { // 2-terminal x,y bridging sp/sn either orientation
-  const A = f(x), B = f(y), S = f(sp), N = f(sn);
-  return (A === S && B === N) || (A === N && B === S);
-}
-function wiresTouching(f, roots) { return wires.filter(w => !w.cut && (roots.has(f(w.a)) || roots.has(f(w.b)))); }
 const termUsed = k => wires.some(w => w.a === k || w.b === k);
-const partUsed = id => P[id].terms.some(t => termUsed(id + '.' + t[0]));
+const partUsed = p => termsOf(p).some(t => termUsed(p.id + '.' + t[0]));
+function across(f, x, y, sp, sn) { const A = f(x), B = f(y), S = f(sp), N = f(sn); return (A === S && B === N) || (A === N && B === S); }
+function wiresTouching(f, roots) { return wires.filter(w => !w.cut && (roots.has(f(w.a)) || roots.has(f(w.b)))); }
+const fmtR = v => v >= 1000 ? v / 1000 + 'kΩ' : v + 'Ω';
+function sinkTerms(p) { const r = T(p).role; return p.t === 'psu' ? ['in+', 'in-'] : r === 'contact' ? ['c1', 'c2'] : ['+', '-']; }
+const sinkRole = p => p.t === 'psu' ? 'nac' : T(p).role;
+const ROLE_TH = {nac:'อุปกรณ์ NAC (ฮอร์น/สโตรบ/กระดิ่ง)', spk:'ลำโพง', contact:'หน้าสัมผัส (แมนนวล/Flow/Tamper)'};
 
-// generic supervised 2-wire output (IDC or NAC style)
-function analyzeLoop(o) {
-  const {sp, sn, eolVal, kind, f} = o; // kind 'idc' | 'nac'
-  const out = {items:[], panel:[], bad:new Set(), shorted:false, devOK:[], state:'ok'};
-  const S = f(sp), N = f(sn);
-  const used = termUsed(sp) || termUsed(sn);
-  if (S === N) {
-    out.shorted = true;
-    if (kind === 'idc') { out.items.push(['warn', 'IDC+ กับ IDC− ลัดถึงกัน ตู้เห็นเป็นหน้าสัมผัสปิด จึงขึ้น ALARM ทันที']); out.panel.push(['ALARM', o.label + ' ALARM (SHORT)']); }
-    else { out.items.push(['err', 'ขั้ว + กับ − ลัดวงจร']); out.panel.push(['TROUBLE', o.label + ' SHORT']); }
-    out.state = 'err'; return out;
-  }
-  const eols = ['E1','E2','E3'].filter(e => across(f, e + '.a', e + '.b', sp, sn));
-  // devices across
-  const devs = o.devs.filter(d => across(f, d + o.dp, d + o.dn, sp, sn));
-  for (const d of o.devs) {
-    if (!partUsed(d)) continue;
-    const pOn = f(d + o.dp), nOn = f(d + o.dn);
-    if (devs.includes(d)) {
-      if (o.polar && pOn === N) { out.items.push(['err', `${NAME[d]} ต่อกลับขั้ว ตอนตู้ตรวจสาย (กลับขั้ว) กระแสไหลผ่านไดโอด ตู้จึงเห็นเป็นลัดวงจร`]); out.panel.push(['TROUBLE', o.label + ' SHORT']); out.state = 'err'; }
-      else out.devOK.push(d);
-    } else if ([S, N].includes(pOn) || [S, N].includes(nOn)) {
-      out.items.push(['err', `${NAME[d]} ต่อไม่ครบ 2 ขั้ว`]); out.state = 'err';
+function loopsList() {
+  const L = [{n:1, b:['P.l1b+','P.l1b-'], a:['P.l1a+','P.l1a-']}];
+  if (CARDS.loop2) L.push({n:2, b:['P.l2b+','P.l2b-'], a:['P.l2a+','P.l2a-']});
+  return L;
+}
+function outPorts() {
+  const O = [
+    {id:'P.n1', title:'NAC 1 (CPU)', label:'NAC 1', sp:'P.n1+', sn:'P.n1-', eol:2200, accept:'nac', optional:true},
+    {id:'P.n2', title:'NAC 2 (CPU)', label:'NAC 2', sp:'P.n2+', sn:'P.n2-', eol:2200, accept:'nac', optional:true},
+  ];
+  if (CARDS.dvc) O.push({id:'P.sp', title:'วงจรลำโพง (การ์ด DVC)', label:'SPEAKER CKT 1', sp:'P.sp+', sn:'P.sp-', eol:47000, accept:'spk', optional:true});
+  for (const p of parts) {
+    if (p.t === 'mm') O.push({id:p.id, title:`${nameOf(p)} ${addrStr(p)} · IDC`, label:addrStr(p), sp:p.id + '.i+', sn:p.id + '.i-', eol:47000, accept:'contact', owner:p});
+    if (p.t === 'cm') O.push({id:p.id, title:`${nameOf(p)} ${addrStr(p)} · OUT`, label:addrStr(p), sp:p.id + '.o+', sn:p.id + '.o-', eol:47000, accept:'nac', owner:p});
+    if (p.t === 'psu') {
+      O.push({id:p.id + '.1', title:`${nameOf(p)} · OUT1`, label:'PSU OUT1', sp:p.id + '.o1+', sn:p.id + '.o1-', eol:47000, accept:'nac', psu:p, optional:true});
+      O.push({id:p.id + '.2', title:`${nameOf(p)} · OUT2`, label:'PSU OUT2', sp:p.id + '.o2+', sn:p.id + '.o2-', eol:47000, accept:'nac', psu:p, optional:true});
     }
   }
-  if (!used) { out.items.push(['inf', 'ยังไม่ได้ต่อสาย']); out.panel.push(['TROUBLE', o.label + ' OPEN']); out.state = 'todo'; return out; }
-  if (!eols.length) { out.items.push(['err', `ไม่พบ EOL คร่อมปลายวงจร ตู้แจ้ง OPEN (ต้องใช้ ${eolVal >= 1000 ? eolVal / 1000 + 'kΩ' : eolVal + 'Ω'})`]); out.panel.push(['TROUBLE', o.label + ' OPEN']); out.state = 'err'; }
-  else if (eols.length > 1) { out.items.push(['err', 'มี EOL มากกว่า 1 ตัวต่อขนานกัน ค่าความต้านทานผิด ตู้แจ้ง Trouble']); out.panel.push(['TROUBLE', o.label + ' EOL FAULT']); out.state = 'err'; }
-  else if (P[eols[0]].val !== eolVal) { out.items.push(['err', `ใช้ EOL ผิดค่า (${P[eols[0]].ttl.replace('EOL ', '')}) วงจรนี้ต้องใช้ ${eolVal >= 1000 ? eolVal / 1000 + 'kΩ' : eolVal + 'Ω'}`]); out.panel.push(['TROUBLE', o.label + ' EOL FAULT']); out.state = 'err'; }
-  else out.items.push(['ok', `EOL ${P[eols[0]].ttl.replace('EOL ', '')} คร่อมปลายวงจร`]);
-  // supervision: every wire break must be seen as open
+  return O;
+}
+
+function analyzeOut(o, f) {
+  const out = {o, items:[], panel:[], bad:new Set(), shorted:false, devOK:[], state:'ok'};
+  const S = f(o.sp), N = f(o.sn);
+  if (!termUsed(o.sp) && !termUsed(o.sn)) {
+    if (o.optional) { out.state = 'skip'; return out; }
+    out.items.push(['inf', 'ยังไม่ได้ต่อสาย']); out.panel.push(['TROUBLE', o.label + ' OPEN']); out.state = 'todo'; return out;
+  }
+  if (S === N) {
+    out.shorted = true; out.state = 'err';
+    if (o.accept === 'contact') { out.items.push(['warn', 'IDC+ กับ IDC− ลัดถึงกัน ตู้เห็นเป็นหน้าสัมผัสปิด ขึ้น ALARM']); out.panel.push(['ALARM', o.label + ' IDC SHORT']); }
+    else { out.items.push(['err', 'ขั้ว + กับ − ลัดวงจร']); out.panel.push(['TROUBLE', o.label + ' SHORT']); }
+    return out;
+  }
+  const eols = parts.filter(p => T(p) && T(p).role === 'eol' && across(f, p.id + '.a', p.id + '.b', o.sp, o.sn));
+  const sinks = parts.filter(p => p.t === 'psu' || (T(p) && ['nac', 'spk', 'contact'].includes(T(p).role)));
+  for (const d of sinks) {
+    const [tp, tn] = sinkTerms(d);
+    const kp = d.id + '.' + tp, kn = d.id + '.' + tn;
+    if (across(f, kp, kn, o.sp, o.sn)) {
+      const r = sinkRole(d);
+      if (r !== o.accept) { out.items.push(['err', `${nameOf(d)} เป็น${ROLE_TH[r]} ต่อบนวงจรนี้ไม่ได้ (วงจรนี้รับ${ROLE_TH[o.accept]})`]); out.state = 'err'; continue; }
+      if (r === 'nac' && f(kp) === N) { out.items.push(['err', `${nameOf(d)} ต่อกลับขั้ว ตอนตรวจสาย (กลับขั้ว) กระแสไหลผ่านไดโอด ตู้เห็นเป็นลัดวงจร`]); out.panel.push(['TROUBLE', o.label + ' SHORT']); out.state = 'err'; continue; }
+      if (r === 'spk' && f(kp) === N) out.items.push(['warn', `${nameOf(d)} กลับขั้ว เสียงจะกลับเฟสกับลำโพงตัวอื่น`]);
+      out.devOK.push(d);
+    } else if ([S, N].includes(f(kp)) || [S, N].includes(f(kn))) { out.items.push(['err', `${nameOf(d)} ต่อไม่ครบ 2 ขั้ว`]); out.state = 'err'; }
+  }
+  if (!eols.length) { out.items.push(['err', `ไม่พบ EOL คร่อมปลายวงจร ตู้แจ้ง OPEN (ต้องใช้ ${fmtR(o.eol)})`]); out.panel.push(['TROUBLE', o.label + ' OPEN']); out.state = 'err'; }
+  else if (eols.length > 1) { out.items.push(['err', 'มี EOL มากกว่า 1 ตัวต่อขนานกัน ค่าความต้านทานผิด']); out.panel.push(['TROUBLE', o.label + ' EOL FAULT']); out.state = 'err'; }
+  else if (T(eols[0]).val !== o.eol) { out.items.push(['err', `ใช้ EOL ผิดค่า (${fmtR(T(eols[0]).val)}) วงจรนี้ต้องใช้ ${fmtR(o.eol)}`]); out.panel.push(['TROUBLE', o.label + ' EOL FAULT']); out.state = 'err'; }
+  else out.items.push(['ok', `EOL ${fmtR(o.eol)} คร่อมปลายวงจร`]);
   if (eols.length === 1 && out.devOK.length) {
-    const E = eols[0];
-    const unsup = new Set();
+    const E = eols[0], unsup = new Set();
     for (const w of wiresTouching(f, new Set([S, N]))) {
       const g = netFn(w.id);
-      if (!across(g, E + '.a', E + '.b', sp, sn)) continue;
-      for (const d of out.devOK) if (!across(g, d + o.dp, d + o.dn, sp, sn)) { unsup.add(d); out.bad.add(w.id); }
+      if (!across(g, E.id + '.a', E.id + '.b', o.sp, o.sn)) continue;
+      for (const d of out.devOK) { const [tp, tn] = sinkTerms(d); if (!across(g, d.id + '.' + tp, d.id + '.' + tn, o.sp, o.sn)) { unsup.add(d); out.bad.add(w.id); } }
     }
-    if (unsup.size) { out.items.push(['err', `${[...unsup].map(d => NAME[d]).join(', ')} ไม่ถูกตรวจสายขาด: EOL ไม่ได้อยู่ปลายสาย หรือต่อแยก (T-tap) สายที่กะพริบถ้าขาดตู้จะไม่รู้`]); if (out.state === 'ok') out.state = 'err'; }
+    if (unsup.size) { out.items.push(['err', `${[...unsup].map(nameOf).join(', ')} ไม่ถูกตรวจสายขาด: EOL ไม่ได้อยู่ปลายสาย หรือต่อแยก (T-tap) สายที่กะพริบถ้าขาดตู้จะไม่รู้`]); out.state = 'err'; }
     else out.items.push(['ok', 'สายทุกช่วงถูกตรวจ (ขาดตรงไหนตู้แจ้ง Open)']);
   }
-  out.devOK.forEach(d => out.items.push(['ok', `${NAME[d]} ต่อถูกต้อง${o.polar ? ' ขั้วถูก' : ''}`]));
-  for (const d of o.devs) if (!partUsed(d) && o.expect.includes(d)) { out.items.push(['err', `ยังไม่ได้ต่อ ${NAME[d]}`]); if (out.state === 'ok') out.state = 'err'; }
+  if (out.devOK.length) out.items.push(['ok', `ต่อถูกต้อง ${out.devOK.length} ตัว: ${out.devOK.map(nameOf).join(', ')}`]);
+  else if (out.state === 'ok') { out.items.push(['warn', 'ยังไม่มีอุปกรณ์บนวงจรนี้']); out.state = 'warn'; }
   return out;
 }
 
+function analyzeBat(tp, tn) {
+  const f = netFn();
+  const BP = f(tp), BN = f(tn);
+  if (!termUsed(tp) && !termUsed(tn)) return {it:[['err', 'ยังไม่ได้ต่อแบตเตอรี่สำรอง']], st:'todo', volts:0};
+  if (BP === BN) return {it:[['err', 'BAT+ กับ BAT− ลัดวงจร อันตราย ฟิวส์ขาด']], st:'err', volts:0};
+  const B = parts.filter(p => p.t === 'bat').map(b => b.id);
+  const mine = B.filter(b => [BP, BN].includes(f(b + '.+')) || [BP, BN].includes(f(b + '.-')));
+  const selfShort = mine.filter(b => f(b + '.+') === f(b + '.-'));
+  if (selfShort.length) return {it:[['err', `${selfShort.map(b => nameOf(byId(b))).join(', ')} ขั้ว + กับ − ถูกต่อถึงกัน`]], st:'err', volts:0};
+  const rev = mine.filter(b => f(b + '.-') === BP || f(b + '.+') === BN);
+  const series = B.some(x => B.some(y => x !== y && f(x + '.+') === BP && f(y + '.-') === BN && f(x + '.-') === f(y + '.+') && ![BP, BN].includes(f(x + '.-'))));
+  const singles = B.filter(b => f(b + '.+') === BP && f(b + '.-') === BN);
+  if (rev.length) return {it:[['err', `${rev.map(b => nameOf(byId(b))).join(', ')} ต่อกลับขั้ว`]], st:'err', volts:0};
+  if (series) return {it:[['ok', 'แบตเตอรี่ 2 ลูกต่ออนุกรม ได้ 24V']], st:'ok', volts:24};
+  if (singles.length >= 2) return {it:[['err', 'ต่อขนาน ได้แค่ 12V ต้องต่ออนุกรม']], st:'err', volts:12};
+  if (singles.length === 1) return {it:[['err', 'ต่อแบตเตอรี่ลูกเดียว ได้ 12V']], st:'err', volts:12};
+  return {it:[['err', 'วงจรแบตเตอรี่ไม่ครบ']], st:'err', volts:0};
+}
+
 function analyze() {
-  let f = netFn();
-  const R = {circ:[], panel:[], bad:new Set(), resp:{}, funcs:{}};
+  rebuildTerms();
+  const fAll = netFn();
+  const R = {circ:[], panel:[], bad:new Set(), resp:{}, isoOpen:[], outs:{}, power:{}, ann:{}, relays:[]};
   const add = (key, title, items, state) => R.circ.push({key, title, items, state});
 
-  /* cross-circuit */
+  /* ---- cross-circuit: source terminals of different circuits in one net ---- */
+  const GROUP = {};
+  loopsList().forEach(L => [...L.b, ...L.a].forEach(k => GROUP[k] = 'SLC Loop ' + L.n));
+  outPorts().forEach(o => { GROUP[o.sp] = o.title; GROUP[o.sn] = o.title; });
+  ['P.x+','P.x-'].forEach(k => GROUP[k] = 'AUX 24V'); ['P.aa','P.ab'].forEach(k => GROUP[k] = 'ANN-BUS');
+  ['P.rc','P.rno','P.rnc'].forEach(k => GROUP[k] = 'รีเลย์ Alarm ตู้'); ['P.t+','P.t-'].forEach(k => GROUP[k] = 'แบตเตอรี่ตู้');
+  parts.filter(p => p.t === 'rm').forEach(p => ['c','no','nc'].forEach(k => GROUP[p.id + '.' + k] = nameOf(p)));
+  parts.filter(p => p.t === 'psu').forEach(p => ['t+','t-'].forEach(k => GROUP[p.id + '.' + k] = 'แบตเตอรี่ ' + nameOf(p)));
   const byRoot = new Map();
-  Object.keys(GROUP).forEach(k => { if (!termUsed(k)) return; const r = f(k); if (!byRoot.has(r)) byRoot.set(r, new Set()); byRoot.get(r).add(GROUP[k]); });
+  Object.keys(GROUP).forEach(k => { if (!TERM[k] || !termUsed(k)) return; const r = fAll(k); if (!byRoot.has(r)) byRoot.set(r, new Set()); byRoot.get(r).add(GROUP[k]); });
   const cross = [...byRoot.values()].filter(s => s.size > 1).map(s => [...s].join(' ↔ '));
-  if (cross.length) add('x', 'ต่อข้ามวงจร', cross.map(c => ['err', `สายของวงจร ${c} ถูกต่อถึงกัน อุปกรณ์อาจเสียหาย`]), 'err');
-  if (cross.length) R.panel.push(['TROUBLE', 'GROUND/CROSS FAULT']);
+  if (cross.length) { add('x', 'ต่อข้ามวงจร', cross.map(c => ['err', `สายของ ${c} ถูกต่อถึงกัน อุปกรณ์อาจเสียหาย`]), 'err'); R.panel.push(['TROUBLE', 'GROUND/CROSS FAULT']); }
 
-  /* battery */
-  {
+  /* ---- main battery ---- */
+  { const b = analyzeBat('P.t+', 'P.t-'); if (b.volts !== 24) R.panel.push(['TROUBLE', b.volts === 12 ? 'BATTERY LOW' : 'NO BATTERY']); add('bat', 'แบตเตอรี่สำรองของตู้ (Main PSU)', b.it, b.st); }
+
+  /* ---- AUX ---- */
+  const auxShort = fAll('P.x+') === fAll('P.x-') && termUsed('P.x+');
+  if (auxShort) { R.panel.push(['TROUBLE', 'AUX 24V SHORT']); add('aux', 'AUX 24V', [['err', 'AUX 24V+ กับ − ลัดวงจร']], 'err'); }
+  const powered = p => !auxShort && fAll(p.id + '.v+') === fAll('P.x+') && fAll(p.id + '.v-') === fAll('P.x-');
+  const powerRev = p => fAll(p.id + '.v+') === fAll('P.x-') && fAll(p.id + '.v-') === fAll('P.x+') && termUsed(p.id + '.v+');
+
+  /* ---- SLC loops ---- */
+  const slcDevs = parts.filter(p => T(p) && T(p).role === 'slc');
+  const respondOn = (g, d, L) => (g(d.id + '.s+') === g(L.b[0]) || g(d.id + '.s+') === g(L.a[0])) && (g(d.id + '.s-') === g(L.b[1]) || g(d.id + '.s-') === g(L.a[1]));
+  slcDevs.forEach(d => R.resp[d.id] = false);
+  for (const L of loopsList()) {
     const it = []; let st = 'ok';
-    const BP = f('P.t+'), BN = f('P.t-');
-    const bats = ['B1','B2'];
-    const short = BP === BN && (termUsed('P.t+') || termUsed('P.t-'));
-    const selfShort = bats.filter(b => f(b + '.+') === f(b + '.-') && termUsed(b + '.+'));
-    let volts = 0;
-    if (short) { it.push(['err', 'BAT+ กับ BAT− ลัดวงจร อันตราย ฟิวส์ขาด']); st = 'err'; }
-    else if (selfShort.length) { it.push(['err', `${selfShort.map(b => NAME[b]).join(', ')} ขั้ว + กับ − ถูกต่อถึงกัน (ลัดวงจรแบตเตอรี่)`]); st = 'err'; }
-    else {
-      const rev = bats.filter(b => f(b + '.-') === BP || f(b + '.+') === BN);
-      const series = bats.some(x => bats.some(y => x !== y && f(x + '.+') === BP && f(y + '.-') === BN && f(x + '.-') === f(y + '.+') && f(x + '.-') !== BP && f(x + '.-') !== BN));
-      const singles = bats.filter(b => f(b + '.+') === BP && f(b + '.-') === BN);
-      if (rev.length) { it.push(['err', `${rev.map(b => NAME[b]).join(', ')} ต่อกลับขั้ว`]); st = 'err'; }
-      else if (series) { volts = 24; it.push(['ok', 'แบตเตอรี่ 2 ลูกต่ออนุกรม ได้ 24V']); }
-      else if (singles.length === 2) { volts = 12; it.push(['err', 'ต่อขนาน ได้แค่ 12V ต้องต่ออนุกรมให้ได้ 24V']); st = 'err'; }
-      else if (singles.length === 1) { volts = 12; it.push(['err', 'ต่อแบตเตอรี่ลูกเดียว ได้ 12V']); st = 'err'; }
-      else if (!termUsed('P.t+') && !termUsed('P.t-')) { it.push(['inf', 'ยังไม่ได้ต่อแบตเตอรี่']); st = 'todo'; }
-      else { it.push(['err', 'วงจรแบตเตอรี่ไม่ครบ']); st = 'err'; }
-    }
-    if (volts !== 24) R.panel.push(['TROUBLE', volts === 12 ? 'BATTERY LOW' : 'NO BATTERY']);
-    add('bat', 'แบตเตอรี่สำรอง', it, st);
-  }
-
-  /* AUX */
-  const auxShort = f('P.x+') === f('P.x-') && termUsed('P.x+');
-  if (auxShort) R.panel.push(['TROUBLE', 'AUX 24V SHORT']);
-
-  /* SLC */
-  {
-    const it = []; let st = 'ok';
-    const isShort = g => { const b = [g('P.b+'), g('P.b-')], a = [g('P.a+'), g('P.a-')]; return b[0] === b[1] || a[0] === a[1] || b[0] === a[1] || a[0] === b[1]; };
-    const fAll = f;
+    const isShort = g => { const b = [g(L.b[0]), g(L.b[1])], a = [g(L.a[0]), g(L.a[1])]; return b[0] === b[1] || a[0] === a[1] || b[0] === a[1] || a[0] === b[1]; };
+    let f = fAll;
     const short0 = isShort(fAll);
-    const isoUsed = ISOS.filter(i => partUsed(i));
-    R.isoOpen = [];
-    if (short0 && isoUsed.length) {
-      // isolators open on the short, then re-close one by one; any that would reconnect the short stays open
-      let closed = new Set(), ch = true;
-      while (ch) { ch = false; for (const i of ISOS) { if (closed.has(i)) continue; const t = new Set(closed); t.add(i); if (!isShort(netFn(undefined, t))) { closed = t; ch = true; } } }
-      R.isoOpen = isoUsed.filter(i => !closed.has(i));
+    const isoOn = isoParts().filter(i => partUsed(i) && [L.b[0], L.a[0]].map(fAll).includes(fAll(i.id + '.i+')));
+    let isoOpen = [];
+    if (short0 && isoOn.length) {
+      // all isolators on this loop open, then re-close one by one; any that would reconnect the short stays open
+      let closed = new Set(isoParts().filter(i => !isoOn.includes(i)).map(i => i.id)), ch = true;
+      while (ch) { ch = false; for (const i of isoOn) { if (closed.has(i.id)) continue; const t = new Set(closed); t.add(i.id); if (!isShort(netFn(undefined, t))) { closed = t; ch = true; } } }
+      isoOpen = isoOn.filter(i => !closed.has(i.id)); R.isoOpen.push(...isoOpen.map(i => i.id));
       f = netFn(undefined, closed);
     }
-    const B = [f('P.b+'), f('P.b-')], A = [f('P.a+'), f('P.a-')];
     const short = isShort(f);
-    const aUsed = termUsed('P.a+') || termUsed('P.a-');
-    const respond = (g, d) => (g(d + '.s+') === g('P.b+') || g(d + '.s+') === g('P.a+')) && (g(d + '.s-') === g('P.b-') || g(d + '.s-') === g('P.a-'));
-    if (!termUsed('P.b+') && !termUsed('P.b-')) { it.push(['inf', 'ยังไม่ได้ต่อสายออกจากขั้ว SLC B']); st = 'todo'; }
-    if (short) { it.push(['err', isoUsed.length ? 'SLC ลัดวงจรในช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator จึงตัดไม่ได้ อุปกรณ์ทุกตัวสื่อสารไม่ได้' : 'SLC+ กับ SLC− ลัดวงจร อุปกรณ์ทุกตัวสื่อสารไม่ได้ เพราะไม่มี Isolator คั่นช่วง']); R.panel.push(['TROUBLE', 'SLC LOOP 1 SHORT']); st = 'err'; }
-    else if (short0) { it.push(['warn', `SLC ลัดวงจร: ${R.isoOpen.map(i => NAME[i]).join(' และ ')} เปิดวงจร (ไฟเหลือง) ตัดช่วงที่ช็อตออกจาก loop`]); R.panel.push(['TROUBLE', 'SLC LOOP 1 SHORT (ISOLATED)']); st = 'err'; }
-    for (const d of SLCDEV) {
-      const ok = !short && respond(f, d);
-      R.resp[d] = ok;
-      if (ok) continue;
-      const rev = !short0 && (f(d + '.s+') === B[1] || f(d + '.s+') === A[1]) && (f(d + '.s-') === B[0] || f(d + '.s-') === A[0]);
-      if (rev) it.push(['err', `${devName(d)} ต่อกลับขั้ว SLC จึงไม่ตอบ`]);
-      else if (partUsed(d) && short0 && !short && respond(fAll, d)) it.push(['warn', `${devName(d)} อยู่ในช่วงที่ถูก Isolator ตัดออก`]);
-      else if (partUsed(d) && !short) it.push(['err', `${devName(d)} ต่อไม่ครบหรือไม่ถึงตู้`]);
-      else if (!short) it.push(['inf', `${devName(d)} ยังไม่ได้ต่อ`]);
-      R.panel.push(['TROUBLE', `L1${addrStr(d)} INVALID REPLY`]);
-      if (st === 'ok') st = partUsed(d) ? 'err' : 'todo';
-      if (partUsed(d)) st = 'err';
-    }
-    // addresses
-    for (const t of ['D', 'M']) {
+    const pre = `L${L.n}`;
+    const aUsed = termUsed(L.a[0]) || termUsed(L.a[1]);
+    if (!termUsed(L.b[0]) && !termUsed(L.b[1])) { it.push(['inf', 'ยังไม่ได้ต่อสายออกจากขั้ว B']); st = 'todo'; }
+    if (short) { it.push(['err', isoOn.length ? 'ลัดวงจรในช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator ตัดไม่ได้ ทั้ง loop ล่ม' : 'SLC+ กับ SLC− ลัดวงจร ทั้ง loop ล่มเพราะไม่มี Isolator']); R.panel.push(['TROUBLE', `SLC LOOP ${L.n} SHORT`]); st = 'err'; }
+    else if (short0) { it.push(['warn', `ลัดวงจร: ${isoOpen.map(nameOf).join(' และ ')} เปิดวงจร (ไฟเหลือง) ตัดช่วงที่ช็อตออก`]); R.panel.push(['TROUBLE', `SLC LOOP ${L.n} SHORT (ISOLATED)`]); st = 'err'; }
+    const onLoop = short ? [] : slcDevs.filter(d => respondOn(f, d, L));
+    const onLoopAll = slcDevs.filter(d => respondOn(fAll, d, L));
+    const dup = new Set();
+    for (const ty of ['D', 'M']) {
       const seen = {};
-      SLCDEV.filter(d => P[d].addrType === t && R.resp[d]).forEach(d => (seen[P[d].addr] = seen[P[d].addr] || []).push(d));
-      Object.entries(seen).forEach(([a, ds]) => {
-        if (ds.length > 1) { it.push(['err', `Address ${t}${String(a).padStart(3, '0')} ซ้ำกัน: ${ds.map(d => NAME[d]).join(', ')}`]); R.panel.push(['TROUBLE', `L1${t}${String(a).padStart(3, '0')} DUPLICATE ADDR`]); ds.forEach(d => R.resp[d] = false); st = 'err'; }
-      });
+      onLoop.filter(d => T(d).addrType === ty).forEach(d => (seen[d.addr] = seen[d.addr] || []).push(d));
+      Object.entries(seen).forEach(([a, ds]) => { if (ds.length > 1) { ds.forEach(d => dup.add(d)); it.push(['err', `Address ${pre}${ty}${String(a).padStart(3, '0')} ซ้ำกัน: ${ds.map(nameOf).join(', ')}`]); R.panel.push(['TROUBLE', `${pre}${ty}${String(a).padStart(3, '0')} DUPLICATE ADDR`]); st = 'err'; } });
     }
-    SLCDEV.forEach(d => { if (P[d].addr < 1 || P[d].addr > 159) { it.push(['err', `${NAME[d]} Address ต้องอยู่ระหว่าง 1–159`]); R.resp[d] = false; st = 'err'; } });
-    const nResp = SLCDEV.filter(d => R.resp[d]).length;
-    if (nResp) it.unshift(['ok', `อุปกรณ์ตอบสนอง ${nResp}/${SLCDEV.length} ตัว`]);
+    for (const d of onLoop) if (d.loop !== L.n) { it.push(['err', `${nameOf(d)} ต่ออยู่บน Loop ${L.n} แต่ตั้งโปรแกรมไว้ Loop ${d.loop} ตู้เห็นเป็นอุปกรณ์ไม่ได้ลงโปรแกรม`]); R.panel.push(['TROUBLE', `${pre}${T(d).addrType}${String(d.addr).padStart(3, '0')} UNPROGRAMMED`]); st = 'err'; }
+    const prog = slcDevs.filter(d => d.loop === L.n);
+    for (const d of prog) {
+      const ok = onLoop.includes(d) && !dup.has(d) && d.addr >= 1 && d.addr <= 159;
+      R.resp[d.id] = ok;
+      if (ok) continue;
+      if (d.addr < 1 || d.addr > 159) it.push(['err', `${nameOf(d)} Address ต้องอยู่ระหว่าง 1–159`]);
+      else if (!dup.has(d) && !short) {
+        const rev = (fAll(d.id + '.s+') === fAll(L.b[1]) || fAll(d.id + '.s+') === fAll(L.a[1])) && (fAll(d.id + '.s-') === fAll(L.b[0]) || fAll(d.id + '.s-') === fAll(L.a[0]));
+        if (rev && !short0) it.push(['err', `${label(d)} ต่อกลับขั้ว SLC จึงไม่ตอบ`]);
+        else if (short0 && onLoopAll.includes(d)) it.push(['warn', `${label(d)} อยู่ในช่วงที่ Isolator ตัดออก`]);
+        else if (partUsed(d)) it.push(['err', `${label(d)} ต่อไม่ครบหรือไม่ถึง Loop ${L.n}`]);
+        else it.push(['inf', `${label(d)} ยังไม่ได้ต่อ`]);
+      }
+      R.panel.push(['TROUBLE', `${addrStr(d)} INVALID REPLY`]);
+      if (partUsed(d) || short0) st = 'err'; else if (st === 'ok') st = 'todo';
+    }
+    const nResp = prog.filter(d => R.resp[d.id]).length;
+    it.unshift([nResp === prog.length && prog.length ? 'ok' : 'inf', `อุปกรณ์ที่ลงโปรแกรม Loop ${L.n} ตอบสนอง ${nResp}/${prog.length} ตัว`]);
+    if (!prog.length && st === 'ok') st = 'todo';
     if (!short0 && aUsed) {
-      if (A[0] !== B[0] || A[1] !== B[1]) { it.push(['err', 'ต่อ Class A แต่สายกลับเข้าขั้ว A ไม่ครบวง ตู้แจ้ง SLC OPEN']); R.panel.push(['TROUBLE', 'SLC LOOP 1 OPEN (CLASS A)']); st = 'err'; }
+      if (fAll(L.a[0]) !== fAll(L.b[0]) || fAll(L.a[1]) !== fAll(L.b[1])) { it.push(['err', 'ต่อ Class A แต่สายกลับเข้าขั้ว A ไม่ครบวง ตู้แจ้ง OPEN']); R.panel.push(['TROUBLE', `SLC LOOP ${L.n} OPEN (CLASS A)`]); st = 'err'; }
       else {
         const weak = new Set();
-        for (const w of wiresTouching(f, new Set(B))) {
+        for (const w of wiresTouching(fAll, new Set([fAll(L.b[0]), fAll(L.b[1])]))) {
           const g = netFn(w.id);
-          for (const d of SLCDEV) if (R.resp[d] && !respond(g, d)) { weak.add(d); R.bad.add(w.id); }
+          for (const d of prog) if (R.resp[d.id] && !respondOn(g, d, L)) { weak.add(d); R.bad.add(w.id); }
         }
-        if (weak.size) { it.push(['err', `Class A มี T-tap: ${[...weak].map(d => NAME[d]).join(', ')} จะหลุดถ้าสายที่กะพริบขาด`]); st = 'err'; }
+        if (weak.size) { it.push(['err', `Class A มี T-tap: ${[...weak].map(nameOf).join(', ')} จะหลุดถ้าสายที่กะพริบขาด`]); st = 'err'; }
         else it.push(['ok', 'Class A ครบวง สายขาดจุดเดียวยังสื่อสารได้ทุกตัว']);
       }
-    } else if (!short0 && nResp) it.push(['inf', 'Class B: ไม่ใช้ขั้ว A (T-tap ทำได้)']);
-    if (short0 && !short && !aUsed) it.push(['inf', 'Class B ได้ไฟจากฝั่งตู้ทางเดียว อุปกรณ์ทุกตัวหลัง Isolator ที่เปิดจึงหลุดด้วย ถ้าเป็น Class A ช่วงหลังจะยังได้ไฟจากขั้ว A']);
-    if (!isoUsed.length && nResp) it.push(['inf', 'ไม่มี Isolator: ช็อตจุดเดียวทำให้อุปกรณ์ทั้ง loop ล่ม']);
-    else if (isoUsed.length && !short0) {
-      const half = isoUsed.filter(i => !(termUsed(i + '.i+') && termUsed(i + '.i-') && termUsed(i + '.o+') && termUsed(i + '.o-')));
-      if (half.length) { it.push(['err', `${half.map(i => NAME[i]).join(', ')} ต่อไม่ครบทั้งขา IN และ OUT`]); st = 'err'; }
-      else it.push(['ok', `ติด Isolator ${isoUsed.length} ตัว แบ่ง loop เป็นช่วง`]);
-    }
-    f = fAll;
-    add('slc', 'SLC Loop 1', it, st);
+    } else if (!short0 && nResp) it.push(['inf', 'Class B (ไม่ใช้ขั้ว A)']);
+    if (short0 && !short && !aUsed) it.push(['inf', 'Class B ได้ไฟจากฝั่งตู้ทางเดียว อุปกรณ์ทุกตัวหลัง Isolator ที่เปิดจึงหลุดด้วย']);
+    if (!isoOn.length && nResp) it.push(['inf', 'ไม่มี Isolator: ช็อตจุดเดียวทำให้ทั้ง loop ล่ม']);
+    add('slc' + L.n, `SLC Loop ${L.n}${L.n === 2 ? ' (การ์ด Loop 2)' : ' (CPU)'}`, it, st);
+  }
+  const noLoop = slcDevs.filter(d => d.loop === 2 && !CARDS.loop2);
+  if (noLoop.length) add('l2x', 'การ์ด Loop 2', [['err', `${noLoop.map(nameOf).join(', ')} ตั้งไว้ Loop 2 แต่ยังไม่ได้ติดการ์ด Loop 2 ในตู้`]], 'err');
+
+  /* ---- supervised outputs ---- */
+  for (const o of outPorts()) {
+    const r = analyzeOut(o, fAll);
+    R.outs[o.id] = r;
+    r.bad.forEach(b => R.bad.add(b));
+    if (r.state === 'skip') continue;
+    let st = r.state;
+    if (o.owner) {
+      const resp = R.resp[o.owner.id];
+      if (o.owner.t === 'cm') {
+        R.power[o.owner.id] = powered(o.owner);
+        if (R.power[o.owner.id]) r.items.unshift(['ok', 'มีไฟ 24VDC จาก AUX']);
+        else { r.items.unshift(['err', powerRev(o.owner) ? 'ไฟ 24V เข้าโมดูลกลับขั้ว' : 'ไม่มีไฟ 24VDC เข้าโมดูล สั่งแล้วอุปกรณ์จะไม่ทำงาน']); if (resp) R.panel.push(['TROUBLE', `${addrStr(o.owner)} NO 24V`]); st = 'err'; }
+      }
+      if (!resp) { r.items.unshift(['err', 'โมดูลไม่ตอบบน SLC ตู้ไม่เห็นวงจรนี้']); if (st === 'ok' || st === 'warn') st = 'err'; }
+      else R.panel.push(...r.panel);
+    } else if (!o.psu) R.panel.push(...r.panel); // remote PSU faults go out on its own trouble contact
+    add('o-' + o.id, o.title, r.items, st);
   }
 
-  /* NAC1 */
-  {
-    const o = analyzeLoop({f, sp:'P.n+', sn:'P.n-', eolVal:2200, kind:'nac', polar:true, devs:['H1','H2','H3'], dp:'.+', dn:'.-', expect:['H2','H3'], label:'NAC 1'});
-    R.panel.push(...o.panel); o.bad.forEach(b => R.bad.add(b));
-    R.funcs.nac1 = o.shorted ? [] : o.devOK.filter(d => !o.panel.some(p => p[1].includes('SHORT')));
-    add('nac', 'NAC 1 (บนตู้)', o.items, o.state);
-  }
-
-  /* Monitor module */
-  {
-    const o = analyzeLoop({f, sp:'MM.i+', sn:'MM.i-', eolVal:47000, kind:'idc', polar:false, devs:['PS'], dp:'.1', dn:'.2', expect:['PS'], label:'L1' + addrStr('MM')});
-    if (!R.resp.MM) o.items.unshift(['err', 'โมดูลไม่ตอบบน SLC ตู้จึงไม่เห็นสัญญาณ IDC']);
-    if (R.resp.MM) R.panel.push(...o.panel);
-    o.bad.forEach(b => R.bad.add(b));
-    R.funcs.pull = R.resp.MM && o.devOK.includes('PS');
-    R.funcs.idcShort = R.resp.MM && o.shorted;
-    add('mm', `Monitor module ${addrStr('MM')} + แมนนวล`, o.items, !R.resp.MM && o.state === 'ok' ? 'err' : o.state);
-  }
-
-  /* Control module */
-  {
-    const o = analyzeLoop({f, sp:'CM.o+', sn:'CM.o-', eolVal:47000, kind:'nac', polar:true, devs:['H1','H2','H3'], dp:'.+', dn:'.-', expect:['H1'], label:'L1' + addrStr('CM')});
-    const pw = f('CM.v+') === f('P.x+') && f('CM.v-') === f('P.x-') && !auxShort;
-    const pwRev = f('CM.v+') === f('P.x-') && f('CM.v-') === f('P.x+') && termUsed('CM.v+');
-    if (pw) o.items.unshift(['ok', 'มีไฟ 24VDC จาก AUX']);
-    else if (pwRev) o.items.unshift(['err', 'ไฟ 24V เข้าโมดูลกลับขั้ว']);
-    else o.items.unshift(['err', 'ไม่มีไฟ 24VDC เข้าโมดูล สั่งงานแล้วฮอร์นจะไม่ดัง']);
-    if (!R.resp.CM) o.items.unshift(['err', 'โมดูลไม่ตอบบน SLC']);
-    if (R.resp.CM) R.panel.push(...o.panel);
-    if (R.resp.CM && !pw) R.panel.push(['TROUBLE', `L1${addrStr('CM')} NO 24V`]);
-    o.bad.forEach(b => R.bad.add(b));
-    R.funcs.cm = R.resp.CM && pw && !o.shorted ? o.devOK.filter(() => !o.panel.some(p => p[1].includes('SHORT'))) : [];
-    let st = o.state; if ((!pw || !R.resp.CM) && st !== 'todo') st = 'err';
-    add('cm', `Control module ${addrStr('CM')} + ฮอร์น`, o.items, st);
-  }
-
-  /* horns on AUX */
-  ['H1','H2','H3'].forEach(h => { if (across(f, h + '.+', h + '.-', 'P.x+', 'P.x-') && f(h + '.+') === f('P.x+')) R.circ.find(c => c.key === 'nac').items.push(['err', `${NAME[h]} ต่อตรงกับ AUX 24V จะดังตลอดเวลาและไม่ถูกตรวจสาย`]); });
-
-  /* Relay */
-  {
+  /* ---- remote power supplies ---- */
+  for (const p of parts.filter(q => q.t === 'psu')) {
     const it = []; let st = 'ok';
-    const s = new Set([f('AHU.r1'), f('AHU.r2')]);
-    const C = f('RM.c'), NO = f('RM.no'), NC = f('RM.nc');
-    let mode = null;
-    if (f('AHU.r1') === f('AHU.r2') && termUsed('AHU.r1')) { it.push(['warn', 'RUN1 กับ RUN2 ต่อถึงกันตรงๆ พัดลมจะไม่มีวันดับ']); st = 'err'; mode = 'bypass'; }
-    else if (s.has(C) && s.has(NC)) { mode = 'nc'; it.push(['ok', 'AHU ต่อผ่าน C–NC: ปกติพัดลมทำงาน เมื่อ Alarm พัดลมดับ']); }
-    else if (s.has(C) && s.has(NO)) { mode = 'no'; it.push(['err', 'AHU ต่อผ่าน C–NO: ปกติพัดลมไม่ทำงาน และจะเดินตอน Alarm (กลับกัน)']); st = 'err'; }
-    else if (s.has(NO) && s.has(NC)) { mode = 'x'; it.push(['err', 'ต่อ NO–NC ไม่มีขั้ว C วงจรไม่ครบ']); st = 'err'; }
-    else if (!partUsed('AHU')) { it.push(['inf', 'ยังไม่ได้ต่อวงจรสั่ง AHU']); st = 'todo'; }
-    else { it.push(['err', 'วงจรสั่ง AHU ไม่ครบ']); st = 'err'; }
-    if (!R.resp.RM) { it.unshift(['err', 'Relay module ไม่ตอบบน SLC']); if (st === 'ok') st = 'err'; }
-    it.push(['inf', 'หน้าสัมผัสรีเลย์ไม่ถูกตรวจสาย (ไม่มี EOL)']);
-    R.funcs.relay = {mode, ok: R.resp.RM};
-    add('rm', `Relay module ${addrStr('RM')} → AHU`, it, st);
+    const src = Object.values(R.outs).find(r => r.devOK.includes(p));
+    if (src) it.push(['ok', `ขา IN รับสัญญาณจาก ${src.o.title}`]); else { it.push(['err', 'ขา IN ยังไม่ได้รับสัญญาณจาก NAC ตัวไหน ตู้สั่งไม่ได้']); st = 'err'; }
+    const b = analyzeBat(p.id + '.t+', p.id + '.t-');
+    it.push(...b.it); if (b.st !== 'ok') st = 'err';
+    it.push(['inf', 'รับไฟ AC 220V เองที่ตัวเครื่อง']);
+    add('psu-' + p.id, `${nameOf(p)} (NAC extender)`, it, st);
   }
+
+  /* ---- annunciators ---- */
+  const annSeen = {};
+  for (const p of parts.filter(q => q.t === 'ann')) {
+    const it = []; let st = 'ok';
+    const dataOK = fAll(p.id + '.a') === fAll('P.aa') && fAll(p.id + '.b') === fAll('P.ab') && fAll('P.aa') !== fAll('P.ab');
+    const dataRev = fAll(p.id + '.a') === fAll('P.ab') && fAll(p.id + '.b') === fAll('P.aa') && termUsed(p.id + '.a');
+    if (dataOK) it.push(['ok', 'ANN-BUS A→A, B→B']); else { it.push(['err', dataRev ? 'สลับสาย A/B ของ ANN-BUS สื่อสารไม่ได้' : 'ยังไม่ได้ต่อ ANN-BUS จากตู้']); st = 'err'; }
+    if (powered(p)) it.push(['ok', 'มีไฟ 24V จาก AUX']); else { it.push(['err', powerRev(p) ? 'ไฟ 24V กลับขั้ว' : 'ไม่มีไฟ 24V เข้าจอ']); st = 'err'; }
+    if (p.addr < 1 || p.addr > 8) { it.push(['err', 'Address ต้องอยู่ระหว่าง 1–8']); st = 'err'; }
+    (annSeen[p.addr] = annSeen[p.addr] || []).push(p);
+    R.ann[p.id] = st === 'ok';
+    if (st !== 'ok') R.panel.push(['TROUBLE', `ANN ${String(p.addr).padStart(2, '0')} COMM FAIL`]);
+    add('ann-' + p.id, `${nameOf(p)} ANN-${String(p.addr).padStart(2, '0')}`, it, st);
+  }
+  Object.values(annSeen).filter(a => a.length > 1).forEach(a => a.forEach(p => { R.ann[p.id] = false; const c = R.circ.find(c => c.key === 'ann-' + p.id); c.items.push(['err', 'Address ซ้ำกับจออื่น']); c.state = 'err'; }));
+
+  /* ---- relays ---- */
+  const relSrc = [{id:'P', title:'รีเลย์ Alarm บนตู้', c:'P.rc', no:'P.rno', nc:'P.rnc', ok:true}]
+    .concat(parts.filter(p => p.t === 'rm').map(p => ({id:p.id, title:`${nameOf(p)} ${addrStr(p)}`, c:p.id + '.c', no:p.id + '.no', nc:p.id + '.nc', ok:R.resp[p.id]})));
+  for (const p of parts.filter(q => T(q) && T(q).role === 'rsink')) {
+    const it = []; let st = 'ok', mode = null, src = null;
+    const s = new Set([fAll(p.id + '.r1'), fAll(p.id + '.r2')]);
+    const want = T(p).want;
+    if (fAll(p.id + '.r1') === fAll(p.id + '.r2') && termUsed(p.id + '.r1')) { it.push(['err', 'สองขั้วต่อถึงกันตรงๆ ไม่ผ่านรีเลย์ (Bypass)']); st = 'err'; mode = 'bypass'; }
+    else for (const r of relSrc) {
+      const C = fAll(r.c), NO = fAll(r.no), NC = fAll(r.nc);
+      if (s.has(C) && s.has(NC)) mode = 'nc'; else if (s.has(C) && s.has(NO)) mode = 'no'; else if (s.has(NO) && s.has(NC)) mode = 'x';
+      if (mode) { src = r; break; }
+    }
+    if (mode === 'x') { it.push(['err', 'ต่อ NO–NC ไม่มีขั้ว C วงจรไม่ครบ']); st = 'err'; }
+    else if (mode === 'nc' || mode === 'no') {
+      const good = mode === want;
+      const txt = p.t === 'ahu'
+        ? (mode === 'nc' ? 'ผ่าน C–NC: ปกติพัดลมทำงาน เมื่อ Alarm พัดลมดับ' : 'ผ่าน C–NO: ปกติพัดลมไม่ทำงาน แต่จะเดินตอน Alarm (กลับกัน)')
+        : (mode === 'no' ? 'ผ่าน C–NO: เมื่อ Alarm ปิดวงจรสั่งลิฟต์ลงชั้นหลัก' : 'ผ่าน C–NC: ลิฟต์ถูกสั่ง Recall ตลอดเวลาในสภาวะปกติ (กลับกัน)');
+      it.push([good ? 'ok' : 'err', `${src.title} ${txt}`]); if (!good) st = 'err';
+      if (!src.ok) { it.unshift(['err', `${src.title} ไม่ตอบบน SLC`]); st = 'err'; }
+    } else if (mode !== 'bypass') { it.push([partUsed(p) ? 'err' : 'inf', partUsed(p) ? 'วงจรไม่ครบ' : 'ยังไม่ได้ต่อ']); st = partUsed(p) ? 'err' : 'todo'; }
+    it.push(['inf', 'หน้าสัมผัสรีเลย์ไม่ถูกตรวจสาย']);
+    R.relays.push({p, mode, src});
+    add('rs-' + p.id, label(p), it, st);
+  }
+
+  /* ---- loose field parts ---- */
+  const loose = parts.filter(p => p.t !== 'facp' && !partUsed(p) && ['nac', 'spk', 'contact', 'eol', 'bat', 'iso'].includes(T(p).role));
+  if (loose.length) add('loose', 'อุปกรณ์ที่ยังไม่ได้ต่อสาย', loose.map(p => ['inf', nameOf(p)]), 'todo');
   return R;
+}
+
+/* ================= functional simulation ================= */
+function simulate(R) {
+  const S = {sound:new Set(), relayOn:new Set(), psuOn:new Set()};
+  if (!alarm || alarm.kind !== 'FIRE') return S;
+  const works = r => r && !r.shorted && r.state !== 'skip';
+  const active = new Set();
+  ['P.n1', 'P.n2', 'P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
+  parts.filter(p => p.t === 'cm').forEach(p => { if (works(R.outs[p.id]) && R.resp[p.id] && R.power[p.id]) active.add(p.id); });
+  for (let k = 0; k < 3; k++) for (const p of parts.filter(q => q.t === 'psu')) {
+    if ([...active].some(id => R.outs[id].devOK.includes(p))) { S.psuOn.add(p.id); ['.1', '.2'].forEach(s => { if (works(R.outs[p.id + s])) active.add(p.id + s); }); }
+  }
+  active.forEach(id => R.outs[id].devOK.forEach(d => { if (d.t !== 'psu') S.sound.add(d.id); }));
+  S.relayOn.add('P');
+  parts.filter(p => p.t === 'rm' && R.resp[p.id]).forEach(p => S.relayOn.add(p.id));
+  return S;
 }
 
 /* ================= board drawing ================= */
 const board = $('board');
 function el(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
-let gWires, gRubber;
-function drawStatic() {
+let gParts, gWires, gRubber, gTerms;
+function drawAll() {
+  rebuildTerms();
   board.innerHTML = '';
   const gGrid = el('g', {}, board);
-  for (let x = 0; x <= 1240; x += 40) el('line', {class:'gridline', x1:x, y1:0, x2:x, y2:900}, gGrid);
-  for (let y = 0; y <= 900; y += 40) el('line', {class:'gridline', x1:0, y1:y, x2:1240, y2:y}, gGrid);
-  const gParts = el('g', {}, board);
-  for (const p of PARTS) {
-    const g = el('g', {class:`part ${p.kind}` + (p.kind === 'hs' ? ' hs' : '') + (p.kind === 'ahu' ? ' ahu' : '') + (p.kind === 'iso' ? ' iso' : ''), id:'part-' + p.id}, gParts);
-    el('rect', {class:'body', x:p.x, y:p.y, width:p.w, height:p.h, rx:p.kind === 'det' ? 14 : 6}, g);
-    if (p.kind !== 'facp') el('rect', {class:'head', x:p.x + 1, y:p.y + 1, width:p.w - 2, height:22, rx:5}, g);
-    const t = el('text', {class:'ttl', x:p.x + 8, y:p.y + 16}, g); t.textContent = p.ttl;
-    if (p.addrType) { const a = el('text', {class:'addr', x:p.x + p.w - 8, y:p.y + 16, 'text-anchor':'end', id:'addr-' + p.id}, g); a.textContent = addrStr(p.id); }
-    if (p.sub) { const s = el('text', {class:'sub', x:p.x + 8, y:p.y + (p.kind === 'facp' ? 34 : 38)}, g); s.textContent = p.sub; }
-    drawIcon(p, g);
-    if (p.groups) p.groups.forEach(([lb, y]) => { const gl = el('text', {class:'glabel', x:p.x + 16, y:p.y + y + 22}, g); gl.textContent = lb; });
-  }
+  for (let x = 0; x <= BW; x += 40) el('line', {class:'gridline', x1:x, y1:0, x2:x, y2:BH}, gGrid);
+  for (let y = 0; y <= BH; y += 40) el('line', {class:'gridline', x1:0, y1:y, x2:BW, y2:y}, gGrid);
+  gParts = el('g', {}, board);
+  parts.forEach(drawPart);
   gWires = el('g', {}, board);
-  gRubber = el('path', {class:'rubber', d:''}, board);
-  gRubber.style.display = 'none';
-  const gTerms = el('g', {}, board);
+  gRubber = el('path', {class:'rubber', d:''}, board); gRubber.style.display = 'none';
+  gTerms = el('g', {}, board);
+  drawTerms(); drawWires();
+}
+function drawPart(p) {
+  const g = el('g', {class:`part k-${p.t}` + (selP === p.id ? ' selp' : ''), id:'part-' + p.id, 'data-p':p.id, transform:`translate(${p.x} ${p.y})`, tabindex:0, role:'button', 'aria-label':label(p)}, gParts);
+  if (p.t === 'facp') { drawFacp(g); return; }
+  const ty = T(p);
+  el('rect', {class:'body', x:0, y:0, width:ty.w, height:ty.h, rx:ty.cat === 'det' ? 14 : 6}, g);
+  el('rect', {class:'head', x:1, y:1, width:ty.w - 2, height:22, rx:5}, g);
+  const many = parts.filter(q => q.t === p.t).length > 1;
+  // small parts carry their number in the header so it doesn't collide with terminal labels
+  el('text', {class:'ttl', x:8, y:16}, g).textContent = ty.short + (ty.h <= 90 && many ? ' #' + p.n : '');
+  if (ty.addrType) el('text', {class:'addr', x:ty.w - 8, y:16, 'text-anchor':'end'}, g).textContent = addrStr(p);
+  if (ty.h > 90) el('text', {class:'sub', x:8, y:38}, g).textContent = nameOf(p);
+  drawIcon(p, ty, g);
+  if (['nac', 'spk'].includes(ty.role)) el('rect', {class:'flash', x:0, y:0, width:ty.w, height:ty.h, rx:6}, g);
+}
+function drawIcon(p, ty, g) {
+  const w = ty.w, h = ty.h, cx = w / 2;
+  switch (ty.role) {
+    case 'slc':
+      if (ty.cat === 'det') {
+        el('circle', {class:'ico main', cx, cy:68, r:20}, g); el('circle', {class:'ico', cx, cy:68, r:8}, g);
+        if (ty.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} 70 l6 -8 l6 8`}, g);
+        if (ty.dt === 'DUCT') el('rect', {class:'ico', x:cx - 34, y:56, width:68, height:24, rx:3}, g);
+        if (ty.dt === 'MULTI') el('path', {class:'ico', d:`M${cx - 28} 50 l7 6 M${cx + 28} 50 l-7 6`}, g);
+      } else el('rect', {class:'ico', x:cx - 20, y:48, width:40, height:34, rx:4}, g);
+      break;
+    case 'iso': el('path', {class:'ico', d:'M48 53 h12 l14 -9 M78 53 h14'}, g); el('circle', {class:'isoled', cx:70, cy:36, r:5}, g); break;
+    case 'contact':
+      if (p.t === 'pull') { el('rect', {class:'ico', x:64, y:44, width:52, height:30, rx:3}, g); el('path', {class:'ico', d:'M76 68 h26 v-12'}, g); }
+      else if (p.t === 'flow') el('path', {class:'ico', d:'M60 60 h60 M82 52 l10 8 l-10 8'}, g);
+      else el('path', {class:'ico', d:'M70 70 h40 M90 70 v-20 M80 50 h20'}, g);
+      break;
+    case 'nac':
+      if (p.t === 'bell') el('path', {class:'ico', d:'M82 68 a13 13 0 0 1 26 0 z M95 72 v3'}, g);
+      else { el('rect', {class:'ico', x:60, y:50, width:20, height:20, rx:3}, g); if (p.t === 'hs') el('path', {class:'ico', d:'M88 60 l14 -8 v24 l-14 -8 z M108 54 q6 8 0 16'}, g); }
+      break;
+    case 'spk': el('path', {class:'ico', d:'M70 56 h8 l12 -9 v28 l-12 -9 h-8 z M98 54 q6 9 0 18 M104 49 q10 14 0 28'}, g); break;
+    case 'eol': el('path', {class:'ico', d:'M0 38 h28 l5 -6 l8 12 l8 -12 l8 12 l8 -12 l5 6 h16 v20 h-86'}, g); break;
+    case 'rsink':
+      if (p.t === 'ahu') { const fan = el('g', {class:'fan'}, g); el('circle', {class:'ico', cx:105, cy:56, r:16}, fan); el('path', {class:'ico', d:'M105 56 l0 -12 M105 56 l10 6 M105 56 l-10 6'}, fan); }
+      else el('path', {class:'ico', d:'M94 42 h22 v30 h-22 z M105 48 l-5 6 h10 z M105 66 l-5 -6 h10 z'}, g);
+      el('text', {class:'addr', x:w - 8, y:h - 8, 'text-anchor':'end', id:'st-' + p.id}, g);
+      break;
+    case 'bat': el('rect', {class:'ico', x:20, y:44, width:100, height:44, rx:4}, g); el('text', {class:'tlabel', x:70, y:70, 'text-anchor':'middle'}, g).textContent = '12V DC'; break;
+    case 'ann': el('rect', {class:'annlcd', x:44, y:46, width:80, height:46, rx:3}, g); el('text', {class:'anntxt', x:50, y:64, id:'annt-' + p.id}, g).textContent = 'NORMAL'; break;
+    case 'psu':
+      el('text', {class:'sub', x:8, y:56}, g).textContent = 'AC 220V IN';
+      el('rect', {class:'ico', x:30, y:96, width:90, height:56, rx:4}, g);
+      el('text', {class:'tlabel', x:75, y:128, 'text-anchor':'middle'}, g).textContent = 'PSU 24V';
+      el('text', {class:'addr', x:8, y:176, id:'st-' + p.id}, g);
+      break;
+  }
+}
+function drawFacp(g) {
+  const H = BH - 40;
+  el('rect', {class:'body', x:0, y:0, width:FW, height:H, rx:8}, g);
+  el('text', {class:'ttl', x:12, y:22}, g).textContent = 'FACP';
+  el('text', {class:'sub', x:56, y:22}, g).textContent = 'Fire Alarm Control Panel';
+  const card = (cls, y, h, ttl) => { el('rect', {class:'cardrect ' + cls, x:10, y, width:FW - 20, height:h, rx:5}, g); el('text', {class:'cardttl', x:20, y:y + 16}, g).textContent = ttl; };
+  card('cpu', 36, 540, 'CPU / MAIN BOARD');
+  FACP_GROUPS.forEach(([lb, y]) => el('text', {class:'glabel', x:22, y:y + 22}, g).textContent = lb);
+  if (CARDS.loop2) { card('opt', 600, 150, 'OPTION 1: LOOP 2 CARD'); el('text', {class:'glabel', x:22, y:662}, g).textContent = 'SLC LOOP 2'; el('text', {class:'glabel', x:22, y:718}, g).textContent = 'CLASS A RETURN'; }
+  else card('empty', 600, 150, 'OPTION SLOT 1 (ว่าง)');
+  if (CARDS.dvc) { card('opt', 772, 110, 'OPTION 2: DVC / AUDIO AMP'); el('text', {class:'glabel', x:22, y:822}, g).textContent = 'SPEAKER 25V'; el('text', {class:'glabel', x:22, y:842}, g).textContent = 'MIC · MESSAGE · 50W'; }
+  else card('empty', 772, 110, 'OPTION SLOT 2 (ว่าง)');
+  card('psu', 905, 250, 'MAIN POWER SUPPLY');
+  el('text', {class:'glabel', x:22, y:945}, g).textContent = 'AC 220V  L · N · G';
+  el('text', {class:'glabel', x:22, y:965}, g).textContent = '24VDC OUT · CHARGER';
+  el('text', {class:'glabel', x:22, y:1094}, g).textContent = 'BATTERY 24V';
+}
+function drawTerms() {
+  gTerms.innerHTML = '';
   for (const [key, t] of Object.entries(TERM)) {
-    const g = el('g', {class:'term' + (t.pol === '+' ? ' pos' : '') + (t.part.kind === 'facp' ? ' facp-t' : ''), 'data-k':key, tabindex:0, role:'button', 'aria-label':`${t.part.ttl} ขั้ว ${t.lb || t.k}`}, gTerms);
-    el('circle', {class:'hit', cx:t.x, cy:t.y, r:13}, g);
+    const g = el('g', {class:'term' + (t.pol === '+' ? ' pos' : '') + (t.part.t === 'facp' ? ' facp-t' : '') + (pending === key ? ' sel' : ''), 'data-k':key, tabindex:0, role:'button', 'aria-label':`${nameOf(t.part)} ขั้ว ${t.lb || t.k}`}, gTerms);
+    el('circle', {class:'hit', cx:t.x, cy:t.y, r:12}, g);
     el('circle', {class:'screw', cx:t.x, cy:t.y, r:7}, g);
     el('line', {x1:t.x - 4, y1:t.y - 4, x2:t.x + 4, y2:t.y + 4}, g);
     if (t.lb) {
       const o = {r:[-12, 4, 'end'], l:[12, 4, 'start'], b:[0, -12, 'middle'], t:[0, -12, 'middle']}[t.side];
-      const tx = el('text', {class:'tlabel', x:t.x + o[0], y:t.y + o[1], 'text-anchor':o[2]}, g); tx.textContent = t.lb;
+      el('text', {class:'tlabel', x:t.x + o[0], y:t.y + o[1], 'text-anchor':o[2]}, g).textContent = t.lb;
     }
-  }
-}
-function drawIcon(p, g) {
-  const cx = p.x + p.w / 2;
-  if (p.kind === 'det') {
-    el('circle', {class:'ico', cx, cy:p.y + 72, r:22}, g);
-    el('circle', {class:'ico', cx, cy:p.y + 72, r:9}, g);
-    if (p.dt === 'HEAT') el('path', {class:'ico', d:`M${cx - 6} ${p.y + 72} l6 -8 l6 8`}, g);
-  } else if (p.kind === 'pull') {
-    el('rect', {class:'ico', x:p.x + 62, y:p.y + 46, width:60, height:38, rx:3}, g);
-    el('path', {class:'ico', d:`M${p.x + 77} ${p.y + 76} h30 v-14`}, g);
-  } else if (p.kind === 'eol') {
-    el('path', {class:'ico', d:`M${p.x} ${p.y + 38} h30 l5 -6 l8 12 l8 -12 l8 12 l8 -12 l5 6 h20 v20 h-92`}, g);
-  } else if (p.kind === 'hs') {
-    el('path', {class:'ico', d:`M${p.x + 92} ${p.y + 60} l18 -10 v28 l-18 -10 z M${p.x + 116} ${p.y + 54} q6 10 0 20`}, g);
-    el('rect', {class:'flash', x:p.x, y:p.y, width:p.w, height:p.h, rx:6}, g);
-  } else if (p.kind === 'ahu') {
-    const fan = el('g', {class:'fan'}, g);
-    el('circle', {class:'ico', cx:p.x + 110, cy:p.y + 80, r:22}, fan);
-    el('path', {class:'ico', d:`M${p.x + 110} ${p.y + 80} l0 -18 M${p.x + 110} ${p.y + 80} l15 9 M${p.x + 110} ${p.y + 80} l-15 9`}, fan);
-    const s = el('text', {class:'addr', x:p.x + 110, y:p.y + 114, 'text-anchor':'middle', id:'fanTxt'}, g); s.textContent = 'STOP';
-  } else if (p.kind === 'iso') {
-    el('path', {class:'ico', d:`M${p.x + 48} ${p.y + 53} h12 l14 -9 M${p.x + 78} ${p.y + 53} h14`}, g);
-    el('circle', {class:'isoled', cx:p.x + 70, cy:p.y + 36, r:5}, g);
-  } else if (p.kind === 'bat') {
-    el('rect', {class:'ico', x:p.x + 20, y:p.y + 45, width:110, height:60, rx:4}, g);
-    const t = el('text', {class:'tlabel', x:p.x + 75, y:p.y + 82, 'text-anchor':'middle'}, g); t.textContent = '12V DC';
-  } else if (p.kind === 'facp') {
-    el('rect', {x:p.x + 14, y:p.y + 560, width:p.w - 28, height:130, rx:6, fill:'#1a1d20', stroke:'#454b52'}, g);
-    const t = el('text', {class:'glabel', x:p.x + 26, y:p.y + 585}, g); t.textContent = 'MAIN BOARD · PSU';
-    const t2 = el('text', {class:'glabel', x:p.x + 26, y:p.y + 605}, g); t2.textContent = 'AC 220V IN ●';
   }
 }
 function wirePath(a, b) {
@@ -624,62 +819,102 @@ function wirePath(a, b) {
 function drawWires() {
   gWires.innerHTML = '';
   for (const w of wires) {
+    if (!TERM[w.a] || !TERM[w.b]) continue;
     const d = wirePath(w.a, w.b);
     el('path', {class:'wire-halo', d}, gWires);
-    const p = el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':3.5}, gWires);
+    el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':3.5}, gWires);
     const h = el('path', {class:'wire-hit', d, 'data-w':w.id}, gWires);
-    const tt = el('title', {}, h); tt.textContent = `${TERM[w.a].part.ttl} ${TERM[w.a].lb} → ${TERM[w.b].part.ttl} ${TERM[w.b].lb}`;
+    el('title', {}, h).textContent = `${nameOf(TERM[w.a].part)} ${TERM[w.a].lb} → ${nameOf(TERM[w.b].part)} ${TERM[w.b].lb}`;
   }
 }
 
 /* ================= interaction ================= */
-function autoColor(k) { const t = TERM[k]; return t.pol === '+' ? 'red' : t.pol === '-' ? 'blk' : 'yel'; }
+const HINT = 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
+function hint(t) { $('hint').textContent = t || HINT; }
+function autoColor(k) {
+  const t = TERM[k];
+  if (t.pol === '+') return 'red';
+  if (t.pol === '-') return 'blk';
+  if (k === 'P.aa' || k === 'P.ab' || (t.part.t === 'ann' && (t.k === 'a' || t.k === 'b')) || T(t.part) && T(t.part).role === 'rsink' || t.part.t === 'rm' || /^P\.r/.test(k)) return 'blu';
+  return 'yel';
+}
 function svgPt(ev) { const pt = board.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; return pt.matrixTransform(board.getScreenCTM().inverse()); }
 function clickTerm(k) {
   selW = null;
-  if (!pending) { pending = k; hint(`เลือก ${TERM[k].part.ttl} ${TERM[k].lb || ''} แล้ว คลิกขั้วปลายทาง`); refreshTerms(); return; }
-  if (pending === k) { pending = null; hint(); refreshTerms(); gRubber.style.display = 'none'; return; }
+  if (!pending) { pending = k; hint(`เลือก ${nameOf(TERM[k].part)} ขั้ว ${TERM[k].lb || TERM[k].k} แล้ว คลิกขั้วปลายทาง`); drawTerms(); return; }
+  if (pending === k) { pending = null; hint(); drawTerms(); gRubber.style.display = 'none'; return; }
   const a = pending, b = k;
   pending = null; gRubber.style.display = 'none';
-  if (wires.some(w => (w.a === a && w.b === b) || (w.a === b && w.b === a))) { hint('มีสายเส้นนี้อยู่แล้ว'); refreshTerms(); return; }
-  if (TERM[a].part === TERM[b].part && TERM[a].part.kind !== 'facp') hint('ต่อสายคร่อมขั้วของอุปกรณ์ตัวเดียวกัน (ลัดวงจร)');
-  else hint();
+  if (wires.some(w => (w.a === a && w.b === b) || (w.a === b && w.b === a))) { hint('มีสายเส้นนี้อยู่แล้ว'); drawTerms(); return; }
+  hint(TERM[a].part === TERM[b].part && TERM[a].part.t !== 'facp' ? 'ต่อสายคร่อมขั้วของอุปกรณ์ตัวเดียวกัน (ลัดวงจร)' : '');
   wires.push({id:wseq++, a, b, color: color === 'auto' ? autoColor(a) : color, cut:false});
   changed();
 }
-function hint(t) { $('hint').textContent = t || 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทาง เพื่อลากสาย · คลิกที่สายเพื่อลบหรือจำลองสายขาด · กด Esc เพื่อยกเลิก'; }
-function refreshTerms() { board.querySelectorAll('.term').forEach(t => t.classList.toggle('sel', t.dataset.k === pending)); }
-board.addEventListener('click', ev => {
-  const t = ev.target.closest('.term');
-  if (t) { clickTerm(t.dataset.k); return; }
-  const w = ev.target.closest('.wire-hit');
-  if (w) { selW = +w.dataset.w; pending = null; gRubber.style.display = 'none'; refreshTerms(); const W = wires.find(x => x.id === selW); hint(`เลือกสาย ${TERM[W.a].part.ttl} ${TERM[W.a].lb} → ${TERM[W.b].part.ttl} ${TERM[W.b].lb}`); updateBtns(); drawWires(); return; }
-  if (pending || selW) { pending = null; selW = null; gRubber.style.display = 'none'; refreshTerms(); hint(); updateBtns(); drawWires(); }
-});
-board.addEventListener('keydown', ev => {
-  if (ev.key !== 'Enter' && ev.key !== ' ') return;
-  const t = ev.target.closest('.term'); if (!t) return;
-  ev.preventDefault(); clickTerm(t.dataset.k);
+let drag = null;
+board.addEventListener('pointerdown', ev => {
+  if (ev.target.closest('.term') || ev.target.closest('.wire-hit')) return;
+  const g = ev.target.closest('.part'); if (!g) return;
+  const p = byId(g.dataset.p);
+  if (p.t === 'facp') return;
+  const pt = svgPt(ev);
+  drag = {p, g, dx:pt.x - p.x, dy:pt.y - p.y, moved:false, sx:pt.x, sy:pt.y};
+  g.classList.add('dragging');
 });
 board.addEventListener('pointermove', ev => {
+  if (drag) {
+    const pt = svgPt(ev);
+    if (!drag.moved && Math.hypot(pt.x - drag.sx, pt.y - drag.sy) < 5) return;
+    if (!drag.moved) { try { board.setPointerCapture(ev.pointerId); } catch (e) {} }
+    drag.moved = true;
+    const ty = T(drag.p);
+    drag.p.x = Math.max(FW + 40, Math.min(BW - ty.w - 4, Math.round((pt.x - drag.dx) / 10) * 10));
+    drag.p.y = Math.max(16, Math.min(BH - ty.h - 4, Math.round((pt.y - drag.dy) / 10) * 10));
+    drag.g.setAttribute('transform', `translate(${drag.p.x} ${drag.p.y})`);
+    rebuildTerms(); drawTerms(); drawWires();
+    return;
+  }
   if (!pending) return;
   const p = svgPt(ev), A = TERM[pending];
   gRubber.setAttribute('d', `M${A.x} ${A.y} L${p.x} ${p.y}`); gRubber.style.display = '';
 });
-document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') { pending = null; selW = null; gRubber.style.display = 'none'; refreshTerms(); hint(); updateBtns(); drawWires(); }
-  if ((ev.key === 'Delete' || ev.key === 'Backspace') && selW && !/input/i.test(document.activeElement.tagName)) { delSel(); }
+let justDragged = false;
+function endDrag() {
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.g.classList.remove('dragging');
+  if (d.moved) { save(); justDragged = true; setTimeout(() => justDragged = false, 50); }
+}
+board.addEventListener('pointerup', endDrag);
+board.addEventListener('pointercancel', endDrag);
+board.addEventListener('click', ev => {
+  if (justDragged) return;
+  const t = ev.target.closest('.term');
+  if (t) { clickTerm(t.dataset.k); return; }
+  const w = ev.target.closest('.wire-hit');
+  if (w) { selW = +w.dataset.w; pending = null; gRubber.style.display = 'none'; const W = wires.find(x => x.id === selW); hint(`เลือกสาย ${nameOf(TERM[W.a].part)} ${TERM[W.a].lb} → ${nameOf(TERM[W.b].part)} ${TERM[W.b].lb}`); drawTerms(); drawWires(); updateBtns(); return; }
+  const g = ev.target.closest('.part');
+  if (g) { selectPart(g.dataset.p); return; }
+  if (pending || selW) { pending = null; selW = null; gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
 });
+board.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  const t = ev.target.closest('.term'); if (t) { ev.preventDefault(); clickTerm(t.dataset.k); return; }
+  const g = ev.target.closest('.part'); if (g) { ev.preventDefault(); selectPart(g.dataset.p); }
+});
+document.addEventListener('keydown', ev => {
+  if (/input|select/i.test(document.activeElement.tagName)) return;
+  if (ev.key === 'Escape') { pending = null; selW = null; gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
+  if ((ev.key === 'Delete' || ev.key === 'Backspace') && selW) delSel();
+});
+function selectPart(id) {
+  selP = id;
+  document.querySelectorAll('#board .part').forEach(g => g.classList.toggle('selp', g.dataset.p === id));
+  renderInsp();
+}
 function delSel() { wires = wires.filter(w => w.id !== selW); selW = null; hint(); changed(); }
 $('delW').addEventListener('click', delSel);
 $('cutW').addEventListener('click', () => { const w = wires.find(x => x.id === selW); if (!w) return; w.cut = !w.cut; changed(); });
 $('undo').addEventListener('click', () => { wires.pop(); selW = null; changed(); });
-$('clear').addEventListener('click', () => {
-  const b = $('clear');
-  if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'กดอีกครั้งเพื่อยืนยัน'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = 'ล้างสายทั้งหมด'; }, 2500); return; }
-  b.dataset.confirm = ''; b.textContent = 'ล้างสายทั้งหมด';
-  wires = []; selW = null; alarm = null; changed();
-});
 function updateBtns() {
   $('delW').disabled = !selW; $('cutW').disabled = !selW;
   const w = wires.find(x => x.id === selW);
@@ -687,118 +922,216 @@ function updateBtns() {
 }
 
 /* swatches */
-const SW = [['auto', 'อัตโนมัติ (+แดง −ดำ)', 'A'], ['red', 'แดง', ''], ['blk', 'ดำ', ''], ['blu', 'น้ำเงิน', ''], ['yel', 'เหลือง', '']];
+const SW = [['auto', 'อัตโนมัติ', 'A'], ['red', 'แดง', ''], ['blk', 'ดำ', ''], ['blu', 'น้ำเงิน', ''], ['yel', 'เหลือง', '']];
 $('swatches').innerHTML = SW.map(([k, n, t]) => `<button class="sw" type="button" data-c="${k}" title="${n}" aria-label="สี${n}" aria-pressed="${k === color}" style="${k !== 'auto' ? `background:${COLORS[k]}` : ''}">${t}</button>`).join('');
 $('swatches').addEventListener('click', ev => { const b = ev.target.closest('.sw'); if (!b) return; color = b.dataset.c; $('swatches').querySelectorAll('.sw').forEach(s => s.setAttribute('aria-pressed', String(s === b))); });
 
-/* address inputs */
-$('addr').innerHTML = SLCDEV.map(d => `<label for="ad-${d}">${NAME[d]} (${P[d].addrType})<input id="ad-${d}" type="number" min="1" max="159" value="${P[d].addr}"></label>`).join('');
-$('addr').addEventListener('input', ev => {
-  const i = ev.target; const d = i.id.slice(3);
-  P[d].addr = parseInt(i.value, 10) || 0;
-  $('addr-' + d).textContent = addrStr(d);
+/* palette */
+$('palette').innerHTML = CATS.map(([c, n]) => `<div class="pal-cat"><h3>${n}</h3><div class="pal-items">${Object.entries(TYPES).filter(([, t]) => t.cat === c).map(([k, t]) => `<button class="pal-btn" type="button" data-t="${k}"><b>${t.name}</b><span>${t.short}</span></button>`).join('')}</div></div>`).join('');
+$('palette').addEventListener('click', ev => {
+  const b = ev.target.closest('.pal-btn'); if (!b) return;
+  const t = b.dataset.t; const [x, y] = freeSpot(t);
+  const p = addPart(t, x, y);
+  selP = p.id; alarm = null;
+  changed();
+  hint(`วาง ${nameOf(p)} แล้ว (กรอบสีน้ำเงิน) ลากย้ายได้ แล้วต่อสายจากขั้วของอุปกรณ์`);
+  const wrap = $('boardWrap'), sc = board.getBoundingClientRect().width / BW;
+  wrap.scrollTo({left:Math.max(0, x * sc - 60), top:Math.max(0, y * sc - 60), behavior:'smooth'});
+});
+
+/* FACP cards */
+function renderCards() {
+  $('cards').innerHTML = `
+    <label class="fixed"><input type="checkbox" checked disabled><span><b>CPU / Main board</b><small>SLC Loop 1 · NAC 1–2 · AUX 24V · ANN-BUS · รีเลย์ Alarm</small></span></label>
+    <label class="fixed"><input type="checkbox" checked disabled><span><b>Main power supply</b><small>AC 220V · 24VDC · ชาร์จแบตเตอรี่</small></span></label>
+    <label for="cLoop2"><input type="checkbox" id="cLoop2" ${CARDS.loop2 ? 'checked' : ''}><span><b>การ์ด Loop 2</b><small>เพิ่ม SLC Loop ที่ 2 (Option slot 1)</small></span></label>
+    <label for="cDvc"><input type="checkbox" id="cDvc" ${CARDS.dvc ? 'checked' : ''}><span><b>การ์ด DVC / Audio amp</b><small>เสียงประกาศอพยพ วงจรลำโพง 25V (Option slot 2)</small></span></label>`;
+}
+$('cards').addEventListener('change', ev => {
+  if (ev.target.id === 'cLoop2') CARDS.loop2 = ev.target.checked;
+  if (ev.target.id === 'cDvc') CARDS.dvc = ev.target.checked;
+  rebuildTerms(); wires = wires.filter(w => TERM[w.a] && TERM[w.b]);
   changed();
 });
 
-/* ================= answers ================= */
-function W(a, b, c) { return {a, b, color:c || autoColor(a)}; }
-function answer(classA) {
+/* inspector */
+function renderInsp() {
+  const p = byId(selP);
+  if (!p) { $('insp').innerHTML = '<p>คลิกอุปกรณ์บนบอร์ดเพื่อดูวิธีต่อ ตั้ง Address และ Loop หรือลบอุปกรณ์</p>'; return; }
+  if (p.t === 'facp') { $('insp').innerHTML = '<h3>ตู้ FACP</h3><p>ตู้ประกอบด้วยการ์ด CPU และ Main power supply ติดการ์ดเสริมได้ 2 ช่องจากรายการ "การ์ดในตู้ FACP" ขั้วของการ์ดที่ติดจะปรากฏที่ขอบขวาของตู้</p>'; return; }
+  const ty = T(p);
+  let kv = '';
+  if (ty.addrType === 'A') kv += `<label for="iAddr">Address</label><input id="iAddr" type="number" min="1" max="8" value="${p.addr}">`;
+  else if (ty.addrType) {
+    kv += `<label for="iLoop">Loop</label><select id="iLoop"><option value="1" ${p.loop === 1 ? 'selected' : ''}>Loop 1</option><option value="2" ${p.loop === 2 ? 'selected' : ''}>Loop 2</option></select>`;
+    kv += `<label for="iAddr">Address (${ty.addrType})</label><input id="iAddr" type="number" min="1" max="159" value="${p.addr}">`;
+  }
+  $('insp').innerHTML = `<h3 id="iTitle">${label(p)}</h3><p>${ty.desc}</p>${kv ? `<div class="kv">${kv}</div>` : ''}
+    <div class="row"><button class="btn sm dng" type="button" id="iDel">ลบอุปกรณ์นี้</button></div>`;
+}
+$('insp').addEventListener('input', ev => {
+  const p = byId(selP); if (!p) return;
+  if (ev.target.id === 'iAddr') p.addr = parseInt(ev.target.value, 10) || 0;
+  else if (ev.target.id === 'iLoop') p.loop = +ev.target.value;
+  else return;
+  changed({keepInsp:true});
+  $('iTitle').textContent = label(p);
+});
+$('insp').addEventListener('click', ev => {
+  if (ev.target.id !== 'iDel') return;
+  const p = byId(selP); if (!p) return;
+  parts = parts.filter(q => q !== p);
+  wires = wires.filter(w => !w.a.startsWith(p.id + '.') && !w.b.startsWith(p.id + '.'));
+  selP = null; alarm = null; changed();
+});
+
+/* ================= examples ================= */
+const W = (a, b, c) => ({a, b, color:c || null});
+const end = (e, pol) => e.id + (pol === '+' ? '.a' : '.b');
+function build(full) {
+  parts = [{id:'P', t:'facp', x:20, y:20, n:1}];
+  wires = []; wseq = 1; alarm = null; selP = null;
+  CARDS.loop2 = full; CARDS.dvc = full;
+  const A = (t, x, y, e) => addPart(t, x, y, e);
+  const iso1 = A('iso', 370, 175), s1 = A('smoke', 370, 30, {addr:1}), s2 = A('smoke', 520, 30, {addr:2}), iso2 = A('iso', 670, 175), h1 = A('heat', 670, 30, {addr:3});
+  const mm1 = A('mm', 880, 30, {addr:1});
+  const mm2 = full ? A('mm', 880, 175, {addr:2}) : null;
+  const cm1 = A('cm', 880, 330, {addr:full ? 3 : 2}), rm1 = A('rm', 880, 500, {addr:full ? 4 : 3});
+  const pull = A('pull', 1100, 20), e1 = A('eol47', 1110, 110);
+  const hsc = A('hs', 1100, 350), e2 = A('eol47', 1110, 440);
+  const ahu = A('ahu', 1100, 520);
+  const n1 = A('hs', 370, 300), n2 = A('hs', 520, 300), e3 = A('eol22', 680, 305);
+  const b1 = A('bat', 380, 1040), b2 = A('bat', 560, 1040);
   const L = [];
-  const chain = [['P.b', 'I1.i'], ['I1.o', 'D1.s'], ['D1.s', 'D2.s'], ['D2.s', 'I2.i'], ['I2.o', 'D3.s'], ['D3.s', 'MM.s'], ['MM.s', 'CM.s'], ['CM.s', 'RM.s']];
-  for (const [a, b] of chain) { L.push(W(a + '+', b + '+')); L.push(W(a + '-', b + '-')); }
-  if (classA) { L.push(W('RM.s+', 'P.a+')); L.push(W('RM.s-', 'P.a-')); }
-  L.push(W('P.n+', 'H2.+'), W('H2.+', 'H3.+'), W('H3.+', 'E3.a', 'red'), W('P.n-', 'H2.-'), W('H2.-', 'H3.-'), W('H3.-', 'E3.b', 'blk'));
-  L.push(W('P.x+', 'CM.v+'), W('P.x-', 'CM.v-'));
-  L.push(W('CM.o+', 'H1.+'), W('H1.+', 'E2.a', 'red'), W('CM.o-', 'H1.-'), W('H1.-', 'E2.b', 'blk'));
-  L.push(W('MM.i+', 'PS.1', 'red'), W('PS.1', 'E1.a', 'red'), W('MM.i-', 'PS.2', 'blk'), W('PS.2', 'E1.b', 'blk'));
-  L.push(W('RM.c', 'AHU.r1', 'blu'), W('RM.nc', 'AHU.r2', 'blu'));
-  L.push(W('P.t+', 'B1.+'), W('B1.-', 'B2.+', 'blk'), W('B2.-', 'P.t-'));
-  return L;
+  // SLC loop 1: panel -> ISO1 -> D1 -> D2 -> ISO2 -> D3 -> modules (-> back to A in the full example)
+  const hop = [['P.l1b', iso1.id + '.i'], [iso1.id + '.o', s1.id + '.s'], [s1.id + '.s', s2.id + '.s'], [s2.id + '.s', iso2.id + '.i'], [iso2.id + '.o', h1.id + '.s']];
+  const mods = [h1, mm1, ...(mm2 ? [mm2] : []), cm1, rm1];
+  for (let i = 0; i < mods.length - 1; i++) hop.push([mods[i].id + '.s', mods[i + 1].id + '.s']);
+  if (full) hop.push([rm1.id + '.s', 'P.l1a']);
+  for (const [a, b] of hop) for (const pol of ['+', '-']) L.push(W(a + pol, b + pol));
+  for (const pol of ['+', '-']) L.push(W('P.n1' + pol, n1.id + '.' + pol), W(n1.id + '.' + pol, n2.id + '.' + pol), W(n2.id + '.' + pol, end(e3, pol)));
+  L.push(W('P.x+', cm1.id + '.v+'), W('P.x-', cm1.id + '.v-'));
+  for (const pol of ['+', '-']) L.push(W(cm1.id + '.o' + pol, hsc.id + '.' + pol), W(hsc.id + '.' + pol, end(e2, pol)));
+  L.push(W(mm1.id + '.i+', pull.id + '.c1', 'red'), W(pull.id + '.c1', e1.id + '.a', 'red'), W(mm1.id + '.i-', pull.id + '.c2', 'blk'), W(pull.id + '.c2', e1.id + '.b', 'blk'));
+  L.push(W(rm1.id + '.c', ahu.id + '.r1'), W(rm1.id + '.nc', ahu.id + '.r2'));
+  L.push(W('P.t+', b1.id + '.+'), W(b1.id + '.-', b2.id + '.+'), W(b2.id + '.-', 'P.t-'));
+  if (full) {
+    const tam = A('tamper', 1100, 185), e4 = A('eol47', 1110, 270);
+    L.push(W(mm2.id + '.i+', tam.id + '.c1', 'red'), W(tam.id + '.c1', e4.id + '.a', 'red'), W(mm2.id + '.i-', tam.id + '.c2', 'blk'), W(tam.id + '.c2', e4.id + '.b', 'blk'));
+    const a1 = A('smoke', 1330, 30, {loop:2, addr:1}), a2 = A('multi', 1330, 170, {loop:2, addr:2}), a3 = A('duct', 1500, 170, {loop:2, addr:3});
+    for (const pol of ['+', '-']) L.push(W('P.l2b' + pol, a1.id + '.s' + pol), W(a1.id + '.s' + pol, a2.id + '.s' + pol), W(a2.id + '.s' + pol, a3.id + '.s' + pol));
+    const sp1 = A('spk', 1330, 340), sp2 = A('spk', 1500, 340), e5 = A('eol47', 1510, 440);
+    for (const pol of ['+', '-']) L.push(W('P.sp' + pol, sp1.id + '.' + pol), W(sp1.id + '.' + pol, sp2.id + '.' + pol), W(sp2.id + '.' + pol, end(e5, pol)));
+    const ps = A('psu', 370, 450), e6 = A('eol22', 610, 455), hp = A('hs', 640, 560), e7 = A('eol47', 660, 660);
+    const pb1 = A('bat', 380, 760), pb2 = A('bat', 560, 760);
+    for (const pol of ['+', '-']) L.push(W('P.n2' + pol, ps.id + '.in' + pol), W(ps.id + '.in' + pol, end(e6, pol)), W(ps.id + '.o1' + pol, hp.id + '.' + pol), W(hp.id + '.' + pol, end(e7, pol)));
+    L.push(W(ps.id + '.t+', pb1.id + '.+'), W(pb1.id + '.-', pb2.id + '.+'), W(pb2.id + '.-', ps.id + '.t-'));
+    const an = A('ann', 1330, 560, {addr:1});
+    L.push(W('P.aa', an.id + '.a'), W('P.ab', an.id + '.b'), W('P.x+', an.id + '.v+'), W('P.x-', an.id + '.v-'));
+    const ev = A('elev', 1100, 680);
+    L.push(W('P.rc', ev.id + '.r1'), W('P.rno', ev.id + '.r2'));
+  }
+  rebuildTerms();
+  wires = L.map(w => ({id:wseq++, a:w.a, b:w.b, color:w.color || autoColor(w.a), cut:false}));
+  changed();
+  hint(full ? 'ตัวอย่างระบบเต็ม: Loop 1 แบบ Class A + Isolator, การ์ด Loop 2, การ์ด DVC, Remote PSU บน NAC 2, Annunciator, ลิฟต์และ AHU' : 'ตัวอย่างระบบพื้นฐาน: Loop 1 แบบ Class B + Isolator, NAC 1, โมดูล 3 แบบ และแบตเตอรี่');
 }
-function setWires(list) { wires = list.map(w => ({...w, id:wseq++, cut:false})); selW = null; pending = null; alarm = null; SLCDEV.forEach((d, i) => { P[d].addr = [1, 2, 3, 1, 2, 3][i]; $('ad-' + d).value = P[d].addr; $('addr-' + d).textContent = addrStr(d); }); changed(); }
-$('ansB').addEventListener('click', () => setWires(answer(false)));
-$('ansA').addEventListener('click', () => setWires(answer(true)));
-function starter() {
-  return [W('P.t+', 'B1.+'), W('B1.-', 'B2.+', 'blk'), W('B2.-', 'P.t-'),
-    W('P.b+', 'D1.s+'), W('P.b-', 'D1.s-'), W('D1.s+', 'D2.s+'), W('D1.s-', 'D2.s-')];
-}
-$('start').addEventListener('click', () => setWires(starter()));
+$('exBasic').addEventListener('click', () => build(false));
+$('exFull').addEventListener('click', () => build(true));
+$('clear').addEventListener('click', () => {
+  const b = $('clear');
+  if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'กดอีกครั้งเพื่อยืนยัน'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = 'เริ่มใหม่ (ตู้เปล่า)'; }, 2500); return; }
+  b.dataset.confirm = ''; b.textContent = 'เริ่มใหม่ (ตู้เปล่า)';
+  parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loop2 = false; CARDS.dvc = false;
+  addPart('bat', 380, 1040); addPart('bat', 560, 1040);
+  wires = []; selP = null; selW = null; alarm = null; changed();
+  hint('ตู้เปล่าพร้อมแบตเตอรี่ 2 ลูก เลือกอุปกรณ์จากคลังทางซ้ายมาวาง แล้วเริ่มต่อสาย');
+});
 
 /* ================= tests ================= */
-const TESTS = [['pull', 'ดึงแมนนวล'], ['D1', 'พ่นควัน D1'], ['D2', 'พ่นควัน D2'], ['D3', 'ให้ความร้อน D3'], ['reset', 'SYSTEM RESET']];
-$('tests').innerHTML = TESTS.map(([k, n]) => `<button class="btn ${k === 'reset' ? 'pri' : ''}" type="button" data-t="${k}">${n}</button>`).join('');
+function renderTests() {
+  const ini = parts.filter(p => T(p) && (T(p).cat === 'det' || T(p).role === 'contact'));
+  $('tests').innerHTML = ini.map(p => `<button class="btn sm" type="button" data-t="${p.id}">${T(p).cat === 'det' ? 'เหตุที่' : 'สั่ง'} ${nameOf(p)}</button>`).join('') + '<button class="btn sm pri" type="button" data-t="reset">SYSTEM RESET</button>';
+  const slc = parts.filter(p => T(p) && T(p).role === 'slc');
+  const cur = $('shortSel').value;
+  $('shortSel').innerHTML = slc.map(p => `<option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${label(p)}</option>`).join('');
+  syncShortBtn();
+}
 $('tests').addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b) return;
   const k = b.dataset.t;
   if (k === 'reset') { alarm = null; $('testMsg').textContent = 'รีเซ็ตแล้ว'; render(); return; }
-  if (k === 'pull') {
-    if (result.funcs.pull) { alarm = {txt:`L1${addrStr('MM')} PULL STATION`}; $('testMsg').textContent = 'ตู้รับสัญญาณจากแมนนวลผ่าน Monitor module'; }
-    else $('testMsg').textContent = !result.resp.MM ? 'ตู้ไม่ได้รับสัญญาณ: Monitor module ไม่ตอบบน SLC' : 'ตู้ไม่ได้รับสัญญาณ: แมนนวลไม่ได้ต่อคร่อม IDC+ / IDC−';
+  const p = byId(k); if (!p) return;
+  if (T(p).cat === 'det') {
+    if (result.resp[p.id]) { alarm = {kind:'FIRE', txt:`${addrStr(p)} ${T(p).dt}`}; $('testMsg').textContent = `${label(p)} ส่ง Alarm เข้าตู้`; }
+    else $('testMsg').textContent = `ตู้ไม่ได้รับสัญญาณ: ${label(p)} ไม่ตอบบน SLC`;
   } else {
-    if (result.resp[k]) { alarm = {txt:`L1${addrStr(k)} ${P[k].dt}`}; $('testMsg').textContent = `${devName(k)} ส่ง Alarm เข้าตู้`; }
-    else $('testMsg').textContent = `ตู้ไม่ได้รับสัญญาณ: ${devName(k)} ไม่ตอบบน SLC`;
+    const mm = parts.find(m => m.t === 'mm' && result.outs[m.id] && result.outs[m.id].devOK.includes(p));
+    if (mm && result.resp[mm.id]) { const kind = T(p).ev; alarm = {kind, txt:`${addrStr(mm)} ${T(p).short}`}; $('testMsg').textContent = `${nameOf(p)} สั่งผ่าน ${label(mm)}` + (kind === 'SUPV' ? ' เป็น Supervisory (ไม่สั่งกริ่ง)' : ''); }
+    else $('testMsg').textContent = mm ? `ตู้ไม่ได้รับสัญญาณ: ${label(mm)} ไม่ตอบบน SLC` : `ตู้ไม่ได้รับสัญญาณ: ${nameOf(p)} ไม่ได้ต่อคร่อม IDC ของ Monitor module`;
   }
   render();
 });
-
-const shortSel = $('shortSel');
-shortSel.innerHTML = SLCDEV.map(d => `<option value="${d}">${devName(d)}</option>`).join('');
-function shortWire() { const d = shortSel.value; return wires.find(w => w.fault && w.a === d + '.s+'); }
-function syncShortBtn() { $('shortBtn').textContent = shortWire() ? 'ยกเลิกจุดช็อต' : 'สร้างจุดช็อต'; }
-shortSel.addEventListener('change', syncShortBtn);
+function shortWire() { const d = $('shortSel').value; return wires.find(w => w.fault && w.a === d + '.s+'); }
+function syncShortBtn() { $('shortBtn').textContent = shortWire() ? 'ยกเลิกจุดช็อต' : 'สร้างจุดช็อต'; $('shortBtn').disabled = !$('shortSel').value; }
+$('shortSel').addEventListener('change', syncShortBtn);
 $('shortBtn').addEventListener('click', () => {
-  const d = shortSel.value, ex = shortWire();
-  if (ex) wires = wires.filter(w => w !== ex);
-  else wires.push({id:wseq++, a:d + '.s+', b:d + '.s-', color:'yel', cut:false, fault:true});
-  $('testMsg').textContent = ex ? `ยกเลิกจุดช็อตที่ ${devName(d)}` : `สาย SLC+ กับ SLC− ช็อตกันที่ ${devName(d)} ดูว่า Isolator ตัดช่วงไหน`;
+  const d = $('shortSel').value; if (!d) return; const ex = shortWire();
+  if (ex) wires = wires.filter(w => w !== ex); else wires.push({id:wseq++, a:d + '.s+', b:d + '.s-', color:'yel', cut:false, fault:true});
   changed();
+  $('testMsg').textContent = ex ? `ยกเลิกจุดช็อตที่ ${label(byId(d))}` : `สาย SLC+ กับ SLC− ช็อตกันที่ ${label(byId(d))} ดูว่า Isolator ตัดช่วงไหน`;
 });
 
 /* ================= render ================= */
-const W40 = 34;
-const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repeat(Math.max(1, W40 - a.length - b.length)) + b).slice(0, W40); };
+const LW = 34;
+const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repeat(Math.max(1, LW - a.length - b.length)) + b).slice(0, LW); };
 function render() {
   result = analyze();
-  if (result.funcs.idcShort && !alarm) alarm = {txt:`L1${addrStr('MM')} IDC SHORT`};
+  const idcAlarm = result.panel.find(p => p[0] === 'ALARM');
+  if (idcAlarm && !alarm) alarm = {kind:'FIRE', txt:idcAlarm[1]};
+  const S = simulate(result);
   drawWires();
-  // board live states
-  const on = new Set();
-  if (alarm) { result.funcs.nac1.forEach(h => on.add(h)); result.funcs.cm.forEach(h => on.add(h)); }
-  ['H1','H2','H3'].forEach(h => $('part-' + h).classList.toggle('on', on.has(h)));
-  ISOS.forEach(i => $('part-' + i).classList.toggle('open', result.isoOpen.includes(i)));
-  ['D1','D2','D3'].forEach(d => $('part-' + d).classList.toggle('alm', !!alarm && alarm.txt.includes(addrStr(d)) && P[d].addrType === 'D'));
-  const r = result.funcs.relay, active = !!alarm && r.ok;
-  const run = r.mode === 'bypass' || (r.mode === 'nc' && !active) || (r.mode === 'no' && active);
-  $('part-AHU').classList.toggle('run', run); $('fanTxt').textContent = run ? 'FAN RUN' : 'FAN STOP';
-  // panel lcd
-  const tr = result.panel.filter(p => p[0] === 'TROUBLE');
-  const seen = new Set(); const trU = tr.filter(t => !seen.has(t[1]) && seen.add(t[1]));
-  const al = alarm || result.panel.find(p => p[0] === 'ALARM') && {txt:result.panel.find(p => p[0] === 'ALARM')[1]};
+  parts.forEach(p => {
+    const g = $('part-' + p.id); if (!g || p.t === 'facp') return;
+    g.classList.toggle('on', S.sound.has(p.id));
+    g.classList.toggle('alm', !!alarm && T(p).cat === 'det' && alarm.txt.startsWith(addrStr(p) + ' '));
+    g.classList.toggle('open', result.isoOpen.includes(p.id));
+  });
+  for (const r of result.relays) {
+    const active = !!r.src && S.relayOn.has(r.src.id);
+    const closed = r.mode === 'bypass' || (r.mode === 'nc' && !active) || (r.mode === 'no' && active);
+    const g = $('part-' + r.p.id), st = $('st-' + r.p.id);
+    if (r.p.t === 'ahu') { g.classList.toggle('run', closed); st.textContent = closed ? 'FAN RUN' : 'FAN STOP'; }
+    else st.textContent = closed ? 'RECALL' : 'NORMAL';
+  }
+  parts.filter(p => p.t === 'psu').forEach(p => { $('st-' + p.id).textContent = S.psuOn.has(p.id) ? 'NAC ACTIVE' : 'STANDBY'; });
+  const seen = new Set(); const tr = result.panel.filter(p => p[0] === 'TROUBLE' && !seen.has(p[1]) && seen.add(p[1]));
   let lines;
-  if (al) lines = [pad('FIRE ALARM', 'ACTIVE'), pad(al.txt), pad(trU.length ? `+ ${trU.length} TROUBLE` : ''), pad(on.size ? `NAC ON: ${on.size} HORN` : 'NAC: NO HORN SOUNDING')];
-  else if (trU.length) lines = [pad('TROUBLE', `${trU.length} EVENT${trU.length > 1 ? 'S' : ''}`), ...trU.slice(0, 3).map(t => pad(t[1]))];
+  if (alarm && alarm.kind === 'FIRE') lines = [pad('FIRE ALARM', 'ACTIVE'), pad(alarm.txt), pad(tr.length ? `+ ${tr.length} TROUBLE` : ''), pad(S.sound.size ? `SIGNALS ON: ${S.sound.size}` : 'NO SIGNAL ACTIVE')];
+  else if (alarm && alarm.kind === 'SUPV') lines = [pad('SUPERVISORY', 'ACTIVE'), pad(alarm.txt), pad(tr.length ? `+ ${tr.length} TROUBLE` : ''), pad('')];
+  else if (tr.length) lines = [pad('TROUBLE', `${tr.length} EVENT${tr.length > 1 ? 'S' : ''}`), ...tr.slice(0, 3).map(t => pad(t[1]))];
   else lines = [pad('SYSTEM NORMAL'), pad('ALL POINTS OK'), pad('AC OK  BATTERY 24V'), pad('')];
   while (lines.length < 4) lines.push(pad(''));
   $('lcd').textContent = lines.join('\n');
-  $('pnlCount').textContent = trU.length > 3 && !al ? `+${trU.length - 3} MORE` : '';
-  $('leds').innerHTML = [['AC POWER', '#3fd16f', 'on'], ['FIRE ALARM', '#ff2a3d', al ? 'blink' : ''], ['SYSTEM TROUBLE', '#ffc93a', trU.length ? 'blink' : ''], ['NAC ACTIVE', '#ff2a3d', on.size ? 'on' : '']]
+  $('pnlCount').textContent = tr.length > 3 && !alarm ? `+${tr.length - 3} MORE` : '';
+  $('leds').innerHTML = [['AC POWER', '#3fd16f', 'on'], ['FIRE ALARM', '#ff2a3d', alarm && alarm.kind === 'FIRE' ? 'blink' : ''], ['SUPERVISORY', '#ffc93a', alarm && alarm.kind === 'SUPV' ? 'blink' : ''], ['SYSTEM TROUBLE', '#ffc93a', tr.length ? 'blink' : '']]
     .map(([n, c, s]) => `<div class="led ${s ? 'lit' : ''} ${s === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`).join('');
-  // results
+  parts.filter(p => p.t === 'ann').forEach(p => { $('annt-' + p.id).textContent = !result.ann[p.id] ? 'COMM FAIL' : alarm ? (alarm.kind === 'FIRE' ? 'FIRE ALARM' : 'SUPERVISORY') : tr.length ? 'TROUBLE' : 'NORMAL'; });
   const LBL = {ok:['ผ่าน', 'c-ok'], err:['ต้องแก้', 'c-err'], todo:['ยังไม่ต่อ', 'c-muted'], warn:['ระวัง', 'c-warn']};
   $('res').innerHTML = result.circ.map(c => `<div class="circ"><div class="circ-h"><b>${c.title}</b><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></div>
     <ul>${c.items.map(([l, t]) => `<li class="${l}">${t}</li>`).join('')}</ul></div>`).join('');
-  const circs = result.circ.filter(c => c.key !== 'x');
+  const circs = result.circ.filter(c => !['x', 'loose', 'l2x'].includes(c.key));
   const pass = circs.filter(c => c.state === 'ok').length;
+  const allOk = pass === circs.length && !result.circ.some(c => ['x', 'l2x'].includes(c.key));
   $('score').textContent = `ผ่าน ${pass}/${circs.length} วงจร`;
-  $('score').className = 'chip ' + (pass === circs.length && !result.circ.some(c => c.key === 'x') ? 'c-ok' : 'c-muted');
-  updateBtns(); syncShortBtn();
-  shortSel.querySelectorAll('option').forEach(o => o.textContent = devName(o.value));
+  $('score').className = 'chip ' + (allOk ? 'c-ok' : 'c-muted');
+  updateBtns();
 }
-function changed() { save(); render(); }
+function changed(opts = {}) { save(); drawAll(); renderCards(); if (!opts.keepInsp) renderInsp(); renderTests(); render(); }
 
 /* ================= boot ================= */
-drawStatic();
-if (!load()) setWires(starter()); else { SLCDEV.forEach(d => { $('ad-' + d).value = P[d].addr; $('addr-' + d).textContent = addrStr(d); }); render(); }
+hint();
+if (!load()) build(false); else changed();
 })();
 </script>
 
