@@ -97,6 +97,12 @@ svg.board{display:block;width:100%;min-width:900px;height:auto;touch-action:mani
 .ahu.run .fan{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .det.alm circle.ico{fill:var(--err);stroke:var(--err)}
+.iso .isoled{fill:#3a3f45;stroke:var(--part-line)}
+.iso.open .isoled{fill:#ffc93a;animation:blink 1s steps(1) infinite}
+.iso.open rect.body{stroke:var(--warn);stroke-width:2.5}
+.wire.fault{stroke-dasharray:4 4}
+.shortrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.shortrow select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);color:var(--fg)}
 @media (prefers-reduced-motion:reduce){.hs.on .flash,.ahu.run .fan,.wire.bad{animation-duration:3s}}
 
 /* panel display */
@@ -181,6 +187,9 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
       <section class="card" aria-label="ทดสอบการทำงาน">
         <div class="card-h"><h2>ทดสอบการทำงาน</h2><span class="eyebrow">Functional test</span></div>
         <div class="row" id="tests"></div>
+        <div class="shortrow"><label for="shortSel" class="note">จำลองสาย SLC ช็อตที่</label>
+          <select id="shortSel"></select>
+          <button class="btn" id="shortBtn" type="button">สร้างจุดช็อต</button></div>
         <p class="note" id="testMsg">ต่อสายให้ครบแล้วลองดึงแมนนวลหรือพ่นควันใส่หัว</p>
       </section>
 
@@ -204,7 +213,9 @@ code{font-family:var(--font-mono);font-size:.82em;background:var(--surface-2);bo
         <li>สาย 2 เส้น <code>SLC+</code> / <code>SLC−</code> ต่อพ่วงหัวและโมดูลทุกตัวแบบขนาน ขั้วต้องตรงกันทุกตัว</li>
         <li><b>Class B</b>: ออกจากขั้ว B แล้วจบที่อุปกรณ์ตัวสุดท้าย แยกสาย (T-tap) ได้ ไม่มี EOL</li>
         <li><b>Class A</b>: ออกขั้ว B วนผ่านทุกตัวแล้วกลับเข้าขั้ว A สายขาดจุดเดียวยังสื่อสารได้ครบ ห้าม T-tap</li>
-        <li>นิยมใช้สายคู่ตีเกลียว 1.5 mm² มีชีลด์ ต่อชีลด์ลงกราวด์ที่ตู้ด้านเดียว และควรติด Isolator คั่นทุกโซน</li>
+        <li>นิยมใช้สายคู่ตีเกลียว 1.5 mm² มีชีลด์ ต่อชีลด์ลงกราวด์ที่ตู้ด้านเดียว</li>
+        <li><b>Isolator module</b>: ต่ออนุกรมใน loop ขา <code>IN</code> รับจากฝั่งตู้ ขา <code>OUT</code> ไปอุปกรณ์ถัดไป เมื่อสายช็อต Isolator ทั้งสองข้างของช่วงนั้นจะเปิดวงจร ตัดเฉพาะช่วงที่เสีย ควรติดต้น loop และคั่นทุกโซนหรือทุกชั้น จำนวนอุปกรณ์ระหว่าง Isolator ให้ดูตามคู่มือ (ทั่วไปไม่เกิน 25 ตัว)</li>
+        <li>ช็อตช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator ช่วยไม่ได้ จึงควรติดตัวแรกใกล้ตู้ที่สุด ใน Class A ช่วงที่ช็อตถูกตัดออก ส่วนที่เหลือได้ไฟจากทั้งสองฝั่ง</li>
       </ul></div>
       <div class="g"><h3>Monitor module (รับสัญญาณหน้าสัมผัส)</h3><ul>
         <li>ด้าน SLC ต่อเข้า loop เหมือนหัวตรวจจับ ด้าน <code>IDC</code> ต่อกับหน้าสัมผัส NO ของแมนนวล, Flow switch, Tamper</li>
@@ -253,6 +264,8 @@ const PARTS = [
   {id:'E2', kind:'eol', val:47000, x:1090, y:350, w:120, h:70, ttl:'EOL 47kΩ', terms:[['a','',0,38,'l',''],['b','',0,58,'l','']]},
   {id:'RM', kind:'mod', x:850, y:500, w:150, h:170, ttl:'RELAY MOD', sub:'หน้าสัมผัสแห้ง', addrType:'M', addr:3, terms:[['s+','SLC+',0,60,'l','+'],['s-','SLC−',0,90,'l','-'],['c','C',150,60,'r',''],['no','NO',150,95,'r',''],['nc','NC',150,130,'r','']]},
   {id:'AHU', kind:'ahu', x:1070, y:520, w:150, h:120, ttl:'AHU-1 STARTER', sub:'วงจรสั่ง RUN', terms:[['r1','RUN1',0,70,'l',''],['r2','RUN2',0,100,'l','']]},
+  {id:'I1', kind:'iso', x:330, y:178, w:140, h:80, ttl:'ISOLATOR ISO-1', terms:[['i+','IN+',0,42,'l','+'],['i-','IN−',0,64,'l','-'],['o+','OUT+',140,42,'r','+'],['o-','OUT−',140,64,'r','-']]},
+  {id:'I2', kind:'iso', x:650, y:178, w:140, h:80, ttl:'ISOLATOR ISO-2', terms:[['i+','IN+',0,42,'l','+'],['i-','IN−',0,64,'l','-'],['o+','OUT+',140,42,'r','+'],['o-','OUT−',140,64,'r','-']]},
   {id:'H2', kind:'hs', x:350, y:300, w:140, h:85, ttl:'HORN/STROBE', sub:'HS-2', terms:[['+','+',0,50,'l','+'],['-','−',0,72,'l','-']]},
   {id:'H3', kind:'hs', x:540, y:300, w:140, h:85, ttl:'HORN/STROBE', sub:'HS-3', terms:[['+','+',0,50,'l','+'],['-','−',0,72,'l','-']]},
   {id:'E3', kind:'eol', val:2200, x:720, y:315, w:110, h:70, ttl:'EOL 2.2kΩ', terms:[['a','',0,38,'l',''],['b','',0,58,'l','']]},
@@ -263,7 +276,8 @@ const P = Object.fromEntries(PARTS.map(p => [p.id, p]));
 const TERM = {};
 PARTS.forEach(p => p.terms.forEach(([k, lb, x, y, side, pol]) => { TERM[p.id + '.' + k] = {part:p, k, lb, x:p.x + x, y:p.y + y, side, pol}; }));
 const SLCDEV = ['D1','D2','D3','MM','CM','RM'];
-const NAME = {D1:'หัวควัน #1', D2:'หัวควัน #2', D3:'หัวความร้อน', MM:'Monitor module', CM:'Control module', RM:'Relay module', PS:'แมนนวล', H1:'ฮอร์น HS-1', H2:'ฮอร์น HS-2', H3:'ฮอร์น HS-3', E1:'EOL 47k (#1)', E2:'EOL 47k (#2)', E3:'EOL 2.2k', AHU:'AHU', B1:'แบตเตอรี่ #1', B2:'แบตเตอรี่ #2'};
+const ISOS = ['I1','I2'];
+const NAME = {I1:'Isolator ISO-1', I2:'Isolator ISO-2', D1:'หัวควัน #1', D2:'หัวควัน #2', D3:'หัวความร้อน', MM:'Monitor module', CM:'Control module', RM:'Relay module', PS:'แมนนวล', H1:'ฮอร์น HS-1', H2:'ฮอร์น HS-2', H3:'ฮอร์น HS-3', E1:'EOL 47k (#1)', E2:'EOL 47k (#2)', E3:'EOL 2.2k', AHU:'AHU', B1:'แบตเตอรี่ #1', B2:'แบตเตอรี่ #2'};
 const addrStr = id => P[id].addrType + String(P[id].addr).padStart(3, '0');
 const devName = id => P[id].addrType ? `${NAME[id]} ${addrStr(id)}` : NAME[id];
 
@@ -292,14 +306,17 @@ function load() {
 }
 
 /* ================= analysis ================= */
-function netFn(skip) {
+function netFn(skip, closed) {
   const par = new Map();
   const find = k => { if (!par.has(k)) par.set(k, k); let r = k; while (par.get(r) !== r) r = par.get(r); let c = k; while (par.get(c) !== r) { const n = par.get(c); par.set(c, r); c = n; } return r; };
-  for (const w of wires) { if (w.cut || w.id === skip) continue; const a = find(w.a), b = find(w.b); if (a !== b) par.set(a, b); }
+  const join = (x, y) => { const a = find(x), b = find(y); if (a !== b) par.set(a, b); };
+  for (const w of wires) { if (w.cut || w.id === skip) continue; join(w.a, w.b); }
+  // isolator: + passes straight through; − passes through a switch that opens on a short
+  for (const i of ISOS) { join(i + '.i+', i + '.o+'); if (!closed || closed.has(i)) join(i + '.i-', i + '.o-'); }
   return find;
 }
 const GROUP = {};
-['P.b+','P.b-','P.a+','P.a-',...SLCDEV.flatMap(d => [d + '.s+', d + '.s-'])].forEach(k => GROUP[k] = 'SLC');
+['P.b+','P.b-','P.a+','P.a-',...SLCDEV.flatMap(d => [d + '.s+', d + '.s-']),...ISOS.flatMap(i => [i + '.i+', i + '.i-', i + '.o+', i + '.o-'])].forEach(k => GROUP[k] = 'SLC');
 ['P.n+','P.n-'].forEach(k => GROUP[k] = 'NAC1');
 ['P.x+','P.x-','CM.v+','CM.v-'].forEach(k => GROUP[k] = 'AUX 24V');
 ['P.t+','P.t-','B1.+','B1.-','B2.+','B2.-'].forEach(k => GROUP[k] = 'แบตเตอรี่');
@@ -363,7 +380,7 @@ function analyzeLoop(o) {
 }
 
 function analyze() {
-  const f = netFn();
+  let f = netFn();
   const R = {circ:[], panel:[], bad:new Set(), resp:{}, funcs:{}};
   const add = (key, title, items, state) => R.circ.push({key, title, items, state});
 
@@ -406,18 +423,32 @@ function analyze() {
   /* SLC */
   {
     const it = []; let st = 'ok';
+    const isShort = g => { const b = [g('P.b+'), g('P.b-')], a = [g('P.a+'), g('P.a-')]; return b[0] === b[1] || a[0] === a[1] || b[0] === a[1] || a[0] === b[1]; };
+    const fAll = f;
+    const short0 = isShort(fAll);
+    const isoUsed = ISOS.filter(i => partUsed(i));
+    R.isoOpen = [];
+    if (short0 && isoUsed.length) {
+      // isolators open on the short, then re-close one by one; any that would reconnect the short stays open
+      let closed = new Set(), ch = true;
+      while (ch) { ch = false; for (const i of ISOS) { if (closed.has(i)) continue; const t = new Set(closed); t.add(i); if (!isShort(netFn(undefined, t))) { closed = t; ch = true; } } }
+      R.isoOpen = isoUsed.filter(i => !closed.has(i));
+      f = netFn(undefined, closed);
+    }
     const B = [f('P.b+'), f('P.b-')], A = [f('P.a+'), f('P.a-')];
-    const short = B[0] === B[1] || A[0] === A[1] || B[0] === A[1] || A[0] === B[1];
+    const short = isShort(f);
     const aUsed = termUsed('P.a+') || termUsed('P.a-');
     const respond = (g, d) => (g(d + '.s+') === g('P.b+') || g(d + '.s+') === g('P.a+')) && (g(d + '.s-') === g('P.b-') || g(d + '.s-') === g('P.a-'));
     if (!termUsed('P.b+') && !termUsed('P.b-')) { it.push(['inf', 'ยังไม่ได้ต่อสายออกจากขั้ว SLC B']); st = 'todo'; }
-    if (short) { it.push(['err', 'SLC+ กับ SLC− ลัดวงจร อุปกรณ์ทุกตัวสื่อสารไม่ได้ (ติด Isolator จะจำกัดผลเฉพาะช่วง)']); R.panel.push(['TROUBLE', 'SLC LOOP 1 SHORT']); st = 'err'; }
+    if (short) { it.push(['err', isoUsed.length ? 'SLC ลัดวงจรในช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator จึงตัดไม่ได้ อุปกรณ์ทุกตัวสื่อสารไม่ได้' : 'SLC+ กับ SLC− ลัดวงจร อุปกรณ์ทุกตัวสื่อสารไม่ได้ เพราะไม่มี Isolator คั่นช่วง']); R.panel.push(['TROUBLE', 'SLC LOOP 1 SHORT']); st = 'err'; }
+    else if (short0) { it.push(['warn', `SLC ลัดวงจร: ${R.isoOpen.map(i => NAME[i]).join(' และ ')} เปิดวงจร (ไฟเหลือง) ตัดช่วงที่ช็อตออกจาก loop`]); R.panel.push(['TROUBLE', 'SLC LOOP 1 SHORT (ISOLATED)']); st = 'err'; }
     for (const d of SLCDEV) {
       const ok = !short && respond(f, d);
       R.resp[d] = ok;
       if (ok) continue;
-      const rev = !short && (f(d + '.s+') === B[1] || f(d + '.s+') === A[1]) && (f(d + '.s-') === B[0] || f(d + '.s-') === A[0]);
+      const rev = !short0 && (f(d + '.s+') === B[1] || f(d + '.s+') === A[1]) && (f(d + '.s-') === B[0] || f(d + '.s-') === A[0]);
       if (rev) it.push(['err', `${devName(d)} ต่อกลับขั้ว SLC จึงไม่ตอบ`]);
+      else if (partUsed(d) && short0 && !short && respond(fAll, d)) it.push(['warn', `${devName(d)} อยู่ในช่วงที่ถูก Isolator ตัดออก`]);
       else if (partUsed(d) && !short) it.push(['err', `${devName(d)} ต่อไม่ครบหรือไม่ถึงตู้`]);
       else if (!short) it.push(['inf', `${devName(d)} ยังไม่ได้ต่อ`]);
       R.panel.push(['TROUBLE', `L1${addrStr(d)} INVALID REPLY`]);
@@ -435,7 +466,7 @@ function analyze() {
     SLCDEV.forEach(d => { if (P[d].addr < 1 || P[d].addr > 159) { it.push(['err', `${NAME[d]} Address ต้องอยู่ระหว่าง 1–159`]); R.resp[d] = false; st = 'err'; } });
     const nResp = SLCDEV.filter(d => R.resp[d]).length;
     if (nResp) it.unshift(['ok', `อุปกรณ์ตอบสนอง ${nResp}/${SLCDEV.length} ตัว`]);
-    if (!short && aUsed) {
+    if (!short0 && aUsed) {
       if (A[0] !== B[0] || A[1] !== B[1]) { it.push(['err', 'ต่อ Class A แต่สายกลับเข้าขั้ว A ไม่ครบวง ตู้แจ้ง SLC OPEN']); R.panel.push(['TROUBLE', 'SLC LOOP 1 OPEN (CLASS A)']); st = 'err'; }
       else {
         const weak = new Set();
@@ -446,7 +477,15 @@ function analyze() {
         if (weak.size) { it.push(['err', `Class A มี T-tap: ${[...weak].map(d => NAME[d]).join(', ')} จะหลุดถ้าสายที่กะพริบขาด`]); st = 'err'; }
         else it.push(['ok', 'Class A ครบวง สายขาดจุดเดียวยังสื่อสารได้ทุกตัว']);
       }
-    } else if (!short && nResp) it.push(['inf', 'Class B: ไม่ใช้ขั้ว A (T-tap ทำได้)']);
+    } else if (!short0 && nResp) it.push(['inf', 'Class B: ไม่ใช้ขั้ว A (T-tap ทำได้)']);
+    if (short0 && !short && !aUsed) it.push(['inf', 'Class B ได้ไฟจากฝั่งตู้ทางเดียว อุปกรณ์ทุกตัวหลัง Isolator ที่เปิดจึงหลุดด้วย ถ้าเป็น Class A ช่วงหลังจะยังได้ไฟจากขั้ว A']);
+    if (!isoUsed.length && nResp) it.push(['inf', 'ไม่มี Isolator: ช็อตจุดเดียวทำให้อุปกรณ์ทั้ง loop ล่ม']);
+    else if (isoUsed.length && !short0) {
+      const half = isoUsed.filter(i => !(termUsed(i + '.i+') && termUsed(i + '.i-') && termUsed(i + '.o+') && termUsed(i + '.o-')));
+      if (half.length) { it.push(['err', `${half.map(i => NAME[i]).join(', ')} ต่อไม่ครบทั้งขา IN และ OUT`]); st = 'err'; }
+      else it.push(['ok', `ติด Isolator ${isoUsed.length} ตัว แบ่ง loop เป็นช่วง`]);
+    }
+    f = fAll;
     add('slc', 'SLC Loop 1', it, st);
   }
 
@@ -520,7 +559,7 @@ function drawStatic() {
   for (let y = 0; y <= 900; y += 40) el('line', {class:'gridline', x1:0, y1:y, x2:1240, y2:y}, gGrid);
   const gParts = el('g', {}, board);
   for (const p of PARTS) {
-    const g = el('g', {class:`part ${p.kind}` + (p.kind === 'hs' ? ' hs' : '') + (p.kind === 'ahu' ? ' ahu' : ''), id:'part-' + p.id}, gParts);
+    const g = el('g', {class:`part ${p.kind}` + (p.kind === 'hs' ? ' hs' : '') + (p.kind === 'ahu' ? ' ahu' : '') + (p.kind === 'iso' ? ' iso' : ''), id:'part-' + p.id}, gParts);
     el('rect', {class:'body', x:p.x, y:p.y, width:p.w, height:p.h, rx:p.kind === 'det' ? 14 : 6}, g);
     if (p.kind !== 'facp') el('rect', {class:'head', x:p.x + 1, y:p.y + 1, width:p.w - 2, height:22, rx:5}, g);
     const t = el('text', {class:'ttl', x:p.x + 8, y:p.y + 16}, g); t.textContent = p.ttl;
@@ -563,6 +602,9 @@ function drawIcon(p, g) {
     el('circle', {class:'ico', cx:p.x + 110, cy:p.y + 80, r:22}, fan);
     el('path', {class:'ico', d:`M${p.x + 110} ${p.y + 80} l0 -18 M${p.x + 110} ${p.y + 80} l15 9 M${p.x + 110} ${p.y + 80} l-15 9`}, fan);
     const s = el('text', {class:'addr', x:p.x + 110, y:p.y + 114, 'text-anchor':'middle', id:'fanTxt'}, g); s.textContent = 'STOP';
+  } else if (p.kind === 'iso') {
+    el('path', {class:'ico', d:`M${p.x + 48} ${p.y + 53} h12 l14 -9 M${p.x + 78} ${p.y + 53} h14`}, g);
+    el('circle', {class:'isoled', cx:p.x + 70, cy:p.y + 36, r:5}, g);
   } else if (p.kind === 'bat') {
     el('rect', {class:'ico', x:p.x + 20, y:p.y + 45, width:110, height:60, rx:4}, g);
     const t = el('text', {class:'tlabel', x:p.x + 75, y:p.y + 82, 'text-anchor':'middle'}, g); t.textContent = '12V DC';
@@ -584,7 +626,7 @@ function drawWires() {
   for (const w of wires) {
     const d = wirePath(w.a, w.b);
     el('path', {class:'wire-halo', d}, gWires);
-    const p = el('path', {class:'wire' + (w.cut ? ' cut' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':3.5}, gWires);
+    const p = el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':3.5}, gWires);
     const h = el('path', {class:'wire-hit', d, 'data-w':w.id}, gWires);
     const tt = el('title', {}, h); tt.textContent = `${TERM[w.a].part.ttl} ${TERM[w.a].lb} → ${TERM[w.b].part.ttl} ${TERM[w.b].lb}`;
   }
@@ -662,8 +704,8 @@ $('addr').addEventListener('input', ev => {
 function W(a, b, c) { return {a, b, color:c || autoColor(a)}; }
 function answer(classA) {
   const L = [];
-  const chain = ['P.b', 'D1.s', 'D2.s', 'D3.s', 'MM.s', 'CM.s', 'RM.s'];
-  for (let i = 0; i < chain.length - 1; i++) { L.push(W(chain[i] + '+', chain[i + 1] + '+')); L.push(W(chain[i] + '-', chain[i + 1] + '-')); }
+  const chain = [['P.b', 'I1.i'], ['I1.o', 'D1.s'], ['D1.s', 'D2.s'], ['D2.s', 'I2.i'], ['I2.o', 'D3.s'], ['D3.s', 'MM.s'], ['MM.s', 'CM.s'], ['CM.s', 'RM.s']];
+  for (const [a, b] of chain) { L.push(W(a + '+', b + '+')); L.push(W(a + '-', b + '-')); }
   if (classA) { L.push(W('RM.s+', 'P.a+')); L.push(W('RM.s-', 'P.a-')); }
   L.push(W('P.n+', 'H2.+'), W('H2.+', 'H3.+'), W('H3.+', 'E3.a', 'red'), W('P.n-', 'H2.-'), W('H2.-', 'H3.-'), W('H3.-', 'E3.b', 'blk'));
   L.push(W('P.x+', 'CM.v+'), W('P.x-', 'CM.v-'));
@@ -699,6 +741,19 @@ $('tests').addEventListener('click', ev => {
   render();
 });
 
+const shortSel = $('shortSel');
+shortSel.innerHTML = SLCDEV.map(d => `<option value="${d}">${devName(d)}</option>`).join('');
+function shortWire() { const d = shortSel.value; return wires.find(w => w.fault && w.a === d + '.s+'); }
+function syncShortBtn() { $('shortBtn').textContent = shortWire() ? 'ยกเลิกจุดช็อต' : 'สร้างจุดช็อต'; }
+shortSel.addEventListener('change', syncShortBtn);
+$('shortBtn').addEventListener('click', () => {
+  const d = shortSel.value, ex = shortWire();
+  if (ex) wires = wires.filter(w => w !== ex);
+  else wires.push({id:wseq++, a:d + '.s+', b:d + '.s-', color:'yel', cut:false, fault:true});
+  $('testMsg').textContent = ex ? `ยกเลิกจุดช็อตที่ ${devName(d)}` : `สาย SLC+ กับ SLC− ช็อตกันที่ ${devName(d)} ดูว่า Isolator ตัดช่วงไหน`;
+  changed();
+});
+
 /* ================= render ================= */
 const W40 = 34;
 const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repeat(Math.max(1, W40 - a.length - b.length)) + b).slice(0, W40); };
@@ -710,6 +765,7 @@ function render() {
   const on = new Set();
   if (alarm) { result.funcs.nac1.forEach(h => on.add(h)); result.funcs.cm.forEach(h => on.add(h)); }
   ['H1','H2','H3'].forEach(h => $('part-' + h).classList.toggle('on', on.has(h)));
+  ISOS.forEach(i => $('part-' + i).classList.toggle('open', result.isoOpen.includes(i)));
   ['D1','D2','D3'].forEach(d => $('part-' + d).classList.toggle('alm', !!alarm && alarm.txt.includes(addrStr(d)) && P[d].addrType === 'D'));
   const r = result.funcs.relay, active = !!alarm && r.ok;
   const run = r.mode === 'bypass' || (r.mode === 'nc' && !active) || (r.mode === 'no' && active);
@@ -735,7 +791,8 @@ function render() {
   const pass = circs.filter(c => c.state === 'ok').length;
   $('score').textContent = `ผ่าน ${pass}/${circs.length} วงจร`;
   $('score').className = 'chip ' + (pass === circs.length && !result.circ.some(c => c.key === 'x') ? 'c-ok' : 'c-muted');
-  updateBtns();
+  updateBtns(); syncShortBtn();
+  shortSel.querySelectorAll('option').forEach(o => o.textContent = devName(o.value));
 }
 function changed() { save(); render(); }
 
