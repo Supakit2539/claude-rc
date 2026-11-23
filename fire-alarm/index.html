@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Fire Alarm Panel Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=VT323&display=swap">
+<style>
+/* Layout: control panel (left, sticky on desktop) + building plan and outputs (right); log and guide below. Panel enclosure is a fixed-colour physical device in both themes. */
+:root{
+  --bg:#e9edf0; --surface:#ffffff; --surface-2:#f3f5f7; --fg:#1b2127; --muted:#5d6874; --line:#d3d9df;
+  --accent:#c8102e; --accent-ink:#ffffff;
+  --alarm:#d7192f; --pre:#e8701a; --supv:#d49b00; --trbl:#c9a300; --ok:#1f8a4c; --dis:#8a939c; --info:#2f6fb5;
+  --room:#f7f9fa; --room-line:#b9c2ca; --corr:#eef1f4;
+  /* device colours: same in both themes */
+  --enc:#2b2f34; --enc-2:#1f2226; --enc-line:#454b52; --enc-fg:#e6e9ec; --enc-muted:#9aa3ad;
+  --lcd-bg:#a9c27a; --lcd-fg:#1d2a12; --lcd-glow:#c4da94;
+  --font-body:"IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-lcd:"VT323", "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#12161a; --surface:#1b2026; --surface-2:#222831; --fg:#e4e8ec; --muted:#9aa5b0; --line:#323a43;
+  --accent:#ff4a5f; --accent-ink:#1a0005;
+  --alarm:#ff4a5f; --pre:#ff9648; --supv:#f2bf2e; --trbl:#e8cc3a; --ok:#3fc27a; --dis:#7d8892; --info:#6aa7ec;
+  --room:#1e242b; --room-line:#3c4651; --corr:#181d23; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#12161a; --surface:#1b2026; --surface-2:#222831; --fg:#e4e8ec; --muted:#9aa5b0; --line:#323a43;
+  --accent:#ff4a5f; --accent-ink:#1a0005;
+  --alarm:#ff4a5f; --pre:#ff9648; --supv:#f2bf2e; --trbl:#e8cc3a; --ok:#3fc27a; --dis:#7d8892; --info:#6aa7ec;
+  --room:#1e242b; --room-line:#3c4651; --corr:#181d23; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:1.6rem;font-weight:700}
+h2{font-size:1.1rem;font-weight:700}
+h3{font-size:.95rem;font-weight:600}
+p{margin:0}
+.eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+header.top .t{display:flex;flex-direction:column;gap:4px;min-width:0}
+header.top .lead{color:var(--muted);max-width:68ch}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:7px 12px;font-size:.88rem;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn:focus-visible,.pbtn:focus-visible,.dev:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+.btn.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+.grid{display:grid;grid-template-columns:minmax(0,500px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+
+/* ===== Control panel enclosure ===== */
+.panel{background:linear-gradient(180deg,var(--enc),var(--enc-2));color:var(--enc-fg);border-radius:14px;padding:0 0 18px;border:1px solid #000;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 12px 30px rgba(0,0,0,.25);overflow:hidden}
+@media (min-width:981px){.panel-sticky{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}}
+.panel-band{background:var(--accent);background:#b10d25;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel-band b{font-family:var(--font-mono);letter-spacing:.18em;font-size:.82rem}
+.panel-band span{font-family:var(--font-mono);font-size:.7rem;opacity:.85;letter-spacing:.08em}
+.panel-body{padding:16px 18px 0;display:flex;flex-direction:column;gap:16px}
+.lcd-frame{background:#0d0f11;border-radius:8px;padding:10px;border:1px solid var(--enc-line);overflow-x:auto}
+.lcd{background:radial-gradient(ellipse at 50% 40%,var(--lcd-glow),var(--lcd-bg) 70%);color:var(--lcd-fg);font-family:var(--font-lcd);
+  font-size:clamp(13px,3.9vw,21px);line-height:1.12;padding:8px 10px;border-radius:4px;white-space:pre;min-width:max-content;
+  box-shadow:inset 0 0 12px rgba(0,0,0,.35);letter-spacing:.02em}
+.lcd.off{background:#3a4330;color:transparent}
+.leds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+.led{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;color:var(--enc-muted)}
+.led i{width:14px;height:14px;border-radius:50%;flex:none;background:#3a3f45;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.led.lit{color:var(--enc-fg)}
+.led.lit i{background:var(--c);box-shadow:0 0 10px var(--c),0 0 2px #fff inset}
+.led.blink i{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{background:#3a3f45;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}}
+.keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pbtn{position:relative;overflow:hidden;border:1px solid #000;border-radius:8px;padding:10px 4px 8px;color:#fff;font-family:var(--font-mono);font-size:.68rem;font-weight:600;letter-spacing:.06em;line-height:1.25;
+  box-shadow:0 3px 0 rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.25);text-align:center;min-height:58px}
+.pbtn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.55)}
+.pbtn small{display:block;font-family:var(--font-body);font-weight:500;font-size:.66rem;letter-spacing:0;opacity:.85;margin-top:3px}
+.k-ack{background:#2d6d3c}.k-sil{background:#a77800}.k-drill{background:#b10d25}.k-reset{background:#2b5a8c}
+.k-sm{background:#3b4148;min-height:40px}
+.pbtn .hold{position:absolute;left:0;bottom:0;height:4px;width:0;background:#fff;opacity:.85}
+.pbtn.holding .hold{width:100%;transition:width 2s linear}
+.keys2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.piezo{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--font-mono);font-size:.7rem;color:var(--enc-muted);letter-spacing:.06em;flex-wrap:wrap}
+.piezo .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3a3f45;margin-right:6px;vertical-align:middle}
+.piezo .dot.on{background:#ffd34d;box-shadow:0 0 8px #ffd34d}
+.piezo .dot.pulse{animation:blink .5s steps(1) infinite;background:#ffd34d}
+
+/* ===== Plan ===== */
+.plan-wrap{overflow-x:auto;border-radius:8px;background:var(--surface-2);border:1px solid var(--line)}
+svg.plan{display:block;width:100%;min-width:560px;height:auto}
+.room{fill:var(--room);stroke:var(--room-line);stroke-width:1.2}
+.corr{fill:var(--corr);stroke:var(--room-line);stroke-width:1.2}
+.shaft{fill:var(--surface-2);stroke:var(--room-line);stroke-dasharray:4 3}
+.rlabel{fill:var(--muted);font-size:11px;font-family:var(--font-body)}
+.flabel{fill:var(--fg);font-size:13px;font-weight:700;font-family:var(--font-body)}
+.dev{cursor:pointer}
+.dev circle,.dev rect{stroke:var(--fg);stroke-width:1.4;fill:var(--surface)}
+.dev text{font-family:var(--font-mono);font-size:10px;font-weight:600;fill:var(--fg);pointer-events:none}
+.dev .ring{fill:none;stroke:none}
+.dev.sel .ring{stroke:var(--info);stroke-width:2.5;stroke-dasharray:3 3}
+.dev.pull rect{fill:var(--accent);stroke:var(--accent)}
+.dev.pull text{fill:var(--accent-ink)}
+.dev.s-alarm circle,.dev.s-alarm rect{fill:var(--alarm);stroke:var(--alarm);animation:pulse .8s ease-in-out infinite}
+.dev.s-alarm text{fill:#fff}
+.dev.s-prealarm circle{fill:var(--pre);stroke:var(--pre)}
+.dev.s-prealarm text{fill:#fff}
+.dev.s-supv circle{fill:var(--supv);stroke:var(--supv)}
+.dev.s-trouble circle,.dev.s-trouble rect{fill:var(--surface);stroke:var(--trbl);stroke-width:3;stroke-dasharray:3 2}
+.dev.s-disabled circle,.dev.s-disabled rect{fill:var(--surface-2);stroke:var(--dis);stroke-dasharray:2 2}
+.dev.s-disabled text{fill:var(--dis)}
+@keyframes pulse{50%{opacity:.45}}
+.nac rect{fill:var(--surface);stroke:var(--fg);stroke-width:1.4}
+.nac text{font-family:var(--font-mono);font-size:9px;font-weight:600;fill:var(--fg);pointer-events:none}
+.nac .flash{fill:#fff;opacity:0}
+.nac.strobe .flash{animation:strobe 1s steps(1) infinite}
+.nac.horn rect{stroke:var(--alarm);stroke-width:2.4}
+.nac.open rect{stroke:var(--trbl);stroke-dasharray:3 2;stroke-width:2.5}
+@keyframes strobe{0%{opacity:.95}12%{opacity:0}}
+.waves{fill:none;stroke:var(--alarm);stroke-width:1.5;opacity:0}
+.nac.horn .waves{animation:waves 4s linear infinite}
+@keyframes waves{0%,12%{opacity:1}12.5%,25%{opacity:0}25.5%,37%{opacity:1}37.5%,50%{opacity:0}50.5%,62%{opacity:1}62.5%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.led.blink i,.dev.s-alarm circle,.dev.s-alarm rect,.nac.strobe .flash,.nac.horn .waves,.piezo .dot.pulse{animation-duration:2.5s}}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:50%;border:2px solid var(--fg);background:var(--surface);display:inline-block}
+
+/* device detail */
+.detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px}
+@media (max-width:640px){.detail{grid-template-columns:minmax(0,1fr)}}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:.88rem}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--font-mono);font-size:.82rem;overflow-wrap:anywhere}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
+.acts .btn.danger{border-color:var(--alarm);color:var(--alarm)}
+.acts .btn.warn{border-color:var(--trbl)}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:.7rem;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.c-alarm{color:var(--alarm)}.c-pre{color:var(--pre)}.c-supv{color:var(--supv)}.c-trbl{color:var(--trbl)}.c-ok{color:var(--ok)}.c-dis{color:var(--dis)}.c-info{color:var(--info)}.c-muted{color:var(--muted)}
+
+/* outputs */
+.outs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.out{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;background:var(--surface-2)}
+.out .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.out .n{font-weight:600;font-size:.9rem}
+.out .d{font-size:.8rem;color:var(--muted)}
+.out.act{border-color:var(--alarm)}
+
+/* scenarios */
+.scen{display:flex;flex-wrap:wrap;gap:8px}
+.sys{display:flex;flex-wrap:wrap;gap:8px}
+
+/* log */
+.log-wrap{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table.log{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+table.log th,table.log td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+table.log th{position:sticky;top:0;background:var(--surface-2);font-weight:600;color:var(--muted);font-size:.75rem}
+table.log td.m{font-family:var(--font-mono);font-size:.78rem;white-space:nowrap}
+.empty{color:var(--muted);font-size:.88rem;padding:12px}
+
+/* guide */
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.guide ol,.guide ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
+.guide p{font-size:.9rem;color:var(--muted);max-width:65ch}
+kbd{font-family:var(--font-mono);font-size:.78rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface-2)}
+.note{font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="t">
+      <span class="eyebrow">Addressable FACP · SLC Loop 1 · Training mode</span>
+      <h1>เครื่องจำลองตู้ควบคุมแจ้งเหตุเพลิงไหม้</h1>
+      <p class="lead">จำลองตู้ควบคุมแบบ Addressable ตามลำดับการทำงานของตู้ Notifier: อุปกรณ์บน SLC loop รายงานสถานะเป็นรายจุด ตู้แสดงผลบน LCD ไฟสถานะกะพริบจนกว่าจะกด Acknowledge แล้วสั่งอุปกรณ์เอาต์พุตตาม Cause &amp; Effect คลิกอุปกรณ์บนผังอาคารเพื่อสร้างเหตุการณ์</p>
+    </div>
+    <div class="tools">
+      <button class="btn" id="soundBtn" type="button" aria-pressed="false">เปิดเสียง</button>
+      <button class="btn" id="restoreAll" type="button">คืนสภาพอาคารทั้งหมด</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ============ PANEL ============ -->
+    <div class="col">
+      <section class="panel panel-sticky" aria-label="ตู้ควบคุม">
+        <div class="panel-band"><b>FIRE ALARM CONTROL PANEL</b><span>FACP-01 · BLDG A</span></div>
+        <div class="panel-body">
+          <div class="lcd-frame"><div class="lcd" id="lcd" aria-live="polite"></div></div>
+          <div class="leds" id="leds"></div>
+          <div class="piezo"><span><span class="dot" id="piezoDot"></span>PIEZO <span id="piezoTxt">QUIET</span></span><span id="evCount">EVENTS 0</span></div>
+          <div class="keys">
+            <button class="pbtn k-ack" id="kAck" type="button">ACKNOWLEDGE<br>/ STEP<small>รับทราบ</small></button>
+            <button class="pbtn k-sil" id="kSil" type="button">ALARM<br>SILENCE<small>หยุดเสียงกริ่ง</small></button>
+            <button class="pbtn k-drill" id="kDrill" type="button">DRILL<br>HOLD 2 SEC<small>อพยพ/ซ้อม</small><span class="hold"></span></button>
+            <button class="pbtn k-reset" id="kReset" type="button">SYSTEM<br>RESET<small>รีเซ็ตระบบ</small></button>
+          </div>
+          <div class="keys2">
+            <button class="pbtn k-sm" id="kPrev" type="button" aria-label="เหตุการณ์ก่อนหน้า">◀ PREV</button>
+            <button class="pbtn k-sm" id="kNext" type="button" aria-label="เหตุการณ์ถัดไป">NEXT ▶</button>
+            <button class="pbtn k-sm" id="kLamp" type="button">LAMP TEST</button>
+            <button class="pbtn k-sm" id="kHist" type="button">HISTORY</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="สถานการณ์ฝึก">
+        <div class="card-h"><h2>สถานการณ์ฝึก</h2><span class="eyebrow">Quick scenarios</span></div>
+        <div class="scen" id="scen"></div>
+        <h3>เหตุขัดข้องของระบบ</h3>
+        <div class="sys" id="sys"></div>
+      </section>
+    </div>
+
+    <!-- ============ BUILDING ============ -->
+    <div class="col">
+      <section class="card" aria-label="ผังอาคาร">
+        <div class="card-h"><h2>ผังอาคาร · อุปกรณ์บน SLC Loop 1</h2><span class="eyebrow">คลิกอุปกรณ์เพื่อเลือก</span></div>
+        <div class="plan-wrap"><svg class="plan" id="plan" viewBox="0 0 800 548" role="img" aria-label="ผังอาคาร 3 ชั้นพร้อมตำแหน่งอุปกรณ์"></svg></div>
+        <div class="legend">
+          <span><i class="sw"></i>S ควัน</span><span><i class="sw"></i>H ความร้อน</span><span><i class="sw"></i>D ควันท่อลม</span>
+          <span><i class="sw" style="border-radius:2px;background:var(--accent);border-color:var(--accent)"></i>P แมนนวล</span>
+          <span><i class="sw"></i>W น้ำไหล</span><span><i class="sw"></i>T วาล์ว</span><span><i class="sw" style="border-radius:2px"></i>HS ฮอร์น/สโตรบ (NAC)</span>
+        </div>
+        <div class="detail" id="detail"></div>
+      </section>
+
+      <section class="card" aria-label="เอาต์พุต">
+        <div class="card-h"><h2>เอาต์พุตตาม Cause &amp; Effect</h2><span class="eyebrow">Control modules · Relays · NAC</span></div>
+        <div class="outs" id="outs"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card" aria-label="ประวัติเหตุการณ์" id="histCard">
+    <div class="card-h"><h2>ประวัติเหตุการณ์ (History)</h2><button class="btn" id="clrLog" type="button">ล้างประวัติ</button></div>
+    <div class="log-wrap"><table class="log"><thead><tr><th>เวลา</th><th>ประเภท</th><th>รายละเอียด</th></tr></thead><tbody id="log"></tbody></table></div>
+  </section>
+
+  <section class="card" aria-label="คู่มือ">
+    <h2>ลำดับการตอบสนองเมื่อตู้แจ้งเหตุ</h2>
+    <div class="guide">
+      <div>
+        <h3>เมื่อเกิด FIRE ALARM</h3>
+        <ol>
+          <li>ดู LCD ว่าเป็นอุปกรณ์ใด (Address เช่น <b>L1D007</b> = Loop 1 Detector 7) อยู่ที่ไหน</li>
+          <li>กด <kbd>ACKNOWLEDGE</kbd> ไฟ FIRE ALARM จะหยุดกะพริบเป็นติดค้าง และ Piezo ที่ตู้เงียบ (กริ่งในอาคารยังดัง)</li>
+          <li>ส่งคนไปตรวจสอบจุดเกิดเหตุ ถ้าเป็นเหตุจริงให้อพยพและแจ้งดับเพลิง</li>
+          <li>กด <kbd>ALARM SILENCE</kbd> เพื่อหยุดฮอร์น ไฟ ALARM SILENCED ติด ถ้ามีจุดใหม่ alarm ตามมา ระบบจะดังขึ้นอีก (Resound)</li>
+          <li>แก้ที่ต้นเหตุ: เป่าควันออกจากหัว หรือใช้กุญแจรีเซ็ตแมนนวล (เลือกอุปกรณ์ แล้วกด <i>คืนสภาพ</i>)</li>
+          <li>กด <kbd>SYSTEM RESET</kbd> ถ้าอุปกรณ์ยังไม่คืนสภาพ ตู้จะ alarm ขึ้นอีกทันทีหลังรีเซ็ต</li>
+        </ol>
+      </div>
+      <div>
+        <h3>ประเภทสัญญาณ</h3>
+        <ul>
+          <li><span class="chip c-alarm">FIRE ALARM</span> Latching ค้างจนกว่ากด Reset สั่งกริ่ง ปิดแอร์ ปล่อยประตู เรียกลิฟต์</li>
+          <li><span class="chip c-pre">PREALARM</span> ควันเริ่มสะสมเกินระดับเตือน ยังไม่สั่งกริ่ง หายเองเมื่อควันลด</li>
+          <li><span class="chip c-supv">SUPERVISORY</span> ระบบดับเพลิงผิดปกติ เช่น วาล์วสปริงเกลอร์ถูกปิด ค้างจนกว่ากด Reset</li>
+          <li><span class="chip c-trbl">TROUBLE</span> ระบบเสีย เช่น หัวหลุด สายขาด ไฟดับ หายเองเมื่อแก้ไขแล้ว (Non-latching)</li>
+        </ul>
+        <p class="note">ลำดับความสำคัญบน LCD: Fire Alarm › Prealarm › Supervisory › Trouble เหตุการณ์ที่สำคัญกว่าแสดงก่อนเสมอ</p>
+      </div>
+      <div>
+        <h3>การตั้งค่าตู้ในเครื่องจำลอง</h3>
+        <ul>
+          <li>NAC สัญญาณเสียงแบบ Temporal-3 (ดัง 0.5 วินาที 3 ครั้ง แล้วเว้น 1.5 วินาที)</li>
+          <li>สโตรบกะพริบ 1 ครั้งต่อวินาทีแบบ synchronized</li>
+          <li>หลังกด Silence <label><input type="checkbox" id="strobeCont" checked> สโตรบยังกะพริบจนกว่าจะ Reset</label></li>
+          <li>ลิฟต์: ควันในโถงลิฟต์ชั้นอื่นเรียกลงชั้น 1 (Primary) ควันโถงลิฟต์ชั้น 1 เรียกไปชั้น 2 (Alternate)</li>
+        </ul>
+        <p class="note">เครื่องจำลองนี้ใช้เพื่อการเรียนรู้หลักการทำงานเท่านั้น ไม่ใช่ซอฟต์แวร์หรือคู่มือของผู้ผลิต การใช้งานตู้จริงให้ยึดคู่มือของรุ่นนั้นและมาตรฐาน วสท./NFPA 72</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ---------- device catalogue ---------- */
+const TYPES = {
+  photo:  {code:'SMOKE(PHOTO)', th:'หัวตรวจจับควันชนิด Photoelectric', icon:'S', kind:'det'},
+  heat:   {code:'HEAT(ROR)',    th:'หัวตรวจจับความร้อนชนิด Rate-of-Rise', icon:'H', kind:'det'},
+  duct:   {code:'SMOKE(DUCT)',  th:'หัวตรวจจับควันในท่อลม AHU', icon:'D', kind:'det'},
+  pull:   {code:'MONITOR',      th:'สถานีแจ้งเหตุด้วยมือ (Manual pull station)', icon:'P', kind:'pull', sub:'PULL STATION'},
+  flow:   {code:'MONITOR',      th:'สวิตช์ตรวจการไหลของน้ำสปริงเกลอร์', icon:'W', kind:'flow', sub:'WATERFLOW'},
+  tamper: {code:'SUPERVISORY',  th:'สวิตช์ตรวจตำแหน่งวาล์วสปริงเกลอร์ (Tamper)', icon:'T', kind:'supv', sub:'VALVE TAMPER'},
+};
+// floor y offset: floor 3 at top
+const FY = f => 28 + (3 - f) * 175;
+const DEV = [
+  {a:'L1D001', t:'photo', f:1, x:200, y:30,  lb:'FL1 MAIN LOBBY',        z:'Z001'},
+  {a:'L1D002', t:'photo', f:1, x:335, y:120, lb:'FL1 ELEVATOR LOBBY',    z:'Z001', elev:true},
+  {a:'L1D003', t:'heat',  f:1, x:520, y:30,  lb:'FL1 KITCHEN',           z:'Z001'},
+  {a:'L1D004', t:'duct',  f:1, x:690, y:30,  lb:'AHU-1 SUPPLY DUCT',     z:'Z010'},
+  {a:'L1M001', t:'pull',  f:1, x:100, y:75,  lb:'FL1 MAIN EXIT',         z:'Z001'},
+  {a:'L1M002', t:'pull',  f:1, x:760, y:75,  lb:'FL1 REAR EXIT',         z:'Z001'},
+  {a:'L1M003', t:'flow',  f:1, x:655, y:120, lb:'SPRINKLER RISER FLOW',  z:'Z020'},
+  {a:'L1M004', t:'tamper',f:1, x:725, y:120, lb:'SPRINKLER MAIN VALVE',  z:'Z021'},
+  {a:'L1D005', t:'photo', f:2, x:480, y:75,  lb:'FL2 CORRIDOR',          z:'Z002'},
+  {a:'L1D006', t:'photo', f:2, x:200, y:30,  lb:'FL2 OPEN OFFICE',       z:'Z002'},
+  {a:'L1D007', t:'photo', f:2, x:610, y:30,  lb:'FL2 SERVER ROOM',       z:'Z002'},
+  {a:'L1D008', t:'photo', f:2, x:335, y:120, lb:'FL2 ELEVATOR LOBBY',    z:'Z002', elev:true},
+  {a:'L1M005', t:'pull',  f:2, x:100, y:75,  lb:'FL2 STAIR EXIT',        z:'Z002'},
+  {a:'L1D009', t:'photo', f:3, x:480, y:75,  lb:'FL3 CORRIDOR',          z:'Z003'},
+  {a:'L1D010', t:'photo', f:3, x:200, y:30,  lb:'FL3 MEETING ROOM',      z:'Z003'},
+  {a:'L1D011', t:'heat',  f:3, x:670, y:120, lb:'FL3 FILE STORAGE',      z:'Z003'},
+  {a:'L1D012', t:'photo', f:3, x:335, y:120, lb:'FL3 ELEVATOR LOBBY',    z:'Z003', elev:true},
+  {a:'L1M006', t:'pull',  f:3, x:100, y:75,  lb:'FL3 STAIR EXIT',        z:'Z003'},
+];
+DEV.forEach(d => { d.cond = 'normal'; d.disabled = false; d.type = TYPES[d.t]; });
+const NACS = [
+  {a:'NAC1', lb:'NAC 1 FLOOR 1',    floors:[1], open:false},
+  {a:'NAC2', lb:'NAC 2 FLOOR 2-3',  floors:[2,3], open:false},
+];
+const HS = []; // horn/strobe appliances
+[1,2,3].forEach(f => { [250, 560].forEach(x => HS.push({f, x, y:75, nac: f === 1 ? 'NAC1' : 'NAC2'})); });
+
+const ROOMS = {
+  1: [[80,0,360,60,'ล็อบบี้'],[440,0,160,60,'ครัว'],[600,0,180,60,'ห้อง AHU'],[80,90,210,60,'ห้องรักษาความปลอดภัย'],[440,90,160,60,'ห้องเก็บของ'],[600,90,180,60,'ห้องปั๊ม/ไรเซอร์']],
+  2: [[80,0,360,60,'สำนักงาน'],[440,0,340,60,'ห้องเซิร์ฟเวอร์'],[80,90,210,60,'ห้องประชุมเล็ก'],[440,90,160,60,'ห้องน้ำ'],[600,90,180,60,'สำนักงาน B']],
+  3: [[80,0,360,60,'ห้องประชุมใหญ่'],[440,0,340,60,'ห้องผู้บริหาร'],[80,90,210,60,'ห้องพักพนักงาน'],[440,90,140,60,'ห้องน้ำ'],[580,90,200,60,'ห้องเก็บเอกสาร']],
+};
+
+/* ---------- panel state ---------- */
+const S = {
+  ac:true, battery:true, ground:false,
+  silenced:false, drill:false, resetting:false, lamp:false,
+  events:[], view:0, log:[], sel:'L1D007', selNac:null, seq:0,
+  flash:null, audio:null, sound:false,
+};
+const PRI = {'FIRE ALARM':0, 'PREALARM':1, 'SUPERVISORY':2, 'TROUBLE':3};
+const SYS_TRBL = {
+  ac:     {txt:'AC FAIL',          th:'ไฟฟ้า AC ดับ (ทำงานด้วยแบตเตอรี่)'},
+  battery:{txt:'BATTERY LOW',      th:'แบตเตอรี่ต่ำ/ไม่ได้ต่อ'},
+  ground: {txt:'GROUND FAULT',     th:'สายลงดิน (Ground fault)'},
+};
+
+/* ---------- time helpers ---------- */
+const pad = (n, w = 2) => String(n).padStart(w, '0');
+function stamp(t = new Date()) {
+  let h = t.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12;
+  return `${pad(h)}:${pad(t.getMinutes())}:${pad(t.getSeconds())}${ap} ${pad(t.getMonth()+1)}${pad(t.getDate())}${pad(t.getFullYear()%100)}`;
+}
+
+/* ---------- event model ---------- */
+function findEv(type, src) { return S.events.find(e => e.type === type && e.src === src); }
+function addEv(type, src, l1, l2, l3, latch) {
+  if (findEv(type, src)) return false;
+  const ev = {id:++S.seq, type, src, l1, l2, l3, latch, acked:false, t:new Date()};
+  S.events.push(ev);
+  sortEv();
+  S.view = Math.max(0, S.events.findIndex(e => !e.acked)); // show highest-priority unacknowledged event
+  log(type, `${l1} · ${l2}${l3 ? ' · ' + l3 : ''}`);
+  if (type === 'FIRE ALARM') S.silenced = false; // resound on subsequent alarm
+  return true;
+}
+function clearEv(type, src) {
+  const i = S.events.findIndex(e => e.type === type && e.src === src);
+  if (i < 0) return;
+  const e = S.events[i];
+  S.events.splice(i, 1);
+  log('CLEARED', `CLEARED ${e.type} · ${e.l2}`);
+  if (S.view >= S.events.length) S.view = Math.max(0, S.events.length - 1);
+}
+function sortEv() { S.events.sort((a, b) => PRI[a.type] - PRI[b.type] || a.id - b.id); }
+function has(type) { return S.events.some(e => e.type === type); }
+function unacked(type) { return S.events.some(e => e.type === type && !e.acked); }
+
+function evalDevice(d) {
+  if (S.resetting) return;
+  const T = d.type;
+  const desc = T.sub ? `${T.code} ${T.sub}` : T.code;
+  if (d.disabled) {
+    addEv('TROUBLE', d.a + ':dis', 'DISABLED', d.lb, `${d.z}  ${d.a}`, false);
+    clearEv('PREALARM', d.a); clearEv('TROUBLE', d.a);
+    return;
+  }
+  clearEv('TROUBLE', d.a + ':dis');
+  if (d.cond === 'alarm') {
+    if (T.kind === 'supv') addEv('SUPERVISORY', d.a, desc, d.lb, `${d.z}  ${d.a}`, true);
+    else addEv('FIRE ALARM', d.a, desc, d.lb, `${d.z}  ${d.a}`, true);
+  }
+  if (d.cond === 'prealarm') addEv('PREALARM', d.a, desc, d.lb, `${d.z}  ${d.a}`, false);
+  else clearEv('PREALARM', d.a);
+  if (d.cond === 'trouble') addEv('TROUBLE', d.a, 'INVALID REPLY', d.lb, `${d.z}  ${d.a}`, false);
+  else clearEv('TROUBLE', d.a);
+}
+function evalSystem() {
+  if (S.resetting) return;
+  for (const k of Object.keys(SYS_TRBL)) {
+    const bad = k === 'ground' ? S.ground : !S[k];
+    if (bad) addEv('TROUBLE', 'sys:' + k, SYS_TRBL[k].txt, 'POWER SUPPLY', 'MAIN BOARD', false);
+    else clearEv('TROUBLE', 'sys:' + k);
+  }
+  for (const n of NACS) {
+    if (n.open) addEv('TROUBLE', n.a, 'OPEN CIRCUIT', n.lb, n.a, false);
+    else clearEv('TROUBLE', n.a);
+  }
+}
+function evalAll() { DEV.forEach(evalDevice); evalSystem(); }
+
+/* ---------- history log ---------- */
+function log(type, text) {
+  S.log.unshift({t:new Date(), type, text});
+  if (S.log.length > 300) S.log.pop();
+  logDirty = true;
+}
+let logDirty = true;
+
+/* ---------- panel key actions ---------- */
+function flash(lines, ms = 1800) { S.flash = {lines, until: Date.now() + ms}; render(); }
+
+function ack() {
+  if (S.resetting) return;
+  const un = S.events.filter(e => !e.acked);
+  if (!un.length) { if (S.events.length) { S.view = (S.view + 1) % S.events.length; render(); } return; }
+  un.forEach(e => e.acked = true);
+  log('ACK', `ACKNOWLEDGE (${un.length})`);
+  render();
+}
+function silence() {
+  if (S.resetting) return;
+  if (!(has('FIRE ALARM') || S.drill)) { flash(['NO ALARM TO SILENCE']); return; }
+  if (S.silenced) return;
+  S.silenced = true; S.drill = false;
+  S.events.forEach(e => e.acked = true);
+  log('SILENCE', 'SIGNALS SILENCED');
+  render();
+}
+function drill() {
+  if (S.resetting) return;
+  S.drill = true; S.silenced = false;
+  log('DRILL', 'MANUAL EVACUATE (DRILL)');
+  render();
+}
+function reset() {
+  if (S.resetting) return;
+  log('RESET', 'SYSTEM RESET');
+  S.resetting = true; S.events = []; S.silenced = false; S.drill = false; S.view = 0;
+  render();
+  setTimeout(() => {
+    S.resetting = false;
+    evalAll();
+    const still = S.events.filter(e => e.type === 'FIRE ALARM' || e.type === 'SUPERVISORY');
+    if (still.length) log('INFO', `RESET: ${still.length} POINT(S) STILL ACTIVE`);
+    render();
+  }, 3000);
+}
+function lampTest() {
+  S.lamp = true; render();
+  setTimeout(() => { S.lamp = false; render(); }, 3000);
+}
+
+/* ---------- device actions ---------- */
+function setCond(d, c) {
+  d.cond = c;
+  if (c === 'normal') log('INFO', `${d.a} ${d.lb} RESTORED (FIELD)`);
+  evalDevice(d); render();
+}
+function toggleDisable(d) {
+  d.disabled = !d.disabled;
+  log('INFO', `${d.a} ${d.disabled ? 'DISABLED' : 'ENABLED'} BY OPERATOR`);
+  evalDevice(d);
+  if (!d.disabled) evalDevice(d);
+  render();
+}
+
+/* ---------- derived outputs ---------- */
+function outputs() {
+  const fire = has('FIRE ALARM');
+  const alarmSrc = S.events.filter(e => e.type === 'FIRE ALARM').map(e => e.src);
+  const sounding = (fire || S.drill) && !S.silenced && !S.resetting;
+  const strobing = !S.resetting && ((fire || S.drill) && (!S.silenced || $('strobeCont').checked));
+  const elevDevs = DEV.filter(d => d.elev && alarmSrc.includes(d.a));
+  let elev = null;
+  if (elevDevs.length) elev = elevDevs.some(d => d.f === 1) ? 'ALT' : 'PRI';
+  return {
+    fire, sounding, strobing, elev,
+    hvac: fire,
+    doors: fire,
+    supv: has('SUPERVISORY'),
+    trbl: has('TROUBLE'),
+    pre: has('PREALARM'),
+  };
+}
+
+/* ---------- audio ---------- */
+function initAudio() {
+  if (S.audio) return S.audio;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  const ctx = new Ctx();
+  const master = ctx.createGain(); master.gain.value = 0.18; master.connect(ctx.destination);
+  const pz = ctx.createOscillator(); pz.type = 'square'; pz.frequency.value = 2900;
+  const pzG = ctx.createGain(); pzG.gain.value = 0; pz.connect(pzG); pzG.connect(master); pz.start();
+  const h1 = ctx.createOscillator(); h1.type = 'sawtooth'; h1.frequency.value = 520;
+  const h2 = ctx.createOscillator(); h2.type = 'square'; h2.frequency.value = 3100;
+  const h2g = ctx.createGain(); h2g.gain.value = 0.25;
+  const hG = ctx.createGain(); hG.gain.value = 0;
+  h1.connect(hG); h2.connect(h2g); h2g.connect(hG); hG.connect(master); h1.start(); h2.start();
+  S.audio = {ctx, pzG, hG};
+  return S.audio;
+}
+function audioTick() {
+  const A = S.audio; if (!A) return;
+  const now = performance.now() / 1000;
+  const o = outputs();
+  const anyNacOk = NACS.some(n => !n.open);
+  // temporal-3: on .5 off .5 on .5 off .5 on .5 off 1.5 (4 s cycle)
+  const ph = now % 4;
+  const t3 = ph < 0.5 || (ph >= 1 && ph < 1.5) || (ph >= 2 && ph < 2.5);
+  const horn = S.sound && o.sounding && anyNacOk && t3;
+  let pz = false;
+  if (S.sound && !S.resetting) {
+    if (unacked('FIRE ALARM')) pz = true;
+    else if (S.events.some(e => !e.acked)) pz = (now % 1) < 0.5;
+  }
+  A.hG.gain.setTargetAtTime(horn ? 0.55 : 0, A.ctx.currentTime, 0.01);
+  A.pzG.gain.setTargetAtTime(pz ? 0.12 : 0, A.ctx.currentTime, 0.005);
+}
+
+/* ---------- rendering ---------- */
+const LEDS = [
+  ['AC POWER', '#3fd16f', () => S.ac ? 'on' : ''],
+  ['FIRE ALARM', '#ff2a3d', () => unacked('FIRE ALARM') ? 'blink' : has('FIRE ALARM') ? 'on' : ''],
+  ['PRE-ALARM', '#ff2a3d', () => unacked('PREALARM') ? 'blink' : has('PREALARM') ? 'on' : ''],
+  ['SUPERVISORY', '#ffc93a', () => unacked('SUPERVISORY') ? 'blink' : has('SUPERVISORY') ? 'on' : ''],
+  ['SYSTEM TROUBLE', '#ffc93a', () => unacked('TROUBLE') ? 'blink' : has('TROUBLE') ? 'on' : ''],
+  ['ALARM SILENCED', '#ffc93a', () => S.silenced ? 'on' : ''],
+  ['POINT DISABLED', '#ffc93a', () => DEV.some(d => d.disabled) ? 'on' : ''],
+  ['DRILL / EVAC', '#ff2a3d', () => S.drill ? 'on' : ''],
+];
+function renderLeds() {
+  $('leds').innerHTML = LEDS.map(([n, c, f]) => {
+    const st = S.lamp ? 'on' : f();
+    return `<div class="led ${st ? 'lit' : ''} ${st === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`;
+  }).join('');
+}
+const W = 40;
+const L = (a = '', b = '') => { a = String(a); b = String(b); const sp = Math.max(1, W - a.length - b.length); return (a + ' '.repeat(sp) + b).slice(0, W); };
+function lcdLines() {
+  if (S.lamp) return Array(4).fill('█'.repeat(W));
+  if (S.resetting) return [L('SYSTEM RESET IN PROGRESS'), L(''), L('PLEASE WAIT...'), L(stamp())];
+  if (S.flash && Date.now() < S.flash.until) return [L(S.flash.lines[0] || ''), L(S.flash.lines[1] || ''), L(''), L(stamp())];
+  if (!S.events.length) {
+    if (S.drill) return [L('MANUAL EVACUATE', 'DRILL'), L('ALL SILENCEABLE OUTPUTS ON'), L('PRESS ALARM SILENCE TO STOP'), L(stamp())];
+    return [L('SYSTEM NORMAL'), L('BLDG A  ADDRESSABLE FACP'), L(`SLC1: ${DEV.length} DEV  NAC: ${NACS.length}`), L(stamp())];
+  }
+  const e = S.events[Math.min(S.view, S.events.length - 1)];
+  const n = S.events.length, i = S.events.indexOf(e) + 1;
+  const ack = e.acked ? '' : '*';
+  return [
+    L(ack + e.type, e.l1),
+    L(e.l2),
+    L(e.l3, S.silenced ? 'SILENCED' : (S.drill ? 'DRILL' : '')),
+    L(stamp(e.t), `${pad(i,3)} OF ${pad(n,3)}`),
+  ];
+}
+function renderLcd() {
+  $('lcd').textContent = lcdLines().join('\n');
+}
+function renderPiezo() {
+  const dot = $('piezoDot'), txt = $('piezoTxt');
+  dot.className = 'dot';
+  if (S.resetting) { txt.textContent = 'QUIET'; }
+  else if (unacked('FIRE ALARM')) { dot.classList.add('on'); txt.textContent = 'STEADY'; }
+  else if (S.events.some(e => !e.acked)) { dot.classList.add('pulse'); txt.textContent = 'PULSING'; }
+  else txt.textContent = 'QUIET';
+  const c = t => S.events.filter(e => e.type === t).length;
+  $('evCount').textContent = `ALM ${c('FIRE ALARM')} · SUP ${c('SUPERVISORY')} · TBL ${c('TROUBLE')}`;
+}
+
+const NS = 'http://www.w3.org/2000/svg';
+function buildPlan() {
+  const svg = $('plan');
+  let h = '';
+  for (const f of [3, 2, 1]) {
+    const y0 = FY(f);
+    h += `<text class="flabel" x="20" y="${y0 - 8}">ชั้น ${f}</text>`;
+    h += `<rect class="corr" x="80" y="${y0 + 60}" width="700" height="30"/>`;
+    h += `<rect class="room" x="20" y="${y0}" width="60" height="150"/><text class="rlabel" x="50" y="${y0 + 140}" text-anchor="middle">บันได</text>`;
+    for (const [x, y, w, hh, n] of ROOMS[f]) {
+      h += `<rect class="room" x="${x}" y="${y0 + y}" width="${w}" height="${hh}"/>`;
+      h += `<text class="rlabel" x="${x + 6}" y="${y0 + y + 14}">${n}</text>`;
+    }
+    h += `<rect class="room" x="290" y="${y0 + 90}" width="90" height="60"/><text class="rlabel" x="296" y="${y0 + 104}">โถงลิฟต์</text>`;
+    h += `<rect class="shaft" x="380" y="${y0 + 90}" width="60" height="60"/><text class="rlabel" x="410" y="${y0 + 125}" text-anchor="middle">ลิฟต์</text>`;
+    h += `<text class="rlabel" x="735" y="${y0 + 79}" text-anchor="end">ทางเดิน</text>`;
+  }
+  HS.forEach((s, i) => {
+    const x = s.x, y = FY(s.f) + s.y;
+    h += `<g class="nac" data-nac="${s.nac}" id="hs${i}" tabindex="0" role="button" aria-label="ฮอร์น/สโตรบ ${s.nac} ชั้น ${s.f}" style="cursor:pointer">
+      <path class="waves" d="M${x+16} ${y-7} q6 7 0 14 M${x+21} ${y-11} q9 11 0 22"/>
+      <rect x="${x-13}" y="${y-9}" width="26" height="18" rx="3"/><rect class="flash" x="${x-13}" y="${y-9}" width="26" height="18" rx="3"/>
+      <text x="${x}" y="${y+3.5}" text-anchor="middle">HS</text></g>`;
+  });
+  DEV.forEach(d => {
+    const x = d.x, y = FY(d.f) + d.y;
+    const shape = d.t === 'pull'
+      ? `<rect x="${x-11}" y="${y-11}" width="22" height="22" rx="3"/>`
+      : `<circle cx="${x}" cy="${y}" r="11"/>`;
+    h += `<g class="dev ${d.t}" data-a="${d.a}" tabindex="0" role="button" aria-label="${d.type.th} ${d.lb}">
+      <circle class="ring" cx="${x}" cy="${y}" r="17"/>${shape}
+      <text x="${x}" y="${y + 3.5}" text-anchor="middle">${d.type.icon}</text></g>`;
+  });
+  svg.innerHTML = h;
+  svg.addEventListener('click', ev => {
+    const g = ev.target.closest('.dev, .nac'); if (!g) return;
+    if (g.dataset.a) { S.sel = g.dataset.a; S.selNac = null; } else { S.selNac = g.dataset.nac; S.sel = null; }
+    render();
+  });
+  svg.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const g = ev.target.closest('.dev, .nac'); if (!g) return;
+    ev.preventDefault(); g.dispatchEvent(new MouseEvent('click', {bubbles:true}));
+  });
+}
+function devState(d) {
+  if (d.disabled) return 'disabled';
+  if (d.cond === 'alarm') return d.t === 'tamper' ? 'supv' : 'alarm';
+  return d.cond; // normal | prealarm | trouble
+}
+function renderPlan(o) {
+  document.querySelectorAll('#plan .dev').forEach(g => {
+    const d = DEV.find(x => x.a === g.dataset.a);
+    g.classList.remove('s-alarm', 's-prealarm', 's-trouble', 's-disabled', 's-supv', 'sel');
+    const st = devState(d);
+    if (st !== 'normal') g.classList.add('s-' + st);
+    if (S.sel === d.a) g.classList.add('sel');
+  });
+  document.querySelectorAll('#plan .nac').forEach(g => {
+    const n = NACS.find(x => x.a === g.dataset.nac);
+    g.classList.toggle('open', n.open);
+    g.classList.toggle('horn', o.sounding && !n.open);
+    g.classList.toggle('strobe', o.strobing && !n.open);
+    g.style.outline = '';
+    g.querySelector('rect').style.strokeWidth = S.selNac === n.a ? '3.5' : '';
+  });
+}
+
+const STLBL = {
+  normal:['NORMAL','c-ok','ปกติ'], alarm:['FIRE ALARM','c-alarm','กำลัง Alarm'], supv:['SUPERVISORY','c-supv','วาล์วถูกปิด'],
+  prealarm:['PREALARM','c-pre','ควันเกินระดับเตือน'], trouble:['TROUBLE','c-trbl','ไม่ตอบสนอง (Invalid reply)'], disabled:['DISABLED','c-dis','ถูกปิดการใช้งาน'],
+};
+function renderDetail() {
+  const el = $('detail');
+  if (S.selNac) {
+    const n = NACS.find(x => x.a === S.selNac);
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <h3>${n.lb}</h3>
+        <dl class="kv"><dt>ชนิด</dt><dd>NAC (Notification Appliance Circuit)</dd><dt>อุปกรณ์</dt><dd>HORN/STROBE × ${HS.filter(h => h.nac === n.a).length}</dd>
+        <dt>สถานะสาย</dt><dd><span class="chip ${n.open ? 'c-trbl' : 'c-ok'}">${n.open ? 'OPEN CIRCUIT' : 'NORMAL'}</span></dd></dl>
+        <p class="note">NAC มีตัวต้านทานปลายสาย (EOL) ตู้จะจับได้ว่าสายขาดแม้ไม่ได้สั่งดัง</p></div>
+      <div class="acts">
+        <button class="btn warn" type="button" data-nacact="open">${n.open ? 'ต่อสายกลับ (แก้ไขแล้ว)' : 'จำลองสายขาด (Open circuit)'}</button>
+      </div>`;
+    return;
+  }
+  const d = DEV.find(x => x.a === S.sel) || DEV[0];
+  const st = devState(d); const [code, cls, th] = STLBL[st];
+  const T = d.type;
+  const acts = [];
+  if (T.kind === 'det') {
+    acts.push(['alarm', 'ปล่อยควัน/ความร้อน (Alarm)', 'danger']);
+    if (d.t !== 'heat') acts.push(['prealarm', 'ควันเริ่มสะสม (Prealarm)', '']);
+  } else if (T.kind === 'pull') acts.push(['alarm', 'ดึงคันโยกแจ้งเหตุ', 'danger']);
+  else if (T.kind === 'flow') acts.push(['alarm', 'น้ำไหลในท่อ (หัวสปริงเกลอร์แตก)', 'danger']);
+  else if (T.kind === 'supv') acts.push(['alarm', 'ปิดวาล์ว (Supervisory)', 'warn']);
+  acts.push(['trouble', T.kind === 'det' ? 'ถอดหัวออกจากฐาน (Trouble)' : 'สายขาด/โมดูลไม่ตอบ (Trouble)', 'warn']);
+  const restoreLbl = T.kind === 'pull' ? 'ใช้กุญแจรีเซ็ตคันโยก (คืนสภาพ)' : T.kind === 'supv' ? 'เปิดวาล์วกลับ (คืนสภาพ)' : T.kind === 'flow' ? 'หยุดน้ำไหล (คืนสภาพ)' : 'ไล่ควัน/ใส่หัวกลับ (คืนสภาพ)';
+  acts.push(['normal', restoreLbl, '']);
+  acts.push(['disable', d.disabled ? 'Enable จุดนี้' : 'Disable จุดนี้', '']);
+  const latched = S.events.find(e => e.src === d.a && e.latch);
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+      <h3>${T.th}</h3>
+      <dl class="kv"><dt>Address</dt><dd>${d.a}</dd><dt>Label</dt><dd>${d.lb}</dd><dt>Zone</dt><dd>${d.z}</dd><dt>Type</dt><dd>${T.code}${T.sub ? ' ' + T.sub : ''}</dd>
+      <dt>สภาพจริง</dt><dd><span class="chip ${cls}">${code}</span> <span style="font-family:var(--font-body)">${th}</span></dd></dl>
+      ${latched && d.cond === 'normal' ? `<p class="note">อุปกรณ์คืนสภาพแล้ว แต่ตู้ยังค้างสถานะ ${latched.type} (Latching) จนกว่าจะกด SYSTEM RESET</p>` : ''}
+      ${latched && d.cond !== 'normal' ? `<p class="note">ถ้ากด Reset ตอนนี้ จุดนี้จะ alarm ขึ้นใหม่ทันที ต้องคืนสภาพอุปกรณ์ก่อน</p>` : ''}
+    </div>
+    <div class="acts">${acts.map(([k, l, c]) => `<button class="btn ${c}" type="button" data-act="${k}" ${d.cond === k ? 'disabled style="opacity:.5;cursor:default"' : ''}>${l}</button>`).join('')}</div>`;
+}
+$('detail').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b || b.disabled) return;
+  if (b.dataset.nacact) {
+    const n = NACS.find(x => x.a === S.selNac); n.open = !n.open;
+    log('INFO', `${n.a} WIRING ${n.open ? 'OPENED (FIELD)' : 'REPAIRED (FIELD)'}`);
+    evalSystem(); render(); return;
+  }
+  const d = DEV.find(x => x.a === S.sel); if (!d) return;
+  if (b.dataset.act === 'disable') toggleDisable(d); else setCond(d, b.dataset.act);
+});
+
+function renderOuts(o) {
+  const items = [
+    ['NAC 1 / NAC 2 ฮอร์น', o.sounding ? (NACS.some(n => n.open) ? 'ON (บางวงจรเสีย)' : 'ON · TEMPORAL-3') : 'OFF', o.sounding, S.silenced && o.fire ? 'ถูก Silence แล้ว (Alarm Silenced)' : 'Silenceable: หยุดได้ด้วย Alarm Silence'],
+    ['สโตรบ', o.strobing ? 'FLASHING' : 'OFF', o.strobing, 'กะพริบ 1 Hz แบบ synchronized'],
+    ['ลิฟต์ (Elevator recall)', o.elev === 'PRI' ? 'RECALL → ชั้น 1' : o.elev === 'ALT' ? 'RECALL → ชั้น 2' : 'NORMAL', !!o.elev, o.elev === 'ALT' ? 'ควันที่โถงลิฟต์ชั้น 1 ใช้ชั้นสำรอง (Alternate)' : 'สั่งจากหัวควันโถงลิฟต์เท่านั้น'],
+    ['ปิดพัดลม AHU-1 (HVAC shutdown)', o.hvac ? 'SHUTDOWN' : 'RUNNING', o.hvac, 'Non-silenceable: ค้างจนกว่า Reset'],
+    ['ประตูกันไฟ (Door holder)', o.doors ? 'RELEASED' : 'HELD OPEN', o.doors, 'ปล่อยแม่เหล็กให้ประตูปิดเอง'],
+    ['รีเลย์ Alarm → ส่งสัญญาณศูนย์รับแจ้ง', o.fire ? 'FIRE SENT' : 'IDLE', o.fire, 'DACT / Fire dept. notification'],
+    ['รีเลย์ Supervisory', o.supv ? 'ACTIVE' : 'IDLE', o.supv, 'แจ้งช่างระบบสปริงเกลอร์'],
+    ['รีเลย์ Trouble', o.trbl ? 'TROUBLE' : 'NORMAL', o.trbl, 'Fail-safe: ปกติมีไฟเลี้ยง หลุดเมื่อมี trouble'],
+  ];
+  $('outs').innerHTML = items.map(([n, v, on, d]) =>
+    `<div class="out ${on ? 'act' : ''}"><div class="row"><span class="n">${n}</span></div>
+      <span><span class="chip ${on ? 'c-alarm' : 'c-muted'}">${v}</span></span><span class="d">${d}</span></div>`).join('');
+}
+
+const LOGCLS = {'FIRE ALARM':'c-alarm', PREALARM:'c-pre', SUPERVISORY:'c-supv', TROUBLE:'c-trbl', CLEARED:'c-ok', ACK:'c-info', SILENCE:'c-supv', DRILL:'c-alarm', RESET:'c-info', INFO:'c-muted'};
+function renderLog() {
+  if (!logDirty) return; logDirty = false;
+  const tb = $('log');
+  if (!S.log.length) { tb.innerHTML = `<tr><td colspan="3" class="empty">ยังไม่มีเหตุการณ์ ลองเลือกสถานการณ์ฝึกด้านซ้าย หรือคลิกอุปกรณ์บนผังอาคาร</td></tr>`; return; }
+  tb.innerHTML = S.log.map(r => `<tr><td class="m">${stamp(r.t)}</td><td><span class="chip ${LOGCLS[r.type] || 'c-muted'}">${r.type}</span></td><td class="m" style="white-space:normal">${r.text}</td></tr>`).join('');
+}
+
+function renderSys() {
+  const items = [
+    ['ac', S.ac ? 'ตัดไฟ AC' : 'คืนไฟ AC'],
+    ['battery', S.battery ? 'ถอดแบตเตอรี่' : 'ต่อแบตเตอรี่'],
+    ['ground', S.ground ? 'แก้ Ground fault' : 'สร้าง Ground fault'],
+  ];
+  $('sys').innerHTML = items.map(([k, l]) => {
+    const bad = k === 'ground' ? S.ground : !S[k];
+    return `<button class="btn ${bad ? 'on' : ''}" type="button" data-sys="${k}" aria-pressed="${bad}">${l}</button>`;
+  }).join('');
+}
+$('sys').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const k = b.dataset.sys;
+  S[k] = !S[k];
+  log('INFO', `${SYS_TRBL[k].txt} ${(k === 'ground' ? S.ground : !S[k]) ? 'INTRODUCED' : 'CORRECTED'} (FIELD)`);
+  evalSystem(); render();
+});
+
+function render() {
+  const o = outputs();
+  renderLeds(); renderLcd(); renderPiezo(); renderPlan(o); renderDetail(); renderOuts(o); renderLog(); renderSys();
+}
+
+/* ---------- scenarios ---------- */
+const dev = a => DEV.find(d => d.a === a);
+const SCEN = [
+  ['ควันไฟห้องเซิร์ฟเวอร์ ชั้น 2', () => { dev('L1D007').cond = 'prealarm'; evalDevice(dev('L1D007')); render();
+      setTimeout(() => { setCond(dev('L1D007'), 'alarm'); }, 2500); return 'L1D007'; }],
+  ['มีคนดึงแมนนวล ทางออกชั้น 1', () => { setCond(dev('L1M001'), 'alarm'); return 'L1M001'; }],
+  ['ควันในโถงลิฟต์ ชั้น 1', () => { setCond(dev('L1D002'), 'alarm'); return 'L1D002'; }],
+  ['สปริงเกลอร์ทำงาน ห้องเอกสาร ชั้น 3', () => { setCond(dev('L1D011'), 'alarm'); setTimeout(() => setCond(dev('L1M003'), 'alarm'), 1500); return 'L1D011'; }],
+  ['ควันในท่อลม AHU-1', () => { setCond(dev('L1D004'), 'alarm'); return 'L1D004'; }],
+  ['วาล์วสปริงเกลอร์ถูกปิด', () => { setCond(dev('L1M004'), 'alarm'); return 'L1M004'; }],
+  ['หัวตรวจจับถูกถอด ชั้น 3', () => { setCond(dev('L1D010'), 'trouble'); return 'L1D010'; }],
+];
+$('scen').innerHTML = SCEN.map(([n], i) => `<button class="btn" type="button" data-i="${i}">${n}</button>`).join('');
+$('scen').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const a = SCEN[+b.dataset.i][1]();
+  S.sel = a; S.selNac = null; render();
+});
+$('restoreAll').addEventListener('click', () => {
+  DEV.forEach(d => { d.cond = 'normal'; d.disabled = false; });
+  NACS.forEach(n => n.open = false);
+  S.ac = true; S.battery = true; S.ground = false;
+  log('INFO', 'ALL FIELD DEVICES RESTORED');
+  evalAll(); reset();
+});
+
+/* ---------- panel keys ---------- */
+$('kAck').addEventListener('click', ack);
+$('kSil').addEventListener('click', silence);
+$('kReset').addEventListener('click', reset);
+$('kLamp').addEventListener('click', lampTest);
+$('kPrev').addEventListener('click', () => { if (S.events.length) { S.view = (S.view - 1 + S.events.length) % S.events.length; render(); } });
+$('kNext').addEventListener('click', () => { if (S.events.length) { S.view = (S.view + 1) % S.events.length; render(); } });
+$('kHist').addEventListener('click', () => $('histCard').scrollIntoView({behavior:'smooth', block:'start'}));
+$('clrLog').addEventListener('click', () => { S.log = []; logDirty = true; render(); });
+$('strobeCont').addEventListener('change', render);
+
+// DRILL requires a 2-second hold
+let holdT = null;
+const kd = $('kDrill');
+function holdStart(ev) {
+  if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
+  if (ev.type === 'keydown') { ev.preventDefault(); if (ev.repeat) return; }
+  if (holdT) return;
+  kd.classList.add('holding');
+  holdT = setTimeout(() => { holdT = null; kd.classList.remove('holding'); drill(); }, 2000);
+}
+function holdEnd() {
+  if (!holdT) return;
+  clearTimeout(holdT); holdT = null; kd.classList.remove('holding');
+  flash(['DRILL: HOLD KEY FOR 2 SECONDS', 'กดค้าง 2 วินาทีเพื่อสั่งอพยพ']);
+}
+kd.addEventListener('pointerdown', holdStart);
+kd.addEventListener('keydown', holdStart);
+['pointerup', 'pointerleave', 'pointercancel', 'keyup', 'blur'].forEach(t => kd.addEventListener(t, holdEnd));
+kd.addEventListener('contextmenu', e => e.preventDefault());
+
+$('soundBtn').addEventListener('click', () => {
+  const A = initAudio();
+  if (!A) { $('soundBtn').textContent = 'เบราว์เซอร์ไม่รองรับเสียง'; return; }
+  S.sound = !S.sound;
+  if (S.sound && A.ctx.state === 'suspended') A.ctx.resume();
+  $('soundBtn').textContent = S.sound ? 'ปิดเสียง' : 'เปิดเสียง';
+  $('soundBtn').classList.toggle('on', S.sound);
+  $('soundBtn').setAttribute('aria-pressed', String(S.sound));
+});
+
+/* ---------- boot ---------- */
+buildPlan();
+log('INFO', 'PANEL POWER UP · SLC 1 LOOP OK');
+render();
+setInterval(() => { renderLcd(); }, 1000);
+setInterval(audioTick, 50);
+})();
+</script>
+
+</body>
+</html>
