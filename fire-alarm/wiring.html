@@ -579,6 +579,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>การต่อสาย SLC ตามคู่มือ (3.3.4 และภาคผนวก H)</b>: LOOP CONFIGURATION › WIRING CLASS ใช้ตรวจสายจริง · Class A สายขาดฝั่ง + ขึ้น CLASS A POS LOOP n ฝั่ง − ขึ้น CLASS A NEG LOOP n ตู้จ่ายสัญญาณทั้งสองปลายอุปกรณ์จึงยังทำงาน และ Trouble ค้างจนแก้สายแล้วกด RESET · ช็อตบน Class A ขึ้น CLASS A SHORT LOOP n · ตั้ง Class A แต่ต่อแบบ Class B ตู้แจ้ง Trouble · INSTALLED: NO ตู้ไม่สแกนลูปนั้น · ชื่อ Trouble อื่นตามภาคผนวก H: BATTERY, ANNUN n NO ANSWER, NO DEV. INST ON L1, MAN EVAC INITIATED, BUZZER OFF-LINE</li>
     <li><b>ค่าควัน/ความร้อนแบบ Analog (ภาคผนวก D)</b>: เลือกหัว Addressable แล้วเลื่อนแถบ "ระดับควัน" ในแผง Properties (หัวควัน %/ft, หัวความร้อน °C, Beam % บังลำแสง) · ตู้เทียบกับค่าที่ตั้งใน SENSITIVITY: Alarm AL:1–9 และ Prealarm PA:0–9 (PA:0 = ปิด, PA:1 = AUTO) ค่าโรงงาน Photo AL:8 = 2.12%/ft, PA:8 = 1.33%/ft · เกิน Prealarm แต่ยังไม่ถึง Alarm ขึ้น PREALARM: ALERT หายเองเมื่อควันลด / ACTION ค้างจน RESET และสั่งโซนในช่องที่ 10 ของ Zone map · แถบ "ฝุ่นสะสม" ≥92% ขึ้น MAINTENANCE REQ, 100% MAINT.URGENT, ≤5% LOW THRESHOLD · READ STATUS แสดง VALUES % OF ALARM / PREALARM, ACTION/STATUS, PEAKS, VERIFY COUNT · คลิกที่หัวยังใช้พ่นควันเต็มที่/ไล่ควันได้เหมือนเดิม</li>
     <li><b>CBE / Zone (ภาคผนวก E)</b>: อุปกรณ์ตรวจจับมี Zone map ค่าเริ่ม Z0yy ตามลูป · Control/Relay module ค่าเริ่ม Z000 (General alarm = ทุก Fire alarm) · เอาต์พุตทำงานเมื่อโซนใน Zone map ของมัน Active · หน้า MODULE POINT PROGRAMMING (2) ของ Control module: LOCAL MODE, ZONE MAP, WALK TEST, SWITCH INHIBIT, SILENCEABLE (NO = ไม่ดับเมื่อกด SIGNAL SILENCE) · Disable ทั้งโซน: ALTER STATUS › DISABLE/ENABLE › พิมพ์ Zyyy (ห้าม Z000)</li>
     <li><b>PANEL PROGRAM MENU</b>: PANEL SETTINGS (LOCAL CONTROL = NO ปิดปุ่ม ACK/SILENCE/RESET/DRILL และ Piezo · PIEZO ON/OFF) · PANEL TIMERS (VERIFY TIME 0–240 วินาที, SILENCE INHIBIT 0–5 นาที, AUTO SILENCE 10/15/20 นาที, VERIFY=PREALARM) · MORE › หน้า 2: PASSWORD CHANGE (เฉพาะ Master: เปลี่ยน Master และ User 1–9 พร้อม REFERENCE และ MODE: PROGRAM/ALTER STATUS, ALTER STATUS, NONE) · LOOP CONFIGURATION (INSTALLED, DETECTOR/MODULE POLL, RAPID POLL, WIRING CLASS, BLINK MODE)</li>
@@ -908,7 +909,7 @@ function analyze() {
   if (cross.length) { add('x', 'ต่อข้ามวงจร', cross.map(c => ['err', `สายของ ${c} ถูกต่อถึงกัน อุปกรณ์อาจเสียหาย`]), 'err'); R.panel.push(['TROUBLE', 'GROUND/CROSS FAULT']); }
 
   /* ---- main battery ---- */
-  { const b = analyzeBat('P.t+', 'P.t-'); if (b.volts !== 24) R.panel.push(['TROUBLE', b.volts === 12 ? 'BATTERY LOW' : 'NO BATTERY']); add('bat', 'แบตเตอรี่สำรองของตู้ (AMPS-24)', b.it, b.st); }
+  { const b = analyzeBat('P.t+', 'P.t-'); if (b.volts !== 24) R.panel.push(['TROUBLE', 'BATTERY']); add('bat', 'แบตเตอรี่สำรองของตู้ (AMPS-24)', b.it, b.st); }
 
   /* ---- AUX ---- */
   const auxShort = fAll('P.x+') === fAll('P.x-') && termUsed('P.x+');
@@ -922,6 +923,12 @@ function analyze() {
   slcDevs.forEach(d => R.resp[d.id] = false);
   for (const L of loopsList()) {
     const it = []; let st = 'ok';
+    const cfg = (typeof PSET !== 'undefined' && PSET.loops && PSET.loops[L.n]) || {};
+    if (cfg.inst === false) {   // 3.3.4 LOOP CONFIGURATION: INSTALLED NO = loop not polled
+      R.scan[L.n] = {found:[], dup:[], down:true};
+      add('slc' + L.n, `SLC Loop ${L.n} (${loopCard(L.n)})`, [['warn', 'LOOP CONFIGURATION ตั้ง INSTALLED: NO ตู้ไม่สแกนลูปนี้ อุปกรณ์ทุกตัวในลูปจึงไม่ตอบ']], 'warn');
+      continue;
+    }
     const isShort = g => { const b = [g(L.b[0]), g(L.b[1])], a = [g(L.a[0]), g(L.a[1])]; return b[0] === b[1] || a[0] === a[1] || b[0] === a[1] || a[0] === b[1]; };
     let f = fAll;
     const short0 = isShort(fAll);
@@ -937,9 +944,10 @@ function analyze() {
     const short = isShort(f);
     const pre = `L${L.n}`;
     const aUsed = termUsed(L.a[0]) || termUsed(L.a[1]);
+    const classA = cfg.cls ? cfg.cls === 'A' : aUsed;   // programmed WIRING CLASS (default follows the wiring)
     if (!termUsed(L.b[0]) && !termUsed(L.b[1])) { it.push(['inf', 'ยังไม่ได้ต่อสายออกจากขั้ว B']); st = 'todo'; }
-    if (short) { it.push(['err', isoOn.length ? 'ลัดวงจรในช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator ตัดไม่ได้ ทั้ง loop ล่ม' : 'SLC+ กับ SLC− ลัดวงจร ทั้ง loop ล่มเพราะไม่มี Isolator']); R.panel.push(['TROUBLE', `SLC LOOP ${L.n} SHORT`]); st = 'err'; }
-    else if (short0) { it.push(['warn', `ลัดวงจร: ${isoOpen.map(nameOf).join(' และ ')} เปิดวงจร (ไฟเหลือง) ตัดช่วงที่ช็อตออก`]); R.panel.push(['TROUBLE', `SLC LOOP ${L.n} SHORT (ISOLATED)`]); st = 'err'; }
+    if (short) { it.push(['err', isoOn.length ? 'ลัดวงจรในช่วงระหว่างตู้กับ Isolator ตัวแรก Isolator ตัดไม่ได้ ทั้ง loop ล่ม' : 'SLC+ กับ SLC− ลัดวงจร ทั้ง loop ล่มเพราะไม่มี Isolator']); R.panel.push(['TROUBLE', classA ? `CLASS A SHORT LOOP ${L.n}` : `SLC LOOP ${L.n} SHORT`]); st = 'err'; }
+    else if (short0) { it.push(['warn', `ลัดวงจร: ${isoOpen.map(nameOf).join(' และ ')} เปิดวงจร (ไฟเหลือง) ตัดช่วงที่ช็อตออก`]); R.panel.push(['TROUBLE', classA ? `CLASS A SHORT LOOP ${L.n}` : `SLC LOOP ${L.n} SHORT (ISOLATED)`]); st = 'err'; }
     const onLoop = short ? [] : slcDevs.filter(d => respondOn(f, d, L));
     const onLoopAll = slcDevs.filter(d => respondOn(fAll, d, L));
     // non-addressable devices wired straight onto the loop
@@ -978,8 +986,15 @@ function analyze() {
     const nResp = prog.filter(d => R.resp[d.id]).length;
     it.unshift([nResp === prog.length && prog.length ? 'ok' : 'inf', `อุปกรณ์ที่ลงโปรแกรม Loop ${L.n} ตอบสนอง ${nResp}/${prog.length} ตัว`]);
     if (!prog.length && st === 'ok') st = 'todo';
+    if (classA && !aUsed && !short0) { it.push(['err', 'LOOP CONFIGURATION ตั้ง WIRING CLASS: A แต่สายต่อแบบ Class B (ไม่มีสายกลับเข้าขั้ว A) ตู้แจ้ง Trouble (คู่มือ 3.3.4)']); R.panel.push(['TROUBLE', `CLASS A POS LOOP ${L.n}`], ['TROUBLE', `CLASS A NEG LOOP ${L.n}`]); st = 'err'; }
+    if (!classA && aUsed) it.push(['warn', 'สายต่อแบบ Class A แต่ LOOP CONFIGURATION ตั้ง WIRING CLASS: B ตู้จะไม่ตรวจสายขาดฝั่งกลับ']);
     if (!short0 && aUsed) {
-      if (fAll(L.a[0]) !== fAll(L.b[0]) || fAll(L.a[1]) !== fAll(L.b[1])) { it.push(['err', 'ต่อ Class A แต่สายกลับเข้าขั้ว A ไม่ครบวง ตู้แจ้ง OPEN']); R.panel.push(['TROUBLE', `SLC LOOP ${L.n} OPEN (CLASS A)`]); st = 'err'; }
+      const posOpen = fAll(L.a[0]) !== fAll(L.b[0]), negOpen = fAll(L.a[1]) !== fAll(L.b[1]);
+      if (posOpen || negOpen) {
+        it.push(['err', `Class A ขาด${posOpen && negOpen ? 'ทั้งสาย + และ −' : posOpen ? 'ที่สาย SLC+' : 'ที่สาย SLC−'} ตู้จ่ายสัญญาณจากทั้งสองปลาย อุปกรณ์ยังสื่อสารได้ (ภาคผนวก H)` + (classA ? ' · Trouble นี้ค้างจนกว่าจะแก้สายและกด RESET' : '')]);
+        if (classA) { if (posOpen) R.panel.push(['TROUBLE', `CLASS A POS LOOP ${L.n}`]); if (negOpen) R.panel.push(['TROUBLE', `CLASS A NEG LOOP ${L.n}`]); }
+        st = 'err';
+      }
       else {
         const weak = new Set();
         for (const w of wiresTouching(fAll, new Set([fAll(L.b[0]), fAll(L.b[1])]))) {
@@ -1056,7 +1071,7 @@ function analyze() {
     if (p.addr < 1 || p.addr > 32) { it.push(['err', 'Address ต้องอยู่ระหว่าง 1–32']); st = 'err'; }
     (annSeen[p.addr] = annSeen[p.addr] || []).push(p);
     R.ann[p.id] = st === 'ok';
-    if (st !== 'ok') R.panel.push(['TROUBLE', `ANN ${String(p.addr).padStart(2, '0')} COMM FAIL`]);
+    if (st !== 'ok') R.panel.push(['TROUBLE', `ANNUN ${p.addr} NO ANSWER`]);
     add('ann-' + p.id, `${nameOf(p)} ANN-${String(p.addr).padStart(2, '0')}`, it, st);
   }
   Object.values(annSeen).filter(a => a.length > 1).forEach(a => a.forEach(p => { R.ann[p.id] = false; const c = R.circ.find(c => c.key === 'ann-' + p.id); c.items.push(['err', 'Address ซ้ำกับจออื่น']); c.state = 'err'; }));
@@ -1908,7 +1923,7 @@ menubar.addEventListener('mouseover', ev => { const top = ev.target.closest('.me
 document.addEventListener('click', ev => { if (!ev.target.closest('#menubar')) closeMenus(); });
 
 /* ================= front panel engine (CPU2-3030D) ================= */
-const PX = {events:[], view:0, log:[], seq:0, silenced:false, drill:false, resetting:false, lamp:false, flash:null};
+const PX = {latchT:new Set(), events:[], view:0, log:[], seq:0, silenced:false, drill:false, resetting:false, lamp:false, flash:null};
 const PRI = {'FIRE ALARM':0, 'PREALARM':1, 'SUPERVISORY':2, 'TROUBLE':3};
 const pz = (n, w = 2) => String(n).padStart(w, '0');
 function stamp(t = nowD()) { let h = t.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12; return `${pz(h)}:${pz(t.getMinutes())}:${pz(t.getSeconds())}${ap} ${pz(t.getMonth() + 1)}${pz(t.getDate())}${pz(t.getFullYear() % 100)}`; }
@@ -2036,9 +2051,13 @@ function syncPanel(R) {
     if (lvl === 'TROUBLE') trouble(msg);
     if (lvl === 'ALARM') { const pr = PROG[k]; padd(pr && SUPV_CODES.includes(pr.type) ? 'SUPERVISORY' : 'FIRE ALARM', 'A:' + msg, pr ? pr.type : 'MONITOR', pr ? pr.label : msg, msg, true); }
   }
+  for (const [lvl, msg] of R.panel) if (lvl === 'TROUBLE' && /^CLASS A /.test(msg)) PX.latchT.add(msg);   // Appendix H: Class A troubles latch until reset
+  PX.latchT.forEach(trouble);
+  if (!Object.keys(PROG).length) trouble('NO DEV. INST ON L1');
+  if (PX.drill) trouble('MAN EVAC INITIATED');
+  if (!PSET.piezo || !PSET.local) trouble('BUZZER OFF-LINE');
   if (PM && PM.level) trouble('PROG MODE ACTIVATED');
   if (PX.walk) trouble(PX.walk.adv ? 'ADV WALK TEST' : 'BASIC WALK TEST');
-  if (!PSET.local) trouble('LOCAL CONTROL DISABLED');
   PSET.zdis.forEach(z => trouble(`ZONE Z${pz(z, 3)} DISABLED`));
   parts.filter(p => p.force).forEach(p => trouble(`${addrStr(p)} FORCED ${p.force.toUpperCase()}`));
   for (const [k, pr] of Object.entries(PROG)) {
@@ -2072,7 +2091,7 @@ function keyDrill() { if (needPower() || PX.resetting || localOff()) return; PX.
 function keyReset() {
   if (needPower() || PX.resetting || localOff()) return;
   plog('RESET', 'SYSTEM RESET');
-  parts.forEach(p => { p.force = null; p.verT = 0; }); firstAlarmT = 0;
+  parts.forEach(p => { p.force = null; p.verT = 0; }); firstAlarmT = 0; PX.latchT.clear();
   PX.resetting = true; PX.events = []; PX.silenced = false; PX.drill = false; PX.view = 0;
   render();
   setTimeout(() => {
@@ -2715,7 +2734,7 @@ const SRCKEY = {};   // event source -> point key, for CBE
 let firstAlarmT = 0, lastOut = null;
 if (!Array.isArray(PSET.zdis)) PSET.zdis = [];
 if (!PSET.loops) PSET.loops = {};
-const loopCfg = n => ({inst:true, blink:true, dpoll:'FLASHSCAN', mpoll:'FLASHSCAN', rapid:true, cls:'B', ...(PSET.loops[n] || {})});
+const loopCfg = n => { const L = loopsList().find(x => x.n === n); return {inst:true, blink:true, dpoll:'FLASHSCAN', mpoll:'FLASHSCAN', rapid:true, cls:L && (termUsed(L.a[0]) || termUsed(L.a[1])) ? 'A' : 'B', ...(PSET.loops[n] || {})}; };
 
 /* ---------- CBE: zones active now (Appendix E) ---------- */
 function activeZones() {
@@ -3348,7 +3367,7 @@ function toggleRun() {
   b.classList.toggle('on', running);
   b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
   b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
-  if (!running) { parts.forEach(q => { q.act = false; q.lvl = undefined; }); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  if (!running) { parts.forEach(q => { q.act = false; q.lvl = undefined; }); PX.latchT.clear(); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
   else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: คลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
   simClock(); renderTests(); render();
 }
