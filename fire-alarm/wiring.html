@@ -558,15 +558,17 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
       <li><b>ตั้ง Address</b>: คลิกปุ่มหมุน TENS / ONES บนหัวหรือโมดูล (+1, Shift/คลิกขวา −1) หรือพิมพ์ใน Properties หรือเมนู แก้ไข › เรียง Address อัตโนมัติ</li>
       <li><b>Control</b>: ไฟ 24V จาก AUX, OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ</li>
       <li><b>Relay</b>: AHU ใช้ C–NC (ดับพัดลมตอน Alarm) ลิฟต์ใช้ C–NO (ปิดวงจรสั่ง Recall)</li>
-      <li>NAC บนตู้ใช้ EOL 2.2kΩ ฮอร์นกลับขั้ว ตู้เห็นเป็น SHORT</li>
+      <li><b>NAC</b>: CPU2-3030 ไม่มี NAC บนบอร์ด (Installation Manual รูป 2.1) ใช้ FCM-1 (EOL 47kΩ ½W, ห้าม T-tap, 2 A โหลดอิเล็กทรอนิกส์ / 1 A กระดิ่ง-ฮอร์นกลไก) หรือ FCPS-24S · ฮอร์นกลับขั้ว ตู้เห็นเป็น SHORT CIRCUIT</li>
+      <li><b>รีเลย์บนตู้ (Form-C 2 A @30 VDC)</b>: TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security</li>
     </ul></div>
     <div><h3>อุปกรณ์เสริมภายนอก</h3><ul>
-      <li><b>Remote power supply</b>: IN รับจาก NAC ตู้ (เหมือนฮอร์นหนึ่งตัว แล้วย้าย EOL ของ NAC ตู้ไปหลัง IN) ขยาย NAC อีก 2 วงจร ต้องมีแบตเตอรี่ของตัวเอง</li>
+      <li><b>Remote power supply</b>: IN สั่งจาก FCM-1 (เหมือนฮอร์นหนึ่งตัว แล้วย้าย EOL ของ FCM-1 ไปหลัง IN) ขยาย NAC อีก 2 วงจร ต้องมีแบตเตอรี่ของตัวเอง</li>
       <li><b>ACS annunciator</b>: บัส EIA-485 A→A, B→B จาก CPU2-3030 และไฟ 24V จาก AUX ของ AMPS-24 Address 1–32 ห้ามซ้ำ</li>
       <li>วงจรที่ตรวจสาย (IDC, NAC, ลำโพง) EOL ต้องอยู่ปลายสายเสมอ</li>
+      <li><b>สาย (คลิกที่สายเพื่อตั้งความยาว ขนาด ชนิด)</b>: SLC ใช้ Twisted unshielded pair 12–18 AWG ยาวรวมไม่เกิน 12 AWG 3,810 m · 14 AWG 2,895.6 m · 16 AWG 1,828.8 m · 18 AWG 1,127.76 m (Shielded/Untwisted 1,524 m, 18 AWG 1,127.76 m) · ความต้านทานไม่เกิน 50 Ω ต่อสาขา (Class B) หรือต่อความยาวลูป (Class A) · อุปกรณ์ระหว่าง Isolator ไม่เกิน 25 ตัว · IDC ของ FMM-1 ไม่เกิน 20 Ω · ความจุสาย SLC รวมไม่เกิน 0.5 µF (ยังไม่คำนวณ)</li>
     </ul></div>
   </div>
-  <p class="note" style="margin-top:12px">ชื่อรุ่นและการ์ดอ้างอิงเอกสารเผยแพร่ของ NFS2-3030 แต่ตำแหน่งขั้วบนแผ่นงานเป็นแบบจำลอง ไม่ใช่หมายเลข TB จริง ค่า EOL ของ NAC บนตู้ (2.2kΩ ในโปรแกรม) พิกัดกระแส และขนาดแบตเตอรี่ ให้ตรวจกับคู่มือติดตั้ง NFS2-3030 (P/N 52544) และคู่มือสาย SLC (P/N 51253) ฉบับล่าสุด โปรแกรมนี้เป็นสื่อฝึก ไม่ใช่ซอฟต์แวร์ของ Notifier/Honeywell</p>
+  <p class="note" style="margin-top:12px">ชื่อรุ่นและการ์ดอ้างอิงเอกสารเผยแพร่ของ NFS2-3030 ขั้วรีเลย์ TB1–TB4 และ TB7 อ้างอิงคู่มือติดตั้ง NFS2-3030 (P/N 52544) ค่าสาย SLC, EOL และขีดจำกัดอ้างอิงคู่มือสาย SLC (P/N 51253) ชื่อ Trouble อ้างอิงคู่มือ Operations (P/N 52546) ส่วนตำแหน่งขั้วการ์ดบนแผ่นงาน ค่า EOL ของ FCPS-24S และการคำนวณแบตเตอรี่/แรงดันตก NAC ยังเป็นแบบจำลอง ให้ตรวจกับคู่มืออุปกรณ์นั้นๆ โปรแกรมนี้เป็นสื่อฝึก ไม่ใช่ซอฟต์แวร์ของ Notifier/Honeywell</p>
 </template>
 <template id="howtoTpl">
   <ul style="margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px">
@@ -580,7 +582,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
     <li><b>การต่อสาย SLC ตามคู่มือ (3.3.4 และภาคผนวก H)</b>: LOOP CONFIGURATION › WIRING CLASS ใช้ตรวจสายจริง · Class A สายขาดฝั่ง + ขึ้น CLASS A POS LOOP n ฝั่ง − ขึ้น CLASS A NEG LOOP n ตู้จ่ายสัญญาณทั้งสองปลายอุปกรณ์จึงยังทำงาน และ Trouble ค้างจนแก้สายแล้วกด RESET · ช็อตบน Class A ขึ้น CLASS A SHORT LOOP n · ตั้ง Class A แต่ต่อแบบ Class B ตู้แจ้ง Trouble · INSTALLED: NO ตู้ไม่สแกนลูปนั้น · ชื่อ Trouble อื่นตามภาคผนวก H: BATTERY, ANNUN n NO ANSWER, NO DEV. INST ON L1, MAN EVAC INITIATED, BUZZER OFF-LINE</li>
-    <li><b>ค่าควัน/ความร้อนแบบ Analog (ภาคผนวก D)</b>: เลือกหัว Addressable แล้วเลื่อนแถบ "ระดับควัน" ในแผง Properties (หัวควัน %/ft, หัวความร้อน °C, Beam % บังลำแสง) · ตู้เทียบกับค่าที่ตั้งใน SENSITIVITY: Alarm AL:1–9 และ Prealarm PA:0–9 (PA:0 = ปิด, PA:1 = AUTO) ค่าโรงงาน Photo AL:8 = 2.12%/ft, PA:8 = 1.33%/ft · เกิน Prealarm แต่ยังไม่ถึง Alarm ขึ้น PREALARM: ALERT หายเองเมื่อควันลด / ACTION ค้างจน RESET และสั่งโซนในช่องที่ 10 ของ Zone map · แถบ "ฝุ่นสะสม" ≥92% ขึ้น MAINTENANCE REQ, 100% MAINT.URGENT, ≤5% LOW THRESHOLD · READ STATUS แสดง VALUES % OF ALARM / PREALARM, ACTION/STATUS, PEAKS, VERIFY COUNT · คลิกที่หัวยังใช้พ่นควันเต็มที่/ไล่ควันได้เหมือนเดิม</li>
+    <li><b>ค่าควัน/ความร้อนแบบ Analog (ภาคผนวก D)</b>: เลือกหัว Addressable แล้วเลื่อนแถบ "ระดับควัน" ในแผง Properties (หัวควัน %/ft, หัวความร้อน °C, Beam % บังลำแสง) · ตู้เทียบกับค่าที่ตั้งใน SENSITIVITY: Alarm AL:1–9 และ Prealarm PA:0–9 (PA:0 = ปิด, PA:1 = AUTO) ค่าโรงงาน Photo AL:8 = 2.12%/ft, PA:8 = 1.33%/ft · เกิน Prealarm แต่ยังไม่ถึง Alarm ขึ้น PREALARM: ALERT หายเองเมื่อควันลด / ACTION ค้างจน RESET และสั่งโซนในช่องที่ 10 ของ Zone map · แถบ "ฝุ่นสะสม" ≥92% ขึ้น MAINTENANCE REQ, 100% MAINT URGENT, ≤5% LOW THRESHOLD · READ STATUS แสดง VALUES % OF ALARM / PREALARM, ACTION/STATUS, PEAKS, VERIFY COUNT · คลิกที่หัวยังใช้พ่นควันเต็มที่/ไล่ควันได้เหมือนเดิม</li>
     <li><b>CBE / Zone (ภาคผนวก E)</b>: อุปกรณ์ตรวจจับมี Zone map ค่าเริ่ม Z0yy ตามลูป · Control/Relay module ค่าเริ่ม Z000 (General alarm = ทุก Fire alarm) · เอาต์พุตทำงานเมื่อโซนใน Zone map ของมัน Active · หน้า MODULE POINT PROGRAMMING (2) ของ Control module: LOCAL MODE, ZONE MAP, WALK TEST, SWITCH INHIBIT, SILENCEABLE (NO = ไม่ดับเมื่อกด SIGNAL SILENCE) · Disable ทั้งโซน: ALTER STATUS › DISABLE/ENABLE › พิมพ์ Zyyy (ห้าม Z000)</li>
     <li><b>PANEL PROGRAM MENU</b>: PANEL SETTINGS (LOCAL CONTROL = NO ปิดปุ่ม ACK/SILENCE/RESET/DRILL และ Piezo · PIEZO ON/OFF) · PANEL TIMERS (VERIFY TIME 0–240 วินาที, SILENCE INHIBIT 0–5 นาที, AUTO SILENCE 10/15/20 นาที, VERIFY=PREALARM) · MORE › หน้า 2: PASSWORD CHANGE (เฉพาะ Master: เปลี่ยน Master และ User 1–9 พร้อม REFERENCE และ MODE: PROGRAM/ALTER STATUS, ALTER STATUS, NONE) · LOOP CONFIGURATION (INSTALLED, DETECTOR/MODULE POLL, RAPID POLL, WIRING CLASS, BLINK MODE)</li>
     <li><b>ALTER STATUS</b>: WALK TEST (BASIC/ADVANCED, PARAMETER LOOPS/PANEL/DEVICES/ZONE › START TEST › ทดสอบอุปกรณ์จะถูกบันทึกเป็น TEST ในประวัติ เอาต์พุตที่ตั้ง WALK TEST: ON และ NAC ดัง 4 วินาที · Advanced ค้างจนกด NEXT TEST · ABORT จบ · หมดเวลา 1 ชั่วโมง · เริ่มไม่ได้ถ้ามีเหตุ Active) · CHANGE TIME/DATE (พิมพ์ HHMM A/P MMDDYY เช่น 0822A011526) · MORE › CONTROL ON/OFF (FORCE ON/OFF ของ Control/Relay module · SWITCH INHIBIT ห้ามสั่ง · SYSTEM RESET คืนเป็น AUTOMATIC) · Alarm Verification: หัวที่ตั้ง ON จะแจ้ง Alarm เมื่อยังมีควันครบ VERIFY TIME หรือมี Alarm อื่นอยู่แล้ว · System trouble ตามภาคผนวก H: PROG MODE ACTIVATED, BASIC WALK TEST, ADV WALK TEST</li>
@@ -621,7 +623,7 @@ const TYPES = {
           desc:'รับสัญญาณหน้าสัมผัสแห้ง (NO) จากแมนนวล Flow switch หรือ Tamper ด้าน IDC ต้องมี EOL 47kΩ ที่ปลายสาย'},
   cm:    {cat:'mod', name:'Control module (FCM-1)', short:'FCM-1', w:150, h:140, addrType:'M', role:'slc',
           terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['v+','24V+',0,105,'l','+'],['v-','24V−',0,128,'l','-'],['o+','OUT+',150,50,'r','+'],['o-','OUT−',150,75,'r','-']],
-          desc:'สั่งงานวงจร NAC เฉพาะจุด ต้องรับไฟ 24V จาก AUX ของ AMPS-24 ขา OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ'},
+          desc:'สั่งงานวงจร NAC เฉพาะจุด ต้องรับไฟ 24V จาก AUX ของ AMPS-24 ขา OUT ต่อฮอร์น/สโตรบ/กระดิ่งตามขั้ว + EOL 47kΩ ½W ห้าม T-tap · จ่ายได้ 2 A (โหลดอิเล็กทรอนิกส์) หรือ 1 A (กระดิ่ง/ฮอร์นแบบกลไก) · ตู้ NFS2-3030 ไม่มี NAC บน CPU จึงต้องใช้ FCM-1 หรือ FCPS-24S (SLC Wiring Manual 7.3)'},
   fzm:   {cat:'mod', name:'Zone module (FZM-1)', short:'FZM-1', w:150, h:140, addrType:'M', role:'slc',
           terms:[['s+','SLC+',0,50,'l','+'],['s-','SLC−',0,75,'l','-'],['v+','24V+',0,105,'l','+'],['v-','24V−',0,128,'l','-'],['z+','ZONE+',150,50,'r','+'],['z-','ZONE−',150,75,'r','-']],
           desc:'โมดูลโซน Conventional: แปลงหัวควันแบบ 2 สาย (ไม่มี Address) ให้เป็น 1 จุดบน SLC ต้องรับไฟ 24V จาก AUX ขา ZONE ต่อหัว Conventional ขนานกันตามขั้ว + EOL 3.9kΩ ที่หัวตัวสุดท้าย (ตรวจค่า ELR กับคู่มือ) ทั้งโซนมี Address เดียว คือ Address ของโมดูล'},
@@ -637,7 +639,7 @@ const TYPES = {
   pull:  {cat:'field', name:'แมนนวล Conventional (Pull)', short:'PULL STATION', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สถานีแจ้งเหตุด้วยมือแบบธรรมดา มีแค่หน้าสัมผัส NO ไม่มี Address ต้องต่อเข้า IDC ของ Monitor module (FMM-1) หรือโซนของ FZM-1 พร้อม EOL'},
   flow:  {cat:'field', name:'Flow switch', short:'WATERFLOW', w:130, h:80, terms:TC, role:'contact', ev:'FIRE', desc:'สวิตช์ตรวจน้ำไหลในท่อสปริงเกลอร์ หน้าสัมผัส NO ต่อเข้า Monitor module แจ้งเป็น Fire alarm'},
   tamper:{cat:'field', name:'Tamper switch', short:'VALVE TAMPER', w:130, h:80, terms:TC, role:'contact', ev:'SUPV', desc:'สวิตช์ตรวจวาล์วถูกปิด ต่อเข้า Monitor module แจ้งเป็น Supervisory ไม่สั่งกริ่ง'},
-  hs:    {cat:'field', name:'Horn/Strobe', short:'HORN/STROBE', w:130, h:80, terms:T2, role:'nac', desc:'ฮอร์นพร้อมไฟกะพริบ มีขั้ว + / − ต่อบนวงจร NAC ของตู้, Control module หรือ Remote power supply'},
+  hs:    {cat:'field', name:'Horn/Strobe', short:'HORN/STROBE', w:130, h:80, terms:T2, role:'nac', desc:'ฮอร์นพร้อมไฟกะพริบ มีขั้ว + / − ต่อบน Control module (FCM-1) หรือ Remote power supply (FCPS-24S)'},
   strobe:{cat:'field', name:'Strobe', short:'STROBE', w:130, h:80, terms:T2, role:'nac', desc:'ไฟกะพริบอย่างเดียว ใช้เตือนผู้บกพร่องทางการได้ยิน ต่อบนวงจร NAC'},
   bell:  {cat:'field', name:'กระดิ่ง (Bell)', short:'BELL 24V', w:130, h:80, terms:T2, role:'nac', desc:'กระดิ่ง 24VDC มีไดโอดกันกลับ ต่อบนวงจร NAC'},
   spk:   {cat:'field', name:'ลำโพง 25V', short:'SPEAKER', w:130, h:80, terms:T2, role:'spk', desc:'ลำโพงประกาศที่มีหม้อแปลง 25V ต่อเฉพาะวงจรลำโพงของชุด DVC-EM / DAA2'},
@@ -648,11 +650,11 @@ const TYPES = {
           desc:'จอ/แผงแสดงผลระยะไกลบนบัส ACS (EIA-485) ต่อ A→A, B→B จากพอร์ต EIA-485 ของ CPU2-3030 และไฟ 24V จาก AUX ของ AMPS-24 ตั้ง Address 1–32 ห้ามซ้ำ'},
   psu:   {cat:'aux', name:'Remote power supply (FCPS-24S)', short:'FCPS-24S', w:190, h:200, role:'psu',
           terms:[['in+','IN+',0,55,'l','+'],['in-','IN−',0,80,'l','-'],['o1+','OUT1+',190,55,'r','+'],['o1-','OUT1−',190,80,'r','-'],['o2+','OUT2+',190,120,'r','+'],['o2-','OUT2−',190,145,'r','-'],['t+','BAT+',60,200,'b','+'],['t-','BAT−',130,200,'b','-']],
-          desc:'แหล่งจ่ายไฟขยาย NAC (NAC extender เช่น FCPS-24S6/S8) รับไฟ AC เอง ขา IN ต่อจาก NAC ของตู้ เมื่อตู้สั่ง NAC ตัวนี้จะสั่ง OUT1/OUT2 ย้าย EOL ของ NAC ตู้ไปไว้หลังขา IN และต้องมีแบตเตอรี่ของตัวเอง'},
+          desc:'แหล่งจ่ายไฟขยาย NAC (NAC extender เช่น FCPS-24S6/S8) รับไฟ AC เอง ขา IN สั่งงานจาก FCM-1 เมื่อ FCM-1 ทำงานตัวนี้จะสั่ง OUT1/OUT2 ย้าย EOL ของ FCM-1 ไปไว้หลังขา IN และต้องมีแบตเตอรี่ของตัวเอง'},
   bat:   {cat:'aux', name:'แบตเตอรี่ 12V', short:'BATTERY 12V', w:140, h:100, role:'bat', terms:[['+','+',35,0,'t','+'],['-','−',105,0,'t','-']], desc:'แบตเตอรี่ตะกั่วกรดแบบแห้ง 12V ใช้ 2 ลูกต่ออนุกรมได้ 24V'},
   eol47: {cat:'aux', name:'EOL 47kΩ', short:'EOL 47kΩ', w:110, h:70, role:'eol', val:47000, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย สำหรับ IDC และ OUT ของโมดูล วงจรลำโพง และ NAC ของ Remote power supply'},
   eol39: {cat:'aux', name:'EOL 3.9kΩ', short:'EOL 3.9kΩ', w:110, h:70, role:'eol', val:3900, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสายสำหรับโซน Conventional ของ FZM-1 (ตรวจค่า ELR กับคู่มือ FZM-1)'},
-  eol22: {cat:'aux', name:'EOL 2.2kΩ', short:'EOL 2.2kΩ', w:110, h:70, role:'eol', val:2200, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย สำหรับ NAC 1–4 บน CPU2-3030 (ตรวจค่าและเบอร์ ELR กับคู่มือติดตั้ง)'},
+  eol22: {cat:'aux', name:'EOL 2.2kΩ', short:'EOL 2.2kΩ', w:110, h:70, role:'eol', val:2200, terms:[['a','',0,38,'l',''],['b','',0,58,'l','']], desc:'ตัวต้านทานปลายสาย 2.2kΩ ใช้กับวงจรที่คู่มืออุปกรณ์กำหนดค่านี้ (FMM-1 / FCM-1 ใช้ 47kΩ, FZM-1 ใช้ 3.9kΩ)'},
 };
 const CATS = [['det','หัวตรวจจับ'],['mod','โมดูล SLC'],['field','อุปกรณ์ปลายทาง'],['aux','อุปกรณ์เสริม']];
 
@@ -671,10 +673,11 @@ const FW = 300;
 function facpTerms() {
   const r = (k, lb, y, pol) => [k, lb, FW, y, 'r', pol];
   const t = [
-    r('n1+','NAC1 +',92,'+'), r('n1-','NAC1 −',116,'-'), r('n2+','NAC2 +',148,'+'), r('n2-','NAC2 −',172,'-'),
-    r('n3+','NAC3 +',204,'+'), r('n3-','NAC3 −',228,'-'), r('n4+','NAC4 +',260,'+'), r('n4-','NAC4 −',284,'-'),
-    r('aa','485 A',330,''), r('ab','485 B',354,''),
-    r('rc','ALM C',404,''), r('rno','ALM NO',428,''), r('rnc','ALM NC',452,''),
+    r('rc','ALM C',92,''), r('rno','ALM NO',116,''), r('rnc','ALM NC',140,''),
+    r('tc','TBL C',176,''), r('tno','TBL NO',200,''), r('tnc','TBL NC',224,''),
+    r('uc','SUP C',260,''), r('uno','SUP NO',284,''), r('unc','SUP NC',308,''),
+    r('yc','SEC C',344,''), r('yno','SEC NO',368,''), r('ync','SEC NC',392,''),
+    r('aa','485 A',428,''), r('ab','485 B',452,''),
   ];
   const Y = facpLayout();
   for (let i = 1; i <= Y.total; i++) { const y = Y.loopY(i); t.push(r(`l${i}b+`, `SLC${i} B+`, y + 48, '+'), r(`l${i}b-`, `SLC${i} B−`, y + 72, '-'), r(`l${i}a+`, `SLC${i} A+`, y + 104, '+'), r(`l${i}a-`, `SLC${i} A−`, y + 128, '-')); }
@@ -683,7 +686,7 @@ function facpTerms() {
   t.push(r('t+','BAT +',Y.psuY + 175,'+'), r('t-','BAT −',Y.psuY + 199,'-'));
   return t;
 }
-const FACP_GROUPS = [['NAC 1',80],['NAC 2',136],['NAC 3',192],['NAC 4',248],['ACS EIA-485',318],['ALARM RELAY',392]];
+const FACP_GROUPS = [['TB4 ALARM RELAY',58],['TB3 TROUBLE RELAY',142],['TB2 SUPV RELAY',226],['TB1 SECURITY RELAY',310],['TB7 ACS EIA-485',394]];
 
 /* ================= state ================= */
 let parts = [];  // {id, t, x, y, n, addr?, loop?}
@@ -778,6 +781,27 @@ function netFn(skip, closed) {
   return find;
 }
 const termUsed = k => wires.some(w => w.a === k || w.b === k);
+/* ---- cable data (SLC Wiring Manual 51253 Table 2.1, Installation Manual 52544 Table A.1) ---- */
+const AWG_OHM = {12:0.00521, 14:0.00828, 16:0.01317, 18:0.02095};   // ohm per metre per conductor (copper, 20 °C)
+const WKIND = {tup:'Twisted unshielded pair (แนะนำสำหรับ SLC)', tsp:'Twisted shielded pair', unt:'Untwisted unshielded'};
+const SLC_MAXLEN = {tup:{12:3810, 14:2895.6, 16:1828.8, 18:1127.76}, tsp:{12:1524, 14:1524, 16:1524, 18:1127.76}, unt:{12:1524, 14:1524, 16:1524, 18:1127.76}};
+const wGeomLen = w => { const A = TERM[w.a], B = TERM[w.b]; return A && B ? Math.max(1, Math.round((Math.abs(A.ex - B.ex) + Math.abs(A.ey - B.ey)) / 10)) : 1; };   // sheet: 10 units = 1 m
+const wLen = w => w.len != null ? w.len : wGeomLen(w);
+const wAwg = w => w.awg || 16;
+const wOhm = w => wLen(w) * AWG_OHM[wAwg(w)];
+// shortest-path resistance from one terminal over wires (isolators and isolator bases pass straight through)
+function ohmFrom(start) {
+  const adj = new Map(), add = (a, b, r) => { if (!adj.has(a)) adj.set(a, []); adj.get(a).push([b, r]); };
+  for (const w of wires) if (!w.cut) { add(w.a, w.b, wOhm(w)); add(w.b, w.a, wOhm(w)); }
+  for (const i of isoParts()) for (const pol of ['+', '-']) { add(i.id + '.i' + pol, i.id + '.o' + pol, 0); add(i.id + '.o' + pol, i.id + '.i' + pol, 0); }
+  for (const p of parts) if (isoBase(p)) for (const pol of ['+', '-']) { add(p.id + '.s' + pol, p.id + '.i' + pol, 0); add(p.id + '.i' + pol, p.id + '.s' + pol, 0); }
+  const dist = new Map([[start, 0]]), todo = [start];
+  while (todo.length) {
+    todo.sort((a, b) => dist.get(b) - dist.get(a)); const u = todo.pop();
+    for (const [v, r] of adj.get(u) || []) { const d = dist.get(u) + r; if (!dist.has(v) || d < dist.get(v)) { dist.set(v, d); todo.push(v); } }
+  }
+  return dist;
+}
 const partUsed = p => termsOf(p).some(t => termUsed(p.id + '.' + t[0]));
 function across(f, x, y, sp, sn) { const A = f(x), B = f(y), S = f(sp), N = f(sn); return (A === S && B === N) || (A === N && B === S); }
 function wiresTouching(f, roots) { return wires.filter(w => !w.cut && (roots.has(f(w.a)) || roots.has(f(w.b)))); }
@@ -794,11 +818,7 @@ function loopsList() {
 }
 function outPorts() {
   const O = [
-    {id:'P.n1', title:'NAC 1 (CPU2-3030)', label:'NAC 1', sp:'P.n1+', sn:'P.n1-', eol:2200, accept:'nac', optional:true},
-    {id:'P.n2', title:'NAC 2 (CPU2-3030)', label:'NAC 2', sp:'P.n2+', sn:'P.n2-', eol:2200, accept:'nac', optional:true},
-    {id:'P.n3', title:'NAC 3 (CPU2-3030)', label:'NAC 3', sp:'P.n3+', sn:'P.n3-', eol:2200, accept:'nac', optional:true},
-    {id:'P.n4', title:'NAC 4 (CPU2-3030)', label:'NAC 4', sp:'P.n4+', sn:'P.n4-', eol:2200, accept:'nac', optional:true},
-  ];
+  ];   // the CPU2-3030 has no NACs (Installation Manual Fig 2.1, A.3): NACs come from FCM-1 modules or FCPS-24S supplies
   if (CARDS.dvc) O.push({id:'P.sp', title:'วงจรลำโพง (DVC-EM / DAA2)', label:'SPEAKER CKT 1', sp:'P.sp+', sn:'P.sp-', eol:47000, accept:'spk', optional:true});
   for (const p of parts) {
     if (p.t === 'mm') O.push({id:p.id, title:`${nameOf(p)} ${addrStr(p)} · IDC`, label:addrStr(p), sp:p.id + '.i+', sn:p.id + '.i-', eol:47000, accept:'contact', owner:p});
@@ -817,12 +837,12 @@ function analyzeOut(o, f) {
   const S = f(o.sp), N = f(o.sn);
   if (!termUsed(o.sp) && !termUsed(o.sn)) {
     if (o.optional) { out.state = 'skip'; return out; }
-    out.items.push(['inf', 'ยังไม่ได้ต่อสาย']); out.panel.push(['TROUBLE', o.label + ' OPEN']); out.state = 'todo'; return out;
+    out.items.push(['inf', 'ยังไม่ได้ต่อสาย']); out.panel.push(['TROUBLE', o.label + ' OPEN CIRCUIT']); out.state = 'todo'; return out;
   }
   if (S === N) {
     out.shorted = true; out.state = 'err';
     if (accepts(o, 'contact')) { out.items.push(['warn', 'IDC+ กับ IDC− ลัดถึงกัน ตู้เห็นเป็นหน้าสัมผัสปิด ขึ้น ALARM']); out.panel.push(['ALARM', o.label + ' IDC SHORT']); }
-    else { out.items.push(['err', 'ขั้ว + กับ − ลัดวงจร']); out.panel.push(['TROUBLE', o.label + ' SHORT']); }
+    else { out.items.push(['err', 'ขั้ว + กับ − ลัดวงจร']); out.panel.push(['TROUBLE', o.label + ' SHORT CIRCUIT']); }
     return out;
   }
   const eols = parts.filter(p => T(p) && T(p).role === 'eol' && across(f, p.id + '.a', p.id + '.b', o.sp, o.sn));
@@ -834,14 +854,14 @@ function analyzeOut(o, f) {
       const r = sinkRole(d);
       if (!accepts(o, r)) { out.items.push(['err', `${nameOf(d)} เป็น${ROLE_TH[r]} ต่อบนวงจรนี้ไม่ได้ (วงจรนี้รับ${[].concat(o.accept).map(a => ROLE_TH[a]).join(' / ')})` + (r === 'zone' ? ' หัว Conventional ต้องต่อผ่าน FZM-1' : '')]); out.state = 'err'; continue; }
       if (r === 'zone' && f(kp) === N) { out.items.push(['err', `${nameOf(d)} ต่อกลับขั้ว หัว 2 สายจะไม่ทำงาน/ไม่ส่ง Alarm`]); out.state = 'err'; continue; }
-      if (r === 'nac' && f(kp) === N) { out.items.push(['err', `${nameOf(d)} ต่อกลับขั้ว ตอนตรวจสาย (กลับขั้ว) กระแสไหลผ่านไดโอด ตู้เห็นเป็นลัดวงจร`]); out.panel.push(['TROUBLE', o.label + ' SHORT']); out.state = 'err'; continue; }
+      if (r === 'nac' && f(kp) === N) { out.items.push(['err', `${nameOf(d)} ต่อกลับขั้ว ตอนตรวจสาย (กลับขั้ว) กระแสไหลผ่านไดโอด ตู้เห็นเป็นลัดวงจร`]); out.panel.push(['TROUBLE', o.label + ' SHORT CIRCUIT']); out.state = 'err'; continue; }
       if (r === 'spk' && f(kp) === N) out.items.push(['warn', `${nameOf(d)} กลับขั้ว เสียงจะกลับเฟสกับลำโพงตัวอื่น`]);
       out.devOK.push(d);
     } else if ([S, N].includes(f(kp)) || [S, N].includes(f(kn))) { out.items.push(['err', `${nameOf(d)} ต่อไม่ครบ 2 ขั้ว`]); out.state = 'err'; }
   }
-  if (!eols.length) { out.items.push(['err', `ไม่พบ EOL คร่อมปลายวงจร ตู้แจ้ง OPEN (ต้องใช้ ${fmtR(o.eol)})`]); out.panel.push(['TROUBLE', o.label + ' OPEN']); out.state = 'err'; }
-  else if (eols.length > 1) { out.items.push(['err', 'มี EOL มากกว่า 1 ตัวต่อขนานกัน ค่าความต้านทานผิด']); out.panel.push(['TROUBLE', o.label + ' EOL FAULT']); out.state = 'err'; }
-  else if (T(eols[0]).val !== o.eol) { out.items.push(['err', `ใช้ EOL ผิดค่า (${fmtR(T(eols[0]).val)}) วงจรนี้ต้องใช้ ${fmtR(o.eol)}`]); out.panel.push(['TROUBLE', o.label + ' EOL FAULT']); out.state = 'err'; }
+  if (!eols.length) { out.items.push(['err', `ไม่พบ EOL คร่อมปลายวงจร ตู้แจ้ง OPEN (ต้องใช้ ${fmtR(o.eol)})`]); out.panel.push(['TROUBLE', o.label + ' OPEN CIRCUIT']); out.state = 'err'; }
+  else if (eols.length > 1) { out.items.push(['err', 'มี EOL มากกว่า 1 ตัวต่อขนานกัน ค่าความต้านทานผิด']); out.panel.push(['TROUBLE', o.label + ' OPEN CIRCUIT']); out.state = 'err'; }
+  else if (T(eols[0]).val !== o.eol) { out.items.push(['err', `ใช้ EOL ผิดค่า (${fmtR(T(eols[0]).val)}) วงจรนี้ต้องใช้ ${fmtR(o.eol)}`]); out.panel.push(['TROUBLE', o.label + ' OPEN CIRCUIT']); out.state = 'err'; }
   else out.items.push(['ok', `EOL ${fmtR(o.eol)} คร่อมปลายวงจร`]);
   if (eols.length === 1 && out.devOK.length) {
     const E = eols[0], unsup = new Set();
@@ -900,7 +920,7 @@ function analyze() {
   loopsList().forEach(L => [...L.b, ...L.a].forEach(k => GROUP[k] = 'SLC Loop ' + L.n));
   outPorts().forEach(o => { GROUP[o.sp] = o.title; GROUP[o.sn] = o.title; });
   ['P.x+','P.x-'].forEach(k => GROUP[k] = 'AUX 24V'); ['P.aa','P.ab'].forEach(k => GROUP[k] = 'ACS EIA-485');
-  ['P.rc','P.rno','P.rnc'].forEach(k => GROUP[k] = 'รีเลย์ Alarm ตู้'); ['P.t+','P.t-'].forEach(k => GROUP[k] = 'แบตเตอรี่ตู้');
+  [['r', 'Alarm TB4'], ['t', 'Trouble TB3'], ['u', 'Supervisory TB2'], ['y', 'Security TB1']].forEach(([x, n]) => ['c', 'no', 'nc'].forEach(k => GROUP['P.' + x + k] = 'รีเลย์ ' + n + ' ตู้')); ['P.t+','P.t-'].forEach(k => GROUP[k] = 'แบตเตอรี่ตู้');
   parts.filter(p => p.t === 'rm').forEach(p => ['c','no','nc'].forEach(k => GROUP[p.id + '.' + k] = nameOf(p)));
   parts.filter(p => p.t === 'psu').forEach(p => ['t+','t-'].forEach(k => GROUP[p.id + '.' + k] = 'แบตเตอรี่ ' + nameOf(p)));
   const byRoot = new Map();
@@ -963,9 +983,35 @@ function analyze() {
     for (const ty of ['D', 'M']) {
       const seen = {};
       onLoop.filter(d => T(d).addrType === ty).forEach(d => (seen[d.addr] = seen[d.addr] || []).push(d));
-      Object.entries(seen).forEach(([a, ds]) => { if (ds.length > 1) { ds.forEach(d => dup.add(d)); it.push(['err', `Address ${pre}${ty}${String(a).padStart(3, '0')} ซ้ำกัน: ${ds.map(nameOf).join(', ')}`]); R.panel.push(['TROUBLE', `${pre}${ty}${String(a).padStart(3, '0')} DUPLICATE ADDR`]); st = 'err'; } });
+      Object.entries(seen).forEach(([a, ds]) => { if (ds.length > 1) { ds.forEach(d => dup.add(d)); it.push(['err', `Address ${pre}${ty}${String(a).padStart(3, '0')} ซ้ำกัน: ${ds.map(nameOf).join(', ')}`]); R.panel.push(['TROUBLE', `${pre}${ty}${String(a).padStart(3, '0')} DUAL ADDRESS`]); st = 'err'; } });
     }
     R.scan[L.n] = {found:onLoop.filter(d => !dup.has(d)), dup:[...dup], down:short};
+    // cable length / resistance (SLC Wiring Manual 2.1-2.3) and isolator limits (5.1)
+    if (!short && onLoop.length) {
+      const pw = wires.filter(w => !w.cut && fAll(w.a) === fAll(L.b[0])), nw = wires.filter(w => !w.cut && fAll(w.a) === fAll(L.b[1]));
+      const total = Math.round(pw.reduce((a, w) => a + wLen(w), 0));
+      const lim = Math.min(...pw.map(w => SLC_MAXLEN[w.kind || 'tup'][wAwg(w)]));
+      const thin = Math.max(...pw.map(wAwg));
+      if (pw.length) it.push([total > lim ? 'err' : 'inf', `ความยาวสาย SLC รวม ${total} m (สายเส้นเล็กสุด ${thin} AWG ยาวได้ไม่เกิน ${lim} m ตาม SLC Wiring Manual ตาราง 2.1)`]);
+      if (total > lim) st = 'err';
+      if (classA && aUsed) {
+        const Rl = pw.concat(nw).reduce((a, w) => a + wOhm(w), 0);
+        it.push([Rl > 50 ? 'err' : 'inf', `ความต้านทานรวมของลูป Class A ${Rl.toFixed(1)} Ω (ไม่เกิน 50 Ω)`]); if (Rl > 50) st = 'err';
+      } else {
+        const dp = ohmFrom(L.b[0]), dn = ohmFrom(L.b[1]);
+        let worst = null, wr = 0;
+        for (const d of onLoop) { const [kp, kn] = slcKeys(d); const r = (dp.get(d.id + '.' + kp) || 0) + (dn.get(d.id + '.' + kn) || 0); if (r > wr) { wr = r; worst = d; } }
+        if (worst) { it.push([wr > 50 ? 'err' : 'inf', `ความต้านทานจากตู้ถึงปลายสาขาที่ไกลที่สุด (${label(worst)}) ${wr.toFixed(1)} Ω (Class B ไม่เกิน 50 Ω ต่อสาขา)`]); if (wr > 50) st = 'err'; }
+      }
+      const isoAll = isoParts().filter(i => partUsed(i) && fAll(i.id + '.i+') === fAll(L.b[0]));
+      if (isoAll.length) {
+        const g = netFn(undefined, new Set()), seg = new Map();
+        onLoop.forEach(d => { const r = g(d.id + '.' + slcKeys(d)[1]); seg.set(r, (seg.get(r) || 0) + 1); });
+        const big = Math.max(...seg.values());
+        if (big > 25) { it.push(['err', `มีอุปกรณ์ Addressable ${big} ตัวอยู่ระหว่าง Isolator ช่วงเดียวกัน เกิน 25 ตัว Isolator จะทำงานไม่ถูกต้อง (SLC Wiring Manual 5.1)`]); st = 'err'; }
+        else it.push(['inf', `อุปกรณ์ระหว่าง Isolator ช่วงที่มากที่สุด ${big} ตัว (ไม่เกิน 25 ตัว)`]);
+      }
+    }
     for (const d of onLoop) if (d.loop !== L.n) { it.push(['err', `${nameOf(d)} ต่ออยู่บน Loop ${L.n} แต่ตั้งโปรแกรมไว้ Loop ${d.loop} ตู้เห็นเป็นอุปกรณ์ไม่ได้ลงโปรแกรม`]); R.panel.push(['TROUBLE', `${pre}${T(d).addrType}${String(d.addr).padStart(3, '0')} UNPROGRAMMED`]); st = 'err'; }
     const prog = slcDevs.filter(d => d.loop === L.n);
     for (const d of prog) {
@@ -980,7 +1026,7 @@ function analyze() {
         else if (partUsed(d)) it.push(['err', `${label(d)} ต่อไม่ครบหรือไม่ถึง Loop ${L.n}`]);
         else it.push(['inf', `${label(d)} ยังไม่ได้ต่อ`]);
       }
-      R.panel.push(['TROUBLE', `${addrStr(d)} INVALID REPLY`]);
+      R.panel.push(['TROUBLE', `${addrStr(d)} NO ANSWER`]);
       if (partUsed(d) || short0) st = 'err'; else if (st === 'ok') st = 'todo';
     }
     const nResp = prog.filter(d => R.resp[d.id]).length;
@@ -1024,11 +1070,16 @@ function analyze() {
       if (o.owner.t === 'cm' || o.owner.t === 'fzm') {
         R.power[o.owner.id] = powered(o.owner);
         if (R.power[o.owner.id]) r.items.unshift(['ok', 'มีไฟ 24VDC จาก AUX ของ AMPS-24']);
-        else { r.items.unshift(['err', powerRev(o.owner) ? 'ไฟ 24V เข้าโมดูลกลับขั้ว' : 'ไม่มีไฟ 24VDC เข้าโมดูล สั่งแล้วอุปกรณ์จะไม่ทำงาน']); if (resp) R.panel.push(['TROUBLE', `${addrStr(o.owner)} NO 24V`]); st = 'err'; }
+        else { r.items.unshift(['err', powerRev(o.owner) ? 'ไฟ 24V เข้าโมดูลกลับขั้ว' : 'ไม่มีไฟ 24VDC เข้าโมดูล สั่งแล้วอุปกรณ์จะไม่ทำงาน']); if (resp) R.panel.push(['TROUBLE', `${addrStr(o.owner)} MOD EXT PWR LOSS`]); st = 'err'; }
       }
       if (!resp) { r.items.unshift(['err', 'โมดูลไม่ตอบบน SLC ตู้ไม่เห็นวงจรนี้']); if (st === 'ok' || st === 'warn') st = 'err'; }
       else R.panel.push(...r.panel);
     } else if (!o.psu) R.panel.push(...r.panel); // remote PSU faults go out on its own trouble contact
+    if (o.owner && o.owner.t === 'mm' && r.state !== 'todo') {   // Installation Manual Table A.1: FMM-1 IDC max 20 ohms
+      const S = fAll(o.sp), N = fAll(o.sn), Rc = wires.filter(w => !w.cut && [S, N].includes(fAll(w.a))).reduce((a, w) => a + wOhm(w), 0);
+      if (Rc > 20) { r.items.push(['err', `ความต้านทานสาย IDC ${Rc.toFixed(1)} Ω เกิน 20 Ω (FMM-1 ตาม Installation Manual ตาราง A.1)`]); st = 'err'; }
+      else if (Rc > 0) r.items.push(['inf', `ความต้านทานสาย IDC ${Rc.toFixed(1)} Ω (ไม่เกิน 20 Ω)`]);
+    }
     add('o-' + o.id, o.title, r.items, st);
   }
 
@@ -1077,7 +1128,8 @@ function analyze() {
   Object.values(annSeen).filter(a => a.length > 1).forEach(a => a.forEach(p => { R.ann[p.id] = false; const c = R.circ.find(c => c.key === 'ann-' + p.id); c.items.push(['err', 'Address ซ้ำกับจออื่น']); c.state = 'err'; }));
 
   /* ---- relays ---- */
-  const relSrc = [{id:'P', title:'รีเลย์ Alarm บนตู้', c:'P.rc', no:'P.rno', nc:'P.rnc', ok:true}]
+  const relSrc = [{id:'P', title:'รีเลย์ Alarm (TB4) บนตู้', c:'P.rc', no:'P.rno', nc:'P.rnc', ok:true}, {id:'P.T', title:'รีเลย์ Trouble (TB3) บนตู้', c:'P.tc', no:'P.tno', nc:'P.tnc', ok:true},
+    {id:'P.U', title:'รีเลย์ Supervisory (TB2) บนตู้', c:'P.uc', no:'P.uno', nc:'P.unc', ok:true}, {id:'P.Y', title:'รีเลย์ Security (TB1) บนตู้', c:'P.yc', no:'P.yno', nc:'P.ync', ok:true}]
     .concat(parts.filter(p => p.t === 'rm').map(p => ({id:p.id, title:`${nameOf(p)} ${addrStr(p)}`, c:p.id + '.c', no:p.id + '.no', nc:p.id + '.nc', ok:R.resp[p.id]})));
   for (const p of parts.filter(q => T(q) && T(q).role === 'rsink')) {
     const it = []; let st = 'ok', mode = null, src = null;
@@ -1098,7 +1150,8 @@ function analyze() {
       it.push([good ? 'ok' : 'err', `${src.title} ${txt}`]); if (!good) st = 'err';
       if (!src.ok) { it.unshift(['err', `${src.title} ไม่ตอบบน SLC`]); st = 'err'; }
     } else if (mode !== 'bypass') { it.push([partUsed(p) ? 'err' : 'inf', partUsed(p) ? 'วงจรไม่ครบ' : 'ยังไม่ได้ต่อ']); st = partUsed(p) ? 'err' : 'todo'; }
-    it.push(['inf', 'หน้าสัมผัสรีเลย์ไม่ถูกตรวจสาย']);
+    if (src && src.id !== 'P' && src.id.startsWith('P.')) { it.push(['warn', `${src.title} ไม่ได้ทำงานตอน Fire Alarm ควรใช้รีเลย์ Alarm TB4 หรือ FRM-1`]); if (st === 'ok') st = 'warn'; }
+    it.push(['inf', 'หน้าสัมผัสรีเลย์ไม่ถูกตรวจสาย · พิกัด 2 A ที่ 30 VDC (resistive)']);
     R.relays.push({p, mode, src});
     add('rs-' + p.id, label(p), it, st);
   }
@@ -1119,7 +1172,7 @@ function simulate(R) {
   const nacOn = (fire && !PX.silenced) || PX.drill || O.pulse;   // panel NACs: general alarm Z000, silenceable
   const works = r => r && !r.shorted && r.state !== 'skip';
   const active = new Set();
-  if (nacOn) ['P.n1', 'P.n2', 'P.n3', 'P.n4', 'P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
+  if (nacOn) ['P.sp'].forEach(id => { if (works(R.outs[id])) active.add(id); });
   parts.filter(p => p.t === 'cm').forEach(p => { if (O.on.has(p.id) && works(R.outs[p.id]) && R.power[p.id]) active.add(p.id); });
   for (let k = 0; k < 3; k++) for (const p of parts.filter(q => q.t === 'psu')) {
     if ([...active].some(id => R.outs[id].devOK.includes(p))) { S.psuOn.add(p.id); ['.1', '.2'].forEach(s => { if (works(R.outs[p.id + s])) active.add(p.id + s); }); }
@@ -1127,6 +1180,8 @@ function simulate(R) {
   S.active = active;
   S.active.forEach(id => R.outs[id].devOK.forEach(d => { if (d.t !== 'psu') S.sound.add(d.id); }));
   if (fire) S.relayOn.add('P');
+  if (PX.events.some(e => e.type === 'TROUBLE')) S.relayOn.add('P.T');
+  if (PX.events.some(e => e.type === 'SUPERVISORY')) S.relayOn.add('P.U');
   parts.filter(p => p.t === 'rm' && O.on.has(p.id)).forEach(p => S.relayOn.add(p.id));
   return S;
 }
@@ -1504,7 +1559,8 @@ function drawFacpReal(g) {
   rr(g, 200, 300, 40, 140, 3, '#1b1d20', '#000');
   for (let i = 0; i < 12; i++) el('line', {x1:204, y1:306 + i * 11, x2:236, y2:306 + i * 11, stroke:'#555'}, g);
   rt(g, 220, 296, 'RIBBON', 6.5, '#cfe8d3', {'text-anchor':'middle'});
-  tb(92, 284); tb(330, 354); tb(404, 452);
+  tb(92, 140); tb(176, 224); tb(260, 308); tb(344, 392); tb(428, 452);
+  [['TB4', 92], ['TB3', 176], ['TB2', 260], ['TB1', 344], ['TB7', 428]].forEach(([t, y]) => rt(g, FW - 30, y - 14, t, 6.5, '#cfe8d3', {'text-anchor':'end'}));
   // loop cards
   for (let i = 1; i <= Y.total; i++) {
     const y = Y.loopY(i), lcm = i % 2 === 1;
@@ -1647,7 +1703,7 @@ board.addEventListener('click', ev => {
   const t = ev.target.closest('.term');
   if (t) { clickTerm(t.dataset.k); return; }
   const w = ev.target.closest('.wire-hit');
-  if (w) { selW = +w.dataset.w; pending = null; gRubber.style.display = 'none'; const W = wires.find(x => x.id === selW); hint(`เลือกสาย ${nameOf(TERM[W.a].part)} ${TERM[W.a].lb} → ${nameOf(TERM[W.b].part)} ${TERM[W.b].lb}`); drawTerms(); drawWires(); updateBtns(); return; }
+  if (w) { selW = +w.dataset.w; pending = null; selP = null; renderInsp(); gRubber.style.display = 'none'; const W = wires.find(x => x.id === selW); hint(`เลือกสาย ${nameOf(TERM[W.a].part)} ${TERM[W.a].lb} → ${nameOf(TERM[W.b].part)} ${TERM[W.b].lb}`); drawTerms(); drawWires(); updateBtns(); return; }
   const g = ev.target.closest('.part');
   if (g) { selectPart(g.dataset.p); return; }
   if (pending || selW) { pending = null; selW = null; gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
@@ -1726,7 +1782,7 @@ $('palette').addEventListener('click', ev => {
 /* FACP cards */
 function renderCards() {
   $('cards').innerHTML = `
-    <label class="fixed"><input type="checkbox" checked disabled><span><b>CPU2-3030D</b><small>CPU + จอ · NAC 1–4 · ACS EIA-485 · รีเลย์ Alarm</small></span></label>
+    <label class="fixed"><input type="checkbox" checked disabled><span><b>CPU2-3030D</b><small>CPU + จอ · รีเลย์ Form-C TB1–TB4 · ACS EIA-485 (TB7) · ไม่มี NAC บนบอร์ด</small></span></label>
     <label class="fixed"><input type="checkbox" checked disabled><span><b>AMPS-24</b><small>Power supply · AUX 24V · ชาร์จแบตเตอรี่</small></span></label>
     <div class="loopcards"><span><b>SLC Loop (LCM-320 / LEM-320)</b><small>${CARDS.loops + 1} loop · LCM-320 × ${Math.ceil((CARDS.loops + 1) / 2)} · LEM-320 × ${Math.floor((CARDS.loops + 1) / 2)} (สูงสุด ${MAXLOOPS} loop)</small></span>
       <span class="stepper"><button class="btn" type="button" id="loopMinus" aria-label="ถอด loop สุดท้าย" ${CARDS.loops ? '' : 'disabled'}>−</button><output id="loopN">${CARDS.loops + 1}</output><button class="btn" type="button" id="loopPlus" aria-label="เพิ่ม loop" ${CARDS.loops < MAXLOOPS - 1 ? '' : 'disabled'}>+</button></span></div>
@@ -1753,10 +1809,22 @@ $('cards').addEventListener('change', ev => {
 });
 
 /* inspector */
+function renderWireInsp(w) {
+  const A = TERM[w.a], B = TERM[w.b];
+  const opt = (v, cur, lb) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${lb}</option>`;
+  $('insp').innerHTML = `<h3>สาย ${refdes(A.part)} ${A.lb || ''} → ${refdes(B.part)} ${B.lb || ''}</h3>
+    <p>ตั้งความยาวจริงและขนาดสายเพื่อให้ ERC คำนวณความต้านทานและความยาวตามคู่มือ (ค่าเริ่มต้นคิดจากระยะบนแผ่นงาน 10 ช่อง = 1 m)</p>
+    <div class="kv"><label for="iWLen">ความยาว (m)</label><input id="iWLen" type="number" min="0" step="1" value="${wLen(w)}">
+    <label for="iWAwg">ขนาดสาย</label><select id="iWAwg">${[12, 14, 16, 18].map(a => opt(a, wAwg(w), `${a} AWG (${{12:'3.31', 14:'2.08', 16:'1.31', 18:'0.82'}[a]} mm²) · ${(AWG_OHM[a] * 1000).toFixed(2)} Ω/km`)).join('')}</select>
+    <label for="iWKind">ชนิดสาย</label><select id="iWKind">${Object.entries(WKIND).map(([k, t]) => opt(k, w.kind || 'tup', t)).join('')}</select>
+    <span></span><span class="note">สายเส้นนี้ ${wOhm(w).toFixed(2)} Ω ต่อเส้น</span></div>
+    <div class="row"><button class="btn" type="button" id="iWAll">ใช้ขนาดและชนิดนี้กับทุกเส้น</button></div>`;
+}
 function renderInsp() {
+  { const w = !selP && wires.find(x => x.id === selW); if (w && TERM[w.a] && TERM[w.b]) { renderWireInsp(w); return; } }
   const p = byId(selP);
   if (!p) { $('insp').innerHTML = '<p>คลิกอุปกรณ์บนแผ่นงานเพื่อดูวิธีต่อ ตั้ง Loop และ Address หรือลบอุปกรณ์</p>'; return; }
-  if (p.t === 'facp') { $('insp').innerHTML = '<h3>U1 · NFS2-3030</h3><p>ตู้ NFS2-3030 ในตัวตู้ CHS-M3 ประกอบด้วย CPU2-3030D (NAC 1–4, พอร์ต ACS EIA-485, รีเลย์ Alarm), การ์ด LCM-320 / LEM-320 สำหรับ SLC (สูงสุด 10 loop), ชุดเสียง DVC-EM / DAA2 (เลือกติด) และ power supply AMPS-24 (AUX 24V และแบตเตอรี่) ขั้วของการ์ดที่ติดจะอยู่ที่ขอบขวาของตู้</p><dl class="kv"><dt>Ref</dt><dd>U1</dd><dt>Loops</dt><dd>' + (CARDS.loops + 1) + ' / 10</dd><dt>NAC</dt><dd>4 × Class A/B</dd><dt>Capacity</dt><dd>159 D + 159 M ต่อ loop</dd></dl>'; return; }
+  if (p.t === 'facp') { $('insp').innerHTML = '<h3>U1 · NFS2-3030</h3><p>ตู้ NFS2-3030 ในตัวตู้ CHS-M3 ประกอบด้วย CPU2-3030D (รีเลย์ Form-C 2 A @30 VDC: TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security · TB7 ACS EIA-485 · ไม่มี NAC บนบอร์ด ใช้ FCM-1 หรือ FCPS-24S), การ์ด LCM-320 / LEM-320 สำหรับ SLC (สูงสุด 10 loop), ชุดเสียง DVC-EM / DAA2 (เลือกติด) และ power supply AMPS-24 (AUX 24V และแบตเตอรี่) ขั้วของการ์ดที่ติดจะอยู่ที่ขอบขวาของตู้</p><dl class="kv"><dt>Ref</dt><dd>U1</dd><dt>Loops</dt><dd>' + (CARDS.loops + 1) + ' / 10</dd><dt>Relays</dt><dd>4 × Form-C 2 A</dd><dt>Capacity</dt><dd>159 D + 159 M ต่อ loop</dd></dl>'; return; }
   const ty = T(p);
   let kv = '';
   if (ty.addrType === 'A') kv += `<label for="iAddr">Address</label><input id="iAddr" type="number" min="1" max="32" value="${p.addr}">`;
@@ -1785,7 +1853,7 @@ function lvlNote(p) {
   const st = v >= s.alarm ? '<b class="c-err">ALARM</b>' : s.pre != null && v >= s.pre ? '<b class="c-warn">PREALARM</b>' : 'ปกติ';
   return `ตอนนี้ ${f(v)} · ${st} · Alarm AL:${s.oa} = ${f(s.alarm)} · Prealarm ${s.op === 0 ? 'PA:0 (ปิด)' : `PA:${s.op}${s.op === 1 ? ' AUTO' : ''} = ${f(s.pre)}`} (ค่าจากโปรแกรมตู้ ตารางภาคผนวก D)`;
 }
-function dirtNote(p) { const d = p.dirt ?? 20, t = dirtTrouble(d); return `${d}% · ${dirtStatus(d)}${t ? ` · ตู้แจ้ง Trouble <b>${t}</b>` : ''} (≤5% LOW THRESHOLD, 92–99% MAINTENANCE REQ, 100% MAINT.URGENT)`; }
+function dirtNote(p) { const d = p.dirt ?? 20, t = dirtTrouble(d); return `${d}% · ${dirtStatus(d)}${t ? ` · ตู้แจ้ง Trouble <b>${t}</b>` : ''} (≤5% LOW THRESHOLD, 92–99% MAINTENANCE REQ, 100% MAINT URGENT)`; }
 function setBase(p, v) {
   const toIso = v === 'iso';
   if (toIso === isoBase(p)) return;
@@ -1803,6 +1871,12 @@ function setBase(p, v) {
   hint(toIso ? `${refdes(p)} เปลี่ยนเป็นฐาน Isolator (B224BI): สาย SLC เดิมย้ายไปขั้ว IN ต่อขาออกไปอุปกรณ์ถัดไปที่ OUT+/OUT−` : `${refdes(p)} เปลี่ยนเป็นฐานมาตรฐาน` + (dropped ? ` สายที่ขั้ว OUT ${dropped} เส้นถูกลบ` : ''));
 }
 $('insp').addEventListener('input', ev => {
+  if (['iWLen', 'iWAwg', 'iWKind'].includes(ev.target.id)) {
+    const w = wires.find(x => x.id === selW); if (!w) return;
+    if (ev.target.id === 'iWLen') w.len = Math.max(0, +ev.target.value || 0); else if (ev.target.id === 'iWAwg') w.awg = +ev.target.value; else w.kind = ev.target.value;
+    save(); render(); if (ev.target.id !== 'iWLen') renderWireInsp(w);
+    return;
+  }
   const p = byId(selP); if (!p) return;
   if (ev.target.id === 'iLvl' || ev.target.id === 'iDirt') {
     if (ev.target.id === 'iLvl') p.lvl = +ev.target.value; else p.dirt = +ev.target.value;
@@ -1818,6 +1892,7 @@ $('insp').addEventListener('input', ev => {
   $('iTitle').textContent = `${refdes(p)} · ${label(p)}`;
 });
 $('insp').addEventListener('click', ev => {
+  if (ev.target.id === 'iWAll') { const w = wires.find(x => x.id === selW); if (!w) return; wires.forEach(x => { x.awg = wAwg(w); x.kind = w.kind || 'tup'; }); save(); render(); hint(`ตั้งทุกเส้นเป็น ${wAwg(w)} AWG · ${WKIND[w.kind || 'tup']}`); return; }
   if (ev.target.id === 'iProg') { const p = byId(selP); openProgram(PROG[addrStr(p)] ? 'point' : 'auto', p); return; }
   if (ev.target.id !== 'iDel') return;
   delPart();
@@ -1834,20 +1909,21 @@ function build(full) {
   const iso1 = A('iso', 370, 175), s1 = A('smoke', 370, 30, {addr:1}), s2 = A('smoke', 520, 30, {addr:2}), iso2 = A('iso', 670, 175), h1 = A('heat', 670, 30, {addr:3});
   const mm1 = A('mm', 880, 30, {addr:1});
   const mm2 = full ? A('mm', 880, 175, {addr:2}) : null;
-  const cm1 = A('cm', 880, 330, {addr:full ? 3 : 2}), rm1 = A('rm', 880, 500, {addr:full ? 4 : 3});
+  const cm1 = A('cm', 880, 330, {addr:full ? 3 : 2}), rm1 = A('rm', 880, 500, {addr:full ? 4 : 3}), cm2 = A('cm', 880, 680, {addr:full ? 5 : 4});
   const pull = A('pull', 1100, 20), e1 = A('eol47', 1110, 110);
   const hsc = A('hs', 1100, 350), e2 = A('eol47', 1110, 440);
   const ahu = A('ahu', 1100, 520);
-  const n1 = A('hs', 370, 300), n2 = A('hs', 520, 300), e3 = A('eol22', 680, 305);
+  const n1 = A('hs', 370, 300), n2 = A('hs', 520, 300), e3 = A('eol47', 680, 305);
   const b1 = A('bat', 380, 1040), b2 = A('bat', 560, 1040);
   const L = [];
   // SLC loop 1: panel -> ISO1 -> D1 -> D2 -> ISO2 -> D3 -> modules (-> back to A in the full example)
   const hop = [['P.l1b', iso1.id + '.i'], [iso1.id + '.o', s1.id + '.s'], [s1.id + '.s', s2.id + '.s'], [s2.id + '.s', iso2.id + '.i'], [iso2.id + '.o', h1.id + '.s']];
-  const mods = [h1, mm1, ...(mm2 ? [mm2] : []), cm1, rm1];
+  const mods = [h1, mm1, ...(mm2 ? [mm2] : []), cm1, rm1, cm2];
   for (let i = 0; i < mods.length - 1; i++) hop.push([mods[i].id + '.s', mods[i + 1].id + '.s']);
-  if (full) hop.push([rm1.id + '.s', 'P.l1a']);
+  if (full) hop.push([cm2.id + '.s', 'P.l1a']);
   for (const [a, b] of hop) for (const pol of ['+', '-']) L.push(W(a + pol, b + pol));
-  for (const pol of ['+', '-']) L.push(W('P.n1' + pol, n1.id + '.' + pol), W(n1.id + '.' + pol, n2.id + '.' + pol), W(n2.id + '.' + pol, end(e3, pol)));
+  L.push(W('P.x+', cm2.id + '.v+'), W('P.x-', cm2.id + '.v-'));
+  for (const pol of ['+', '-']) L.push(W(cm2.id + '.o' + pol, n1.id + '.' + pol), W(n1.id + '.' + pol, n2.id + '.' + pol), W(n2.id + '.' + pol, end(e3, pol)));
   L.push(W('P.x+', cm1.id + '.v+'), W('P.x-', cm1.id + '.v-'));
   for (const pol of ['+', '-']) L.push(W(cm1.id + '.o' + pol, hsc.id + '.' + pol), W(hsc.id + '.' + pol, end(e2, pol)));
   L.push(W(mm1.id + '.i+', pull.id + '.c1', 'red'), W(pull.id + '.c1', e1.id + '.a', 'red'), W(mm1.id + '.i-', pull.id + '.c2', 'blk'), W(pull.id + '.c2', e1.id + '.b', 'blk'));
@@ -1860,9 +1936,11 @@ function build(full) {
     for (const pol of ['+', '-']) L.push(W('P.l2b' + pol, a1.id + '.s' + pol), W(a1.id + '.s' + pol, a2.id + '.s' + pol), W(a2.id + '.s' + pol, a3.id + '.s' + pol));
     const sp1 = A('spk', 1330, 340), sp2 = A('spk', 1500, 340), e5 = A('eol47', 1510, 440);
     for (const pol of ['+', '-']) L.push(W('P.sp' + pol, sp1.id + '.' + pol), W(sp1.id + '.' + pol, sp2.id + '.' + pol), W(sp2.id + '.' + pol, end(e5, pol)));
-    const ps = A('psu', 370, 450), e6 = A('eol22', 610, 455), hp = A('hs', 640, 560), e7 = A('eol47', 660, 660);
+    const cm3 = A('cm', 880, 850, {addr:6}); L.push(W('P.x+', cm3.id + '.v+'), W('P.x-', cm3.id + '.v-'));
+    for (const pol of ['+', '-']) { L.splice(L.findIndex(w => w.a === cm2.id + '.s' + pol && w.b === 'P.l1a' + pol), 1); L.push(W(cm2.id + '.s' + pol, cm3.id + '.s' + pol), W(cm3.id + '.s' + pol, 'P.l1a' + pol)); }
+    const ps = A('psu', 370, 450), e6 = A('eol47', 610, 455), hp = A('hs', 640, 560), e7 = A('eol47', 660, 660);
     const pb1 = A('bat', 380, 760), pb2 = A('bat', 560, 760);
-    for (const pol of ['+', '-']) L.push(W('P.n2' + pol, ps.id + '.in' + pol), W(ps.id + '.in' + pol, end(e6, pol)), W(ps.id + '.o1' + pol, hp.id + '.' + pol), W(hp.id + '.' + pol, end(e7, pol)));
+    for (const pol of ['+', '-']) L.push(W(cm3.id + '.o' + pol, ps.id + '.in' + pol), W(ps.id + '.in' + pol, end(e6, pol)), W(ps.id + '.o1' + pol, hp.id + '.' + pol), W(hp.id + '.' + pol, end(e7, pol)));
     L.push(W(ps.id + '.t+', pb1.id + '.+'), W(pb1.id + '.-', pb2.id + '.+'), W(pb2.id + '.-', ps.id + '.t-'));
     const an = A('ann', 1330, 560, {addr:1});
     L.push(W('P.aa', an.id + '.a'), W('P.ab', an.id + '.b'), W('P.x+', an.id + '.v+'), W('P.x-', an.id + '.v-'));
@@ -1874,7 +1952,7 @@ function build(full) {
   programAll();
   changed();
   $('fileName').textContent = full ? 'ระบบเต็ม.fsim' : 'ระบบพื้นฐาน.fsim';
-  hint(full ? 'ตัวอย่างระบบเต็ม NFS2-3030: Loop 1 (LCM-320) แบบ Class A + Isolator, Loop 2 (LEM-320), DVC, FCPS-24S บน NAC 2, ACS annunciator, ลิฟต์และ AHU' : 'ตัวอย่างระบบพื้นฐาน NFS2-3030: Loop 1 (LCM-320) แบบ Class B + Isolator, NAC 1, FMM-1 / FCM-1 / FRM-1 และแบตเตอรี่ที่ AMPS-24');
+  hint(full ? 'ตัวอย่างระบบเต็ม NFS2-3030: Loop 1 (LCM-320) แบบ Class A + Isolator, Loop 2 (LEM-320), DVC, FCPS-24S สั่งจาก FCM-1, ACS annunciator, ลิฟต์และ AHU' : 'ตัวอย่างระบบพื้นฐาน NFS2-3030: Loop 1 (LCM-320) แบบ Class B + Isolator, FMM-1 / FCM-1 (NAC) / FRM-1 และแบตเตอรี่ที่ AMPS-24');
 }
 $('exBasic').addEventListener('click', () => build(false));
 $('exFull').addEventListener('click', () => build(true));
@@ -2008,10 +2086,10 @@ function progReport(R) {
   for (const p of parts.filter(q => T(q) && T(q).role === 'slc')) {
     const k = addrStr(p), pr = PROG[k];
     if (!pr) { if (R.resp[p.id]) { it.push(['warn', `${refdes(p)} ${k} ตอบบน SLC แต่ยังไม่ได้ลงโปรแกรมในตู้ ตู้จะไม่สนใจจุดนี้ → PROGRAM › AUTOPROGRAM`]); st = 'warn'; } continue; }
-    if (!TYPECODES[p.t].includes(pr.type)) { it.push(['err', `${k} ตั้ง Type Code เป็น ${pr.type} แต่อุปกรณ์จริงคือ ${T(p).short} ตู้แจ้ง INVALID TYPE`]); st = 'err'; }
+    if (!TYPECODES[p.t].includes(pr.type)) { it.push(['err', `${k} ตั้ง Type Code เป็น ${pr.type} แต่อุปกรณ์จริงคือ ${T(p).short} ตู้แจ้ง MISMAT HDWE TYPE`]); st = 'err'; }
     if (!pr.on) it.push(['warn', `${k} ${pr.label} ถูก Disable ตู้จะไม่รับเหตุจากจุดนี้`]);
   }
-  for (const k of keys) if (!partAt(k)) { it.push(['err', `${k} (${PROG[k].label}) อยู่ในโปรแกรมแต่ไม่พบอุปกรณ์ที่ Address นี้ ตู้แจ้ง INVALID REPLY`]); st = 'err'; }
+  for (const k of keys) if (!partAt(k)) { it.push(['err', `${k} (${PROG[k].label}) อยู่ในโปรแกรมแต่ไม่พบอุปกรณ์ที่ Address นี้ ตู้แจ้ง NO ANSWER`]); st = 'err'; }
   it.unshift(['inf', `จุดในโปรแกรม ${keys.length} จุด · Disable ${keys.filter(k => !PROG[k].on).length} จุด`]);
   if (!keys.length) { it.push(['inf', 'ยังไม่มีจุดในโปรแกรม กด PROGRAM ที่หน้าตู้ แล้วเลือก AUTOPROGRAM']); st = 'todo'; }
   R.circ.push({key:'prog', title:'โปรแกรมในตู้ (Panel program)', items:it, state:st});
@@ -2063,8 +2141,8 @@ function syncPanel(R) {
   for (const [k, pr] of Object.entries(PROG)) {
     const p = partAt(k);
     if (!pr.on) { trouble(`${k} DISABLED`); continue; }
-    if (!p) trouble(`${k} INVALID REPLY`);
-    else if (!TYPECODES[p.t].includes(pr.type) && R.resp[p.id]) trouble(`${k} INVALID TYPE`);
+    if (!p) trouble(`${k} NO ANSWER`);
+    else if (!TYPECODES[p.t].includes(pr.type) && R.resp[p.id]) trouble(`${k} MISMAT HDWE TYPE`);
     else if (isAnalog(p) && p.t !== 'heat' && R.resp[p.id] && dirtTrouble(p.dirt ?? 20)) trouble(`${k} ${dirtTrouble(p.dirt ?? 20)}`);
   }
   PX.events.filter(e => e.type === 'TROUBLE' && !seen.has(e.src)).forEach(pclear);
@@ -2195,7 +2273,7 @@ const TC_D = ['SMOKE(PHOTO)', 'SMOKE(DUCTP)', 'SUP L(PHOTO)', 'SUP T(PHOTO)', 'H
 const TC_MON = ['MONITOR', 'PULL STATION', 'WATERFLOW', 'WATERFLOW S', 'TAMPER', 'LATCH SUPERV', 'TRACK SUPERV', 'SMOKE CONVEN', 'SMOKE DETECT', 'HEAT DETECT', 'NON FIRE', 'TROUBLE MON'];
 const TC_CTL = ['CONTROL', 'RELAY', 'BELL CIRCUIT', 'STROBE CKT', 'HORN CIRCUIT', 'AUDIBLE CKT', 'SPEAKER', 'NONRESET CTL'];
 const SUPV_TC = ['SUP L(PHOTO)', 'SUP T(PHOTO)', 'WATERFLOW S', 'TAMPER', 'LATCH SUPERV', 'TRACK SUPERV'];
-// device -> codes that fit it (used for INVALID TYPE / autoprogram mismatch)
+// device -> codes that fit it (used for MISMAT HDWE TYPE / autoprogram mismatch)
 Object.assign(TYPECODES, {
   smoke:['SMOKE(PHOTO)', 'SUP L(PHOTO)', 'SUP T(PHOTO)'], duct:['SMOKE(DUCTP)', 'SUP L(PHOTO)', 'SUP T(PHOTO)'], heat:['HEAT', 'HEAT(FIXED)', 'HEAT (ROR)'],
   multi:['SMOKE ACCLIM', 'SMOKE(PHOTO)'], beam:['SMOKE(BEAM)'],
@@ -2847,7 +2925,7 @@ function analogTick() {
   }
 }
 function dirtStatus(d) { return d < 50 ? 'NONE/VERY CLEAN' : d < 70 ? 'NONE/FAIRLY CLEAN' : d < 80 ? 'NEEDS CLEANING' : 'NEEDS IMMEDIATE CLEANING'; }
-function dirtTrouble(d) { return d >= 100 ? 'MAINT.URGENT' : d >= 92 ? 'MAINTENANCE REQ' : d <= 5 ? 'LOW THRESHOLD' : null; }
+function dirtTrouble(d) { return d >= 100 ? 'MAINT URGENT' : d >= 92 ? 'MAINTENANCE REQ' : d <= 5 ? 'LOW THRESHOLD' : null; }
 // Read Status lines 11-14 (Figure D.6)
 function detStatusLines(key) {
   const p = partAt(key); if (!isAnalog(p)) return [];
