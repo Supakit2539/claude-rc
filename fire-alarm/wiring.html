@@ -469,7 +469,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
       <div class="tabs"><span class="tab" id="sheetTab">Sheet 1 · ผังต่อสาย</span></div>
       <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="แผ่นงานผังต่อสาย"></svg></div>
       <section class="msgs" aria-label="ผลตรวจวงจร">
-        <div class="pane-h"><span class="ftabs" role="tablist" aria-label="แผงล่าง"><button type="button" id="tabErc" aria-pressed="true">ผลตรวจวงจร (ERC)</button><button type="button" id="tabHist" aria-pressed="false">ประวัติเหตุการณ์ (History)</button> <span id="score" class="chip c-muted"></span></span>
+        <div class="pane-h"><span class="ftabs" role="tablist" aria-label="แผงล่าง"><button type="button" id="tabErc" aria-pressed="true">ผลตรวจวงจร (ERC)</button><button type="button" id="tabHist" aria-pressed="false">ประวัติเหตุการณ์ (History)</button><button type="button" id="tabPrn" aria-pressed="false">เครื่องพิมพ์</button> <span id="score" class="chip c-muted"></span></span>
           <span class="ftabs" id="ercFilters" role="group" aria-label="กรองข้อความ"><button type="button" id="fIss" aria-pressed="true">ปัญหา</button><button type="button" id="fAll" aria-pressed="false">ทั้งหมด</button></span>
           <span class="ftabs" id="histTools" hidden><button type="button" id="clrLog">ล้างประวัติ</button></span></div>
         <div class="res" id="res"></div>
@@ -581,6 +581,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>เมนูที่เพิ่มครบตามคู่มือ</b>: MAIN MENU › HISTORY DISPLAY (ALL EVENTS / ALARMS / TROUBLES / SUPERVISORY / SECURITY-OTHERS / TIME-DATE INTERVAL / POINT RANGE) · PRINTER FUNCTIONS (ขึ้นเมื่อตั้ง SUPERVISION › PRINTER) พิมพ์ลงแท็บ "เครื่องพิมพ์" · EVENT COUNTS › MORE INFORMATION แสดง Custom Action Message · PANEL PROGRAM: NETWORK PARAMETERS (+IP ACCESS), NETWORK MAPPING (ต้องเปิด NETWORK DISPLAY MODE), PANEL SETTINGS 1–5 + REMINDER/REGIONAL (CHICAGO ปิดปุ่ม SILENCE/DRILL)/SCS/SOUNDER BASE/CUSTOM TONE, PRESIGNAL DELAY, LCD (ความสว่าง/BACKLIGHT มีผลกับจอ), ACS PROGRAMMING + POINT, SUPERVISION · หน้า 2: WEEKLY OCCUPANCY (ใช้เลือกค่า Sensitivity Occupied/Unoccupied), HOLIDAY, REMOTE DISPLAY, CUSTOM ACTION MESSAGE, EVENT LOGGING (บันทึก OUTPUT ON/OFF) · POINT PROGRAM: GENERAL ZONE, LOGIC ZONE / TROUBLE ZONE (สมการ AND OR NOT ONLY1 ANYX XZONE RANGE DIS PRE SUP FIRE DEL SDEL ใช้งานจริงใน CBE ใส่ใน Zone map ด้วยการพิมพ์ L/T นำหน้า เช่น L1 = ZL1), RELEASE ZONE, ACS BOARD, DAA/DVC · ALTER STATUS: CLEAR HISTORY (ALARM/EVENT/ALL), WIRELESS, FAAST (ไม่มีอุปกรณ์ในจำลอง) · กด LAMP TEST ค้างเกิน 5 วินาทีดู VERSION</li>
     <li><b>การต่อสาย SLC ตามคู่มือ (3.3.4 และภาคผนวก H)</b>: LOOP CONFIGURATION › WIRING CLASS ใช้ตรวจสายจริง · Class A สายขาดฝั่ง + ขึ้น CLASS A POS LOOP n ฝั่ง − ขึ้น CLASS A NEG LOOP n ตู้จ่ายสัญญาณทั้งสองปลายอุปกรณ์จึงยังทำงาน และ Trouble ค้างจนแก้สายแล้วกด RESET · ช็อตบน Class A ขึ้น CLASS A SHORT LOOP n · ตั้ง Class A แต่ต่อแบบ Class B ตู้แจ้ง Trouble · INSTALLED: NO ตู้ไม่สแกนลูปนั้น · ชื่อ Trouble อื่นตามภาคผนวก H: BATTERY, ANNUN n NO ANSWER, NO DEV. INST ON L1, MAN EVAC INITIATED, BUZZER OFF-LINE</li>
     <li><b>ค่าควัน/ความร้อนแบบ Analog (ภาคผนวก D)</b>: เลือกหัว Addressable แล้วเลื่อนแถบ "ระดับควัน" ในแผง Properties (หัวควัน %/ft, หัวความร้อน °C, Beam % บังลำแสง) · ตู้เทียบกับค่าที่ตั้งใน SENSITIVITY: Alarm AL:1–9 และ Prealarm PA:0–9 (PA:0 = ปิด, PA:1 = AUTO) ค่าโรงงาน Photo AL:8 = 2.12%/ft, PA:8 = 1.33%/ft · เกิน Prealarm แต่ยังไม่ถึง Alarm ขึ้น PREALARM: ALERT หายเองเมื่อควันลด / ACTION ค้างจน RESET และสั่งโซนในช่องที่ 10 ของ Zone map · แถบ "ฝุ่นสะสม" ≥92% ขึ้น MAINTENANCE REQ, 100% MAINT URGENT, ≤5% LOW THRESHOLD · READ STATUS แสดง VALUES % OF ALARM / PREALARM, ACTION/STATUS, PEAKS, VERIFY COUNT · คลิกที่หัวยังใช้พ่นควันเต็มที่/ไล่ควันได้เหมือนเดิม</li>
     <li><b>CBE / Zone (ภาคผนวก E)</b>: อุปกรณ์ตรวจจับมี Zone map ค่าเริ่ม Z0yy ตามลูป · Control/Relay module ค่าเริ่ม Z000 (General alarm = ทุก Fire alarm) · เอาต์พุตทำงานเมื่อโซนใน Zone map ของมัน Active · หน้า MODULE POINT PROGRAMMING (2) ของ Control module: LOCAL MODE, ZONE MAP, WALK TEST, SWITCH INHIBIT, SILENCEABLE (NO = ไม่ดับเมื่อกด SIGNAL SILENCE) · Disable ทั้งโซน: ALTER STATUS › DISABLE/ENABLE › พิมพ์ Zyyy (ห้าม Z000)</li>
@@ -1121,8 +1122,10 @@ function analyze() {
     if (powered(p)) it.push(['ok', 'มีไฟ 24V จาก AUX ของ AMPS-24']); else { it.push(['err', powerRev(p) ? 'ไฟ 24V กลับขั้ว' : 'ไม่มีไฟ 24V เข้าจอ']); st = 'err'; }
     if (p.addr < 1 || p.addr > 32) { it.push(['err', 'Address ต้องอยู่ระหว่าง 1–32']); st = 'err'; }
     (annSeen[p.addr] = annSeen[p.addr] || []).push(p);
+    const acsT = typeof PSET !== 'undefined' && PSET.acs ? PSET.acs[p.addr - 1] : null;
+    if (acsT === 'NO') { it.push(['warn', `ACS PROGRAMMING ตั้ง A${String(p.addr).padStart(2, '0')}: NO ตู้ไม่สื่อสารกับจอนี้`]); if (st === 'ok') st = 'warn'; }
     R.ann[p.id] = st === 'ok';
-    if (st !== 'ok') R.panel.push(['TROUBLE', `ANNUN ${p.addr} NO ANSWER`]);
+    if (st === 'err' && acsT !== 'NO') R.panel.push(['TROUBLE', `ANNUN ${p.addr} NO ANSWER`]);
     add('ann-' + p.id, `${nameOf(p)} ANN-${String(p.addr).padStart(2, '0')}`, it, st);
   }
   Object.values(annSeen).filter(a => a.length > 1).forEach(a => a.forEach(p => { R.ann[p.id] = false; const c = R.circ.find(c => c.key === 'ann-' + p.id); c.items.push(['err', 'Address ซ้ำกับจออื่น']); c.state = 'err'; }));
@@ -1167,7 +1170,7 @@ function analyze() {
 function simulate(R) {
   const S = {sound:new Set(), relayOn:new Set(), psuOn:new Set(), active:new Set()};
   if (!running || PX.resetting) { lastOut = null; return S; }
-  const O = outputState(R); lastOut = O;
+  const O = outputState(R); lastOut = O; logOutputs(O);
   const fire = PX.events.some(e => e.type === 'FIRE ALARM');
   const nacOn = (fire && !PX.silenced) || PX.drill || O.pulse;   // panel NACs: general alarm Z000, silenceable
   const works = r => r && !r.shorted && r.state !== 'skip';
@@ -2134,6 +2137,7 @@ function syncPanel(R) {
   if (!Object.keys(PROG).length) trouble('NO DEV. INST ON L1');
   if (PX.drill) trouble('MAN EVAC INITIATED');
   if (!PSET.piezo || !PSET.local) trouble('BUZZER OFF-LINE');
+  if (PSET.auxTr === 'YES') trouble('AUXILIARY TROUBLE');   // no trouble-bus device at J5 in the simulator
   if (PM && PM.level) trouble('PROG MODE ACTIVATED');
   if (PX.walk) trouble(PX.walk.adv ? 'ADV WALK TEST' : 'BASIC WALK TEST');
   PSET.zdis.forEach(z => trouble(`ZONE Z${pz(z, 3)} DISABLED`));
@@ -2159,13 +2163,14 @@ function keyAck() {
 }
 function keySilence() {
   if (needPower() || PX.resetting || localOff()) return;
+  if (PSET.region === 'CHICAGO') { pflash('SIGNAL SILENCE DISABLED', 'REGIONAL SETTINGS: CHICAGO'); return; }
   if (PSET.silInh && firstAlarmT && Date.now() - firstAlarmT < PSET.silInh * 60000) { pflash('SILENCE INHIBITED', `WAIT ${Math.ceil((PSET.silInh * 60000 - (Date.now() - firstAlarmT)) / 1000)} SEC`); return; }
   if (!(phas('FIRE ALARM') || PX.drill)) { pflash('NO SIGNALS TO SILENCE'); return; }
   if (PX.silenced && !PX.drill) return;
   PX.silenced = true; PX.drill = false; PX.events.forEach(e => e.acked = true);
   plog('SILENCE', 'SIGNALS SILENCED'); render();
 }
-function keyDrill() { if (needPower() || PX.resetting || localOff()) return; PX.drill = true; PX.silenced = false; plog('DRILL', 'MANUAL EVACUATE (DRILL)'); render(); }
+function keyDrill() { if (needPower() || PX.resetting || localOff()) return; if (PSET.region === 'CHICAGO') { pflash('DRILL DISABLED', 'REGIONAL SETTINGS: CHICAGO'); return; } PX.drill = true; PX.silenced = false; plog('DRILL', 'MANUAL EVACUATE (DRILL)'); render(); }
 function keyReset() {
   if (needPower() || PX.resetting || localOff()) return;
   plog('RESET', 'SYSTEM RESET');
@@ -2317,11 +2322,11 @@ function pmScreen() {
   switch (P.scr) {
     case 'main': {
       const st = PX.events.length ? (PX.events.some(e => e.type === 'FIRE ALARM') ? 'FIRE ALARM' : PX.events.some(e => e.type === 'SUPERVISORY') ? 'SUPERVISORY' : 'TROUBLE') : 'SYSTEM NORMAL';
-      return scr([ctr(NODE_LABEL), ctr(st), '', ctr(dateLine())], {2:'EVENT COUNTS DISPLAY', 4:'MULTIPLE EVENT LIST', 5:'HISTORY DISPLAY', 7:'READ STATUS', 8:'PROGRAM/ALTER STATUS', 10:'BACK'});
+      return scr([ctr(NODE_LABEL), ctr(st), '', ctr(dateLine())], {2:'EVENT COUNTS DISPLAY', 4:'MULTIPLE EVENT LIST', 5:'HISTORY DISPLAY', 7:'READ STATUS', 8:'PROGRAM/ALTER STATUS', 9:PSET.printer !== 'NONE' ? 'PRINTER FUNCTIONS' : '', 10:'BACK'});
     }
     case 'counts': {
       const c = t => pz(PX.events.filter(e => e.type === t).length, 3);
-      return scr([ctr(NODE_LABEL), ctr('EVENT COUNTS'), '', ctr(dateLine()), '', two('FIRE ALARMS', c('FIRE ALARM')), two('SUPERVISORY', c('SUPERVISORY')), two('TROUBLES', c('TROUBLE')), two('PRE-ALARMS', c('PREALARM')), two('DISABLED POINTS', pz(Object.values(PROG).filter(p => !p.on).length, 3)), two('SECURITY', '000')], {10:'BACK'});
+      return scr([ctr(NODE_LABEL), ctr('EVENT COUNTS'), '', ctr(dateLine()), '', two('FIRE ALARMS', c('FIRE ALARM')), two('SUPERVISORY', c('SUPERVISORY')), two('TROUBLES', c('TROUBLE')), two('PRE-ALARMS', c('PREALARM')), two('DISABLED POINTS', pz(Object.values(PROG).filter(p => !p.on).length, 3)), two('SECURITY', '000')], {5:PX.events.length ? 'MORE INFORMATION' : '', 10:'BACK'});
     }
     case 'mel': {
       const ev = PX.events.slice(P.page * 8, P.page * 8 + 8).map(e => `${e.acked ? ' ' : '*'}${TSHORT[e.type].padEnd(6)}${(e.l3.match(/L\d+[DM]\d{3}/) || [''])[0].padEnd(8)}${e.l2}`.slice(0, PW));
@@ -2359,16 +2364,16 @@ function pmScreen() {
       return scr(r, {1:'TYPE:', 2:`FLASHSCAN TYPE:  ${E.fs}`, 3:'POINT LABEL:', 4:'EXTENDED LABEL:', 5:`ZONE MAP: ${zmapTxt(E.zmap).slice(0, 22)}`, 8:'MORE', 9:'ACCEPT', 10:'BACK'});
     }
     case 'det2': { const r = []; r[0] = ctr('DETECTOR POINT PROGRAMMING'); r[1] = ctr(P.key);
-      return scr(r, {1:`CUSTOM ACTION MESSAGE:${pz(E.cam, 3)}`, 2:`ALARM VERIFICATION: ${E.ver ? 'ON' : 'OFF'}`, 3:`LOCAL MODE: ${E.local ? 'ON' : 'OFF'}`, 4:'WEEKLY OCCUPANCY SCHEDULE:0', 5:'MULTI-DETECTOR:', 7:'SENSITIVITY', 8:'MORE', 9:'ACCEPT', 10:'BACK'}); }
+      return scr(r, {1:`CUSTOM ACTION MESSAGE:${pz(E.cam, 3)}`, 2:`ALARM VERIFICATION: ${E.ver ? 'ON' : 'OFF'}`, 3:`LOCAL MODE: ${E.local ? 'ON' : 'OFF'}`, 4:`WEEKLY OCCUPANCY SCHEDULE:${E.wos || 0}`, 5:`MULTI-DETECTOR: ${(E.multi || []).map(k => k.replace(/^L\d+/, '')).join(', ')}`, 7:'SENSITIVITY', 8:'MORE', 9:'ACCEPT', 10:'BACK'}); }
     case 'det3': { const r = []; r[0] = ctr('DETECTOR POINT PROGRAMMING'); r[1] = ctr(P.key);
-      return scr(r, {2:`PREALARM:${E.pre}`, 3:`SILENCEABLE:${E.sil}`, 4:'INTELLIGENT SOUNDER:NO', 9:'ACCEPT', 10:'BACK'}); }
+      return scr(r, {2:`PREALARM:${E.pre}`, 3:`SILENCEABLE:${E.sil}`, 4:`INTELLIGENT SOUNDER:${E.isnd || 'NO'}`, 5:E.isnd === 'YES' ? 'SOUNDER BASE SETUP' : '', 9:'ACCEPT', 10:'BACK'}); }
     case 'sens': { const r = []; r[0] = ctr('DETECTOR SENSITIVITY'); r[1] = ctr(P.key);
       r[10] = 'ALARM SENSITIVITY TABLE'; r[11] = '1=0.50%  4=1.19%  7=1.89%'; r[13] = '2=0.73%  5=1.43%  8=2.12%'; r[14] = '3=0.96%  6=1.66%  9=2.35%';
       return scr(r, {1:`OCC ALARM = ${E.sens.oa}`, 2:`OCC PREALARM = ${E.sens.op}`, 6:`UNOCC ALARM = ${E.sens.ua}`, 7:`UNOCC PREALARM = ${E.sens.up}`, 9:'ACCEPT', 10:'BACK'}); }
     case 'zmap': {
       const r = []; r[0] = ctr(`${isDet(P.key) ? 'DETECTOR' : 'MODULE'} ZONE MAP`); r[1] = ctr(P.key); r[2] = two('ZONE', 'SELECTION');
-      for (let i = 0; i < 10; i++) { const z = E.zmap[i]; r[3 + i] = `${P.zpos === i ? '>' : ' '}${pz(i + 1)} ${z == null ? 'ZXXX   (UNMAPPED)' : 'Z' + pz(z, 3) + '   (ZONE)'}` + (P.zpos === i && P.zbuf ? '  ' + P.zbuf + '_' : ''); }
-      r[13] = 'ARROWS: POSITION  NEXT SEL: ZONE/UNMAP'; r[14] = 'TYPE ZONE NUMBER';
+      for (let i = 0; i < 10; i++) { const z = E.zmap[i]; r[3 + i] = `${P.zpos === i ? '>' : ' '}${pz(i + 1)} ${z == null ? 'ZXXX   (UNMAPPED)' : typeof z === 'string' ? z.padEnd(7) + '(' + ({L:'LOGIC', T:'TROUBLE', F:'SPECIAL'})[z[1]] + ' ZONE)' : 'Z' + pz(z, 3) + '   (ZONE)'}` + (P.zpos === i && P.zbuf ? '  ' + P.zbuf + '_' : ''); }
+      r[13] = 'ARROWS: POSITION  NEXT SEL: ZONE/UNMAP'; r[14] = 'TYPE ZONE NO. (L=ZL, T=ZT, F=ZF)';
       return scr(r, {9:'ACCEPT', 10:'BACK'});
     }
     case 'mod1': {
@@ -2411,10 +2416,10 @@ function pmScreen() {
   }
   return scr([]);
 }
-const zmapTxt = zm => zm.filter(z => z != null).map(z => 'Z' + pz(z, 3)).join(', ') || 'NONE';
+const zmapTxt = zm => zm.filter(z => z != null).map(z => typeof z === 'string' ? z : 'Z' + pz(z, 3)).join(', ') || 'NONE';
 function pmGo(scr, extra = {}) { PM = {...PM, scr, ...extra}; renderPanel(); }
 function pmBackTo() {
-  return {...EXT_BACK, main:null, counts:'main', mel:'main', rs:'main', rsPt:'rs', pw:'main', badpw:'pw', denied:'main', pas:'main', na:P0 => P0.from || 'pas', ppm1:'pas', net:'ppm1', ppMenu:'pas',
+  return {...EXT_BACK, ...BACK3, main:null, counts:'main', mel:'main', rs:'main', rsPt:'rs', pw:'main', badpw:'pw', denied:'main', pas:'main', na:P0 => P0.from || 'pas', ppm1:'pas', net:'ppm1', ppMenu:'pas',
     det1:'ppMenu', det2:'det1', det3:'det2', sens:'det2', zmap:P0 => P0.zfrom, mod1:'ppMenu', mod2:'mod1', notFound:P0 => P0.from, del:'pas', delPt:'del', confirm:P0 => P0.from,
     ap:'pas', apRun:'ap', apConf:'ap', apItem:'apConf', as1:'pas', as2:'as1', dsel:'as1', ssel:'as1', den:'dsel', sensA:'ssel', msg:P0 => P0.from}[PM.scr];
 }
@@ -2728,7 +2733,7 @@ function pmKey(k) {
     case 'badpw': if (k === 'ENTER') pmGo('pw', {buf:''}); break;
     case 'net': if (P.cursor === 'node' && typing) { edit(P, 'node', 40); renderPanel(); } else if (k === 'ENTER') { P.cursor = null; renderPanel(); } break;
     case 'rs': case 'ppMenu': case 'delPt': case 'dsel': case 'ssel':
-      if (typing && k !== ' ') { if (k === 'BKSP') P.buf = P.buf.slice(0, -1); else if (P.buf.length < 7) P.buf += k; renderPanel(); }
+      if (typing && k !== ' ') { if (k === 'BKSP') P.buf = P.buf.slice(0, -1); else if (P.buf.length < 8) P.buf += k; renderPanel(); }
       else if (k === 'ENTER') pmSoft(P.scr === 'dsel' || P.scr === 'ssel' || P.scr === 'rs' || P.scr === 'ppMenu' || P.scr === 'delPt' ? 9 : 9);
       else if (k === 'NEXT' || k === 'DOWN') stepPoint(1, P.dm); else if (k === 'PREV' || k === 'UP') stepPoint(-1, P.dm);
       break;
@@ -2746,8 +2751,9 @@ function pmKey(k) {
     case 'zmap': {
       if (k === 'UP' || k === 'DOWN') { P.zpos = (P.zpos + (k === 'DOWN' ? 1 : 9)) % 10; P.zbuf = ''; renderPanel(); }
       else if (k === 'NEXT' || k === 'PREV') { E.zmap[P.zpos] = E.zmap[P.zpos] == null ? 0 : null; renderPanel(); }
-      else if (/^\d$/.test(k)) { P.zbuf = (P.zbuf + k).slice(-3); E.zmap[P.zpos] = Math.min(999, +P.zbuf); renderPanel(); }
-      else if (k === 'BKSP') { P.zbuf = P.zbuf.slice(0, -1); E.zmap[P.zpos] = P.zbuf ? +P.zbuf : null; renderPanel(); }
+      else if (/^[LTF]$/.test(k) && !P.zbuf) { P.zbuf = k; renderPanel(); }
+      else if (/^\d$/.test(k)) { const pre = /^[LTF]/.test(P.zbuf) ? P.zbuf[0] : ''; P.zbuf = pre + (P.zbuf.slice(pre.length) + k).slice(pre === 'L' ? -4 : -3); const n = +P.zbuf.slice(pre.length); E.zmap[P.zpos] = pre ? 'Z' + pre + n : Math.min(999, n); renderPanel(); }
+      else if (k === 'BKSP') { P.zbuf = P.zbuf.slice(0, -1); const pre = /^[LTF]/.test(P.zbuf) ? P.zbuf[0] : ''; const n = P.zbuf.slice(pre.length); E.zmap[P.zpos] = n ? (pre ? 'Z' + pre + +n : +n) : null; renderPanel(); }
       else if (k === 'ENTER') pmSoft(9);
       break;
     }
@@ -2766,6 +2772,7 @@ function pmKey(k) {
     row('1234567890') + row('QWERTYUIOP') +
     '<span class="gap"></span>' + row('ASDFGHJKL') + '<span class="gap"></span>' +
     k('ESC', 'ESC', 'esc w3') + row('ZXCVBNM') + k('⌫', 'BKSP', 'fn w3') +
+    row(',().:/-*#+') +
     k('PREV SEL', 'PREV', 'fn w3') + k('NEXT SEL', 'NEXT', 'fn w3') + k('SPACE', ' ', 'fn w6') + k('◄', 'LEFT', 'fn') + k('▲', 'UP', 'fn') + k('▼', 'DOWN', 'fn') + k('►', 'RIGHT', 'fn');
   $('keypad').insertAdjacentHTML('beforeend', k('ENTER', 'ENTER', 'ent w20'));
 })();
@@ -2819,7 +2826,7 @@ function activeZones() {
   const z = new Set();
   const fires = PX.events.filter(e => e.type === 'FIRE ALARM');
   if (fires.length) z.add('Z0');                                   // general alarm zone Z000
-  for (const e of fires) { const k = SRCKEY[e.src] || ptKey(e.l3 || '') ; const pr = k && PROG[k]; if (pr && pr.zmap) pr.zmap.forEach(n => n != null && z.add('Z' + n)); }
+  for (const e of fires) { const k = SRCKEY[e.src] || ptKey(e.l3 || '') ; const pr = k && PROG[k]; if (pr && pr.zmap) pr.zmap.forEach(n => n != null && typeof n === 'number' && z.add('Z' + n)); }
   if (PX.events.some(e => e.type === 'SUPERVISORY')) z.add('ZF4');
   if (PX.events.some(e => e.type === 'TROUBLE' && !/AC FAIL/.test(e.l2))) z.add('ZF1');
   if (PX.events.some(e => e.type === 'PREALARM')) z.add('ZF9');
@@ -2828,9 +2835,10 @@ function activeZones() {
   if (Object.values(PROG).some(p => !p.on)) z.add('ZF15');
   if (PX.drill) { z.add('ZF16'); }
   PSET.zdis.forEach(n => z.delete('Z' + n));
+  eqZones(z);
   return z;
 }
-const zmapHit = (pr, Z) => (pr.zmap || []).some(n => n != null && Z.has('Z' + n)) || (pr.zf || []).some(f => Z.has(f));
+const zmapHit = (pr, Z) => (pr.zmap || []).some(n => n != null && Z.has(typeof n === 'string' ? n : 'Z' + n)) || (pr.zf || []).some(f => Z.has(f));
 // outputs the panel is driving: control/relay modules by zone map, forced state, silenceable, walk test
 function outputState(R) {
   const Z = activeZones(), on = new Set(), now = Date.now();
@@ -2905,7 +2913,8 @@ const sensTab = p => SENS[ANALOG[p.t]];
 const levelOf = p => { const S = sensTab(p); return p.lvl == null ? S.base : p.lvl; };
 function sensOf(p) {
   const S = sensTab(p), pr = PROG[addrStr(p)];
-  const oa = Math.min(S.A.length, (pr && pr.sens && pr.sens.oa) || S.dA), op = pr && pr.sens ? pr.sens.op : S.dP;
+  const occ = !pr || occupied(pr.wos);   // 3.3.2 Weekly Occupancy Schedule selects occupied / unoccupied sensitivity
+  const oa = Math.min(S.A.length, (pr && pr.sens && (occ ? pr.sens.oa : pr.sens.ua)) || S.dA), op = pr && pr.sens ? (occ ? pr.sens.op : pr.sens.up) : S.dP;
   const alarm = S.A[oa - 1];
   let pre = null;
   if (op === 1) pre = +(alarm * 0.6).toFixed(2);                        // PA:1 self-optimizing
@@ -2961,6 +2970,7 @@ function syncPrealarm(R) {
 
 /* ---------- extra menu screens ---------- */
 function pmScreenExt() {
+  { const x = pmScreen3(); if (x) return x; }
   const P = PM, E = P.edit, cur = f => P.cursor === f ? '_' : '';
   const H = () => { const r = [...progHead()]; return r; };
   switch (P.scr) {
@@ -2969,7 +2979,7 @@ function pmScreenExt() {
     case 'ptim1': { const S = P.set, r = []; r[0] = ctr('PANEL TIMERS');
       return scr(r, {1:`VERIFY TIME: ${P.cursor === 'verify' ? P.buf + '_' : S.verify}`, 2:`MAXIMUM VERIFICATION COUNT: ${P.cursor === 'maxv' ? P.buf + '_' : pz(S.maxv)}`, 3:`AC FAIL DELAY: ${S.acDelay === 'NONE' ? 'NONE' : S.acDelay + ' HOURS'}`, 4:`SILENCE INHIBIT:${pz(S.silInh)}:00`, 5:`AUTO SILENCE: ${S.autoSil ? S.autoSil + ' MIN' : 'OFF'}`, 6:`VERIFY=PREALARM: ${S.verPre ? 'YES' : 'NO'}`, 8:'MORE', 9:'ACCEPT', 10:'BACK'}); }
     case 'ptim2': { const S = P.set, r = []; r[0] = ctr('PANEL TIMERS');
-      return scr(r, {1:`PAS: ${S.pas ? 'ON' : 'OFF'}`, 2:'PRESIGNAL DELAY: MM:SS', 3:'DEFAULT TIMERS', 9:'ACCEPT', 10:'BACK'}); }
+      return scr(r, {1:`PAS: ${S.pas ? 'ON' : 'OFF'}`, 2:`PRESIGNAL DELAY: ${P.cursor === 'pre' ? P.buf + '_' : pz(Math.floor((S.presig ?? 180) / 60)) + ':' + pz((S.presig ?? 180) % 60)}`, 3:'DEFAULT TIMERS', 9:'ACCEPT', 10:'BACK'}); }
     case 'ppm2': { const r = []; r[0] = ctr('PANEL PROGRAM MENU');
       return scr(r, {1:'PASSWORD CHANGE', 2:'WEEKLY OCCUPANCY SCHEDULES', 3:'REMOTE DISPLAY MENU', 4:'LOOP CONFIGURATION', 5:'CUSTOM ACTION MESSAGE', 6:'EVENT LOGGING', 7:'HOLIDAY MENU', 10:'BACK'}); }
     case 'pwc': { const r = []; r[0] = ctr('CHANGE PASSWORD'); return scr(r, {2:'MASTER PASSWORD', 3:'USER PASSWORD', 10:'BACK'}); }
@@ -3024,6 +3034,7 @@ function fmtTD(d) {
 }
 const EXT_BACK = {pset:'ppm1', ptim1:'ppm1', ptim2:'ptim1', ppm2:'ppm1', pwc:'ppm2', pwm:'pwc', pwu:'pwc', wt:'as1', wtSel:'wt', td:'as1', cs:'as2', cof:'cs', lsel:'ppm2', lcfg:'lsel', denZ:'dsel'};
 function pmSoftExt(i) {
+  if (pmSoft3(i)) return true;
   const P = PM, E = P.edit;
   switch (P.scr) {
     case 'ppm1':
@@ -3050,8 +3061,8 @@ function pmSoftExt(i) {
       renderPanel(); return true; }
     case 'ptim2': { const S = P.set;
       if (i === 1) S.pas = !S.pas;
-      else if (i === 2) { pmNA('PRESIGNAL DELAY', 'ptim2'); return true; }
-      else if (i === 3) { Object.assign(S, {verify:30, maxv:20, acDelay:'NONE', silInh:0, autoSil:0, verPre:false, pas:false}); }
+      else if (i === 2) { P.cursor = 'pre'; P.buf = ''; }
+      else if (i === 3) { Object.assign(S, {verify:30, maxv:20, acDelay:8, silInh:0, autoSil:0, verPre:false, pas:false, presig:180}); }
       else if (i === 9) { Object.assign(PSET, S); savePanel(); plog('INFO', 'PANEL TIMERS CHANGED'); pmGo('ppm1'); return true; }
       else if (i === 10) { pmGo('ptim1'); return true; }
       renderPanel(); return true; }
@@ -3164,9 +3175,14 @@ function pmSoftExt(i) {
   return false;
 }
 function pmKeyExt(k) {
+  if (pmKey3(k)) return true;
   const P = PM;
   const typing = k.length === 1 || k === 'BKSP';
   switch (P.scr) {
+    case 'ptim2':
+      if (P.cursor === 'pre' && (/^\d$/.test(k) || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 4); renderPanel(); return true; }
+      if (P.cursor === 'pre' && k === 'ENTER') { const d = P.buf.padStart(4, '0'), v = +d.slice(0, 2) * 60 + +d.slice(2); if (v !== 0 && (v < 60 || v > 180)) { pmMsg(['PRESIGNAL DELAY: 00:00 (OFF)', 'OR 01:00 TO 03:00'], 'ptim2'); P.cursor = null; return true; } P.set.presig = v; P.cursor = null; renderPanel(); return true; }
+      return false;
     case 'lsel':
       if (P.cursor === 'loop' && (/^\d$/.test(k) || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(-2); renderPanel(); return true; }
       if (k === 'ENTER') { pmSoftExt(9); return true; }
@@ -3219,16 +3235,731 @@ function pmKeyExt(k) {
   return false;
 }
 
+/* ================= remaining manual menus (part 3) =================
+   Generic soft-key form engine + Network, Panel Settings 2-5, Reminder, LCD, ACS, Supervision, Event Logging,
+   Weekly Occupancy, Holiday, Remote Display, Custom Action Message, General/Releasing/Logic/Trouble zones,
+   ACS label, Audio point, History Select/Display, Printer Functions, Wireless, FAAST, Clear History, Version. */
+const PSET3_DEF = {nodeNum:0, netClass:'CLASS B', chA:'HIGH', chB:'HIGH', ipAcc:'OFF', netDisp:'OFF', netMap:{},
+  lcmLocal:'NO', powerMgmt:'OFF', dcc:'NO', rapidCall:'NO', region:'DEFAULT', scs:'A', drillMode:'STANDARD',
+  tonePulse:'0.5', tonePeriod:'1.0', toneNum:3, toneOff:'1.5', silWf:'NO', mnPri:'MN NOT USED', sbPwr:'OFF', mnCtl:'SUBSIDIARY', rfWeak:'ON',
+  coSupL:'NO', coCoL:'NO', acclL:'NO', remind:'YES', remindDur:'24 HOURS', presig:180,
+  lcdInt:40, lcdLang:'ENGLISH', backlight:'ON', acs:null, acsPts:{}, acsLbl:{},
+  acFailAddr:'', printer:'NONE', crt:'NONE', auxTr:'NO', tamper:'NO', terminal:'NONE',
+  logNonFire:'NO', logOut:'NO', logWl:'NO', wos:{}, hol:Array(15).fill(''), rd:{}, cam:{}, gz:{}, rz:{}, lz:{}, trz:{}, aud:{}};
+for (const [k, v] of Object.entries(PSET3_DEF)) if (PSET[k] === undefined) PSET[k] = JSON.parse(JSON.stringify(v));
+const PRN = [];   // virtual printer paper
+function prnOut(title, lines) {
+  if (PSET.printer === 'NONE') return false;
+  const w = /^40/.test(PSET.printer) ? 40 : 80;
+  PRN.push(`******${title}`.padEnd(w, '*'), ...lines.flatMap(l => w === 40 && l.length > 40 ? [l.slice(0, 40), l.slice(40)] : [l]), '*'.repeat(w), '');
+  if (PRN.length > 2000) PRN.splice(0, PRN.length - 2000);
+  if (typeof renderPrinter === 'function') renderPrinter();
+  return true;
+}
+const clone = o => JSON.parse(JSON.stringify(o));
+const head3 = () => progHead();
+const ON_OFF = ['ON', 'OFF'], YES_NO = ['YES', 'NO'], NO_YES = ['NO', 'YES'];
+
+const H_TYPES = ['ALL EVENTS', 'ALARMS ONLY', 'TROUBLES ONLY', 'SUPERVISORY ONLY', 'SECURITY ONLY', 'OTHER ONLY'];
+const MROWS = [4, 7, 10, 13];
+/* ---------- form engine ---------- */
+// key kinds: cyc (scroll list), num (keypad digits), txt (keypad text), go (sub screen), act (function), acc (ACCEPT), back (BACK)
+const PS = (title, keys, extra = {}) => ({title, grp:'PSET', keys, ...extra});
+const FORMS = {
+  net: PS('NETWORK PROGRAMMING', {1:{t:'num', f:'nodeNum', lb:'NODE NUMBER', min:0, max:240, w:3}, 2:{t:'txt', f:'nodeLabel', lb:'NODE LABEL:', max:40, row:4},
+    3:{t:'cyc', f:'netClass', lb:'Class', sep:': ', o:['CLASS B', 'CLASS X']}, 4:{t:'cyc', f:'chA', lb:'CH A. THRESHOLD', o:['HIGH', 'LOW']}, 5:{t:'cyc', f:'chB', lb:'CH B. THRESHOLD', o:['HIGH', 'LOW']},
+    8:{t:'go', lb:'IP ACCESS', to:'ipacc'}, 9:{t:'acc'}, 10:{t:'back'}},
+    {load:P => { P.set = P.set || {...PSET}; P.set.nodeLabel = NODE_LABEL; }, after:D => { NODE_LABEL = (D.nodeLabel || '').slice(0, 40) || 'NFS2-3030'; saveNode(); }}),
+  ipacc: PS('IP ACCESS', {1:{t:'cyc', f:'ipAcc', lb:'IP ACCESS', o:['OFF', 'ON', 'TIMED']}, 9:{t:'acc'}, 10:{t:'back'}}),
+  pset2: PS('PANEL SETTINGS', {1:{t:'cyc', f:'lcmLocal', lb:'LCM LOCAL MODE', o:NO_YES}, 2:{t:'cyc', f:'powerMgmt', lb:'POWER MANAGEMENT MODE', sep:':', o:['OFF', 'ON']},
+    3:{t:'cyc', f:'dcc', lb:'DCC PARTICIPATION', o:NO_YES}, 4:{t:'cyc', f:'rapidCall', lb:'RAPID ALL CALL', o:NO_YES},
+    5:{t:'act', lb:'DEFAULT SETTINGS', fn:P => Object.assign(P.set, {local:true, piezo:true, pss:false, order:'USA', dispAddr:true, lcmLocal:'NO', dcc:'NO', powerMgmt:'OFF', rapidCall:'NO'})},
+    6:{t:'go', lb:'REGIONAL SETTINGS', to:'region'}, 7:{t:'go', lb:'SCS SETTINGS', to:'scs'}, 8:{t:'go', lb:'MORE', to:'pset3'}, 9:{t:'acc'}, 10:{t:'back'}}),
+  region: PS('REGIONAL SETTINGS', {2:{t:'cyc', f:'region', lb:'REGIONAL SETTINGS', sep:':', o:['DEFAULT', 'CHICAGO', 'SINGAPORE', 'AUSTRALIA', 'CHINA', 'CANADA']}, 9:{t:'acc'}, 10:{t:'back'}}),
+  scs: PS('SCS SETTINGS', {2:{t:'cyc', f:'scs', lb:'SCS MODE', sep:':', o:['A', 'B']}, 9:{t:'acc'}, 10:{t:'back'}}),
+  pset3: PS('PANEL SETTINGS', {3:{t:'go', lb:'SOUNDER BASE SETUP', to:'sbs'}, 4:{t:'cyc', f:'netDisp', lb:'NETWORK DISPLAY MODE', sep:':', o:['OFF', 'ON']},
+    5:{t:'cyc', f:'drillMode', lb:'DRILL MODE', sep:':', o:['STANDARD', 'CUSTOM']}, 8:{t:'go', lb:'MORE', to:'pset4'}, 9:{t:'acc'}, 10:{t:'back'}}),
+  sbs: PS('SOUNDER BASE SETUP', {2:{t:'go', lb:'CUSTOM TONE SETUP', to:'tone'}, 10:{t:'back'}}),
+  tone: PS('CUSTOM TONE SETUP', {1:{t:'num', f:'tonePulse', lb:'PULSE ON TIME', sep:':', dec:true, max:9.9}, 2:{t:'num', f:'tonePeriod', lb:'PERIOD', sep:':', dec:true, max:9.9},
+    3:{t:'num', f:'toneNum', lb:'NUMBER OF PULSES', sep:':', min:1, max:99, w:2}, 4:{t:'num', f:'toneOff', lb:'TONE OFF PERIOD', sep:':', dec:true, max:9.9}, 9:{t:'acc'}, 10:{t:'back'}}),
+  pset4: PS('PANEL SETTINGS', {1:{t:'cyc', f:'silWf', lb:'SILENCEABLE WATERFLOW', o:NO_YES}, 2:{t:'cyc', f:'mnPri', lb:'MN PRIORITY OVER FIRE', o:['MN NOT USED', 'YES', 'NO']},
+    3:{t:'cyc', f:'sbPwr', lb:'SOUNDER BASE STANDBY POWER MON', o:['OFF', 'ON']}, 4:{t:'cyc', f:'mnCtl', lb:'MN CONTROL', o:['SUBSIDIARY', 'ACU', 'LOC', 'CSS']},
+    5:{t:'cyc', f:'rfWeak', lb:'RF WEAK LINK TROUBLE REPORTING', o:ON_OFF}, 8:{t:'go', lb:'MORE', to:'pset5'}, 9:{t:'acc'}, 10:{t:'back'}}),
+  pset5: PS('PANEL SETTINGS', {1:{t:'cyc', f:'coSupL', lb:'FIRE/CO SUPERVISORY LATCHING', o:NO_YES}, 2:{t:'cyc', f:'coCoL', lb:'FIRE/CO (CO SUP) LATCHING', o:NO_YES},
+    3:{t:'cyc', f:'acclL', lb:'ACCL (P SUP) LATCHING', o:NO_YES}, 9:{t:'acc'}, 10:{t:'back'}}),
+  remind: PS('REMINDER MENU', {1:{t:'cyc', f:'remind', lb:'TROUBLE REMINDER', o:YES_NO}, 2:{t:'cyc', f:'remindDur', lb:'TROUBLE REMINDER DURATION', o:['24 HOURS', '4 HOURS']}, 9:{t:'acc'}, 10:{t:'back'}}),
+  lcd: PS('LCD PROGRAMMING', {2:{t:'act', lb:'BRIGHTER', fn:P => P.set.lcdInt = Math.min(100, P.set.lcdInt + 5)}, 3:{t:'act', lb:'DARKER', fn:P => P.set.lcdInt = Math.max(5, P.set.lcdInt - 5)},
+    4:{t:'cyc', f:'lcdLang', lb:'LANGUAGE', o:['ENGLISH', 'HEBREW', 'PORTUGUESE', 'SPANISH']}, 5:{t:'cyc', f:'backlight', lb:'BACKLIGHT', o:['ON', 'ON EXCEPT AC FAIL', 'OFF']},
+    7:{t:'act', lb:'DEFAULT', fn:P => P.set.lcdInt = 40}, 8:{t:'act', lb:'CURRENT', fn:P => P.set.lcdInt = PSET.lcdInt}, 9:{t:'acc'}, 10:{t:'back'}},
+    {rows:P => [[1, `LCD INTENSITY: ${P.set.lcdInt}%`]]}),
+  sup: PS('SUPERVISION', {1:{t:'txt', f:'acFailAddr', lb:'MAIN PS AC FAIL ADDRESS: ', max:7, ph:'LXXMXXX'}, 2:{t:'cyc', f:'printer', lb:'PRINTER', o:['NONE', '40-COLUMN', '40-COLUMN SUPERVISED', '80-COLUMN', '80-COLUMN SUPERVISED']},
+    3:{t:'cyc', f:'crt', lb:'CRT BAUD RATE', o:['NONE', '4800', '4800 SUP', '9600', '9600 SUP', '19200', '19200 SUP', '38400', '38400 SUP', '57600', '57600 SUP']},
+    4:{t:'cyc', f:'auxTr', lb:'AUXILIARY TROUBLE REPORTING', sep:':', o:NO_YES}, 5:{t:'cyc', f:'tamper', lb:'TAMPER INPUT', o:['NO', 'YES', 'AKS-1']},
+    8:{t:'go', lb:'MORE', to:'sup2'}, 9:{t:'acc'}, 10:{t:'back'}}),
+  sup2: PS('SUPERVISION', {2:{t:'cyc', f:'terminal', lb:'TERMINAL', sep:':', o:['NONE', 'LCD-80']}, 9:{t:'acc'}, 10:{t:'back'}}),
+  evlog: PS('EVENT LOGGING', {1:{t:'cyc', f:'logNonFire', lb:'NON-FIRE ACTIVATIONS', o:YES_NO}, 2:{t:'cyc', f:'logOut', lb:'OUTPUT ACTIVATIONS', o:YES_NO},
+    3:{t:'cyc', f:'logWl', lb:'LOG WIRELESS STATES IN HISTORY', o:YES_NO}, 9:{t:'acc'}, 10:{t:'back'}}),
+  rdp: {title:'REMOTE DISPLAY MENU', load:P => { P.d = clone(PSET.rd[P.rdn] || {inst:'YES', label:'', local:'YES'}); },
+    keys:{1:{t:'num', f:'rdn', obj:'P', lb:'DISPLAY POINT: D', sep:'', min:1, max:32, w:2, then:P => FORMS.rdp.load(P)}, 2:{t:'txt', f:'label', lb:'POINT LABEL', max:40, row:7},
+      3:{t:'cyc', f:'local', lb:'LOCAL CONTROL', sep:':', o:YES_NO}, 4:{t:'act', lb:'NEXT SELECTION', fn:P => { P.rdn = P.rdn % 32 + 1; FORMS.rdp.load(P); }},
+      5:{t:'act', lb:'PREVIOUS SELECTION', fn:P => { P.rdn = (P.rdn + 30) % 32 + 1; FORMS.rdp.load(P); }}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { PSET.rd[P.rdn] = {...P.d, inst:'YES'}; }},
+  cam: {title:'CUSTOM ACTION MESSAGE', load:P => { P.d = {msg:PSET.cam[P.camn] || ''}; P.view = false; },
+    keys:{1:{t:'num', f:'camn', obj:'P', lb:'CUSTOM ACTION MESSAGE', min:1, max:100, w:3, then:P => FORMS.cam.load(P)}, 2:{t:'txt', f:'msg', lb:'MESSAGE', max:160, row:4, multi:true, show:P => P.view},
+      5:{t:'act', lb:'VIEW', fn:P => { FORMS.cam.load(P); P.view = true; }}, 9:{t:'acc'}, 10:{t:'back'}},
+    rows:P => P.view ? [] : [[4, '  (PRESS VIEW)']],
+    save:P => { if (P.d.msg) PSET.cam[P.camn] = P.d.msg; else delete PSET.cam[P.camn]; }},
+  gz: {title:'ZONE POINT PROGRAMMING', sub:P => `Z${pz(P.z, 3)}`, load:P => { P.d = clone(PSET.gz[P.z] || {label:'', nonres:'NO', sil:'NO', prec:'NO'}); },
+    keys:{1:{t:'txt', f:'label', lb:'ZONE LABEL:', max:20, row:4}, 2:{t:'cyc', f:'nonres', lb:'NON-RESETTABLE CONTROL', sep:':', o:NO_YES},
+      3:{t:'cyc', f:'sil', lb:'SILENCEABLE', o:NO_YES}, 4:{t:'cyc', f:'prec', lb:'PRECEDENCE PARTICIPATION', o:NO_YES}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { PSET.gz[P.z] = P.d; }},
+  rz: {title:'RELEASING ZONE PROGRAMMING MENU', sub:P => `ZR${pz(P.z)}`, load:P => { P.d = clone(PSET.rz[P.z] || {delay:0, abort:'ULI', cross:'NO', soak:0}); },
+    keys:{2:{t:'num', f:'delay', lb:'DELAY TIME', min:0, max:60, w:2}, 3:{t:'cyc', f:'abort', lb:'ABORT SWITCH', o:['ULI', 'IRI', 'NYC', 'AHJ']},
+      4:{t:'cyc', f:'cross', lb:'CROSS ZONE', o:['NO', 'YES', 'ZONE', 'HEAT']}, 5:{t:'num', f:'soak', lb:'SOAK TIME', min:0, max:9999, w:4}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { PSET.rz[P.z] = P.d; }},
+  acsl: {title:'ACS LABEL MENU', sub:P => `A${pz(P.a)}`, load:P => { P.d = clone(PSET.acsLbl[P.a] || {label:'', delay:90, pair:'X', sg:{}}); },
+    keys:{1:{t:'txt', f:'label', lb:'ACS LABEL:', max:40, row:4}, 3:{t:'num', f:'delay', lb:'TROUBLE REPORTING DELAY', min:0, max:180, w:2}, 4:{t:'cyc', f:'pair', lb:'PAIRING', o:['X', '1', '2', '3']},
+      5:{t:'info', lb:'PAIRED FSCS: NONE'}, 8:{t:'act', lb:'MORE', fn:P => pmGo('acsl2', {pg2:0, sgSel:1, view:false})}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { PSET.acsLbl[P.a] = P.d; }},
+  aud: {title:'AUDIO VOLUME CONTROL', load:P => { P.d = clone(PSET.aud[P.n] || {master:15, aux:15}); }, rows:P => [[3, `POINT: ${P.n}`]],
+    keys:{2:{t:'num', f:'master', lb:'MASTER VOLUME', sep:':', min:0, max:15, w:1}, 3:{t:'num', f:'aux', lb:'AUXILIARY VOLUME', sep:':', min:0, max:15, w:1, show:P => /AA00$/.test(P.n)}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { PSET.aud[P.n] = P.d; }},
+  hrange: {title:'TIME & DATE RANGE SELECT', head:true, load:P => { const d = nowD(); P.d = {start:'1200A' + pz(d.getMonth() + 1) + pz(d.getDate()) + pz(d.getFullYear() % 100), end:fmtStamp(d), type:'ALL EVENTS'}; },
+    keys:{2:{t:'txt', f:'start', lb:'START TIME: ', max:11}, 3:{t:'txt', f:'end', lb:'END TIME: ', max:11}, 4:{t:'cyc', f:'type', lb:'EVENT TYPE', o:H_TYPES},
+      9:{t:'act', lb:'ACCEPT', fn:P => openHist({type:P.d.type, from:parseStamp(P.d.start), to:parseStamp(P.d.end), title:'EVENTS IN INTERVAL', back:'hrange'})}, 10:{t:'back'}}},
+  prange: {title:'POINT RANGE SELECT', head:true, load:P => { P.d = {a:'L01D001', b:'L10M159', type:'ALL EVENTS'}; },
+    keys:{2:{t:'txt', f:'a', lb:'START POINT: ', max:7}, 3:{t:'txt', f:'b', lb:'END POINT: ', max:7}, 4:{t:'cyc', f:'type', lb:'EVENT TYPE', o:H_TYPES},
+      9:{t:'act', lb:'ACCEPT', fn:P => openHist({type:P.d.type, pa:P.d.a, pb:P.d.b, title:'EVENTS IN RANGE', back:'prange'})}, 10:{t:'back'}}},
+  mdet: {title:'MULTI-DETECTOR', sub:P => P.key, load:P => { P.d = {a:(P.edit.multi || [])[0] || '', b:(P.edit.multi || [])[1] || ''}; },
+    keys:{2:{t:'txt', f:'a', lb:'CO-OP DETECTOR 1: ', max:7}, 3:{t:'txt', f:'b', lb:'CO-OP DETECTOR 2: ', max:7}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { P.edit.multi = [P.d.a, P.d.b].filter(Boolean).map(x => parsePoint(x, 'D') || x); PM.dirty = true; }},
+  dcam: {title:'CUSTOM ACTION MESSAGE', sub:P => P.key, load:P => { P.d = {n:P.edit.cam || 0}; P.view = false; },
+    keys:{1:{t:'num', f:'n', lb:'CUSTOM ACTION MESSAGE', min:0, max:100, w:3}, 5:{t:'act', lb:'VIEW', fn:P => { P.view = true; }}, 9:{t:'acc'}, 10:{t:'back'}},
+    rows:P => P.view ? wrap40(PSET.cam[P.d.n] || '(NO MESSAGE)').map((t, i) => [MROWS[i], t]) : [],
+    save:P => { P.edit.cam = P.d.n; PM.dirty = true; }},
+  sbase: {title:'SOUNDER BASE SETUP', sub:P => P.key, load:P => { P.d = clone(P.edit.sb || {t1:'TEMP-3', c1:'', t2:'TEMP-4', c2:'', vol:'HIGH'}); },
+    keys:{1:{t:'cyc', f:'t1', lb:'AUX TONE 1', sep:':', o:['CONTINUOUS', 'TEMP-3', 'TEMP-4', 'MARCH', 'CUSTOM']}, 2:{t:'txt', f:'c1', lb:'AUX TONE 1 CONTROL:', max:6},
+      3:{t:'cyc', f:'t2', lb:'AUX TONE 2', sep:':', o:['CONTINUOUS', 'TEMP-3', 'TEMP-4', 'MARCH', 'CUSTOM']}, 4:{t:'txt', f:'c2', lb:'AUX TONE 2 CONTROL:', max:6},
+      5:{t:'cyc', f:'vol', lb:'VOLUME', sep:':', o:['HIGH', 'LOW']}, 9:{t:'acc'}, 10:{t:'back'}},
+    save:P => { P.edit.sb = P.d; PM.dirty = true; }},
+};
+const wrap40 = s => { const out = []; for (let i = 0; i < Math.max(1, s.length); i += 40) out.push(s.slice(i, i + 40)); return out.slice(0, 4); };
+const fmtStamp = d => { let h = d.getHours(); const ap = h >= 12 ? 'P' : 'A'; h = h % 12 || 12; return `${pz(h)}${pz(d.getMinutes())}${ap}${pz(d.getMonth() + 1)}${pz(d.getDate())}${pz(d.getFullYear() % 100)}`; };
+function parseStamp(s) { const m = /^(\d{2})(\d{2})([AP])(\d{2})(\d{2})(\d{2})$/.exec(s || ''); if (!m) return null; let h = +m[1] % 12 + (m[3] === 'P' ? 12 : 0); return new Date(2000 + +m[6], +m[4] - 1, +m[5], h, +m[2]); }
+
+function formDraft(P) { const F = FORMS[P.fid]; return F.grp === 'PSET' ? P.set : P.d; }
+function formGo(fid, extra = {}) {
+  const P = PM, st = (P.fstack || []).slice();
+  st.push(P.scr === 'form' ? {scr:'form', fid:P.fid} : {scr:P.scr});
+  PM = {...PM, ...extra, scr:'form', fid, fstack:st, cursor:null, buf:''};
+  const F = FORMS[fid];
+  if (F.grp === 'PSET' && !PM.set) PM.set = {...PSET};
+  if (F.load) F.load(PM);
+  renderPanel();
+}
+function formBack(P0) { const s = (P0.fstack || []).pop(); if (!s) return 'pas'; if (s.scr === 'form') { P0.fid = s.fid; return 'form'; } return s.scr; }
+function formVal(d, P, D) { const o = d.obj === 'P' ? P : D; return o[d.f]; }
+function formScreen(P) {
+  const F = FORMS[P.fid], D = formDraft(P);
+  const r = F.head ? [...head3()] : [];
+  if (F.head) r[4] = ctr(F.title); else r[0] = ctr(F.title);
+  if (F.sub) r[F.head ? 5 : 1] = ctr(F.sub(P));
+  (F.rows ? F.rows(P, D) : []).forEach(([i, t]) => r[i] = t);
+  const keys = {};
+  for (const [k, d] of Object.entries(F.keys)) {
+    if (d.show && !d.show(P, D)) continue;
+    const v = formVal(d, P, D), typing = P.cursor === d.f;
+    const val = typing ? P.buf + '_' : d.t === 'num' && d.w ? pz(v ?? 0, d.w) : (v ?? '') === '' && d.ph ? d.ph : (v ?? '');
+    if (d.t === 'acc') keys[k] = 'ACCEPT';
+    else if (d.t === 'back') keys[k] = 'BACK';
+    else if (d.t === 'txt' && d.row != null) {
+      keys[k] = d.lb;
+      if (d.multi) wrap40(String(val)).forEach((t, i) => r[MROWS[i]] = t);
+      else r[d.row] = '  ' + val;
+    } else if (['cyc', 'num', 'txt'].includes(d.t)) keys[k] = `${d.lb}${d.t === 'txt' ? '' : d.sep ?? ': '}${val}`;
+    else keys[k] = d.lb;
+  }
+  return scr(r, keys);
+}
+function formSoft(i) {
+  const P = PM, F = FORMS[P.fid], D = formDraft(P), d = F.keys[i];
+  if (!d || (d.show && !d.show(P, D))) return true;
+  if (P.cursor && d.f !== P.cursor) formCommit(P);
+  if (d.t === 'cyc') D[d.f] = next(d.o, D[d.f]);
+  else if (d.t === 'num' || d.t === 'txt') { P.cursor = d.f; P.buf = ''; }
+  else if (d.t === 'go') { formGo(d.to); return true; }
+  else if (d.t === 'act') { d.fn(P); if (PM.scr !== 'form' || PM.fid !== P.fid) return true; }
+  else if (d.t === 'acc') {
+    if (P.cursor) formCommit(P);
+    if (F.grp === 'PSET') { Object.assign(PSET, P.set); if (F.after) F.after(P.set); } else if (F.save) F.save(P);
+    savePanel(); save(); plog('INFO', `${F.title}${F.sub ? ' ' + F.sub(P) : ''} CHANGED`); render(); pmBack(); return true;
+  }
+  else if (d.t === 'back') { pmBack(); return true; }
+  renderPanel(); return true;
+}
+function formCommit(P) {
+  const F = FORMS[P.fid], D = formDraft(P), d = Object.values(F.keys).find(x => x.f === P.cursor);
+  if (!d) { P.cursor = null; return; }
+  const o = d.obj === 'P' ? P : D;
+  if (d.t === 'num' && P.buf !== '') { let v = d.dec ? (+P.buf).toFixed(1) : Math.round(+P.buf); if (!d.dec) v = Math.max(d.min ?? 0, Math.min(d.max ?? 9999, v)); else v = String(Math.min(d.max, +v).toFixed(1)); o[d.f] = v; }
+  if (d.t === 'txt') o[d.f] = P.buf.toUpperCase();
+  P.cursor = null; P.buf = '';
+  if (d.then) d.then(P);
+}
+function formKey(k) {
+  const P = PM; if (!P.cursor) { if (k === 'ENTER') { const acc = Object.entries(FORMS[P.fid].keys).find(([, d]) => d.t === 'acc'); if (acc) formSoft(+acc[0]); return true; } return false; }
+  const d = Object.values(FORMS[P.fid].keys).find(x => x.f === P.cursor);
+  if (k === 'ENTER') { formCommit(P); renderPanel(); return true; }
+  if (k === 'BKSP') { P.buf = P.buf.slice(0, -1); renderPanel(); return true; }
+  if (k.length === 1) {
+    if (d.t === 'num' && !(/\d/.test(k) || (d.dec && k === '.'))) return true;
+    P.buf = (P.buf + k).slice(0, d.t === 'num' ? (d.dec ? 4 : String(d.max).length) : d.max); renderPanel(); return true;
+  }
+  return false;
+}
+
+/* ---------- logic / trouble zone equations (Appendix E) ---------- */
+const LFUNCS = ['AND', 'OR', 'NOT', 'ONLY1', 'ANYX', 'XZONE', 'RANGE', 'DIS', 'PRE', 'SUP', 'FIRE', 'NON', 'SEC', 'DEL', 'SDEL', 'TIM'];
+function eqParse(src) {
+  let i = 0; const s = src.replace(/\s/g, '').toUpperCase();
+  const fail = m => { throw {msg:m, at:i}; };
+  const arg = () => {
+    const m = /^(L\d{1,2}[DM]\d{1,3}|Z[FLT]?\d{1,4}|T\d{1,3}|[A-Z]+\d?|\d+(?:[.:]\d+)*)/.exec(s.slice(i)); if (!m) fail('ARGUMENT EXPECTED');
+    let tok = m[1]; i += tok.length;
+    if (s[i] === '(') {
+      const fn = tok.replace(/[0-9]+$/, ''); if (!LFUNCS.includes(fn)) fail('UNKNOWN FUNCTION ' + tok);
+      i++; const args = [];
+      if (s[i] !== ')') { args.push(arg()); while (s[i] === ',') { i++; args.push(arg()); } }
+      if (s[i] !== ')') fail('MISSING )'); i++;
+      if (['NOT', 'XZONE', 'DIS', 'PRE', 'SUP', 'FIRE', 'NON', 'SEC'].includes(fn) && args.length !== 1) fail(fn + ' TAKES ONE ARGUMENT');
+      if (fn === 'ANYX' && (args.length < 2 || !/^\d$/.test(args[0].v))) fail('ANYX NEEDS A COUNT 1-9');
+      if (fn === 'RANGE' && args.length !== 2) fail('RANGE TAKES TWO ARGUMENTS');
+      if ((fn === 'DEL' || fn === 'SDEL') && args.length !== 3) fail(fn + '(DELAY,DURATION,EQUATION)');
+      return {fn, args};
+    }
+    if (!/^(L\d{1,2}[DM]\d{1,3}|Z\d{1,3}|ZF\d{1,2}|ZL\d{1,4}|ZT\d{1,3}|T\d{1,3}|\d+(?:[.:]\d+)*)$/.test(tok)) fail('UNKNOWN DEVICE ' + tok);
+    return {v:tok};
+  };
+  const tree = arg(); if (i < s.length) fail('EXTRA CHARACTERS'); return tree;
+}
+const T_INDEX = (() => { const t = {'GROUND FAULT':0, 'AC FAIL':1, 'BATTERY':2, 'NO DEV. INST ON L1':11, 'PANEL DOOR OPEN':12, 'AUXILIARY TROUBLE':13, 'ADV WALK TEST':82, 'CHARGER FAIL':83,
+  'PROG MODE ACTIVATED':90, 'BASIC WALK TEST':92, 'NFPA 24HR REMINDER':93, 'MAN EVAC INITIATED':108, 'BUZZER OFF-LINE':201, 'PRINTER OFF LINE':207};
+  for (let n = 1; n <= 32; n++) { t[`ANNUN ${n} TROUBLE`] = 13 + 2 * n; t[`ANNUN ${n} NO ANSWER`] = 14 + 2 * n; }
+  [3, 4, 192, 193, 194, 195, 196, 197, 198, 199].forEach((v, k) => t[`CLASS A POS LOOP ${k + 1}`] = v);
+  [85, 86, 184, 185, 186, 187, 188, 189, 190, 191].forEach((v, k) => t[`CLASS A NEG LOOP ${k + 1}`] = v);
+  for (let n = 1; n <= 10; n++) t[`CLASS A SHORT LOOP ${n}`] = 232 + n;
+  return t; })();
+const EQ_T = {};   // DEL/SDEL timers per zone
+function eqEval(node, ctx, zid) {
+  if (node.v) {
+    const v = node.v, Z = ctx.Z;
+    let m;
+    if ((m = /^L(\d+)([DM])(\d+)$/.exec(v))) { const k = `L${+m[1]}${m[2]}${pz(+m[3], 3)}`; return ctx.pt(k, 'any'); }
+    if ((m = /^Z(\d+)$/.exec(v))) return Z.has('Z' + +m[1]);
+    if ((m = /^Z([FLT])(\d+)$/.exec(v))) return Z.has(`Z${m[1]}${+m[2]}`);
+    if ((m = /^T(\d+)$/.exec(v))) return ctx.tr.has(+m[1]);
+    return false;
+  }
+  const a = node.args, ev = x => eqEval(x, ctx, zid);
+  const expand = list => list.flatMap(x => x.fn === 'RANGE' ? rangeArgs(x) : [x]);
+  switch (node.fn) {
+    case 'AND': return expand(a).every(ev);
+    case 'OR': return expand(a).some(ev);
+    case 'NOT': return !ev(a[0]);
+    case 'ONLY1': return expand(a).filter(ev).length === 1;
+    case 'ANYX': return expand(a.slice(1)).filter(ev).length >= +a[0].v;
+    case 'RANGE': return rangeArgs(node).every(ev);
+    case 'XZONE': { const z = +(/\d+/.exec(a[0].v) || [0])[0]; return Object.entries(PROG).filter(([k, pr]) => (pr.zmap || []).includes(z) && ctx.pt(k, 'fire')).length >= 2; }
+    case 'DIS': return ctx.pt(ptOf(a[0]), 'dis');
+    case 'PRE': return ctx.pt(ptOf(a[0]), 'pre');
+    case 'SUP': return ctx.pt(ptOf(a[0]), 'sup');
+    case 'FIRE': return ctx.pt(ptOf(a[0]), 'fire');
+    case 'NON': return ctx.pt(ptOf(a[0]), 'non');
+    case 'SEC': return false;
+    case 'TIM': return false;
+    case 'DEL': case 'SDEL': {
+      const secs = t => { const p = String(t.v || '0').split(/[.:]/).map(Number); return ((p[0] || 0) * 3600 + (p[1] || 0) * 60 + (p[2] || 0)) * 1000; };
+      const st = EQ_T[zid] = EQ_T[zid] || {}, on = ev(a[2]), now = Date.now();
+      if (on && !st.t0) st.t0 = now;
+      if (!on && node.fn === 'DEL') st.t0 = 0;
+      if (!st.t0) return false;
+      const d = secs(a[0]), dur = secs(a[1]);
+      return now - st.t0 >= d && (!dur || now - st.t0 < d + dur);
+    }
+  }
+  return false;
+}
+const ptOf = n => { const m = /^L(\d+)([DM])(\d+)$/.exec(n.v || ''); return m ? `L${+m[1]}${m[2]}${pz(+m[3], 3)}` : ''; };
+function rangeArgs(n) {
+  const [a, b] = n.args.map(x => x.v || ''); const ma = /^(\D+?)(\d+)$/.exec(a), mb = /^(\D+?)(\d+)$/.exec(b);
+  if (!ma || !mb || ma[1] !== mb[1]) return [];
+  const out = []; for (let k = +ma[2]; k <= +mb[2] && out.length < 20; k++) out.push({v:ma[1] + k}); return out;
+}
+function eqZones(Z) {
+  const evs = PX.events, ptState = (k, how) => {
+    const pr = PROG[k]; if (!pr) return false;
+    if (how === 'dis') return !pr.on;
+    const p = partAt(k); const src = p ? [p.id, p.id + ':zone'] : [];
+    const has = t => evs.some(e => e.type === t && (src.includes(e.src) || (e.l3 || '').includes(k) || SRCKEY[e.src] === k));
+    if (how === 'fire') return has('FIRE ALARM');
+    if (how === 'sup') return has('SUPERVISORY');
+    if (how === 'pre') return has('PREALARM');
+    if (how === 'non') return false;
+    return has('FIRE ALARM') || has('SUPERVISORY') || (lastOut && p && lastOut.on.has(p.id));
+  };
+  const tr = new Set(evs.filter(e => e.type === 'TROUBLE').map(e => T_INDEX[e.l2]).filter(x => x != null));
+  const ctx = {Z, pt:ptState, tr};
+  for (let pass = 0; pass < 2; pass++) {
+    for (const [n, q] of Object.entries(PSET.lz)) { try { if (eqEval(eqParse(q.eq), ctx, 'ZL' + n)) Z.add('ZL' + n); else Z.delete('ZL' + n); } catch (e) {} }
+    for (const [n, q] of Object.entries(PSET.trz)) { try { if (eqEval(eqParse(q.eq), ctx, 'ZT' + n)) Z.add('ZT' + n); else Z.delete('ZT' + n); } catch (e) {} }
+  }
+  return Z;
+}
+
+/* ---------- weekly occupancy (3.3.2) / holidays (3.3.7): occupied vs unoccupied sensitivity ---------- */
+const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'HOLIDAY'];
+function occupied(n) {
+  const S = PSET.wos[n]; if (!n || !S) return true;
+  const d = nowD(), md = `${pz(d.getMonth() + 1)}/${pz(d.getDate())}/`, yy = pz(d.getFullYear() % 100);
+  const hol = PSET.hol.some(h => h && h.startsWith(md) && (h.endsWith('**') || h.endsWith(yy)));
+  const day = S[hol ? 7 : d.getDay()] || [], hm = pz(d.getHours()) + pz(d.getMinutes());
+  return day.some(([a, b]) => a && b && hm >= a && hm < b);
+}
+
+/* ---------- special screens ---------- */
+const NODES_PER = 16;
+function pmScreen3() {
+  const P = PM;
+  switch (P.scr) {
+    case 'form': return formScreen(P);
+    case 'rs': return scr([ctr('READ STATUS'), '', two('POINT SELECT:', ''), `  ${P.buf || ppFmt(P.dm)[1]}_ (${ppFmt(P.dm)[2]})`], {1:'POINT SELECT', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'});
+    case 'rsZ': return scr(P.rows, {10:'BACK'});
+    case 'ppMenu': { const r = []; r[0] = ctr('POINT PROGRAM MENU'); r[4] = `  ${P.buf || ppFmt(P.dm)[1]}_ (${ppFmt(P.dm)[2]})`; return scr(r, {1:'POINT SELECT:', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'}); }
+    case 'netmap': {
+      const r = [ctr('NETWORK MAPPING'), ctr(`SCREEN ${pz(P.pg + 1)} OF 15`)];
+      for (let j = 0; j < 8; j++) { const cell = n => { const on = n === PSET.nodeNum; const mp = (P.map[n] ? 'MAPPED' : '').padEnd(6); return `${P.sel === n ? '>' : ' '}${pz(n, 3)}:${on ? 'ONLINE ' : 'OFFLINE'}/${mp}`; }; const a = P.pg * NODES_PER + j * 2 + 1; r[2 + j + (j > 0 ? 1 : 0) + (j > 3 ? 1 : 0)] = cell(a) + ' ' + cell(a + 1); }
+      return scr(r, {4:'AUTO PROGRAM', 5:P.pg < 14 ? 'NEXT' : '', 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'acs': {
+      const r = [ctr('ACS PROGRAMMING')], T = P.acs;
+      for (let row = 0; row < 8; row++) r[1 + row + (row > 1 ? 1 : 0) + (row > 3 ? 1 : 0) + (row > 5 ? 1 : 0)] = [0, 1, 2, 3].map(c => { const n = row * 4 + c; return `${P.sel === n ? '>' : ' '}A${pz(n + 1)}:${T[n]}`.padEnd(10); }).join('');
+      return scr(r, {4:'ANNUNCIATOR TYPE', 5:'POINT PROGRAMMING', 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'acsPt': {
+      const r = [ctr('ACS POINT PROGRAMMING')], q = P.acsPts[P.pt] || {mode:'NONE', src:''};
+      r[4] = '  ' + (P.cursor === 'src' ? P.buf + '_' : q.src || '');
+      return scr(r, {1:`POINT: ${P.cursor === 'pt' ? P.buf + '_' : P.pt}`, 2:`MODE: ${q.mode}`, 3:`SOURCE: ${/^Z|N\d+Z/.test(q.src) ? '(GENERAL ZONE)' : '(MODULE)'}`, 4:'NEXT', 5:'PREVIOUS', 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'acsl2': {
+      const r = [ctr('ACS LABEL MENU'), ctr(`A${pz(P.a)}`)], sg = (P.d.sg = P.d.sg || {}), base = P.pg2 * 8;
+      for (let j = 0; j < 8; j++) { const n = base + j + 1; r[2 + j + (j > 0 ? 1 : 0) + (j > 3 ? 1 : 0)] = `${P.sgSel === n ? '>' : ' '}SG${n}`.padEnd(6) + (sg[n] != null ? ` Z${pz(sg[n], 3)}` : '') + (P.sgSel === n && P.cursor === 'sg' ? '  ' + P.buf + '_' : ''); }
+      if (P.view) r[14] = ctr(`Z${pz(sg[P.sgSel] ?? 0, 3)}: ${(PSET.gz[sg[P.sgSel]] || {}).label || '(NO LABEL)'}`);
+      return scr(r, {1:'<-ZONE SELECTION', 5:'VIEW', 6:'UP', 7:'DOWN', 8:P.pg2 === 0 ? 'MORE' : '', 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'rdm': {
+      const r = [ctr('REMOTE DISPLAY MENU')];
+      for (let row = 0; row < 8; row++) r[1 + row + (row > 1 ? 1 : 0) + (row > 3 ? 1 : 0) + (row > 5 ? 1 : 0)] = [0, 1, 2, 3].map(c => { const n = row * 4 + c + 1; return `${P.sel === n ? '>' : ' '}D${pz(n)}:${(PSET.rd[n] || {}).inst === 'YES' ? 'YES' : 'NO'}`.padEnd(10); }).join('');
+      return scr(r, {4:'INSTALL REMOTE DISPLAY', 5:'POINT PROGRAMMING', 10:'BACK'});
+    }
+    case 'wos': {
+      const S = P.wosD, r = [ctr('WEEKLY OCCUPANCY SCHEDULE')];
+      const tm = (d, j, h) => { const idx = (d * 2 + j) * 2 + h, v = ((S[d] || [])[j] || [])[h] || ''; const show = P.cur === idx ? (P.buf + '____').slice(0, 4) : v; return `${P.cur === idx ? '>' : ''}${show ? show.slice(0, 2) + ':' + show.slice(2) : '-'}`; };
+      DAYS.forEach((d, i) => r[2 + i + (i > 0 ? 1 : 0) + (i > 3 ? 1 : 0) + (i > 5 ? 1 : 0)] = `${d.padEnd(10)}${tm(i, 0, 0)}-${tm(i, 0, 1)}, ${tm(i, 1, 0)}-${tm(i, 1, 1)}`);
+      return scr(r, {1:`WEEKLY OCCUPANCY SCHEDULE: ${pz(P.wn)}`, 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'hol': {
+      const r = [ctr('HOLIDAY MENU'), '         MM/DD/YY'];
+      for (let j = 0; j < 5; j++) { const n = P.pg * 5 + j, v = P.holD[n] || ''; r[2 + j * 2 + (j > 0 ? 1 : 0)] = `${P.sel === n ? '>' : ' '}${pz(n + 1)}  ${P.sel === n && P.buf ? (P.buf + '______').slice(0, 6).replace(/(..)(..)(..)/, '$1/$2/$3') : v || '__/__/__'}`; }
+      return scr(r, {3:'ANY YEAR', 4:'NEXT SELECTION', 5:'PREVIOUS SELECTION', 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'lz': case 'lze': case 'lzf': case 'lzp': case 'lzt': {
+      const zid = (P.zt === 'T' ? 'ZT' : 'ZL') + P.z, q = P.eqD;
+      const Z = lastOut ? lastOut.Z : new Set();
+      const r = [ctr('LOGIC ZONE PROGRAMMING MENU'), `${P.zt === 'T' ? 'TROUBLE ZONE' : 'LOGIC ZONE'}  ${P.zt === 'T' ? 'ZT' + pz(P.z, 3) : 'ZL' + pz(P.z, 4)}`];
+      if (q.eq || P.scr !== 'lz') r[3] = two(`AUTOMATIC ${Z.has(zid) ? 'ACTIVE' : 'INACTIVE'}`, '');
+      const eqLine = q.eq.slice(0, 40);
+      r[5] = P.scr === 'lz' ? eqLine : eqLine.slice(0, P.pos) + '_' + eqLine.slice(P.pos + (P.ovr ? 1 : 0));
+      if (P.err) r[7] = ('ERROR: ' + P.err).slice(0, 40);
+      if (P.scr === 'lz') return scr(r, {3:'EDIT EQUATION', 4:'NEXT EQUATION', 5:'PREVIOUS EQUATION', 9:'ACCEPT', 10:'BACK'});
+      r[7] = r[7] || (P.ovr ? 'OVERWRITE' : 'INSERT');
+      if (P.scr === 'lze') return scr(r, {3:'ADD POINT/ZONE', 4:'ADD LOGIC FUNCTION', 5:'ADD TIME/DATE', 6:'INS/OVR', 8:'DELETE EQUATION', 9:'ACCEPT', 10:'BACK'});
+      if (P.scr === 'lzf') return scr(r, {4:`LOGIC FUNCTION: ${P.fn}`, 9:'ACCEPT', 10:'BACK'});
+      if (P.scr === 'lzt') return scr(r, {4:`ENTER TIME:${P.cursor === 'tm' ? P.buf + '_' : P.tm}`, 9:'ACCEPT', 10:'BACK'});
+      r[10] = `  ${P.pbuf || PT_FMT[P.ptype][0]}_ (${PT_FMT[P.ptype][1]})`;
+      return scr(r, {3:'POINT SELECT:', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'});
+    }
+    case 'hsel': return scr([ctr(NODE_LABEL), ctr(PX.events.length ? 'TROUBLE' : 'SYSTEM NORMAL'), '', ctr(dateLine()), ctr('HISTORY SELECT')],
+      {2:'ALL EVENTS', 3:'ALARMS ONLY', 4:'TROUBLES ONLY', 5:'SUPERVISORY ONLY', 7:'SECURITY/OTHERS', 8:'TIME/DATE INTERVAL', 9:'POINT RANGE', 10:'BACK'});
+    case 'hist': {
+      const L = P.list, e = L[P.i], r = [ctr(NODE_LABEL), ctr(PX.events.length ? 'TROUBLE' : 'SYSTEM NORMAL'), '', ctr(dateLine()), ctr(P.title)];
+      if (!L.length) { r[6] = ctr('NO EVENTS IN HISTORY'); return scr(r, {10:'BACK'}); }
+      r[5] = ctr(`EVENT ${pz(P.i + 1, 3)} OF ${pz(L.length, 3)}`);
+      r[7] = two(e.type, ''); r[8] = e.text.slice(0, 40); r[10] = e.text.slice(40, 80);
+      const k = (e.text.match(/L\d+[DM]\d{3}/) || [''])[0]; r[11] = two(stamp(e.t), k);
+      return scr(r, {4:'NEXT EVENT', 5:'PREVIOUS EVENT', 9:PSET.printer !== 'NONE' ? `PRINT ${P.title.replace(/ HISTORY$/, '')}` : '', 10:'BACK'});
+    }
+    case 'prn': return scr([ctr(NODE_LABEL), ctr(PX.events.length ? 'TROUBLE' : 'SYSTEM NORMAL'), '', ctr(dateLine()), ctr('PRINTER FUNCTIONS')],
+      {2:'PROGRAMMING', 3:'ACTIVE POINTS', 4:'WALK TEST', 5:'DETECTOR MAINTENANCE REPORT', 8:'INSTALLED POINTS', 10:'BACK'});
+    case 'wl': { const r = [...head3()]; r[4] = ctr('WIRELESS'); return scr(r, {3:'MESH FORMATION ON/OFF', 4:'SWITCH DISABLE ON/OFF', 5:'SHUTDOWN WIRELESS DEVICES', 9:'ACCEPT', 10:'BACK'}); }
+    case 'as3': { const r = [...head3()]; r[4] = ctr('ALTER STATUS MENU'); return scr(r, {2:'SERVICE MODE FAAST DETECTOR', 3:'RESET BASELINE FAAST DETECTOR', 4:'RESET IP ADDRESS FAAST DETECTOR', 10:'BACK'}); }
+    case 'faast': { const r = [...head3()]; r[4] = ctr(P.title); r[7] = `  ${P.buf || 'LyyDzzz'}_ (DETECTOR)`; return scr(r, {2:'POINT SELECT:', 4:'NEXT POINT', 5:'PREVIOUS POINT', 9:'ACCEPT', 10:'BACK'}); }
+    case 'chist': { const r = [...head3()]; r[4] = ctr('CLEAR HISTORY'); return scr(r, {2:'LOCAL HISTORY', 10:'BACK'}); }
+    case 'chist2': { const r = [...head3()]; r[4] = ctr('CLEAR LOCAL HISTORY'); return scr(r, {2:'ALARM HISTORY', 3:'EVENT HISTORY', 4:'ALL HISTORY', 10:'BACK'}); }
+    case 'more': { const pr = PROG[P.key] || {}, r = [ctr(NODE_LABEL), ctr('MORE INFORMATION'), '', ctr(dateLine()), '', two(P.key, pr.type || '')];
+      const msg = PSET.cam[pr.cam]; if (pr.cam && msg) { r[6] = ctr(`CUSTOM ACTION MESSAGE ${pz(pr.cam, 3)}`); wrap40(msg).forEach((t, i) => r[7 + i + (i > 1 ? 1 : 0)] = t); } else r[7] = ctr('NO CUSTOM ACTION MESSAGE FOR THIS POINT');
+      return scr(r, {10:'BACK'}); }
+  }
+  return null;
+}
+const PT_FMT = [['LyyDzzz', 'DETECTOR', 'D'], ['LyyMzzz', 'MODULE', 'M'], ['Zyyy', 'GENERAL ZONE', 'Z'], ['ZLyyyy', 'LOGIC ZONE', 'ZL'], ['ZTyyy', 'TROUBLE ZONE', 'ZT'], ['ZFyy', 'SPECIAL ZONE', 'ZF']];
+const BACK3 = {rsZ:'rs', form:formBack, netmap:'ppm1', acs:'ppm1', acsPt:'acs', acsl2:'form', rdm:'ppm2', wos:'ppm2', hol:'ppm2', lz:'ppMenu', lze:'lz', lzf:'lze', lzp:'lze', lzt:'lze',
+  hsel:'main', hist:P0 => P0.hback || 'hsel', prn:'main', wl:'as2', as3:'as2', faast:'as3', chist:'as1', chist2:'chist', more:'counts'};
+function openHist(o) {
+  const want = {'ALL EVENTS':null, 'ALARMS ONLY':['FIRE ALARM'], 'TROUBLES ONLY':['TROUBLE', 'CLEARED'], 'SUPERVISORY ONLY':['SUPERVISORY'], 'SECURITY ONLY':['SECURITY'], 'OTHER ONLY':['PREALARM', 'TEST', 'ACK', 'SILENCE', 'DRILL', 'RESET', 'INFO', 'POWER', 'ACTIVE'], 'SECURITY/OTHERS':['PREALARM', 'TEST', 'ACK', 'SILENCE', 'DRILL', 'RESET', 'INFO', 'POWER', 'ACTIVE', 'SECURITY']}[o.type];
+  const ord = k => { const m = /^L(\d+)([DM])(\d+)$/.exec(parsePoint(k || '', 'D') || ''); return m ? (m[2] === 'M' ? 10000 : 0) + +m[1] * 1000 + +m[3] : null; };
+  const a = ord(o.pa), b = ord(o.pb);
+  const list = PX.log.slice().reverse().filter(e => (!want || want.includes(e.type)) && (!o.from || e.t >= o.from) && (!o.to || e.t <= o.to)
+    && (a == null || (() => { const k = (e.text.match(/L\d+[DM]\d{3}/) || [''])[0]; const v = ord(k); return v != null && v >= a && v <= (b ?? v); })()));
+  pmGo('hist', {list, i:Math.max(0, list.length - 1), title:o.title, hback:o.back || 'hsel'});
+}
+function printHist(P) {
+  if (!prnOut(P.title, P.list.flatMap(e => [e.type, `${e.text.slice(0, 40).padEnd(40)} ${stamp(e.t)}`]))) return;
+  pflash('PRINTING...', P.title);
+}
+function printReport(kind) {
+  const keys = keysSorted(), L = [];
+  if (kind === 'prog') { for (const k of keys) { const pr = PROG[k]; L.push(`${k.padEnd(8)} ${(pr.type || '').padEnd(13)} ${(pr.label || '').padEnd(20)} ${zmapTxt(pr.zmap || [])}`); } return prnOut('PROGRAMMING', L.length ? L : ['NO POINTS PROGRAMMED']); }
+  if (kind === 'active') { for (const e of PX.events) L.push(`${e.type.padEnd(12)} ${(e.l2 || '').padEnd(28)} ${stamp(e.t)}`); return prnOut('ACTIVE POINTS', L.length ? L : ['NO ACTIVE POINTS']); }
+  if (kind === 'inst') { for (const k of keys) { const p = partAt(k); L.push(`${k.padEnd(8)} ${(PROG[k].type || '').padEnd(13)} ${p && result.resp[p.id] ? 'INSTALLED' : 'NO ANSWER'}`); } return prnOut('INSTALLED POINTS', L.length ? L : ['NO POINTS PROGRAMMED']); }
+  if (kind === 'walk') { for (const e of PX.log.slice().reverse().filter(x => x.type === 'TEST')) L.push(`TEST ${e.text.padEnd(40)} ${stamp(e.t)}`); return prnOut('WALK TEST RESULTS', L.length ? L : ['NO WALK TEST RESULTS']); }
+  if (kind === 'maint') {
+    for (const k of keys.filter(isDet)) { const p = partAt(k); if (!isAnalog(p)) continue; const s = sensOf(p), v = levelOf(p);
+      L.push(`${dirtTrouble(p.dirt ?? 20) || 'NORMAL'} ${(PROG[k].type || '').padEnd(13)} Detector ${k}  Comp:${pz(p.dirt ?? 20, 3)}% Pk: ${pz(Math.round((p.peak || 0) / s.alarm * 100), 3)}%`);
+      L.push(`Alarm: ${pz(Math.round(v / s.alarm * 100), 3)}% PreAlarm: ${s.pre ? pz(Math.round(v / s.pre * 100), 3) : '000'}% A${s.oa}P${s.op} V${pz(p.vcount || 0, 3)}`.padEnd(70) + k); }
+    return prnOut('DETECTOR MAINTENANCE', L.length ? L : ['NO ADDRESSABLE DETECTORS']);
+  }
+}
+function pmSoft3(i) {
+  const P = PM;
+  switch (P.scr) {
+    case 'form': return formSoft(i);
+    case 'rs': case 'ppMenu': {
+      const list = P.scr === 'rs' ? PP_TYPES.slice(0, 6) : PP_TYPES, dm = P.dm || 'D';
+      if (i === 1) { const j = list.findIndex(t => t[0] === dm); P.dm = list[(j + 1) % list.length][0]; P.buf = ''; renderPanel(); return true; }
+      if (dm === 'D' || dm === 'M') return false;
+      if (i === 9) {
+        if (P.scr === 'rs') { const rows = rsZone(P.buf, dm); if (!rows) { pmMsg(['INVALID ADDRESS', P.buf], 'rs'); return true; } pmGo('rsZ', {rows}); return true; }
+        const ok = ppOpen(P.buf, dm); if (!ok) pmMsg(['INVALID ADDRESS', P.buf], 'ppMenu'); return true;
+      }
+      if (i === 4 || i === 5) return true;
+      return false; }
+    case 'rsZ': if (i === 10) { pmBack(); return true; } return true;
+    case 'ppm1':
+      if (i === 2) { formGo('net'); return true; }
+      if (i === 3) { if (PSET.netDisp !== 'ON') { pmMsg(['NETWORK MAPPING IS AVAILABLE ONLY', 'WITH NETWORK DISPLAY MODE ON'], 'ppm1'); return true; } pmGo('netmap', {pg:0, sel:1, map:clone(PSET.netMap)}); return true; }
+      if (i === 7) { formGo('lcd'); return true; }
+      if (i === 8) { pmGo('acs', {acs:(PSET.acs || Array.from({length:32}, (_, n) => parts.some(p => p.t === 'ann' && p.addr === n + 1) ? '64PT' : 'NO')).slice(), sel:0, acsPts:clone(PSET.acsPts)}); return true; }
+      if (i === 9) { formGo('sup'); return true; }
+      return false;
+    case 'pset': if (i === 6) { formGo('remind'); return true; } if (i === 7) { formGo('pset2'); return true; } return false;
+    case 'ppm2':
+      if (i === 2) { const n = Object.keys(PSET.wos)[0] || 1; pmGo('wos', {wn:+n, wosD:clone(PSET.wos[n] || []), cur:0, buf:''}); return true; }
+      if (i === 3) { pmGo('rdm', {sel:1}); return true; }
+      if (i === 5) { formGo('cam', {camn:1}); return true; }
+      if (i === 6) { formGo('evlog'); return true; }
+      if (i === 7) { pmGo('hol', {pg:0, sel:0, holD:PSET.hol.slice(), buf:''}); return true; }
+      return false;
+    case 'netmap':
+      if (i === 4) { P.map = {}; if (PSET.nodeNum) P.map[PSET.nodeNum] = false; }
+      else if (i === 5 && P.pg < 14) { P.pg++; P.sel = P.pg * NODES_PER + 1; }
+      else if (i === 9) { PSET.netMap = P.map; savePanel(); plog('INFO', 'NETWORK MAPPING CHANGED'); pmGo('ppm1'); return true; }
+      else if (i === 10) { if (P.pg > 0) { P.pg--; P.sel = P.pg * NODES_PER + 1; } else { pmGo('ppm1'); return true; } }
+      renderPanel(); return true;
+    case 'acs':
+      if (i === 4) P.acs[P.sel] = next(['NO', '64PT', '64SYS', '64SVC', '96PT', '96SYS', '96SVC', '96DCC', 'UDACT', 'TM4', 'AMG', 'FSCS', 'HVAC', 'UZC'], P.acs[P.sel]);
+      else if (i === 5) { if (!/PT|SYS|SVC|DCC/.test(P.acs[P.sel])) { pmMsg(['POINT PROGRAMMING IS FOR 64/96 POINT', 'ANNUNCIATOR TYPES'], 'acs'); return true; } pmGo('acsPt', {pt:`A${pz(P.sel + 1)}P01`}); return true; }
+      else if (i === 9) { PSET.acs = P.acs; PSET.acsPts = P.acsPts; savePanel(); plog('INFO', 'ACS PROGRAMMING CHANGED'); render(); pmGo('ppm1'); return true; }
+      else if (i === 10) { pmGo('ppm1'); return true; }
+      renderPanel(); return true;
+    case 'acsPt': {
+      const q = P.acsPts[P.pt] = P.acsPts[P.pt] || {mode:'NONE', src:''};
+      if (P.cursor && i !== 3) acsCommit(P);
+      if (i === 1) { P.cursor = 'pt'; P.buf = ''; }
+      else if (i === 2) q.mode = next(['NONE', 'CONTROL', 'MONITOR', 'CO MONITOR', 'TELEPHONE', 'DISABLE', 'ACKNOWLEDGE', 'SILENCE', 'RESET', 'DRILL', 'ALL CALL', 'PAGE EVAC', 'PAGE INACTIVE', 'PAGE ALERT', 'ENABLE PAGE', 'FFT-NFN'], q.mode);
+      else if (i === 3) { if (P.cursor === 'src') acsCommit(P); else { P.cursor = 'src'; P.buf = ''; } }
+      else if (i === 4 || i === 5) { const m = /^A(\d+)P(\d+)$/.exec(P.pt); let n = +m[2] + (i === 4 ? 1 : -1); if (n < 1) n = 96; if (n > 96) n = 1; P.pt = `A${m[1]}P${pz(n)}`; }
+      else if (i === 9) { pmGo('acs'); return true; }
+      else if (i === 10) { delete P.acsPts[P.pt]; pmGo('acs'); return true; }
+      renderPanel(); return true; }
+    case 'acsl2': {
+      const sg = P.d.sg = P.d.sg || {};
+      if (i === 1) { P.cursor = 'sg'; P.buf = ''; P.view = false; }
+      else if (i === 5) P.view = !P.view;
+      else if (i === 6) P.sgSel = Math.max(P.pg2 * 8 + 1, P.sgSel - 1);
+      else if (i === 7) P.sgSel = Math.min(P.pg2 * 8 + 8, P.sgSel + 1);
+      else if (i === 8 && P.pg2 === 0) { P.pg2 = 1; P.sgSel = 9; }
+      else if (i === 9) { if (P.cursor === 'sg') { sg[P.sgSel] = +P.buf || 0; P.cursor = null; } PSET.acsLbl[P.a] = P.d; savePanel(); pmGo('form', {fid:'acsl'}); return true; }
+      else if (i === 10) { if (P.pg2 === 1) { P.pg2 = 0; P.sgSel = 1; } else { pmGo('form', {fid:'acsl'}); return true; } }
+      renderPanel(); return true; }
+    case 'rdm':
+      if (i === 4) { const q = PSET.rd[P.sel] = PSET.rd[P.sel] || {inst:'NO', label:'', local:'YES'}; q.inst = q.inst === 'YES' ? 'NO' : 'YES'; savePanel(); }
+      else if (i === 5) { if ((PSET.rd[P.sel] || {}).inst !== 'YES') { pmMsg(['INSTALL THE REMOTE DISPLAY FIRST'], 'rdm'); return true; } formGo('rdp', {rdn:P.sel}); return true; }
+      else if (i === 10) { pmBack(); return true; }
+      renderPanel(); return true;
+    case 'wos':
+      if (i === 1) { P.wn = P.wn % 10 + 1; P.wosD = clone(PSET.wos[P.wn] || []); P.cur = 0; P.buf = ''; }
+      else if (i === 9) { PSET.wos[P.wn] = P.wosD; savePanel(); plog('INFO', `WEEKLY OCCUPANCY SCHEDULE ${P.wn} CHANGED`); render(); pmGo('ppm2'); return true; }
+      else if (i === 10) { pmGo('ppm2'); return true; }
+      renderPanel(); return true;
+    case 'hol':
+      if (i === 3) { const v = P.holD[P.sel]; if (v) P.holD[P.sel] = v.slice(0, 6) + '**'; }
+      else if (i === 4) { P.pg = (P.pg + 1) % 3; P.sel = P.pg * 5; P.buf = ''; }
+      else if (i === 5) { P.pg = (P.pg + 2) % 3; P.sel = P.pg * 5; P.buf = ''; }
+      else if (i === 9) { PSET.hol = P.holD; savePanel(); plog('INFO', 'HOLIDAY LIST CHANGED'); render(); pmGo('ppm2'); return true; }
+      else if (i === 10) { pmGo('ppm2'); return true; }
+      renderPanel(); return true;
+    case 'lz':
+      if (i === 3) { pmGo('lze', {pos:P.eqD.eq.length, ovr:false, err:''}); return true; }
+      if (i === 4 || i === 5) { const tab = P.zt === 'T' ? PSET.trz : PSET.lz, ks = Object.keys(tab).map(Number).sort((a, b) => a - b); if (!ks.length) return true; let j = ks.indexOf(P.z); j = j < 0 ? 0 : (j + (i === 4 ? 1 : ks.length - 1)) % ks.length; P.z = ks[j]; P.eqD = clone(tab[P.z]); renderPanel(); return true; }
+      if (i === 9) { pmGo('ppMenu'); return true; }
+      if (i === 10) { pmGo('ppMenu'); return true; }
+      return true;
+    case 'lze':
+      if (i === 3) { pmGo('lzp', {ptype:P.zt === 'T' ? 2 : 0, pbuf:''}); return true; }
+      if (i === 4) { pmGo('lzf', {fn:'AND'}); return true; }
+      if (i === 5) { pmGo('lzt', {tm:'00:00:00', cursor:null}); return true; }
+      if (i === 6) P.ovr = !P.ovr;
+      else if (i === 8) { P.eqD.eq = ''; P.pos = 0; P.err = ''; }
+      else if (i === 9) {
+        const tab = P.zt === 'T' ? PSET.trz : PSET.lz;
+        if (!P.eqD.eq) { delete tab[P.z]; savePanel(); render(); pmGo('lz'); return true; }
+        try { eqParse(P.eqD.eq); } catch (e) { P.err = e.msg; P.pos = Math.min(e.at, P.eqD.eq.length); renderPanel(); return true; }
+        tab[P.z] = {eq:P.eqD.eq.toUpperCase()}; savePanel(); plog('INFO', `${P.zt === 'T' ? 'ZT' : 'ZL'}${P.z} EQUATION ${P.eqD.eq.toUpperCase()}`); render(); P.err = ''; pmGo('lz'); return true;
+      }
+      else if (i === 10) { pmGo('lz', {eqD:clone((P.zt === 'T' ? PSET.trz : PSET.lz)[P.z] || {eq:''})}); return true; }
+      renderPanel(); return true;
+    case 'lzf':
+      if (i === 4) P.fn = next(LFUNCS, P.fn);
+      else if (i === 9) { eqInsert(P, P.fn + '('); pmGo('lze'); return true; }
+      else if (i === 10) { pmGo('lze'); return true; }
+      renderPanel(); return true;
+    case 'lzt':
+      if (i === 4) { P.cursor = 'tm'; P.buf = ''; }
+      else if (i === 9) { if (P.cursor === 'tm') { lztCommit(P); } eqInsert(P, P.tm); pmGo('lze'); return true; }
+      else if (i === 10) { pmGo('lze'); return true; }
+      renderPanel(); return true;
+    case 'lzp':
+      if (i === 3) { P.ptype = (P.ptype + 1) % PT_FMT.length; P.pbuf = ''; }
+      else if (i === 4 || i === 5) { const dm = PT_FMT[P.ptype][2]; if (dm === 'D' || dm === 'M') { PM.buf = P.pbuf; stepPoint(i === 4 ? 1 : -1, dm); P.pbuf = PM.buf.replace(/^L0/, 'L'); PM.buf = ''; } }
+      else if (i === 9) { const v = ptArg(P); if (!v) { pmMsg(['INVALID POINT OR ZONE'], 'lzp'); return true; } eqInsert(P, v); pmGo('lze'); return true; }
+      else if (i === 10) { pmGo('lze'); return true; }
+      renderPanel(); return true;
+    case 'hsel': {
+      const T = {2:'ALL EVENTS', 3:'ALARMS ONLY', 4:'TROUBLES ONLY', 5:'SUPERVISORY ONLY', 7:'SECURITY/OTHERS'}[i];
+      if (T) { openHist({type:T, title:{2:'EVENT HISTORY', 3:'ALARM HISTORY', 4:'TROUBLE HISTORY', 5:'SUPERVISORY HISTORY', 7:'SECURITY/OTHERS HISTORY'}[i]}); return true; }
+      if (i === 8) { formGo('hrange'); return true; }
+      if (i === 9) { formGo('prange'); return true; }
+      if (i === 10) { pmBack(); return true; }
+      return true; }
+    case 'hist':
+      if (i === 4 && P.i < P.list.length - 1) P.i++;
+      else if (i === 5 && P.i > 0) P.i--;
+      else if (i === 9 && PSET.printer !== 'NONE') { printHist(P); return true; }
+      else if (i === 10) { pmBack(); return true; }
+      renderPanel(); return true;
+    case 'prn': {
+      const kind = {2:'prog', 3:'active', 4:'walk', 5:'maint', 8:'inst'}[i];
+      if (kind) { printReport(kind); setTab('prn'); pflash('PRINTING...', ''); return true; }
+      if (i === 10) { pmBack(); return true; }
+      return true; }
+    case 'wl': if (i === 10) { pmBack(); return true; } if ([3, 4, 5, 9].includes(i)) { pmMsg(['NO WIRELESS GATEWAY (FWSG)', 'IS PROGRAMMED ON THIS PANEL'], 'wl'); return true; } return true;
+    case 'as2':
+      if (i === 5) { pmGo('wl'); return true; }
+      if (i === 9) { pmGo('as3'); return true; }
+      return false;
+    case 'as3':
+      if ([2, 3, 4].includes(i)) { pmGo('faast', {title:{2:'SERVICE MODE', 3:'RESET BASELINE', 4:'RESET IP ADDRESS'}[i], buf:''}); return true; }
+      if (i === 10) { pmBack(); return true; }
+      return true;
+    case 'faast':
+      if (i === 4 || i === 5) { stepPoint(i === 4 ? 1 : -1, 'D'); return true; }
+      if (i === 9) { const k = parsePoint(P.buf, 'D'); pmMsg([k && PROG[k] ? `${k} IS NOT A FAAST` : 'INVALID ADDRESS', k && PROG[k] ? 'ASPIRATION DETECTOR' : ''], 'faast'); return true; }
+      if (i === 10) { pmBack(); return true; }
+      return true;
+    case 'as1':
+      if (i === 5) { pmGo('chist'); return true; }
+      return false;
+    case 'chist': if (i === 2) { pmGo('chist2'); return true; } if (i === 10) { pmBack(); return true; } return true;
+    case 'chist2': {
+      const what = {2:'ALARM HISTORY', 3:'EVENT HISTORY', 4:'ALL HISTORY'}[i];
+      if (what) { pmConfirm([`CLEAR ${what}`, ''], () => { PX.log = i === 4 ? [] : PX.log.filter(e => (e.type === 'FIRE ALARM') !== (i === 2)); plog('INFO', `${what} CLEARED`); render(); pmMsg([`${what} CLEARED`], 'chist2'); }, 'chist2'); return true; }
+      if (i === 10) { pmBack(); return true; }
+      return true; }
+    case 'main':
+      if (i === 5) { pmGo('hsel'); return true; }
+      if (i === 9 && PSET.printer !== 'NONE') { pmGo('prn'); return true; }
+      return false;
+    case 'counts':
+      if (i === 5 && PX.events.length) { const e = PX.events[Math.min(PX.view, PX.events.length - 1)], k = (String(e.l3 || '').match(/L\d+[DM]\d{3}/) || [SRCKEY[e.src] || ''])[0]; pmGo('more', {key:k}); return true; }
+      return false;
+    case 'more': if (i === 10) { pmBack(); return true; } return true;
+    case 'det2':
+      if (i === 1) { formGo('dcam'); return true; }
+      if (i === 4) { P.edit.wos = ((P.edit.wos || 0) + 1) % 11; PM.dirty = true; renderPanel(); return true; }
+      if (i === 5) { formGo('mdet'); return true; }
+      return false;
+    case 'det3':
+      if (i === 4) { P.edit.isnd = P.edit.isnd === 'YES' ? 'NO' : 'YES'; PM.dirty = true; renderPanel(); return true; }
+      if (i === 5) { if (P.edit.isnd !== 'YES') { pmMsg(['SET INTELLIGENT SOUNDER TO YES FIRST'], 'det3'); return true; } formGo('sbase'); return true; }
+      return false;
+  }
+  return false;
+}
+function acsCommit(P) {
+  if (P.cursor === 'pt') { const m = /^A?(\d{1,2})P?(\d{1,2})$/.exec(P.buf); if (m) P.pt = `A${pz(+m[1])}P${pz(+m[2])}`; }
+  if (P.cursor === 'src') { const q = P.acsPts[P.pt] = P.acsPts[P.pt] || {mode:'NONE', src:''}; q.src = P.buf.toUpperCase(); }
+  P.cursor = null; P.buf = '';
+}
+function lztCommit(P) { const d = P.buf.replace(/\D/g, '').padEnd(6, '0'); P.tm = `${d.slice(0, 2)}:${d.slice(2, 4)}:${d.slice(4, 6)}`; P.cursor = null; P.buf = ''; }
+function eqInsert(P, txt) { const q = P.eqD; q.eq = P.ovr ? q.eq.slice(0, P.pos) + txt + q.eq.slice(P.pos + txt.length) : q.eq.slice(0, P.pos) + txt + q.eq.slice(P.pos); P.pos += txt.length; }
+function ptArg(P) {
+  const f = PT_FMT[P.ptype][2], b = (P.pbuf || '').toUpperCase();
+  if (f === 'D' || f === 'M') { const k = parsePoint(b, f); return k ? k.replace(/^L(\d+)([DM])0*(\d+)/, 'L$1$2$3') : null; }
+  const m = /^(?:Z[LTF]?)?(\d{1,4})$/.exec(b); return m ? f + +m[1] : null;
+}
+function pmKey3(k) {
+  const P = PM;
+  switch (P.scr) {
+    case 'form': return formKey(k);
+    case 'netmap':
+      if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(k)) { const lo = P.pg * NODES_PER + 1, d = {UP:-2, DOWN:2, LEFT:-1, RIGHT:1}[k]; P.sel = Math.min(lo + 15, Math.max(lo, P.sel + d)); renderPanel(); return true; }
+      if (k === 'NEXT' || k === 'PREV') { P.map[P.sel] = !P.map[P.sel]; renderPanel(); return true; }
+      return false;
+    case 'acs': case 'rdm':
+      if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(k)) { const d = {UP:-4, DOWN:4, LEFT:-1, RIGHT:1}[k], base = P.scr === 'rdm' ? 1 : 0; P.sel = Math.min(base + 31, Math.max(base, P.sel + d)); renderPanel(); return true; }
+      if (P.scr === 'acs' && (k === 'NEXT' || k === 'PREV')) { pmSoft3(4); return true; }
+      return false;
+    case 'acsPt':
+      if (P.cursor && (k.length === 1 || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, P.cursor === 'pt' ? 6 : 40); renderPanel(); return true; }
+      if (k === 'ENTER' && P.cursor) { acsCommit(P); renderPanel(); return true; }
+      return false;
+    case 'acsl2':
+      if (P.cursor === 'sg' && (/^\d$/.test(k) || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(-3); renderPanel(); return true; }
+      if (k === 'ENTER' && P.cursor === 'sg') { P.d.sg[P.sgSel] = +P.buf || 0; P.cursor = null; P.buf = ''; renderPanel(); return true; }
+      if (k === 'UP' || k === 'DOWN') { pmSoft3(k === 'UP' ? 6 : 7); return true; }
+      return false;
+    case 'wos': {
+      const N = DAYS.length * 4;
+      if (['UP', 'DOWN', 'LEFT', 'RIGHT'].includes(k)) { P.cur = (P.cur + {UP:-4, DOWN:4, LEFT:-1, RIGHT:1}[k] + N) % N; P.buf = ''; renderPanel(); return true; }
+      const day = Math.floor(P.cur / 4), j = Math.floor(P.cur % 4 / 2), h = P.cur % 2;
+      const setv = v => { const S = P.wosD; S[day] = S[day] || [['', ''], ['', '']]; S[day][j] = S[day][j] || ['', '']; S[day][j][h] = v; };
+      if (/^\d$/.test(k)) { P.buf += k; if (P.buf.length === 4) { const hh = Math.min(23, +P.buf.slice(0, 2)), mm = Math.min(59, +P.buf.slice(2)); setv(pz(hh) + pz(mm)); P.buf = ''; P.cur = (P.cur + 1) % N; } renderPanel(); return true; }
+      if (k === 'BKSP') { if (P.buf) P.buf = P.buf.slice(0, -1); else setv(''); renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoft3(9); return true; }
+      return false; }
+    case 'hol':
+      if (k === 'UP' || k === 'DOWN') { const lo = P.pg * 5; P.sel = Math.min(lo + 4, Math.max(lo, P.sel + (k === 'DOWN' ? 1 : -1))); P.buf = ''; renderPanel(); return true; }
+      if (/^\d$/.test(k)) { P.buf += k; if (P.buf.length === 6) { P.holD[P.sel] = P.buf.replace(/(..)(..)(..)/, '$1/$2/$3'); P.buf = ''; } renderPanel(); return true; }
+      if (k === 'BKSP') { if (P.buf) P.buf = P.buf.slice(0, -1); else P.holD[P.sel] = ''; renderPanel(); return true; }
+      if (k === 'NEXT' || k === 'PREV') { pmSoft3(k === 'NEXT' ? 4 : 5); return true; }
+      return false;
+    case 'lze':
+      if (k === 'LEFT') { P.pos = Math.max(0, P.pos - 1); renderPanel(); return true; }
+      if (k === 'RIGHT') { P.pos = Math.min(P.eqD.eq.length, P.pos + 1); renderPanel(); return true; }
+      if (k === 'BKSP') { if (P.pos > 0) { P.eqD.eq = P.eqD.eq.slice(0, P.pos - 1) + P.eqD.eq.slice(P.pos); P.pos--; } renderPanel(); return true; }
+      if (k.length === 1 && k !== ' ') { eqInsert(P, k); P.err = ''; renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoft3(9); return true; }
+      return true;
+    case 'lzt':
+      if (P.cursor === 'tm' && (/^\d$/.test(k) || k === 'BKSP')) { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 6); renderPanel(); return true; }
+      if (k === 'ENTER') { if (P.cursor === 'tm') { lztCommit(P); renderPanel(); } else pmSoft3(9); return true; }
+      return false;
+    case 'lzf': if (k === 'NEXT' || k === 'PREV') { P.fn = next(LFUNCS, P.fn, k === 'NEXT' ? 1 : -1); renderPanel(); return true; } if (k === 'ENTER') { pmSoft3(9); return true; } return false;
+    case 'lzp':
+      if (k.length === 1 && k !== ' ' || k === 'BKSP') { P.pbuf = k === 'BKSP' ? (P.pbuf || '').slice(0, -1) : ((P.pbuf || '') + k).slice(0, 8); renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoft3(9); return true; }
+      return false;
+    case 'hist': if (k === 'DOWN' || k === 'NEXT') { pmSoft3(4); return true; } if (k === 'UP' || k === 'PREV') { pmSoft3(5); return true; } return false;
+    case 'faast':
+      if (k.length === 1 && k !== ' ' || k === 'BKSP') { P.buf = k === 'BKSP' ? P.buf.slice(0, -1) : (P.buf + k).slice(0, 7); renderPanel(); return true; }
+      if (k === 'ENTER') { pmSoft3(9); return true; }
+      return false;
+  }
+  return false;
+}
+// Point Program Menu / Read Status: all point formats of Table 3.6
+const PP_TYPES = [['D', 'LyyDzzz', 'DETECTOR'], ['M', 'LyyMzzz', 'MODULE'], ['Z', 'Zyyy', 'GENERAL ZONE'], ['ZL', 'ZLyyyy', 'LOGIC ZONE'], ['ZT', 'ZTyyy', 'TROUBLE ZONE'], ['ZR', 'ZRyy', 'RELEASE ZONE'], ['A', 'Axx', 'ACS BOARD'], ['N', 'NxxxAAyy', 'DAA OR DVC']];
+const ppFmt = dm => PP_TYPES.find(t => t[0] === dm) || PP_TYPES[0];
+function ppOpen(buf, dm) {
+  const b = buf.replace(/\s/g, '').toUpperCase();
+  const num = re => { const m = re.exec(b); return m ? +m[1] : null; };
+  if (dm === 'Z') { const z = num(/^Z?(\d{1,3})$/); if (z == null) return false; formGo('gz', {z}); return true; }
+  if (dm === 'ZR') { const z = num(/^(?:ZR)?(\d{1,2})$/); if (z == null || z > 9) return false; formGo('rz', {z}); return true; }
+  if (dm === 'ZL' || dm === 'ZT') {
+    const z = num(dm === 'ZL' ? /^(?:ZL)?(\d{1,4})$/ : /^(?:ZT)?(\d{1,3})$/); if (!z || z > (dm === 'ZL' ? 1000 : 100)) return false;
+    pmGo('lz', {zt:dm === 'ZT' ? 'T' : 'L', z, eqD:clone((dm === 'ZT' ? PSET.trz : PSET.lz)[z] || {eq:''}), err:''}); return true;
+  }
+  if (dm === 'A') { const a = num(/^A?(\d{1,2})$/); if (!a || a > 32) return false; formGo('acsl', {a}); return true; }
+  if (dm === 'N') { const m = /^N?(\d{1,3})AA(\d{1,2})$/.exec(b) || /^N?(\d{1,3})$/.exec(b); if (!m) return false; formGo('aud', {n:`N${pz(+m[1], 3)}AA${pz(+(m[2] || 0))}`}); return true; }
+  return null;
+}
+function rsZone(buf, dm) {
+  const b = buf.replace(/\s/g, '').toUpperCase(), Z = lastOut ? lastOut.Z : new Set();
+  let m, id, label = '', eq = '';
+  if (dm === 'Z' && (m = /^Z?(\d{1,3})$/.exec(b))) { id = 'Z' + +m[1]; label = (PSET.gz[+m[1]] || {}).label || ''; }
+  else if (dm === 'ZL' && (m = /^(?:ZL)?(\d{1,4})$/.exec(b))) { id = 'ZL' + +m[1]; eq = (PSET.lz[+m[1]] || {}).eq || ''; }
+  else if (dm === 'ZT' && (m = /^(?:ZT)?(\d{1,3})$/.exec(b))) { id = 'ZT' + +m[1]; eq = (PSET.trz[+m[1]] || {}).eq || ''; }
+  else if (dm === 'ZR' && (m = /^(?:ZR)?(\d)$/.exec(b))) { id = 'ZR' + +m[1]; }
+  else return null;
+  const disp = id.replace(/^Z(\d+)$/, (_, n) => 'Z' + pz(n, 3));
+  const mapped = Object.entries(PROG).filter(([, pr]) => (pr.zmap || []).some(z => (typeof z === 'number' ? 'Z' + z : z) === id)).map(([k]) => k);
+  const r = [ctr('READ STATUS'), two(`ZONE: ${disp}`, PSET.zdis.includes(+id.slice(1)) ? 'DISABLED' : 'ENABLED'), two('AUTOMATIC', Z.has(id) ? 'ACTIVE' : 'INACTIVE'), label, eq.slice(0, 40), `MAPPED POINTS: ${mapped.length}`, mapped.slice(0, 4).join(' ')];
+  return r;
+}
+// remaining effects
+setInterval(() => {   // NFPA trouble reminder (3.2.4 Reminder Menu): 11:00 AM daily (or every 4 hours) while troubles exist
+  if (!running || PSET.remind !== 'YES' || !PX.events.some(e => e.type === 'TROUBLE')) return;
+  const d = nowD(), key = `${d.toDateString()} ${d.getHours()}`;
+  const due = PSET.remindDur === '4 HOURS' ? d.getHours() % 4 === 3 && d.getMinutes() === 0 : d.getHours() === 11 && d.getMinutes() === 0;
+  if (due && PX.remindKey !== key) { PX.remindKey = key; plog('TROUBLE', 'NFPA 24HR REMINDER'); PX.events.forEach(e => { if (e.type === 'TROUBLE') e.acked = false; }); pflash('NFPA 24HR REMINDER', 'TROUBLES EXIST IN THE SYSTEM'); render(); }
+}, 5000);
+function lcdLook() {   // 3.2.7 LCD intensity / backlight
+  const l = $('lcd'); if (!l) return;
+  l.style.filter = PSET.backlight === 'OFF' ? 'brightness(.45)' : `brightness(${(0.6 + PSET.lcdInt / 100 * 0.8).toFixed(2)})`;
+}
+// lamp test held for more than 5 seconds shows the version screens (5.1)
+(function versionHold() {
+  const b = $('kLamp'); let t = null, iv = null;
+  const stop = () => { clearTimeout(t); clearInterval(iv); t = iv = null; if (PX.ver) { PX.ver = 0; renderPanel(); } };
+  b.addEventListener('pointerdown', () => { if (!running) return; t = setTimeout(() => { PX.ver = 1; renderPanel(); iv = setInterval(() => { PX.ver = PX.ver % 3 + 1; renderPanel(); }, 2500); }, 5000); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, stop));
+})();
+function versionScreen() {
+  const n = PSET.nodeNum;
+  if (PX.ver === 1) return ['PANEL:', 'SVC PACK:  010.000.042 MAY 25, 2015', 'BOOT:      010.000.025 MAY 17 2015', 'APP:       010.000.041 MAY  2 2015', 'LCM IMAGE:', 'BOOT:      002.004.003 MAY 28 2015', 'APP:       002.008.001 MAY 28 2015', 'LCD 160 IMAGE:', 'BOOT:      001.000.024 MAY 17 2015', 'APP:       002.000.001 MAY 19 2015', `NCM: (NODE:${pz(n, 3)})`, 'APP:       003.000.004 MAY 25 2015', '', '(SAMPLE VALUES FROM THE MANUAL)'].map(x => PL(x)).concat([PL(''), PL('')]);
+  if (PX.ver === 2) return ['DATABASE:', `010.000 ${fmtTD(nowD())}`, `LAST CHANGED:PROGRAM CHANGED BY: ${PM && PM.role ? PM.role.toUpperCase() : 'MASTER'}`, 'FROM: FRONT PANEL', `LANGUAGE: ${PSET.lcdLang}`, '023.010.008', 'SERIAL NUMBER:', 'SIMULATOR'].map(x => PL(x)).concat(Array(8).fill(PL('')));
+  return [PL('LCM SOFTWARE VERSION'), ...Array.from({length:5}, (_, i) => PL(CARDS.loops + 1 > i * 2 ? `${i + 1}  BOOT: 002.005.001 APP: 003.000.018` : `${i + 1}  NOT INSTALLED`))].concat(Array(10).fill(PL('')));
+}
+// output activations logging (3.3.6)
+let prevOn = new Set();
+function logOutputs(O) {
+  if (PSET.logOut !== 'YES') { prevOn = new Set(O.on); return; }
+  for (const id of O.on) if (!prevOn.has(id)) { const p = byId(id); if (p) plog('ACTIVE', `${addrStr(p)} OUTPUT ON`); }
+  for (const id of prevOn) if (!O.on.has(id)) { const p = byId(id); if (p) plog('ACTIVE', `${addrStr(p)} OUTPUT OFF`); }
+  prevOn = new Set(O.on);
+}
+
 function renderPanel() {
   const lcd = $('lcd');
   lcd.classList.toggle('off', !running);
   let rows;
   if (!running) rows = Array(PROWS).fill(' '.repeat(PW));
   else if (PX.lamp) rows = lcdLines();
+  else if (PX.ver) rows = versionScreen();
   else if (PM) rows = pmScreen();
   else rows = lcdLines();
-  rows = rows.map(r => r.replace(/\bL(\d)([DM])(\d{3})\b/g, 'L0$1$2$3').slice(0, PW));   // panel shows LyyDzzz
-  lcd.textContent = rows.join('\n');
+  rows = rows.map(r => { let x = r.replace(/\bL(\d)([DM])(\d{3})\b/g, 'L0$1$2$3'); while (x.length > PW && /  /.test(x)) x = x.replace(/  (?=\S*\s*$)|  /, ' '); return x.slice(0, PW); });   // panel shows LyyDzzz
+  lcd.textContent = rows.join('\n'); lcdLook();
   $('leds').innerHTML = PLEDS.map(([n, c, f]) => { const st = !running ? '' : PX.lamp ? 'on' : f(); return `<div class="led ${st ? 'lit' : ''} ${st === 'blink' ? 'blink' : ''}" style="--c:${c}"><i></i>${n}</div>`; }).join('');
   const dot = $('piezoDot'), txt = $('piezoTxt'); dot.className = 'dot';
   if (!running || PX.resetting) txt.textContent = running ? 'QUIET' : 'OFF';
@@ -3247,12 +3978,18 @@ setInterval(() => { if (running && !PX.lamp) renderPanel(); }, 1000);
 let bottomTab = 'erc';
 function setTab(t) {
   bottomTab = t;
-  $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist'));
+  $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist')); $('tabPrn').setAttribute('aria-pressed', String(t === 'prn'));
   $('ercFilters').hidden = t !== 'erc'; $('histTools').hidden = t !== 'hist';
   render();
 }
 $('tabErc').addEventListener('click', () => setTab('erc'));
 $('tabHist').addEventListener('click', () => setTab('hist'));
+$('tabPrn').addEventListener('click', () => setTab('prn'));
+function renderPrinter() {
+  if (bottomTab !== 'prn') return;
+  $('res').innerHTML = PSET.printer === 'NONE' ? '<p class="note" style="padding:10px">ยังไม่ได้ติดตั้งเครื่องพิมพ์ ตั้งที่ PROGRAM › PANEL PROGRAM › SUPERVISION › PRINTER แล้วสั่งพิมพ์จาก MAIN MENU › PRINTER FUNCTIONS หรือหน้า HISTORY</p>'
+    : PRN.length ? `<pre class="m" style="margin:0;padding:10px;white-space:pre;overflow:auto;font-size:.72rem">${PRN.join('\n').replace(/[&<>]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;'})[c])}</pre>` : `<p class="note" style="padding:10px">เครื่องพิมพ์ ${PSET.printer} พร้อม ยังไม่มีงานพิมพ์</p>`;
+}
 $('clrLog').addEventListener('click', () => { PX.log = []; render(); });
 const LOGCLS = {'FIRE ALARM':'c-err', SUPERVISORY:'c-warn', TROUBLE:'c-warn', CLEARED:'c-ok', ACK:'c-info', SILENCE:'c-warn', DRILL:'c-err', RESET:'c-info', INFO:'c-muted', POWER:'c-info', TEST:'c-info', PREALARM:'c-warn'};
 function renderHistory() {
@@ -3519,7 +4256,8 @@ function render() {
     rows += `<tr class="grp"><td class="ic ${LBL[c.state][1]}">${IC[c.state === 'todo' ? 'inf' : c.state][0]}</td><td>${c.title}</td><td><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></td></tr>`;
     rows += items.map(([l, t]) => `<tr><td class="ic ${IC[l][1]}">${IC[l][0]}</td><td colspan="2">${t}</td></tr>`).join('');
   }
-  if (bottomTab === 'hist') renderHistory();
+  if (bottomTab === 'prn') renderPrinter();
+  else if (bottomTab === 'hist') renderHistory();
   else $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
   const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
   $('sbErr').textContent = `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
