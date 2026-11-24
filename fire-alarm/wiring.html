@@ -469,7 +469,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
       <div class="tabs"><span class="tab" id="sheetTab">Sheet 1 · ผังต่อสาย</span></div>
       <div class="board-wrap" id="boardWrap"><svg class="board" id="board" viewBox="0 0 1700 1200" aria-label="แผ่นงานผังต่อสาย"></svg></div>
       <section class="msgs" aria-label="ผลตรวจวงจร">
-        <div class="pane-h"><span class="ftabs" role="tablist" aria-label="แผงล่าง"><button type="button" id="tabErc" aria-pressed="true">ผลตรวจวงจร (ERC)</button><button type="button" id="tabHist" aria-pressed="false">ประวัติเหตุการณ์ (History)</button><button type="button" id="tabPrn" aria-pressed="false">เครื่องพิมพ์</button> <span id="score" class="chip c-muted"></span></span>
+        <div class="pane-h"><span class="ftabs" role="tablist" aria-label="แผงล่าง"><button type="button" id="tabErc" aria-pressed="true">ผลตรวจวงจร (ERC)</button><button type="button" id="tabHist" aria-pressed="false">ประวัติเหตุการณ์ (History)</button><button type="button" id="tabPrn" aria-pressed="false">เครื่องพิมพ์</button><button type="button" id="tabPoll" aria-pressed="false">SLC Poll</button> <span id="score" class="chip c-muted"></span></span>
           <span class="ftabs" id="ercFilters" role="group" aria-label="กรองข้อความ"><button type="button" id="fIss" aria-pressed="true">ปัญหา</button><button type="button" id="fAll" aria-pressed="false">ทั้งหมด</button></span>
           <span class="ftabs" id="histTools" hidden><button type="button" id="clrLog">ล้างประวัติ</button></span></div>
         <div class="res" id="res"></div>
@@ -581,6 +581,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>FlashScan / CLIP (SLC Wiring Manual 1.5, 1.9 · Programming Manual 3.3.4, ภาคผนวก F)</b>: ตั้งที่ PANEL PROGRAM › MORE › LOOP CONFIGURATION (DETECTOR POLL / MODULE POLL / RAPID POLL / BLINK MODE) · FlashScan ถามเป็นกลุ่ม พบข้อมูลใหม่จึงถามตัวนั้นตรงๆ (ตอบสนองเร็ว) · CLIP ถามทีละ Address และใช้ Address ได้แค่ 01–99 (เกินนั้นตู้แจ้ง NO ANSWER) เกิน 99 จุดตอบสนองช้า · ไฟ LED บนอุปกรณ์ตามตาราง 1.4: FlashScan ปกติกะพริบเขียว / CLIP กะพริบแดง (Control module กะพริบเขียว) · Alarm แดงค้าง · Control module ทำงานเขียวค้าง · Prealarm (FlashScan) เขียวค้าง · BLINK MODE OFF ไฟหัวและ Monitor ดับ · Walk Test แบบ FlashScan กะพริบเลข Address (37 = 3 ครั้ง เว้น 7 ครั้ง) · ทดสอบหัวเป็นระยะ ไฟเขียวค้างไม่กี่วินาที · หัวที่เพิ่ง Autoprogram เพิ่ม/เปลี่ยน หรือกลับมาจาก NO ANSWER ต้อง Initialize ~2.5 นาที (เขียวค้าง ไม่รายงานเหตุ ตู้ขึ้น SYSTEM INITIALIZATION) · แท็บ "SLC Poll" แสดงการถามจริงแบบเคลื่อนไหวและเวลาที่ตู้ใช้รับรู้เหตุ (ตัวเลขเวลาเป็นค่าสาธิต คู่มือไม่ได้ระบุ)</li>
     <li><b>เมนูที่เพิ่มครบตามคู่มือ</b>: MAIN MENU › HISTORY DISPLAY (ALL EVENTS / ALARMS / TROUBLES / SUPERVISORY / SECURITY-OTHERS / TIME-DATE INTERVAL / POINT RANGE) · PRINTER FUNCTIONS (ขึ้นเมื่อตั้ง SUPERVISION › PRINTER) พิมพ์ลงแท็บ "เครื่องพิมพ์" · EVENT COUNTS › MORE INFORMATION แสดง Custom Action Message · PANEL PROGRAM: NETWORK PARAMETERS (+IP ACCESS), NETWORK MAPPING (ต้องเปิด NETWORK DISPLAY MODE), PANEL SETTINGS 1–5 + REMINDER/REGIONAL (CHICAGO ปิดปุ่ม SILENCE/DRILL)/SCS/SOUNDER BASE/CUSTOM TONE, PRESIGNAL DELAY, LCD (ความสว่าง/BACKLIGHT มีผลกับจอ), ACS PROGRAMMING + POINT, SUPERVISION · หน้า 2: WEEKLY OCCUPANCY (ใช้เลือกค่า Sensitivity Occupied/Unoccupied), HOLIDAY, REMOTE DISPLAY, CUSTOM ACTION MESSAGE, EVENT LOGGING (บันทึก OUTPUT ON/OFF) · POINT PROGRAM: GENERAL ZONE, LOGIC ZONE / TROUBLE ZONE (สมการ AND OR NOT ONLY1 ANYX XZONE RANGE DIS PRE SUP FIRE DEL SDEL ใช้งานจริงใน CBE ใส่ใน Zone map ด้วยการพิมพ์ L/T นำหน้า เช่น L1 = ZL1), RELEASE ZONE, ACS BOARD, DAA/DVC · ALTER STATUS: CLEAR HISTORY (ALARM/EVENT/ALL), WIRELESS, FAAST (ไม่มีอุปกรณ์ในจำลอง) · กด LAMP TEST ค้างเกิน 5 วินาทีดู VERSION</li>
     <li><b>การต่อสาย SLC ตามคู่มือ (3.3.4 และภาคผนวก H)</b>: LOOP CONFIGURATION › WIRING CLASS ใช้ตรวจสายจริง · Class A สายขาดฝั่ง + ขึ้น CLASS A POS LOOP n ฝั่ง − ขึ้น CLASS A NEG LOOP n ตู้จ่ายสัญญาณทั้งสองปลายอุปกรณ์จึงยังทำงาน และ Trouble ค้างจนแก้สายแล้วกด RESET · ช็อตบน Class A ขึ้น CLASS A SHORT LOOP n · ตั้ง Class A แต่ต่อแบบ Class B ตู้แจ้ง Trouble · INSTALLED: NO ตู้ไม่สแกนลูปนั้น · ชื่อ Trouble อื่นตามภาคผนวก H: BATTERY, ANNUN n NO ANSWER, NO DEV. INST ON L1, MAN EVAC INITIATED, BUZZER OFF-LINE</li>
     <li><b>ค่าควัน/ความร้อนแบบ Analog (ภาคผนวก D)</b>: เลือกหัว Addressable แล้วเลื่อนแถบ "ระดับควัน" ในแผง Properties (หัวควัน %/ft, หัวความร้อน °C, Beam % บังลำแสง) · ตู้เทียบกับค่าที่ตั้งใน SENSITIVITY: Alarm AL:1–9 และ Prealarm PA:0–9 (PA:0 = ปิด, PA:1 = AUTO) ค่าโรงงาน Photo AL:8 = 2.12%/ft, PA:8 = 1.33%/ft · เกิน Prealarm แต่ยังไม่ถึง Alarm ขึ้น PREALARM: ALERT หายเองเมื่อควันลด / ACTION ค้างจน RESET และสั่งโซนในช่องที่ 10 ของ Zone map · แถบ "ฝุ่นสะสม" ≥92% ขึ้น MAINTENANCE REQ, 100% MAINT URGENT, ≤5% LOW THRESHOLD · READ STATUS แสดง VALUES % OF ALARM / PREALARM, ACTION/STATUS, PEAKS, VERIFY COUNT · คลิกที่หัวยังใช้พ่นควันเต็มที่/ไล่ควันได้เหมือนเดิม</li>
@@ -1016,10 +1017,12 @@ function analyze() {
     for (const d of onLoop) if (d.loop !== L.n) { it.push(['err', `${nameOf(d)} ต่ออยู่บน Loop ${L.n} แต่ตั้งโปรแกรมไว้ Loop ${d.loop} ตู้เห็นเป็นอุปกรณ์ไม่ได้ลงโปรแกรม`]); R.panel.push(['TROUBLE', `${pre}${T(d).addrType}${String(d.addr).padStart(3, '0')} UNPROGRAMMED`]); st = 'err'; }
     const prog = slcDevs.filter(d => d.loop === L.n);
     for (const d of prog) {
-      const ok = onLoop.includes(d) && !dup.has(d) && d.addr >= 1 && d.addr <= 159;
+      const clipHi = devMode(d) === 'CLIP' && d.addr > 99;   // CLIP devices use addresses 01-99 (SLC Wiring Manual 6.2)
+      const ok = onLoop.includes(d) && !dup.has(d) && d.addr >= 1 && d.addr <= 159 && !clipHi;
       R.resp[d.id] = ok;
       if (ok) continue;
       if (d.addr < 1 || d.addr > 159) it.push(['err', `${nameOf(d)} Address ต้องอยู่ระหว่าง 1–159`]);
+      else if (clipHi && onLoop.includes(d)) it.push(['err', `${label(d)} Loop นี้ตั้ง ${T(d).addrType === 'D' ? 'DETECTOR' : 'MODULE'} POLL: CLIP ซึ่งใช้ Address ได้ 01–99 เท่านั้น ตู้จึงไม่เห็นอุปกรณ์นี้`]);
       else if (!dup.has(d) && !short) {
         const rev = (fAll(d.id + '.s+') === fAll(L.b[1]) || fAll(d.id + '.s+') === fAll(L.a[1])) && (fAll(d.id + '.s-') === fAll(L.b[0]) || fAll(d.id + '.s-') === fAll(L.a[0]));
         if (rev && !short0) it.push(['err', `${label(d)} ต่อกลับขั้ว SLC จึงไม่ตอบ`]);
@@ -1031,6 +1034,10 @@ function analyze() {
       if (partUsed(d) || short0) st = 'err'; else if (st === 'ok') st = 'todo';
     }
     const nResp = prog.filter(d => R.resp[d.id]).length;
+    { const cD = pollMode(L.n, 'D'), cM = pollMode(L.n, 'M');
+      it.push(['inf', `Polling: Detector ${cD} · Module ${cM}${cD === 'FLASHSCAN' && cM === 'FLASHSCAN' ? ' (FlashScan ถามเป็นกลุ่ม ตอบสนองเร็ว)' : ' (CLIP ถามทีละ Address)'}`]);
+      const nClip = Object.keys(PROG).filter(k => new RegExp(`^L${L.n}([DM])`).test(k) && pollMode(L.n, k[k.search(/[DM]/)]) === 'CLIP').length;
+      if (nClip > 99) { it.push(['warn', `มีจุดแบบ CLIP ${nClip} จุด เกิน 99 จุด ทำให้ตู้ตอบสนองเหตุช้าลง (SLC Wiring Manual 1.5.2)`]); if (st === 'ok') st = 'warn'; } }
     it.unshift([nResp === prog.length && prog.length ? 'ok' : 'inf', `อุปกรณ์ที่ลงโปรแกรม Loop ${L.n} ตอบสนอง ${nResp}/${prog.length} ตัว`]);
     if (!prog.length && st === 'ok') st = 'todo';
     if (classA && !aUsed && !short0) { it.push(['err', 'LOOP CONFIGURATION ตั้ง WIRING CLASS: A แต่สายต่อแบบ Class B (ไม่มีสายกลับเข้าขั้ว A) ตู้แจ้ง Trouble (คู่มือ 3.3.4)']); R.panel.push(['TROUBLE', `CLASS A POS LOOP ${L.n}`], ['TROUBLE', `CLASS A NEG LOOP ${L.n}`]); st = 'err'; }
@@ -2057,6 +2064,8 @@ function triggerDevice(id) {
   const ev = PX.events.find(e => e.src === p.id || (zm && e.src === zm.id + ':zone'));
   if (!p.act) hint(`${refdes(p)} คืนสภาพแล้ว ` + (ev ? 'แต่ตู้ยังค้างเหตุไว้ (Latching) กด SYSTEM RESET ที่หน้าตู้' : ''));
   else if (ev) hint(`${refdes(p)} ${det ? ((isHeat(p) ? 'ร้อนเกินกำหนด' : 'มีควัน') + (T(p).role === 'zone' ? ' (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : '')) : p.t === 'pull' || p.t === 'apull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
+  else if (p.act && progKeyOf(p) && partAt(progKeyOf(p)) && partAt(progKeyOf(p)).initUntil > Date.now()) hint(`${refdes(p)} ทำงาน แต่ ${progKeyOf(p)} กำลัง Detector Initialization (ภาคผนวก F.1) อีก ${Math.ceil((partAt(progKeyOf(p)).initUntil - Date.now()) / 1000)} วินาที ระหว่างนี้หัวยังไม่ป้องกันอัคคีภัย`);
+  else if (p.act && p.actT && !p.reported) { hint(`${refdes(p)} ทำงาน ตู้กำลังรอ ${pollMode(partAt(progKeyOf(p)) ? partAt(progKeyOf(p)).loop : p.loop, (progKeyOf(p) || 'D')[progKeyOf(p) ? progKeyOf(p).search(/[DM]/) : 0]) === 'CLIP' ? 'CLIP poll ถึง Address นี้' : 'FlashScan poll'} (ดูแท็บ SLC Poll)`); setTimeout(() => { if (p.reported) hint(`${refdes(p)} → ตู้รับเหตุแล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้`); }, (p.reportAt || Date.now()) - Date.now() + 100); }
   else if (progKeyOf(p) && !PROG[progKeyOf(p)]) hint(`${refdes(p)} ทำงานแล้ว แต่ ${progKeyOf(p)} ยังไม่ได้ลงโปรแกรมในตู้ ตู้จึงไม่สนใจ → กด PROGRAM ที่หน้าตู้ › AUTOPROGRAM`);
   else if (progKeyOf(p) && !PROG[progKeyOf(p)].on) hint(`${refdes(p)} ทำงานแล้ว แต่ ${progKeyOf(p)} ถูก Disable ในโปรแกรมตู้ ตู้จึงไม่รับเหตุ → PROGRAM › DISABLE/ENABLE`);
   else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${p.t === 'beam' ? 'หัว Beam ต้องตอบบน SLC มีไฟ 24V และมีแผ่นสะท้อนวางตรงกันในระยะ 5–70 ม.' : T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : p.t === 'apull' ? 'แมนนวลไม่ตอบบน SLC (ตรวจสาย/Address/Loop · ต่อ SLC ตรง ไม่ต้องผ่าน FMM-1)' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
@@ -2103,13 +2112,14 @@ function syncActive(R) {
     if ((pr.zmap || []).length && pr.zmap.every(z => z == null || PSET.zdis.includes(z)) && pr.zmap.some(z => z != null)) return;   // all its zones disabled
     const supv = SUPV_CODES.includes(pr.type);
     if (PX.walk) { if (walkParticipates(key) && !['SMOKE CONVEN', 'HEAT DETECT'].includes(pr.type)) walkHit(p, key, supv ? 'SUPV' : 'ALARM'); return; }
+    if (!pollGate(p, key)) return;   // FlashScan / CLIP poll timing and detector initialization
     if (!supv && !verifyGate(p, key)) return;
     SRCKEY[src] = key;
     if (!supv && !firstAlarmT) firstAlarmT = Date.now();
     const [code, lb, l3] = pointLines(key, pr); if (padd(supv ? 'SUPERVISORY' : 'FIRE ALARM', src, code, lb, l3, true) && p) p.vcount = (p.vcount || 0) + 1;
   };
   for (const p of parts) {
-    if (!p.act) { p.verT = 0; if (!(PX.walk && PX.walk.adv)) p.wtLogged = false; continue; }
+    if (!p.act) { p.verT = 0; p.actT = 0; p.reported = false; if (!(PX.walk && PX.walk.adv)) p.wtLogged = false; continue; }
     if (T(p).role === 'slc') { if (R.resp[p.id] && (p.t !== 'beam' || R.beam[p.id])) fire(addrStr(p), p.id, p); }
     else {
       const mm = parts.find(m => (m.t === 'mm' || (m.t === 'fzm' && R.power[m.id])) && R.outs[m.id] && R.outs[m.id].devOK.includes(p));
@@ -2138,6 +2148,7 @@ function syncPanel(R) {
   if (PX.drill) trouble('MAN EVAC INITIATED');
   if (!PSET.piezo || !PSET.local) trouble('BUZZER OFF-LINE');
   if (PSET.auxTr === 'YES') trouble('AUXILIARY TROUBLE');   // no trouble-bus device at J5 in the simulator
+  if (parts.some(q => q.initUntil > Date.now())) trouble('SYSTEM INITIALIZATION');
   if (PM && PM.level) trouble('PROG MODE ACTIVATED');
   if (PX.walk) trouble(PX.walk.adv ? 'ADV WALK TEST' : 'BASIC WALK TEST');
   PSET.zdis.forEach(z => trouble(`ZONE Z${pz(z, 3)} DISABLED`));
@@ -2458,6 +2469,7 @@ function acceptPoint(stay) {
   const E = PM.edit;
   if (!E.type) { pmMsg(['TYPE MUST BE SELECTED', 'BEFORE ACCEPT'], PM.scr); return; }
   E.zone = E.zmap.find(z => z != null) ?? 0;
+  if (PM.isNew && running) startInit(partAt(PM.key), 'ADDED');
   PROG[PM.key] = {...E};
   plog('INFO', `${PM.key} PROGRAMMED · ${E.type} · ${pointLabelOf(PM.key, E)}`);
   PM.dirty = false; PM.isNew = false; PM.cursor = null;
@@ -2509,7 +2521,7 @@ function apAdvance() {
   if (i >= L.length) { PM.skipNew = false; plog('INFO', 'AUTOPROGRAM REVIEW FINISHED'); save(); render(); pmMsg(['AUTOPROGRAM COMPLETE'], 'pas'); return; }
   pmGo('apItem', {i});
 }
-function apAdd(it) { it.p.loop = it.loop; PROG[it.k] = defaultEntry(it.p); plog('INFO', `${it.k} ADDED BY AUTOPROGRAM`); }
+function apAdd(it) { it.p.loop = it.loop; PROG[it.k] = defaultEntry(it.p); plog('INFO', `${it.k} ADDED BY AUTOPROGRAM`); if (running) startInit(it.p, 'ADDED'); }
 
 function pmSoft(i) {
   if (!running) { needPower(); return; }
@@ -2662,7 +2674,7 @@ function pmSoft(i) {
       const it = P.list[P.i];
       if (it.kind === 'new') { if (i === 4) { apAdd(it); save(); render(); apAdvance(); } else if (i === 5) { apAdd(it); save(); render(); openPoint(it.k, 'apItem'); } else if (i === 9) apAdvance(); else if (i === 10) pmBack(); }
       else if (it.kind === 'missing') { if (i === 4) { delete PROG[it.k]; plog('INFO', `${it.k} DELETED (NOT FOUND)`); save(); render(); apAdvance(); } else if (i === 9) apAdvance(); else if (i === 10) pmBack(); }
-      else if (it.kind === 'mismatch') { if (i === 4) { PROG[it.k] = defaultEntry(it.p); plog('INFO', `${it.k} TYPE UPDATED`); save(); render(); apAdvance(); } else if (i === 5) openPoint(it.k, 'apItem'); else if (i === 9) apAdvance(); else if (i === 10) pmBack(); }
+      else if (it.kind === 'mismatch') { if (i === 4) { PROG[it.k] = defaultEntry(it.p); plog('INFO', `${it.k} TYPE UPDATED`); if (running) startInit(it.p, 'CHANGED'); save(); render(); apAdvance(); } else if (i === 5) openPoint(it.k, 'apItem'); else if (i === 9) apAdvance(); else if (i === 10) pmBack(); }
       else { if (i === 9) apAdvance(); else if (i === 10) pmBack(); }
       break;
     }
@@ -3949,6 +3961,138 @@ function logOutputs(O) {
   prevOn = new Set(O.on);
 }
 
+/* ================= FlashScan / CLIP polling (SLC Wiring Manual 1.5, 1.9; Programming Manual 3.3.4, 4.6, App. D, F.1) ================= */
+// Timing figures below are illustrative (the manuals give no poll timings): FlashScan polls devices in groups and
+// interrupts the group poll to read a single point that has new information; CLIP polls one address at a time.
+const POLL = {fsGroup:8, fsGroupMs:40, clipMs:40, rapidEvery:5, initMs:150000, testEvery:30000, testMs:3000};
+const isDetT = p => T(p) && T(p).addrType === 'D';
+const pollMode = (loop, dm) => { const c = loopCfg(loop); return (dm === 'D' ? c.dpoll : c.mpoll) === 'CLIP' ? 'CLIP' : 'FLASHSCAN'; };
+const devMode = p => pollMode(p.loop, T(p).addrType);
+// CLIP sequential order on a loop: every programmed point (detectors then modules), rapid-poll modules 1-20 repeated
+function clipOrder(loop) {
+  const ks = keysSorted().filter(k => new RegExp(`^L${loop}[DM]`).test(k) && pollMode(loop, k[k.search(/[DM]/)]) === 'CLIP');
+  const c = loopCfg(loop), rapid = c.rapid ? ks.filter(k => /M(\d+)$/.test(k) && +/M(\d+)$/.exec(k)[1] <= 20) : [];
+  if (!rapid.length) return ks;
+  const out = []; ks.forEach((k, i) => { out.push(k); if ((i + 1) % POLL.rapidEvery === 0) out.push(...rapid); }); if (!out.length) out.push(...rapid); return out;
+}
+function fsGroups(loop) { const ks = keysSorted().filter(k => new RegExp(`^L${loop}[DM]`).test(k) && pollMode(loop, k[k.search(/[DM]/)]) === 'FLASHSCAN'); const g = []; for (let i = 0; i < ks.length; i += POLL.fsGroup) g.push(ks.slice(i, i + POLL.fsGroup)); return g; }
+// time (ms) from "now" until the panel reads this point
+function pollDelay(key, t = Date.now()) {
+  const m = /^L(\d+)([DM])/.exec(key); if (!m) return 0;
+  if (pollMode(+m[1], m[2]) === 'FLASHSCAN') { const g = fsGroups(+m[1]), gi = Math.max(0, g.findIndex(x => x.includes(key))); const cyc = Math.max(1, g.length) * POLL.fsGroupMs; const pos = gi * POLL.fsGroupMs; return ((pos - t % cyc) + cyc) % cyc + POLL.fsGroupMs; }
+  const ord = clipOrder(+m[1]), N = Math.max(1, ord.length), ptr = Math.floor(t / POLL.clipMs) % N;
+  let best = N; ord.forEach((k, i) => { if (k === key) best = Math.min(best, (i - ptr + N) % N); });
+  return (best + 1) * POLL.clipMs;
+}
+const FS = {lastLat:{}, log:[], testIdx:0, testKey:null, testUntil:0};
+function fsLog(t) { FS.log.unshift(`${stamp()}  ${t}`); if (FS.log.length > 60) FS.log.pop(); }
+// gate used by syncActive: report only after the point has been polled since it changed; not while initializing
+function pollGate(p, key) {
+  const dev = partAt(key) || p, now = Date.now();
+  if (dev.initUntil && now < dev.initUntil) return false;
+  if (!p.actT) { p.actT = now; p.reportAt = now + pollDelay(key, now); const mode = pollMode(dev.loop, T(dev).addrType);
+    fsLog(mode === 'FLASHSCAN' ? `${key} NEW DATA FOUND IN GROUP POLL → DIRECT POLL` : `${key} WAITING FOR SEQUENTIAL (CLIP) POLL`); }
+  if (now < p.reportAt) { clearTimeout(p.pollT); p.pollT = setTimeout(render, p.reportAt - now + 15); return false; }
+  if (!p.reported) { p.reported = true; FS.lastLat[key] = p.reportAt - p.actT; fsLog(`${key} REPORTED AFTER ${p.reportAt - p.actT} ms (${pollMode(dev.loop, T(dev).addrType)})`); }
+  return true;
+}
+// detector initialization (Appendix F.1): a detector added or changed (or back from NO ANSWER) needs ~2.5 minutes
+function startInit(p, why) { if (!p || !isDetT(p)) return; p.initUntil = Date.now() + POLL.initMs; fsLog(`${addrStr(p)} DETECTOR INITIALIZATION (${why})`); plog('INFO', `${addrStr(p)} DETECTOR INITIALIZATION STARTED`); }
+function initTick(R) {
+  for (const p of parts.filter(q => T(q) && T(q).role === 'slc')) {
+    const r = !!R.resp[p.id];
+    if (running && p.wasResp === false && r && PROG[addrStr(p)]) startInit(p, 'NO ANSWER CLEARED');
+    p.wasResp = running ? r : undefined;
+    if (p.initUntil && Date.now() >= p.initUntil) { p.initUntil = 0; fsLog(`${addrStr(p)} INITIALIZATION COMPLETE`); }
+  }
+}
+setInterval(() => { if (running && parts.some(p => p.initUntil)) render(); }, 1000);
+// periodic FlashScan detector test: LEDs steady green for a few seconds (Programming Manual 3.3.4 note)
+setInterval(() => {
+  if (!running) return;
+  const ks = keysSorted().filter(k => isDet(k) && pollMode(+/^L(\d+)/.exec(k)[1], 'D') === 'FLASHSCAN' && partAt(k) && result && result.resp[partAt(k).id]);
+  if (!ks.length) return;
+  FS.testKey = ks[FS.testIdx++ % ks.length]; FS.testUntil = Date.now() + POLL.testMs; fsLog(`${FS.testKey} DETECTOR TEST`);
+}, POLL.testEvery);
+
+/* ---------- device LEDs (SLC Wiring Manual Table 1.4, NFS2-3030 row) ---------- */
+const LEDC = {off:'#3a3f45', red:'#ff2a2a', green:'#3fd16f'};
+function addrBlink(addr, t) {   // walk test: 37 = 3 blinks, stop, 7 blinks, long stop
+  const a = Math.floor(addr / 10), b = addr % 10, seq = [];
+  const push = n => { for (let i = 0; i < n; i++) seq.push(1, 0); };
+  if (addr >= 10) { push(a); seq.push(0, 0); if (b) push(b); } else push(addr);
+  seq.push(0, 0, 0, 0, 0);
+  return !!seq[Math.floor(t / 250) % seq.length];
+}
+function ledState(p, now) {
+  const key = addrStr(p), pr = PROG[key], ty = T(p), resp = running && result && result.resp[p.id];
+  if (!resp) return ['off'];
+  const fs = devMode(p) === 'FLASHSCAN', out = ty.addrType === 'M' && ['cm', 'rm'].includes(p.t), cfg = loopCfg(p.loop);
+  const evs = PX.events.filter(e => SRCKEY[e.src] === key || e.src === p.id || e.src === p.id + ':zone');
+  const active = evs.some(e => e.type === 'FIRE ALARM' || e.type === 'SUPERVISORY');
+  const outOn = out && lastOut && lastOut.on.has(p.id);
+  if (PX.walk) {
+    const part = walkParticipates(key);
+    if (out) { if (outOn) return [fs ? 'green' : (devMode(p) === 'CLIP' ? 'red' : 'green'), 'steady']; return fs ? ['green', 'addr'] : ['green', 'blink']; }
+    if (p.wtLogged && part) return [fs ? 'green' : 'red', 'steady'];
+    return fs ? ['red', 'addr'] : ['red', 'blink'];
+  }
+  if (p.initUntil && now < p.initUntil && fs) return ['green', 'steady'];
+  if (FS.testKey === key && now < FS.testUntil && fs) return ['green', 'steady'];
+  if (active) return ['red', 'steady'];
+  if (out && outOn) return ['green', 'steady'];
+  if (fs && PX.events.some(e => e.type === 'PREALARM' && e.src === 'PA:' + p.id)) return ['green', 'steady'];
+  if (!cfg.blink && !out) return ['off'];
+  return fs ? ['green', 'blink'] : [out ? 'green' : 'red', 'blink'];
+}
+function ledTick() {
+  const now = Date.now();
+  for (const p of parts) {
+    if (!T(p) || T(p).role !== 'slc') continue;
+    const g = $('part-' + p.id); if (!g) continue;
+    let leds = g.querySelectorAll('.dled, .mled, .sled');
+    if (!leds.length) { el('circle', {class:'sled', cx:T(p).w - 10, cy:10, r:3.6}, g); leds = g.querySelectorAll('.sled'); }
+    const [c, mode] = ledState(p, now);
+    const phase = (p.addr * 137) % 1600;
+    const lit = c !== 'off' && (mode === 'steady' || (mode === 'blink' && (now + phase) % 1600 < 140) || (mode === 'addr' && addrBlink(p.addr, now)));
+    leds.forEach(l => { l.style.animation = 'none'; l.style.fill = lit ? LEDC[c] : LEDC.off; l.style.filter = lit ? `drop-shadow(0 0 4px ${LEDC[c]})` : 'none'; });
+  }
+}
+setInterval(ledTick, 80);
+
+/* ---------- SLC poll view (bottom tab) ---------- */
+function renderPoll() {
+  if (bottomTab !== 'poll') return;
+  const now = Date.now();
+  let h = `<div style="padding:8px 10px;display:flex;flex-direction:column;gap:10px">`;
+  h += `<p class="note" style="margin:0">FlashScan: ตู้ถามอุปกรณ์ทีละกลุ่ม ถ้าในกลุ่มมีตัวที่มีข้อมูลใหม่ ตู้หยุด Group poll แล้วถามตัวนั้นตรงๆ · CLIP: ถามทีละ Address ตามลำดับ (Address ได้ 01–99) · ตั้งที่ PANEL PROGRAM › MORE › LOOP CONFIGURATION · ตัวเลขเวลาเป็นค่าประกอบการสาธิต ไม่ได้มาจากคู่มือ</p>`;
+  for (const L of loopsList()) {
+    const c = loopCfg(L.n), keys = keysSorted().filter(k => new RegExp(`^L${L.n}[DM]`).test(k));
+    const groups = fsGroups(L.n), gi = groups.length ? Math.floor(now / POLL.fsGroupMs) % groups.length : -1;
+    const ord = clipOrder(L.n), cur = ord.length ? ord[Math.floor(now / POLL.clipMs) % ord.length] : null;
+    const pend = parts.filter(p => p.actT && !p.reported).map(p => SRCKEY[p.id] || (T(p).role === 'slc' ? addrStr(p) : null));
+    h += `<div><b>Loop ${L.n}</b> · Detector poll: <b>${c.dpoll}</b> · Module poll: <b>${c.mpoll}</b>${c.mpoll === 'CLIP' || c.dpoll === 'CLIP' ? ` · Rapid poll: ${c.rapid ? 'ENABLED' : 'DISABLED'}` : ''} · Blink mode: ${c.blink ? 'ON' : 'OFF'}${c.inst ? '' : ' · <b class="c-err">INSTALLED: NO</b>'}`;
+    if (!running) h += ' · <span class="c-muted">ตู้ไม่มีไฟ</span>';
+    h += `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">`;
+    for (const k of keys) {
+      const p = partAt(k), fs = pollMode(L.n, k[k.search(/[DM]/)]) === 'FLASHSCAN';
+      const polling = running && (fs ? groups[gi] && groups[gi].includes(k) : cur === k);
+      const init = p && p.initUntil && now < p.initUntil, noAns = !p || !result.resp[p.id];
+      const bg = !running ? 'var(--panel-2,#eee)' : noAns ? '#7a2b2b' : init ? '#2d6d3c' : polling ? (fs ? '#2f7be0' : '#d98b00') : 'transparent';
+      h += `<span title="${k}${init ? ' · INITIALIZING ' + Math.ceil((p.initUntil - now) / 1000) + ' s' : ''}${noAns ? ' · NO ANSWER' : ''}" style="font:11px var(--font-mono);padding:2px 4px;border:1px solid var(--line,#999);border-radius:3px;background:${bg};color:${running && (polling || init || noAns) ? '#fff' : 'inherit'}">${k.replace(/^L\d+/, '')}${fs ? '' : '·C'}</span>`;
+    }
+    if (!keys.length) h += '<span class="note">ยังไม่มีจุดในโปรแกรม</span>';
+    h += `</div>`;
+    const cyc = (groups.length * POLL.fsGroupMs) || 0, clipCyc = ord.length * POLL.clipMs;
+    h += `<div class="note" style="margin-top:4px">${groups.length ? `FlashScan ${groups.length} กลุ่ม · รอบละ ~${cyc} ms` : ''}${groups.length && ord.length ? ' · ' : ''}${ord.length ? `CLIP ${ord.length} ครั้ง/รอบ · รอบละ ~${(clipCyc / 1000).toFixed(1)} s` : ''}${keys.some(k => /D(\d{3})$/.test(k) || /M(\d{3})$/.test(k)) ? '' : ''}</div></div>`;
+  }
+  const lat = Object.entries(FS.lastLat).slice(-6).map(([k, v]) => `${k}: ${v} ms`).join(' · ');
+  h += `<div><b>เวลาที่ตู้ใช้รับรู้เหตุล่าสุด</b> ${lat || '-'}</div>`;
+  h += `<pre class="m" style="margin:0;max-height:180px;overflow:auto;font-size:.7rem">${FS.log.join('\n') || 'ยังไม่มีการสื่อสารที่น่าสนใจ'}</pre></div>`;
+  $('res').innerHTML = h;
+}
+setInterval(() => { if (bottomTab === 'poll') renderPoll(); }, 120);
+
 function renderPanel() {
   const lcd = $('lcd');
   lcd.classList.toggle('off', !running);
@@ -3978,13 +4122,14 @@ setInterval(() => { if (running && !PX.lamp) renderPanel(); }, 1000);
 let bottomTab = 'erc';
 function setTab(t) {
   bottomTab = t;
-  $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist')); $('tabPrn').setAttribute('aria-pressed', String(t === 'prn'));
+  $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist')); $('tabPrn').setAttribute('aria-pressed', String(t === 'prn')); $('tabPoll').setAttribute('aria-pressed', String(t === 'poll'));
   $('ercFilters').hidden = t !== 'erc'; $('histTools').hidden = t !== 'hist';
   render();
 }
 $('tabErc').addEventListener('click', () => setTab('erc'));
 $('tabHist').addEventListener('click', () => setTab('hist'));
 $('tabPrn').addEventListener('click', () => setTab('prn'));
+$('tabPoll').addEventListener('click', () => setTab('poll'));
 function renderPrinter() {
   if (bottomTab !== 'prn') return;
   $('res').innerHTML = PSET.printer === 'NONE' ? '<p class="note" style="padding:10px">ยังไม่ได้ติดตั้งเครื่องพิมพ์ ตั้งที่ PROGRAM › PANEL PROGRAM › SUPERVISION › PRINTER แล้วสั่งพิมพ์จาก MAIN MENU › PRINTER FUNCTIONS หรือหน้า HISTORY</p>'
@@ -4182,7 +4327,7 @@ function toggleRun() {
   b.classList.toggle('on', running);
   b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
   b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
-  if (!running) { parts.forEach(q => { q.act = false; q.lvl = undefined; }); PX.latchT.clear(); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  if (!running) { parts.forEach(q => { q.act = false; q.lvl = undefined; q.initUntil = 0; q.wasResp = undefined; q.actT = 0; q.reported = false; }); PX.latchT.clear(); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
   else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: คลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
   simClock(); renderTests(); render();
 }
@@ -4219,6 +4364,7 @@ const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repea
 function render() {
   analogTick();
   result = analyze();
+  initTick(result);
   syncPanel(result);
   const S = simulate(result); lastS = S;
   netNow = netFn(); liveRoots = new Set(); hotRoots = new Set();
@@ -4256,7 +4402,8 @@ function render() {
     rows += `<tr class="grp"><td class="ic ${LBL[c.state][1]}">${IC[c.state === 'todo' ? 'inf' : c.state][0]}</td><td>${c.title}</td><td><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></td></tr>`;
     rows += items.map(([l, t]) => `<tr><td class="ic ${IC[l][1]}">${IC[l][0]}</td><td colspan="2">${t}</td></tr>`).join('');
   }
-  if (bottomTab === 'prn') renderPrinter();
+  if (bottomTab === 'poll') renderPoll();
+  else if (bottomTab === 'prn') renderPrinter();
   else if (bottomTab === 'hist') renderHistory();
   else $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
   const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
