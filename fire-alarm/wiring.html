@@ -631,7 +631,7 @@ svg.board.wfocus .wire-halo.hl{stroke-width:7.5}
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
-    <li><b>อ่านสายง่ายขึ้น</b>: สายของวงจรต่างกันจะถูกแยกเป็นช่องขนานห่างกัน ไม่วิ่งทับกันและไม่ผ่านตัวอุปกรณ์ · ชี้เมาส์ที่สายหรือขั้ว (หรือแตะเลือกสาย/อุปกรณ์บนมือถือ) วงจรนั้นทั้งเส้นจะเด่นขึ้นและสายอื่นจางลง</li>
+    <li><b>อ่านสายง่ายขึ้น</b>: สายของวงจรต่างกันจะถูกแยกเป็นช่องขนานห่างกัน ไม่วิ่งทับกันและไม่ผ่านตัวอุปกรณ์ · จุดที่สายข้ามกันโดยไม่ต่อถึงกัน สายแนวนอนจะโค้งข้าม (hop) ส่วนจุดที่ต่อกันจริงจะอยู่ที่ขั้วสกรูและมีจุดกลมทึบ · ชี้เมาส์ที่สายหรือขั้ว (หรือแตะเลือกสาย/อุปกรณ์บนมือถือ) วงจรนั้นทั้งเส้นจะเด่นขึ้นและสายอื่นจางลง</li>
     <li><b>ตู้แบบของจริง (CAB-4 + CHS-4L) และสายภายในตู้</b>: CPU2-3030D + คีย์บอร์ด/จอ (TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security, TB7 ACS ที่ขอบบน · J13 Power, J7 SLC Data ที่ขอบล่าง) · DVC-KD + กล่องไมค์/หูโทรศัพท์ (ถ้าติด DVC) · CHS-4L: LCM-320 (LEM-320 ติดด้านหลัง) TB1 = B+ A+ B− A− · APS2-6R (เลือกติด) · AMPS-24 + CPS-24E ด้านล่าง และขั้ว AC 220V IN · ต้องต่อเอง: สาย 75637 J13 ↔ AMPS-24 MAIN 24V (ไม่ต่อ = ตู้ดับ) · สายแพ 75565 J7 → J1 (Data in) ของ LCM ตัวแรก, J3 (Data out) → J1 ตัวถัดไป (ไม่ต่อ = LOOP x-y COMM FAILURE) · AC L/N/G → CPS-24E (ไม่มี AC แต่มีแบต = AC FAIL) · ตั้ง SW1 บน LCM เป็น Loop 1, 3, 5, 7, 9 ห้ามซ้ำ (LEM ได้เลขถัดไป) · สายภาคสนามออกทางรางสายด้านขวาของตู้ · คลิกตู้เพื่อ "ต่อสายภายในตู้ให้อัตโนมัติ" หรือ "ถอดสายภายในตู้ (ฝึกต่อเอง)"</li>
     <li><b>FlashScan / CLIP (SLC Wiring Manual 1.5, 1.9 · Programming Manual 3.3.4, ภาคผนวก F)</b>: ตั้งที่ PANEL PROGRAM › MORE › LOOP CONFIGURATION (DETECTOR POLL / MODULE POLL / RAPID POLL / BLINK MODE) · FlashScan ถามเป็นกลุ่ม พบข้อมูลใหม่จึงถามตัวนั้นตรงๆ (ตอบสนองเร็ว) · CLIP ถามทีละ Address และใช้ Address ได้แค่ 01–99 (เกินนั้นตู้แจ้ง NO ANSWER) เกิน 99 จุดตอบสนองช้า · ไฟ LED บนอุปกรณ์ตามตาราง 1.4: FlashScan ปกติกะพริบเขียว / CLIP กะพริบแดง (Control module กะพริบเขียว) · Alarm แดงค้าง · Control module ทำงานเขียวค้าง · Prealarm (FlashScan) เขียวค้าง · BLINK MODE OFF ไฟหัวและ Monitor ดับ · Walk Test แบบ FlashScan กะพริบเลข Address (37 = 3 ครั้ง เว้น 7 ครั้ง) · ทดสอบหัวเป็นระยะ ไฟเขียวค้างไม่กี่วินาที · หัวที่เพิ่ง Autoprogram เพิ่ม/เปลี่ยน หรือกลับมาจาก NO ANSWER ต้อง Initialize ~2.5 นาที (เขียวค้าง ไม่รายงานเหตุ ตู้ขึ้น SYSTEM INITIALIZATION) · แท็บ "SLC Poll" แสดงการถามจริงแบบเคลื่อนไหวและเวลาที่ตู้ใช้รับรู้เหตุ (ตัวเลขเวลาเป็นค่าสาธิต คู่มือไม่ได้ระบุ)</li>
     <li><b>เมนูที่เพิ่มครบตามคู่มือ</b>: MAIN MENU › HISTORY DISPLAY (ALL EVENTS / ALARMS / TROUBLES / SUPERVISORY / SECURITY-OTHERS / TIME-DATE INTERVAL / POINT RANGE) · PRINTER FUNCTIONS (ขึ้นเมื่อตั้ง SUPERVISION › PRINTER) พิมพ์ลงแท็บ "เครื่องพิมพ์" · EVENT COUNTS › MORE INFORMATION แสดง Custom Action Message · PANEL PROGRAM: NETWORK PARAMETERS (+IP ACCESS), NETWORK MAPPING (ต้องเปิด NETWORK DISPLAY MODE), PANEL SETTINGS 1–5 + REMINDER/REGIONAL (CHICAGO ปิดปุ่ม SILENCE/DRILL)/SCS/SOUNDER BASE/CUSTOM TONE, PRESIGNAL DELAY, LCD (ความสว่าง/BACKLIGHT มีผลกับจอ), ACS PROGRAMMING + POINT, SUPERVISION · หน้า 2: WEEKLY OCCUPANCY (ใช้เลือกค่า Sensitivity Occupied/Unoccupied), HOLIDAY, REMOTE DISPLAY, CUSTOM ACTION MESSAGE, EVENT LOGGING (บันทึก OUTPUT ON/OFF) · POINT PROGRAM: GENERAL ZONE, LOGIC ZONE / TROUBLE ZONE (สมการ AND OR NOT ONLY1 ANYX XZONE RANGE DIS PRE SUP FIRE DEL SDEL ใช้งานจริงใน CBE ใส่ใน Zone map ด้วยการพิมพ์ L/T นำหน้า เช่น L1 = ZL1), RELEASE ZONE, ACS BOARD, DAA/DVC · ALTER STATUS: CLEAR HISTORY (ALARM/EVENT/ALL), WIRELESS, FAAST (ไม่มีอุปกรณ์ในจำลอง) · กด LAMP TEST ค้างเกิน 5 วินาทีดู VERSION</li>
@@ -1867,6 +1867,31 @@ function laneRoute(list) {
   }
   for (const r of list) r.pts = r.pts.filter((q, k, A) => k === 0 || q[0] !== A[k - 1][0] || q[1] !== A[k - 1][1]);
 }
+// crossing hops: a horizontal wire jumps over a vertical wire it is not connected to (semicircle, r = HOP)
+const HOP = 3.6;
+function hopPaths(list) {
+  const V = [];
+  list.forEach((r, wi) => r.pts.forEach((a, i) => { const b = r.pts[i + 1]; if (b && a[0] === b[0] && a[1] !== b[1]) V.push({wi, x:a[0], lo:Math.min(a[1], b[1]), hi:Math.max(a[1], b[1])}); }));
+  return list.map((r, wi) => {
+    let d = `M${r.pts[0][0]} ${r.pts[0][1]}`;
+    for (let i = 0; i < r.pts.length - 1; i++) {
+      const [x1, y1] = r.pts[i], [x2, y2] = r.pts[i + 1];
+      if (y1 === y2 && x1 !== x2) {
+        const lo = Math.min(x1, x2), hi = Math.max(x1, x2), dir = x2 > x1 ? 1 : -1;
+        let xs = V.filter(v => v.wi !== wi && v.x > lo + HOP + 2 && v.x < hi - HOP - 2 && y1 > v.lo + 2 && y1 < v.hi - 2).map(v => v.x);
+        xs = [...new Set(xs)].sort((a, b) => (a - b) * dir);
+        let last = null;
+        for (const x of xs) {
+          if (last != null && Math.abs(x - last) < HOP * 2 + 0.5) continue;   // keep neighbouring hops apart
+          d += ` L${x - dir * HOP} ${y1} A${HOP} ${HOP} 0 0 ${dir > 0 ? 1 : 0} ${x + dir * HOP} ${y1}`;
+          last = x;
+        }
+      }
+      d += ` L${x2} ${y2}`;
+    }
+    return d;
+  });
+}
 let focusNets = null;   // nets highlighted while a wire / part is pointed at or selected
 function focusFor() {
   if (!netNow) return null;
@@ -1891,8 +1916,9 @@ function drawWires() {
     list.push({w, pts:g.pts, free:g.free, duct:g.duct, ductX:g.ductX, net:String(nf(w.a))});
   }
   laneRoute(list);
-  for (const {w, pts, net} of list) {
-    const d = ptsD(pts);
+  const ds = hopPaths(list);
+  for (const [li, {w, net}] of list.entries()) {
+    const d = ds[li];
     el('path', {class:'wire-halo', d, 'data-net':net}, gWires);
     el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':w.color === 'rib' ? 5 : 2.4, 'data-net':net}, gWires);
     if (running && !w.cut && netNow) {
