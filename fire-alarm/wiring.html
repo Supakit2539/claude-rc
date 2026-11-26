@@ -383,6 +383,9 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
   .statusbar > span:first-child{flex-basis:100%;white-space:normal;border-right:0;border-bottom:1px solid var(--chrome-line)}
   .titlebar .file{display:none}
 }
+.pane-h .ftabs[role=tablist]{display:flex;flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:thin}
+.pane-h .ftabs[role=tablist] button{white-space:nowrap;flex:none}
+.pane-h .ftabs[role=tablist] .chip{white-space:nowrap;flex:none}
 </style>
 </head>
 <body>
@@ -581,6 +584,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>ตู้แบบของจริง (CAB-4 + CHS-4L) และสายภายในตู้</b>: CPU2-3030D + คีย์บอร์ด/จอ (TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security, TB7 ACS ที่ขอบบน · J13 Power, J7 SLC Data ที่ขอบล่าง) · DVC-KD + กล่องไมค์/หูโทรศัพท์ (ถ้าติด DVC) · CHS-4L: LCM-320 (LEM-320 ติดด้านหลัง) TB1 = B+ A+ B− A− · APS2-6R (เลือกติด) · AMPS-24 + CPS-24E ด้านล่าง และขั้ว AC 220V IN · ต้องต่อเอง: สาย 75637 J13 ↔ AMPS-24 MAIN 24V (ไม่ต่อ = ตู้ดับ) · สายแพ 75565 J7 → J1 (Data in) ของ LCM ตัวแรก, J3 (Data out) → J1 ตัวถัดไป (ไม่ต่อ = LOOP x-y COMM FAILURE) · AC L/N/G → CPS-24E (ไม่มี AC แต่มีแบต = AC FAIL) · ตั้ง SW1 บน LCM เป็น Loop 1, 3, 5, 7, 9 ห้ามซ้ำ (LEM ได้เลขถัดไป) · สายภาคสนามออกทางรางสายด้านขวาของตู้ · คลิกตู้เพื่อ "ต่อสายภายในตู้ให้อัตโนมัติ" หรือ "ถอดสายภายในตู้ (ฝึกต่อเอง)"</li>
     <li><b>FlashScan / CLIP (SLC Wiring Manual 1.5, 1.9 · Programming Manual 3.3.4, ภาคผนวก F)</b>: ตั้งที่ PANEL PROGRAM › MORE › LOOP CONFIGURATION (DETECTOR POLL / MODULE POLL / RAPID POLL / BLINK MODE) · FlashScan ถามเป็นกลุ่ม พบข้อมูลใหม่จึงถามตัวนั้นตรงๆ (ตอบสนองเร็ว) · CLIP ถามทีละ Address และใช้ Address ได้แค่ 01–99 (เกินนั้นตู้แจ้ง NO ANSWER) เกิน 99 จุดตอบสนองช้า · ไฟ LED บนอุปกรณ์ตามตาราง 1.4: FlashScan ปกติกะพริบเขียว / CLIP กะพริบแดง (Control module กะพริบเขียว) · Alarm แดงค้าง · Control module ทำงานเขียวค้าง · Prealarm (FlashScan) เขียวค้าง · BLINK MODE OFF ไฟหัวและ Monitor ดับ · Walk Test แบบ FlashScan กะพริบเลข Address (37 = 3 ครั้ง เว้น 7 ครั้ง) · ทดสอบหัวเป็นระยะ ไฟเขียวค้างไม่กี่วินาที · หัวที่เพิ่ง Autoprogram เพิ่ม/เปลี่ยน หรือกลับมาจาก NO ANSWER ต้อง Initialize ~2.5 นาที (เขียวค้าง ไม่รายงานเหตุ ตู้ขึ้น SYSTEM INITIALIZATION) · แท็บ "SLC Poll" แสดงการถามจริงแบบเคลื่อนไหวและเวลาที่ตู้ใช้รับรู้เหตุ (ตัวเลขเวลาเป็นค่าสาธิต คู่มือไม่ได้ระบุ)</li>
     <li><b>เมนูที่เพิ่มครบตามคู่มือ</b>: MAIN MENU › HISTORY DISPLAY (ALL EVENTS / ALARMS / TROUBLES / SUPERVISORY / SECURITY-OTHERS / TIME-DATE INTERVAL / POINT RANGE) · PRINTER FUNCTIONS (ขึ้นเมื่อตั้ง SUPERVISION › PRINTER) พิมพ์ลงแท็บ "เครื่องพิมพ์" · EVENT COUNTS › MORE INFORMATION แสดง Custom Action Message · PANEL PROGRAM: NETWORK PARAMETERS (+IP ACCESS), NETWORK MAPPING (ต้องเปิด NETWORK DISPLAY MODE), PANEL SETTINGS 1–5 + REMINDER/REGIONAL (CHICAGO ปิดปุ่ม SILENCE/DRILL)/SCS/SOUNDER BASE/CUSTOM TONE, PRESIGNAL DELAY, LCD (ความสว่าง/BACKLIGHT มีผลกับจอ), ACS PROGRAMMING + POINT, SUPERVISION · หน้า 2: WEEKLY OCCUPANCY (ใช้เลือกค่า Sensitivity Occupied/Unoccupied), HOLIDAY, REMOTE DISPLAY, CUSTOM ACTION MESSAGE, EVENT LOGGING (บันทึก OUTPUT ON/OFF) · POINT PROGRAM: GENERAL ZONE, LOGIC ZONE / TROUBLE ZONE (สมการ AND OR NOT ONLY1 ANYX XZONE RANGE DIS PRE SUP FIRE DEL SDEL ใช้งานจริงใน CBE ใส่ใน Zone map ด้วยการพิมพ์ L/T นำหน้า เช่น L1 = ZL1), RELEASE ZONE, ACS BOARD, DAA/DVC · ALTER STATUS: CLEAR HISTORY (ALARM/EVENT/ALL), WIRELESS, FAAST (ไม่มีอุปกรณ์ในจำลอง) · กด LAMP TEST ค้างเกิน 5 วินาทีดู VERSION</li>
     <li><b>การต่อสาย SLC ตามคู่มือ (3.3.4 และภาคผนวก H)</b>: LOOP CONFIGURATION › WIRING CLASS ใช้ตรวจสายจริง · Class A สายขาดฝั่ง + ขึ้น CLASS A POS LOOP n ฝั่ง − ขึ้น CLASS A NEG LOOP n ตู้จ่ายสัญญาณทั้งสองปลายอุปกรณ์จึงยังทำงาน และ Trouble ค้างจนแก้สายแล้วกด RESET · ช็อตบน Class A ขึ้น CLASS A SHORT LOOP n · ตั้ง Class A แต่ต่อแบบ Class B ตู้แจ้ง Trouble · INSTALLED: NO ตู้ไม่สแกนลูปนั้น · ชื่อ Trouble อื่นตามภาคผนวก H: BATTERY, ANNUN n NO ANSWER, NO DEV. INST ON L1, MAN EVAC INITIATED, BUZZER OFF-LINE</li>
@@ -598,7 +602,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
 "use strict";
 const $ = id => document.getElementById(id);
 const SVGNS = 'http://www.w3.org/2000/svg';
-const BW = 1700;
+const BW = 1960;
 let BH = 1200;
 
 /* ================= catalogue ================= */
@@ -664,32 +668,6 @@ const CATS = [['det','หัวตรวจจับ'],['mod','โมดูล S
 const CARDS = {loops:0, dvc:false};   // loops = SLC loops beyond Loop 1 (Loop 1 = LCM-320 #1)
 const MAXLOOPS = 10;                  // 5 × LCM-320 + 5 × LEM-320
 const PANEL = 'NFS2-3030';
-function facpLayout() {
-  const n = CARDS.loops, total = n + 1;
-  const loopY = i => 494 + (i - 1) * 150;             // card for Loop i (i >= 1)
-  const dvcY = 494 + total * 150 + 8, psuY = dvcY + 128;
-  return {n, total, loopY, dvcY, psuY, H:psuY + 270};
-}
-const loopCard = i => i % 2 ? `LCM-320 #${(i + 1) / 2}` : `LEM-320 #${i / 2}`;
-const FW = 300;
-function facpTerms() {
-  const r = (k, lb, y, pol) => [k, lb, FW, y, 'r', pol];
-  const t = [
-    r('rc','ALM C',92,''), r('rno','ALM NO',116,''), r('rnc','ALM NC',140,''),
-    r('tc','TBL C',176,''), r('tno','TBL NO',200,''), r('tnc','TBL NC',224,''),
-    r('uc','SUP C',260,''), r('uno','SUP NO',284,''), r('unc','SUP NC',308,''),
-    r('yc','SEC C',344,''), r('yno','SEC NO',368,''), r('ync','SEC NC',392,''),
-    r('aa','485 A',428,''), r('ab','485 B',452,''),
-  ];
-  const Y = facpLayout();
-  for (let i = 1; i <= Y.total; i++) { const y = Y.loopY(i); t.push(r(`l${i}b+`, `SLC${i} B+`, y + 48, '+'), r(`l${i}b-`, `SLC${i} B−`, y + 72, '-'), r(`l${i}a+`, `SLC${i} A+`, y + 104, '+'), r(`l${i}a-`, `SLC${i} A−`, y + 128, '-')); }
-  if (CARDS.dvc) t.push(r('sp+','SPK +',Y.dvcY + 48,'+'), r('sp-','SPK −',Y.dvcY + 72,'-'));
-  t.push(r('x+','AUX 24V+',Y.psuY + 92,'+'), r('x-','AUX 24V−',Y.psuY + 116,'-'));
-  t.push(r('t+','BAT +',Y.psuY + 175,'+'), r('t-','BAT −',Y.psuY + 199,'-'));
-  return t;
-}
-const FACP_GROUPS = [['TB4 ALARM RELAY',58],['TB3 TROUBLE RELAY',142],['TB2 SUPV RELAY',226],['TB1 SECURITY RELAY',310],['TB7 ACS EIA-485',394]];
-
 /* ================= state ================= */
 let parts = [];  // {id, t, x, y, n, addr?, loop?}
 let wires = [];  // {id, a, b, color, cut, fault}
@@ -698,7 +676,7 @@ let pending = null, selW = null, selP = null;
 let color = 'auto';
 let alarm = null;   // {kind:'FIRE'|'SUPV', txt}
 let result = null;
-const COLORS = {red:'var(--w-red)', blk:'var(--w-blk)', blu:'var(--w-blu)', yel:'var(--w-yel)'};
+const COLORS = {red:'var(--w-red)', blk:'var(--w-blk)', blu:'var(--w-blu)', yel:'var(--w-yel)', rib:'#c4c8ce', brn:'#8b5a2b', grn:'#2e9b48'};
 const byId = id => parts.find(p => p.id === id);
 const T = p => TYPES[p.t];
 const ISO_BASE_TYPES = ['smoke', 'heat', 'multi'];
@@ -746,24 +724,32 @@ function addPart(t, x, y, extra = {}) {
 function freeSpot(t) {
   const ty = TYPES[t];
   const occupied = (x, y) => parts.some(p => { const w = p.t === 'facp' ? FW : T(p).w, h = p.t === 'facp' ? facpLayout().H : T(p).h; return x < p.x + w + 40 && x + ty.w + 40 > p.x && y < p.y + h + 40 && y + ty.h + 40 > p.y; });
-  for (let y = 30; y < BH - ty.h - 10; y += 20) for (let x = 380; x < BW - ty.w - 20; x += 20) if (!occupied(x, y)) return [x, y];
+  for (let y = 30; y < BH - ty.h - 10; y += 20) for (let x = FW + 80; x < BW - ty.w - 20; x += 20) if (!occupied(x, y)) return [x, y];
   return [360, 40];
 }
 
 /* ================= persistence ================= */
 const KEY = 'facp-wiring-v3';
 let PROG = {};   // panel program database: point key (L1D001) -> {t, type, label, ext, zone, on}
-function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG})); } catch (e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG, layout:2})); } catch (e) {} }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!s || !Array.isArray(s.parts) || !s.parts.some(p => p.id === 'P')) return false;
     parts = s.parts.filter(p => p.t === 'facp' || TYPES[p.t]);
     const c = s.cards || {};
-    CARDS.dvc = !!c.dvc;
+    CARDS.dvc = !!c.dvc; CARDS.aps = !!c.aps; CARDS.sw = Array.isArray(c.sw) ? c.sw : [];
     CARDS.loops = Number.isFinite(c.loops) ? Math.max(0, Math.min(MAXLOOPS - 1, c.loops)) : (c.loop2 ? 1 : 0);
+    const old = !s.layout;
+    if (old) {   // layout 1 -> cabinet layout 2: shift field devices right, rename SLC keys to card terminals, add the internal harness
+      parts.forEach(p => { if (p.t !== 'facp') p.x += FW - 300; });
+      const mk = k => k.replace(/^P\.l(\d+)([ab])([+-])$/, (_, n, ab, pol) => `P.c${Math.ceil(n / 2)}${n % 2 ? 'm' : 'e'}${ab}${pol}`);
+      (s.wires || []).forEach(w => { w.a = mk(w.a); w.b = mk(w.b); });
+    }
     rebuildTerms();
     wires = (s.wires || []).filter(w => TERM[w.a] && TERM[w.b]);
+    wseq = wires.reduce((m, w) => Math.max(m, w.id), 0) + 1;
+    if (old) wireInternal();
     wseq = wires.reduce((m, w) => Math.max(m, w.id), 0) + 1;
     if (s.prog && typeof s.prog === 'object') { PROG = {}; for (const [k, v] of Object.entries(s.prog)) PROG[k] = normEntry(k, v); } else programAll();
     return true;
@@ -813,10 +799,14 @@ const accepts = (o, r) => [].concat(o.accept).includes(r);
 const sinkRole = p => p.t === 'psu' ? 'nac' : T(p).role;
 const ROLE_TH = {nac:'อุปกรณ์ NAC (ฮอร์น/สโตรบ/กระดิ่ง)', spk:'ลำโพง', contact:'หน้าสัมผัส (แมนนวล/Flow/Tamper)', zone:'หัวควัน Conventional'};
 
-function loopsList() {
-  const L = [{n:1, b:['P.l1b+','P.l1b-'], a:['P.l1a+','P.l1a-']}];
-  for (let i = 2; i <= CARDS.loops + 1; i++) L.push({n:i, b:[`P.l${i}b+`, `P.l${i}b-`], a:[`P.l${i}a+`, `P.l${i}a-`]});
-  return L;
+function loopsList() {   // loop numbers come from SW1 on each LCM-320; the LEM-320 behind it is the next number
+  const L = [], n = facpLayout().nLCM;
+  for (let k = 1; k <= n; k++) {
+    const sw = lcmSw(k), K = q => `P.c${k}${q}`;
+    L.push({n:sw, card:k, lem:false, b:[K('mb+'), K('mb-')], a:[K('ma+'), K('ma-')]});
+    if (lcmHasLem(k)) L.push({n:sw + 1, card:k, lem:true, b:[K('eb+'), K('eb-')], a:[K('ea+'), K('ea-')]});
+  }
+  return L.sort((a, b) => a.n - b.n || a.card - b.card);
 }
 function outPorts() {
   const O = [
@@ -921,7 +911,8 @@ function analyze() {
   const GROUP = {};
   loopsList().forEach(L => [...L.b, ...L.a].forEach(k => GROUP[k] = 'SLC Loop ' + L.n));
   outPorts().forEach(o => { GROUP[o.sp] = o.title; GROUP[o.sn] = o.title; });
-  ['P.x+','P.x-'].forEach(k => GROUP[k] = 'AUX 24V'); ['P.aa','P.ab'].forEach(k => GROUP[k] = 'ACS EIA-485');
+  ['P.x+','P.x-'].forEach(k => GROUP[k] = 'AUX 24V'); ['P.q+','P.q-'].forEach(k => GROUP[k] = 'APS2-6R 24V');
+  ['P.acL','P.acN','P.acG','P.pL','P.pN','P.pG','P.qL','P.qN','P.qG'].forEach(k => GROUP[k] = 'ไฟ AC 220V'); ['P.j13','P.amain'].forEach(k => GROUP[k] = 'สายไฟ MAIN 24V (J13)'); Object.keys(TERM).filter(k => CONNK(k) === 'data').forEach(k => GROUP[k] = 'สายแพ SLC Data (J7/J1/J3)'); ['P.aa','P.ab'].forEach(k => GROUP[k] = 'ACS EIA-485');
   [['r', 'Alarm TB4'], ['t', 'Trouble TB3'], ['u', 'Supervisory TB2'], ['y', 'Security TB1']].forEach(([x, n]) => ['c', 'no', 'nc'].forEach(k => GROUP['P.' + x + k] = 'รีเลย์ ' + n + ' ตู้')); ['P.t+','P.t-'].forEach(k => GROUP[k] = 'แบตเตอรี่ตู้');
   parts.filter(p => p.t === 'rm').forEach(p => ['c','no','nc'].forEach(k => GROUP[p.id + '.' + k] = nameOf(p)));
   parts.filter(p => p.t === 'psu').forEach(p => ['t+','t-'].forEach(k => GROUP[p.id + '.' + k] = 'แบตเตอรี่ ' + nameOf(p)));
@@ -930,13 +921,55 @@ function analyze() {
   const cross = [...byRoot.values()].filter(s => s.size > 1).map(s => [...s].join(' ↔ '));
   if (cross.length) { add('x', 'ต่อข้ามวงจร', cross.map(c => ['err', `สายของ ${c} ถูกต่อถึงกัน อุปกรณ์อาจเสียหาย`]), 'err'); R.panel.push(['TROUBLE', 'GROUND/CROSS FAULT']); }
 
+  /* ---- cabinet internal wiring (Installation Manual 3.8.1, 3.8.3, 3.10) ---- */
+  R.lcmOK = {};
+  { const it = []; let st = 'ok';
+    const same = (a, b) => termUsed(a) && termUsed(b) && fAll(a) === fAll(b);
+    const acShort = termUsed('P.acL') && fAll('P.acL') === fAll('P.acN');
+    const acOf = (L, N, G, name) => {
+      if (acShort) return false;
+      const ok = same(L, 'P.acL') && same(N, 'P.acN'), sw = same(L, 'P.acN') && same(N, 'P.acL');
+      if (ok || sw) { it.push([sw ? 'warn' : 'ok', `${name}: ไฟ AC 220V เข้า L/N${sw ? ' (สลับ L กับ N)' : ''}`]); if (!same(G, 'P.acG')) it.push(['warn', `${name}: ยังไม่ได้ต่อสายดิน G`]); return true; }
+      it.push(['err', `${name}: ยังไม่ได้ต่อไฟ AC 220V (L, N, G จากขั้ว AC 220V IN)`]); return false;
+    };
+    if (acShort) { it.push(['err', 'สาย L กับ N ของไฟ AC ลัดวงจร เบรกเกอร์ตัด']); st = 'err'; }
+    R.acOK = acOf('P.pL', 'P.pN', 'P.pG', 'AMPS-24 / CPS-24E');
+    const b0 = analyzeBat('P.t+', 'P.t-');
+    R.ampsOn = R.acOK || b0.volts === 24;
+    if (!R.acOK && b0.volts === 24) it.push(['warn', 'ไม่มีไฟ AC ตู้ทำงานด้วยแบตเตอรี่ ตู้แจ้ง AC FAIL']);
+    if (!R.ampsOn) { it.push(['err', 'AMPS-24 ไม่มีทั้งไฟ AC และแบตเตอรี่ 24V ตู้ดับ']); st = 'err'; }
+    R.cpuPower = R.ampsOn && same('P.j13', 'P.amain');
+    if (same('P.j13', 'P.amain')) it.push(['ok', 'สาย 75637: CPU J13 ↔ AMPS-24 TB1 (MAIN 24V)']); else { it.push(['err', 'CPU2-3030 ไม่มีไฟ: ต่อสาย 75637 จาก J13 POWER บน CPU ไป TB1 MAIN 24V บน AMPS-24']); st = 'err'; }
+    // ribbon daisy-chain J7 -> J1 (data in), J3 (data out) -> J1 of the next LCM-320
+    const Y = facpLayout(), reached = new Set(termUsed('P.j7') ? [fAll('P.j7')] : []);
+    for (let pass = 0; pass < Y.nLCM; pass++) for (let k = 1; k <= Y.nLCM; k++) {
+      if (R.lcmOK[k] || !termUsed(`P.c${k}j1`) || !reached.has(fAll(`P.c${k}j1`))) continue;
+      R.lcmOK[k] = true; if (termUsed(`P.c${k}j3`)) reached.add(fAll(`P.c${k}j3`));
+    }
+    const seenSw = {};
+    for (let k = 1; k <= Y.nLCM; k++) {
+      const sw = lcmSw(k);
+      if (seenSw[sw]) { R.lcmOK[k] = false; it.push(['err', `LCM-320 #${k} ตั้ง SW1 = ${sw} ซ้ำกับ LCM-320 #${seenSw[sw]} เลข Loop ต้องไม่ซ้ำ`]); st = 'err'; continue; }
+      seenSw[sw] = k;
+      if (R.lcmOK[k]) it.push(['ok', `LCM-320 #${k} (Loop ${sw}${lcmHasLem(k) ? '/' + (sw + 1) : ''}) ได้รับ Data จากสายแพ`]);
+      else { it.push(['err', `LCM-320 #${k} ไม่ได้รับ Data: ต่อสายแพ 75565 จาก J7 ของ CPU ไป J1 (Data in) ของ LCM ตัวแรก และจาก J3 (Data out) ไป J1 ของตัวถัดไป`]); st = 'err'; }
+    }
+    // connector kinds and one cable per header
+    for (const w of wires) { const ka = CONNK(w.a), kb = CONNK(w.b); if ((ka || kb) && ka !== kb && TERM[w.a] && TERM[w.b]) { it.push(['err', `ต่อสาย ${TERM[w.a].lb} กับ ${TERM[w.b].lb} ผิดชนิด (ขั้วต่อสายแพ/สายไฟใช้กับขั้วชนิดเดียวกันเท่านั้น)`]); st = 'err'; R.bad.add(w.id); } }
+    Object.keys(TERM).filter(CONNK).forEach(k => { if (wires.filter(w => w.a === k || w.b === k).length > 1) { it.push(['err', `${TERM[k].lb} เสียบสายได้เส้นเดียว`]); st = 'err'; } });
+    if (CARDS.aps) { R.apsOn = acOf('P.qL', 'P.qN', 'P.qG', 'APS2-6R'); if (!R.apsOn) st = st === 'ok' ? 'warn' : st; } else R.apsOn = false;
+    if (R.ampsOn && !R.acOK) R.panel.push(['TROUBLE', 'AC FAIL']);
+    if (it.some(x => x[0] === 'warn') && st === 'ok') st = 'warn';
+    add('cab', 'ภายในตู้ (ไฟ AC · AMPS-24 · J13 · สายแพ LCM)', it, st);
+  }
+
   /* ---- main battery ---- */
   { const b = analyzeBat('P.t+', 'P.t-'); if (b.volts !== 24) R.panel.push(['TROUBLE', 'BATTERY']); add('bat', 'แบตเตอรี่สำรองของตู้ (AMPS-24)', b.it, b.st); }
 
   /* ---- AUX ---- */
   const auxShort = fAll('P.x+') === fAll('P.x-') && termUsed('P.x+');
   if (auxShort) { R.panel.push(['TROUBLE', 'AUX 24V SHORT']); add('aux', 'AUX 24V', [['err', 'AUX 24V+ กับ − ลัดวงจร']], 'err'); }
-  const powered = p => !auxShort && fAll(p.id + '.v+') === fAll('P.x+') && fAll(p.id + '.v-') === fAll('P.x-');
+  const powered = p => (!auxShort && R.ampsOn && fAll(p.id + '.v+') === fAll('P.x+') && fAll(p.id + '.v-') === fAll('P.x-')) || (R.apsOn && fAll(p.id + '.v+') === fAll('P.q+') && fAll(p.id + '.v-') === fAll('P.q-'));
   const powerRev = p => fAll(p.id + '.v+') === fAll('P.x-') && fAll(p.id + '.v-') === fAll('P.x+') && termUsed(p.id + '.v+');
 
   /* ---- SLC loops ---- */
@@ -946,6 +979,13 @@ function analyze() {
   for (const L of loopsList()) {
     const it = []; let st = 'ok';
     const cfg = (typeof PSET !== 'undefined' && PSET.loops && PSET.loops[L.n]) || {};
+    if (!R.cpuPower || !R.lcmOK[L.card]) {
+      R.scan[L.n] = {found:[], dup:[], down:true};
+      const why = !R.cpuPower ? 'CPU2-3030 ไม่มีไฟ (ดูหัวข้อ ภายในตู้)' : `${L.lem ? 'LEM-320 / ' : ''}LCM-320 #${L.card} ไม่ได้รับ Data จากสายแพ หรือ SW1 ซ้ำ`;
+      add('slc' + L.n + (L.lem ? 'e' : 'm') + L.card, `SLC Loop ${L.n} (${L.lem ? 'LEM' : 'LCM'}-320 #${L.card})`, [['err', why + ' ทั้ง Loop ไม่สื่อสาร']], 'err');
+      if (R.cpuPower) { const a = L.n % 2 ? L.n : L.n - 1; R.panel.push(['TROUBLE', `LOOP ${a}-${a + 1} COMM FAILURE`]); }
+      continue;
+    }
     if (cfg.inst === false) {   // 3.3.4 LOOP CONFIGURATION: INSTALLED NO = loop not polled
       R.scan[L.n] = {found:[], dup:[], down:true};
       add('slc' + L.n, `SLC Loop ${L.n} (${loopCard(L.n)})`, [['warn', 'LOOP CONFIGURATION ตั้ง INSTALLED: NO ตู้ไม่สแกนลูปนี้ อุปกรณ์ทุกตัวในลูปจึงไม่ตอบ']], 'warn');
@@ -1123,7 +1163,7 @@ function analyze() {
   const annSeen = {};
   for (const p of parts.filter(q => q.t === 'ann')) {
     const it = []; let st = 'ok';
-    const dataOK = fAll(p.id + '.a') === fAll('P.aa') && fAll(p.id + '.b') === fAll('P.ab') && fAll('P.aa') !== fAll('P.ab');
+    const dataOK = R.cpuPower && fAll(p.id + '.a') === fAll('P.aa') && fAll(p.id + '.b') === fAll('P.ab') && fAll('P.aa') !== fAll('P.ab');
     const dataRev = fAll(p.id + '.a') === fAll('P.ab') && fAll(p.id + '.b') === fAll('P.aa') && termUsed(p.id + '.a');
     if (dataOK) it.push(['ok', 'ACS EIA-485 A→A, B→B']); else { it.push(['err', dataRev ? 'สลับสาย A/B ของบัส EIA-485 สื่อสารไม่ได้' : 'ยังไม่ได้ต่อบัส ACS EIA-485 จาก CPU2-3030']); st = 'err'; }
     if (powered(p)) it.push(['ok', 'มีไฟ 24V จาก AUX ของ AMPS-24']); else { it.push(['err', powerRev(p) ? 'ไฟ 24V กลับขั้ว' : 'ไม่มีไฟ 24V เข้าจอ']); st = 'err'; }
@@ -1334,30 +1374,6 @@ function drawIcon(p, ty, g) {
       break;
   }
 }
-function drawFacp(g) {
-  const H = facpLayout().H;
-  el('rect', {class:'selbox', x:-6, y:-20, width:FW + 12, height:H + 26, rx:3}, g);
-  el('rect', {class:'body', x:0, y:0, width:FW, height:H, rx:2}, g);
-  el('text', {class:'ref', x:0, y:-6}, g).textContent = 'U1';
-  el('text', {class:'val', x:FW, y:-6, 'text-anchor':'end'}, g).textContent = 'NFS2-3030 · CHS-M3';
-  el('text', {class:'ttl', x:12, y:20}, g).textContent = 'NFS2-3030 FIRE ALARM CONTROL PANEL';
-  const blk = (cls, y, h, ttl) => { el('rect', {class:'blk ' + cls, x:10, y, width:180, height:h, rx:3}, g); el('text', {class:'blkttl', x:20, y:y + 16}, g).textContent = ttl; };
-  blk('', 36, 436, 'CPU2-3030D · CPU + DISPLAY');
-  FACP_GROUPS.forEach(([lb, y]) => el('text', {class:'glabel', x:22, y:y + 22}, g).textContent = lb);
-  const Y = facpLayout();
-  for (let i = 1; i <= Y.total; i++) {
-    const y = Y.loopY(i);
-    blk('', y, 140, `${loopCard(i)} · LOOP ${i}`);
-    el('text', {class:'glabel', x:22, y:y + 62}, g).textContent = `SLC LOOP ${i}`;
-    el('text', {class:'glabel', x:22, y:y + 118}, g).textContent = 'CLASS A RETURN';
-  }
-  if (CARDS.dvc) { blk('', Y.dvcY, 110, 'DVC-EM / DAA2 · VOICE'); el('text', {class:'glabel', x:22, y:Y.dvcY + 50}, g).textContent = 'SPEAKER 25V'; el('text', {class:'glabel', x:22, y:Y.dvcY + 70}, g).textContent = 'MIC · MESSAGE'; }
-  else blk('empty', Y.dvcY, 110, 'VOICE · (NOT INSTALLED)');
-  blk('', Y.psuY, 250, 'AMPS-24 POWER SUPPLY');
-  el('text', {class:'glabel', x:22, y:Y.psuY + 40}, g).textContent = '~ AC 220V  L · N · G';
-  el('text', {class:'glabel', x:22, y:Y.psuY + 104}, g).textContent = 'AUX 24VDC OUT';
-  el('text', {class:'glabel', x:22, y:Y.psuY + 189}, g).textContent = 'BATTERY 24V';
-}
 /* ---------- realistic device artwork (generic illustrations, no manufacturer marks) ---------- */
 const rr = (g, x, y, w, h, rx, fill, stroke, extra = {}) => el('rect', {x, y, width:w, height:h, rx, fill, stroke:stroke || 'none', ...extra}, g);
 const rt = (g, x, y, txt, size = 9, fill = '#3a4048', extra = {}) => { const e = el('text', {class:'rtxt', x, y, 'font-size':size, fill, ...extra}, g); e.textContent = txt; return e; };
@@ -1545,57 +1561,200 @@ function drawReal(p, ty, g) {
   // screw terminals on the device body
   termsOf(p).forEach(t => { const d = SD[t[4]]; screw(g, t[2] - d[0] * 8, t[3] - d[1] * 8, 3.6); });
 }
-function drawFacpReal(g) {
-  const Y = facpLayout(), H = Y.H;
-  el('rect', {class:'selbox', x:-6, y:-20, width:FW + 12, height:H + 26, rx:3}, g);
-  el('text', {class:'ref', x:0, y:-6}, g).textContent = 'U1';
-  el('text', {class:'val', x:FW, y:-6, 'text-anchor':'end'}, g).textContent = 'NFS2-3030 · CHS-M3';
-  rr(g, 0, 0, FW, H, 8, 'url(#gCab)', '#7d838a');
-  rr(g, 6, 26, FW - 12, H - 32, 4, '#2c3036', '#1a1d21');
-  rt(g, 12, 18, 'FIRE ALARM CONTROL PANEL · NFS2-3030', 9, '#2b2f34', {'font-weight':700});
-  [[10, 10], [FW - 10, 10], [10, H - 10], [FW - 10, H - 10]].forEach(([x, y]) => el('circle', {cx:x, cy:y, r:3, fill:'#8a9097'}, g));
-  const pcb = (y, h, name) => { rr(g, 12, y, FW - 24, h, 4, 'url(#gPcb)', '#0f3d1f'); rt(g, 20, y + 14, name, 8.5, '#e8f5e9', {'font-weight':700}); };
-  const chips = (y, list) => list.forEach(([x, dy, w, h]) => { rr(g, x, y + dy, w, h, 1.5, '#16181b', '#000'); for (let i = 4; i < w - 2; i += 5) { el('line', {x1:x + i, y1:y + dy - 2, x2:x + i, y2:y + dy, stroke:'#c9ced4'}, g); el('line', {x1:x + i, y1:y + dy + h, x2:x + i, y2:y + dy + h + 2, stroke:'#c9ced4'}, g); } });
-  const tb = (y0, y1) => rr(g, FW - 22, y0 - 11, 14, y1 - y0 + 22, 2, 'url(#gTb)', '#0f3d1f');
-  // CPU2-3030D: display, keypad, function keys
-  pcb(36, 436, 'CPU2-3030D');
-  rr(g, 22, 50, 176, 96, 5, '#1a1c1f', '#000');
-  rr(g, 28, 56, 164, 62, 2, '#9fbd6c', '#3b4a2a');
-  ['SYSTEM NORMAL', 'NFS2-3030', '', '640-CHAR LCD'].forEach((t, i) => rt(g, 32, 70 + i * 12, t, 9.5, '#1d2a12', {style:"font-family:'VT323',monospace;font-size:12px"}));
-  [['#3fd16f'], ['#ff2a3d'], ['#ffc93a'], ['#ffc93a'], ['#ffc93a']].forEach(([c], i) => el('circle', {cx:34 + i * 14, cy:132, r:3.2, fill:c, opacity:0.85}, g));
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) rr(g, 24 + c * 30, 160 + r * 22, 24, 16, 3, '#e4e6e9', '#8a9097');
-  [['#2d6d3c', 'ACK'], ['#a77800', 'SIL'], ['#b10d25', 'DRL'], ['#2b5a8c', 'RST']].forEach(([c, t], i) => { rr(g, 24 + i * 38, 256, 34, 20, 3, c, '#000'); rt(g, 41 + i * 38, 270, t, 7.5, '#fff', {'text-anchor':'middle', 'font-weight':700}); });
-  chips(36, [[40, 270, 60, 30], [120, 270, 40, 22], [40, 330, 30, 20], [90, 330, 70, 36], [40, 390, 120, 18]]);
-  rr(g, 200, 300, 40, 140, 3, '#1b1d20', '#000');
-  for (let i = 0; i < 12; i++) el('line', {x1:204, y1:306 + i * 11, x2:236, y2:306 + i * 11, stroke:'#555'}, g);
-  rt(g, 220, 296, 'RIBBON', 6.5, '#cfe8d3', {'text-anchor':'middle'});
-  tb(92, 140); tb(176, 224); tb(260, 308); tb(344, 392); tb(428, 452);
-  [['TB4', 92], ['TB3', 176], ['TB2', 260], ['TB1', 344], ['TB7', 428]].forEach(([t, y]) => rt(g, FW - 30, y - 14, t, 6.5, '#cfe8d3', {'text-anchor':'end'}));
-  // loop cards
-  for (let i = 1; i <= Y.total; i++) {
-    const y = Y.loopY(i), lcm = i % 2 === 1;
-    pcb(y, 140, `${loopCard(i)} · SLC LOOP ${i}`);
-    chips(y, lcm ? [[30, 30, 56, 34], [100, 34, 30, 24], [30, 84, 90, 16]] : [[30, 34, 40, 26], [84, 34, 40, 26]]);
-    rr(g, 150, y + 30, 70, 12, 2, '#0c0d0f'); rt(g, 185, y + 56, lcm ? 'LOOP CONTROL' : 'LOOP EXPANDER', 7, '#cfe8d3', {'text-anchor':'middle'});
-    el('circle', {cx:236, cy:y + 36, r:3, fill:'#3fd16f'}, g); el('circle', {cx:236, cy:y + 48, r:3, fill:'#ffc93a', opacity:0.5}, g);
-    rt(g, 20, y + 132, 'TB1', 7, '#cfe8d3');
-    tb(y + 48, y + 128);
-  }
-  if (CARDS.dvc) { pcb(Y.dvcY, 110, 'DVC-EM / DAA2 · VOICE'); chips(Y.dvcY, [[30, 30, 60, 30], [110, 30, 40, 22]]); el('circle', {cx:200, cy:Y.dvcY + 60, r:18, fill:'#2b2f34', stroke:'#000'}, g); rt(g, 200, Y.dvcY + 92, 'MIC', 7, '#cfe8d3', {'text-anchor':'middle'}); tb(Y.dvcY + 48, Y.dvcY + 72); }
-  else { rr(g, 12, Y.dvcY, FW - 24, 110, 4, 'none', '#6b737c', {'stroke-dasharray':'6 4'}); rt(g, 20, Y.dvcY + 16, 'VOICE OPTION · NOT INSTALLED', 8, '#9aa3ad'); }
-  // AMPS-24
-  pcb(Y.psuY, 250, 'AMPS-24 POWER SUPPLY');
-  rr(g, 24, Y.psuY + 28, 92, 78, 4, 'url(#gXf)', '#4f555c');
-  for (let i = 0; i < 8; i++) el('line', {x1:28, y1:Y.psuY + 36 + i * 9, x2:112, y2:Y.psuY + 36 + i * 9, stroke:'rgba(0,0,0,.25)'}, g);
-  rt(g, 70, Y.psuY + 122, 'TRANSFORMER', 7, '#cfe8d3', {'text-anchor':'middle'});
-  rr(g, 130, Y.psuY + 28, 70, 50, 2, '#9aa1a9', '#4f555c');
-  for (let i = 0; i < 9; i++) rr(g, 133 + i * 7.5, Y.psuY + 30, 3, 46, 0, '#6c737b');
-  rr(g, 130, Y.psuY + 140, 30, 10, 2, '#e9e3c8', '#8a8466'); rt(g, 145, Y.psuY + 162, 'FUSE', 6.5, '#cfe8d3', {'text-anchor':'middle'});
-  rr(g, 24, Y.psuY + 140, 60, 26, 2, 'url(#gTb)', '#0f3d1f'); rt(g, 54, Y.psuY + 178, 'AC L N G', 7, '#cfe8d3', {'text-anchor':'middle'});
-  [34, 54, 74].forEach(x => screw(g, x, Y.psuY + 153, 4));
-  tb(Y.psuY + 92, Y.psuY + 116); tb(Y.psuY + 175, Y.psuY + 199);
-  facpTerms().forEach(t => screw(g, FW - 15, t[3], 4.2));
+/* ================= NFS2-3030 cabinet (CAB-4 backbox, CHS-4L chassis) — layout after the installed unit =================
+   Top: CPU2-3030D with keypad/display (TB1-TB4 relays, TB7 ACS on the top edge, J13 power + J7 SLC data on the bottom edge)
+   DVC option: DVC keypad plate under the CPU, microphone / handset box at the right
+   CHS-4L rows: LCM-320 boards (LEM-320 mounted behind its LCM), optional APS2-6R auxiliary supply (two positions)
+   Bottom: AMPS-24 main supply board on the CPS-24E power module, AC input block, battery leads */
+const FW = 560;
+function facpLayout() {
+  const nL = CARDS.loops + 1, nLCM = Math.ceil(nL / 2);
+  let apsSlot = -1, slots = nLCM;
+  if (CARDS.aps) { apsSlot = nLCM % 4 === 3 ? nLCM + 1 : nLCM; slots = apsSlot + 2; }
+  const rows = Math.max(1, Math.ceil(slots / 4));
+  const cpuY = 40, cpuB = 310, kdY = 322, kdH = 128, chY = kdY + kdH + 22, rowH = 206;
+  const ampsY = chY + rows * rowH + 12;
+  const slot = s => ({x:20 + (s % 4) * 132, y:chY + Math.floor(s / 4) * rowH});
+  return {nL, nLCM, rows, cpuY, cpuB, kdY, kdH, chY, rowH, slot, apsSlot, ampsY, H:ampsY + 290};
 }
+const lcmHasLem = k => CARDS.loops + 1 >= k * 2;
+const lcmSw = k => { CARDS.sw = CARDS.sw || []; return CARDS.sw[k - 1] || k * 2 - 1; };
+const loopCard = n => { const L = loopsList().find(x => x.n === n); return L ? (L.lem ? `LEM-320 #${L.card}` : `LCM-320 #${L.card}`) : `LCM-320 #${Math.ceil(n / 2)}`; };
+const slcTerm = (n, ab) => { const L = loopsList().find(x => x.n === n); return L ? L[ab][0].slice(0, -1) : `P.c${Math.ceil(n / 2)}${n % 2 ? 'm' : 'e'}${ab}`; };
+function facpTerms() {
+  const Y = facpLayout(), t = [];
+  const T_ = (k, lb, x, y, side, pol = '') => t.push([k, lb, x, y, side, pol]);
+  // CPU2-3030 top edge: Form-C relays TB4..TB1 and TB7 ACS
+  [['r', 'ALM', 30], ['t', 'TBL', 84], ['u', 'SUP', 138], ['y', 'SEC', 192]].forEach(([k, n, x]) => { T_(k + 'c', 'C', x, Y.cpuY, 't'); T_(k + 'no', 'NO', x + 14, Y.cpuY, 't'); T_(k + 'nc', 'NC', x + 28, Y.cpuY, 't'); });
+  T_('aa', 'A', 252, Y.cpuY, 't'); T_('ab', 'B', 266, Y.cpuY, 't');
+  // CPU bottom edge connectors
+  T_('j13', 'J13', 70, Y.cpuB, 'b'); T_('j7', 'J7', 316, Y.cpuB, 'b');
+  if (CARDS.dvc) { T_('sp+', 'SPK+', 356, Y.kdY + 62, 'r', '+'); T_('sp-', 'SPK−', 356, Y.kdY + 80, 'r', '-'); }
+  for (let k = 1; k <= Y.nLCM; k++) {
+    const s = Y.slot(k - 1), x = s.x, y = s.y + 10;
+    [['b+', 'B+', 10], ['a+', 'A+', 24], ['b-', 'B−', 38], ['a-', 'A−', 52]].forEach(([q, lb, dx]) => T_(`c${k}m${q}`, lb, x + dx, y, 't', q[1]));
+    if (lcmHasLem(k)) [['b+', 'B+', 68], ['a+', 'A+', 82], ['b-', 'B−', 96], ['a-', 'A−', 110]].forEach(([q, lb, dx]) => T_(`c${k}e${q}`, lb, x + dx, y, 't', q[1]));
+    T_(`c${k}j1`, 'J1', x + 124, s.y + 132, 'r'); T_(`c${k}j3`, 'J3', x + 124, s.y + 166, 'r');
+  }
+  if (CARDS.aps) { const s = Y.slot(Y.apsSlot); T_('q+', '+24V', s.x + 200, s.y + 10, 't', '+'); T_('q-', 'COM', s.x + 216, s.y + 10, 't', '-');
+    T_('qL', 'L', s.x + 30, s.y + 196, 'b'); T_('qN', 'N', s.x + 46, s.y + 196, 'b'); T_('qG', 'G', s.x + 62, s.y + 196, 'b'); }
+  const a = Y.ampsY;
+  T_('amain', 'MAIN 24V', 150, a, 't'); T_('x+', '+24V', 262, a, 't', '+'); T_('x-', 'COM', 278, a, 't', '-');
+  T_('pL', 'L', 60, a + 120, 'l'); T_('pN', 'N', 60, a + 138, 'l'); T_('pG', 'G', 60, a + 156, 'l');
+  T_('t+', 'BAT+', 330, a + 214, 'r', '+'); T_('t-', 'BAT−', 330, a + 232, 'r', '-');
+  T_('acL', 'L', 404, a + 198, 'l'); T_('acN', 'N', 404, a + 216, 'l'); T_('acG', 'G', 404, a + 234, 'l');
+  return t;
+}
+const CONNK = k => /^P\.(j13|amain)$/.test(k) ? 'pwr' : /^P\.(j7|c\d+j[13])$/.test(k) ? 'data' : null;
+// one-click internal harness (factory-style), used by the examples and the "auto" button
+function wireInternal() {
+  const Y = facpLayout(), add = (a, b, color) => { if (!wires.some(w => (w.a === a && w.b === b) || (w.a === b && w.b === a))) wires.push({id:wseq++, a, b, color, cut:false}); };
+  add('P.j13', 'P.amain', 'rib');
+  let prev = 'P.j7'; for (let k = 1; k <= Y.nLCM; k++) { add(prev, `P.c${k}j1`, 'rib'); prev = `P.c${k}j3`; }
+  add('P.acL', 'P.pL', 'brn'); add('P.acN', 'P.pN', 'blu'); add('P.acG', 'P.pG', 'grn');
+  if (CARDS.aps) { add('P.acL', 'P.qL', 'brn'); add('P.acN', 'P.qN', 'blu'); add('P.acG', 'P.qG', 'grn'); }
+}
+function unwireInternal() { const n = wires.length; wires = wires.filter(w => !(isInternal(w.a) && isInternal(w.b))); return n - wires.length; }
+const isInternal = k => /^P\.(j13|amain|j7|c\d+j[13]|acL|acN|acG|pL|pN|pG|qL|qN|qG)$/.test(k);
+
+/* ---------- drawing ---------- */
+function cabShell(g, Y, real) {
+  el('rect', {class:'selbox', x:-6, y:-20, width:FW + 12, height:Y.H + 26, rx:3}, g);
+  el('text', {class:'ref', x:0, y:-6}, g).textContent = 'U1';
+  el('text', {class:'val', x:FW, y:-6, 'text-anchor':'end'}, g).textContent = 'NFS2-3030 · CAB-4 + CHS-4L';
+  if (real) { rr(g, 0, 0, FW, Y.H, 6, '#15171a', '#000'); rr(g, 8, 8, FW - 16, Y.H - 16, 3, '#1d2024', '#2c3036'); for (let y = 60; y < Y.H - 40; y += 120) [14, FW - 14].forEach(x => { rr(g, x - 5, y, 10, 14, 2, '#3a3f45', '#000'); }); }
+  else el('rect', {class:'body', x:0, y:0, width:FW, height:Y.H, rx:2}, g);
+}
+function drawCpuReal(g, Y) {
+  rr(g, 16, Y.cpuY, 340, Y.cpuB - Y.cpuY, 4, '#1f4f8f', '#0d2a52');   // blue CPU board
+  [[30, 'TB4'], [84, 'TB3'], [138, 'TB2'], [192, 'TB1']].forEach(([x, n]) => { rr(g, x - 7, Y.cpuY - 2, 42, 14, 2, '#1d1f22', '#000'); rt(g, x + 14, Y.cpuY + 22, n, 6.5, '#cfe1ff', {'text-anchor':'middle'}); });
+  rr(g, 245, Y.cpuY - 2, 28, 14, 2, '#1d1f22', '#000'); rt(g, 259, Y.cpuY + 22, 'TB7 ACS', 6.5, '#cfe1ff', {'text-anchor':'middle'});
+  rr(g, 290, Y.cpuY + 2, 30, 10, 2, '#e9e9e9', '#888'); rt(g, 305, Y.cpuY + 22, 'USB', 6, '#cfe1ff', {'text-anchor':'middle'});
+  // grey keypad / display overlay
+  rr(g, 26, Y.cpuY + 30, 320, 248, 6, '#e3e5e8', '#9aa1a9');
+  rr(g, 80, Y.cpuY + 42, 190, 96, 3, '#2b2f34', '#000');
+  rr(g, 86, Y.cpuY + 47, 178, 86, 2, '#b9dc4a', '#5b7a14');
+  el('text', {class:'cablcd', x:90, y:Y.cpuY + 58, 'font-size':6.6, fill:'#22300a', style:"font-family:'VT323',ui-monospace,monospace", id:'cabLcd'}, g);
+  ['POWER', 'FIRE ALARM', 'PRE-ALARM', 'SECURITY', 'SUPERVISORY', 'SYS TROUBLE', 'OTHER EVENT', 'SIG SILENCED', 'PT DISABLED', 'CPU FAILURE'].forEach((n, i) => {
+    el('circle', {cx:33, cy:Y.cpuY + 46 + i * 9.5, r:2.4, fill:'#555', id:'cabLed' + i}, g); rt(g, 37, Y.cpuY + 48.2 + i * 9.5, n, 4.4, '#333'); });
+  for (let i = 0; i < 5; i++) { rr(g, 72, Y.cpuY + 50 + i * 17, 7, 9, 1, '#bfc3c8', '#777'); rr(g, 272, Y.cpuY + 50 + i * 17, 8, 9, 1, '#bfc3c8', '#777'); }
+  ['ACK', 'SIL', 'RESET', 'DRILL', 'FIRE', 'SECUR', 'SUPV', 'TRBL', 'OTHER'].forEach((n, i) => { rr(g, 318, Y.cpuY + 42 + i * 10.5, 10, 7, 1, '#d23a3a', '#7a1414'); rt(g, 314, Y.cpuY + 47.5 + i * 10.5, n, 4.6, '#333', {'text-anchor':'end'}); });
+  const rows = ['1234567890', 'QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+  rows.forEach((r, j) => [...r].forEach((c, i) => { rr(g, 38 + i * 21 + j * 5, Y.cpuY + 150 + j * 21, 17, 15, 2, '#f4f5f6', '#8a9097'); rt(g, 46.5 + i * 21 + j * 5, Y.cpuY + 160.5 + j * 21, c, 6.5, '#333', {'text-anchor':'middle'}); }));
+  rr(g, 260, Y.cpuY + 213, 52, 15, 2, '#f4f5f6', '#8a9097'); rt(g, 286, Y.cpuY + 223.5, 'ENTER', 6, '#333', {'text-anchor':'middle'});
+  rt(g, 36, Y.cpuY + 268, 'CPU2-3030D', 6.5, '#4a5058');
+  rr(g, 52, Y.cpuB - 12, 36, 10, 1, '#f2f2f2', '#777'); rr(g, 298, Y.cpuB - 12, 36, 10, 1, '#f2f2f2', '#777');
+  rt(g, 70, Y.cpuB - 15, 'J13 POWER', 5.5, '#cfe1ff', {'text-anchor':'middle'}); rt(g, 316, Y.cpuB - 15, 'J7 SLC DATA', 5.5, '#cfe1ff', {'text-anchor':'middle'});
+}
+function drawDvcReal(g, Y) {
+  if (CARDS.dvc) {
+    rr(g, 16, Y.kdY, 340, Y.kdH, 4, '#dfe2e6', '#8a9097');
+    const col = (x, w, items) => { rr(g, x, Y.kdY + 8, w, Y.kdH - 16, 2, '#f3f4f6', '#9aa1a9'); items.forEach((t, i) => rt(g, x + 4, Y.kdY + 20 + i * 12, t, 5.4, '#444')); };
+    col(24, 78, ['LAMP TEST', 'TROUBLE', 'DVC OFF LINE', 'MICROPHONE TRBL', 'PHONE TROUBLE', 'BUSY / WAIT', 'PAGE INHIBITED', 'PRE-ANNOUNCE']);
+    col(108, 70, ['POWER', '', 'ALL', 'CALL']);
+    [184, 266].forEach(x => { rr(g, x, Y.kdY + 8, 76, Y.kdH - 16, 2, '#f3f4f6', '#9aa1a9'); for (let i = 0; i < 12; i++) { rr(g, x + 60, Y.kdY + 12 + i * 9.4, 8, 6, 1, '#d9dbde', '#777'); el('circle', {cx:x + 54, cy:Y.kdY + 15 + i * 9.4, r:1.4, fill:'#7a7f86'}, g); } });
+    rt(g, 30, Y.kdY + Y.kdH - 4, 'DVC-KD · DVC-EM', 5.5, '#555');
+    // microphone / handset box
+    rr(g, 370, Y.cpuY, 174, Y.cpuB - Y.cpuY + 10, 4, '#0f1012', '#3a3f45');
+    rr(g, 392, Y.cpuY + 30, 34, 130, 10, '#b43a3a', '#5c1414'); rt(g, 409, Y.cpuY + 175, 'FFT HANDSET', 6, '#9aa3ad', {'text-anchor':'middle'});
+    el('ellipse', {cx:480, cy:Y.cpuY + 90, rx:30, ry:36, fill:'#222', stroke:'#000'}, g);
+    for (let i = 0; i < 6; i++) for (let j = 0; j < 5; j++) el('circle', {cx:465 + j * 7.5, cy:Y.cpuY + 72 + i * 7, r:1.3, fill:'#555'}, g);
+    el('path', {d:`M480 ${Y.cpuY + 126} q10 40 -10 80 q-15 30 20 50`, fill:'none', stroke:'#111', 'stroke-width':3}, g);
+    rt(g, 480, Y.cpuY + 262, 'DVC MICROPHONE', 6, '#9aa3ad', {'text-anchor':'middle'});
+    rt(g, 300, Y.kdY + 58, 'DAA2 SPK', 5.5, '#555', {'text-anchor':'middle'});
+  } else {
+    rr(g, 16, Y.kdY, 340, Y.kdH, 4, '#24282d', '#3a3f45', {'stroke-dasharray':'5 4'}); rt(g, 186, Y.kdY + 68, 'BLANK PLATE · VOICE OPTION NOT INSTALLED', 7, '#7d868f', {'text-anchor':'middle'});
+    rr(g, 370, Y.cpuY, 174, Y.cpuB - Y.cpuY + 10, 4, 'none', '#3a3f45', {'stroke-dasharray':'5 4'});
+  }
+}
+function drawCardsReal(g, Y) {
+  for (let r = 0; r < Y.rows; r++) { rr(g, 16, Y.chY + r * Y.rowH - 4, 528, Y.rowH - 6, 3, '#aeb4ba', '#6c737b'); rt(g, 534, Y.chY + r * Y.rowH + 10, r ? '' : 'CHS-4L', 6.5, '#2b2f34', {'text-anchor':'end'}); }
+  for (let k = 1; k <= Y.nLCM; k++) {
+    const s = Y.slot(k - 1), x = s.x, y = s.y + 10, lem = lcmHasLem(k);
+    rr(g, x, y, 124, 182, 3, '#1f4f8f', '#0d2a52');
+    rr(g, x + 3, y - 4, 56, 12, 2, '#1b1d20', '#000');
+    if (lem) { rr(g, x + 58, y - 8, 66, 40, 3, '#1c6a37', '#0f3d1f'); rr(g, x + 61, y - 4, 56, 12, 2, '#1b1d20', '#000'); rt(g, x + 91, y + 24, 'LEM-320 TB1', 5.6, '#cfe8d3', {'text-anchor':'middle'}); }
+    rt(g, x + 6, y + 24, 'TB1', 6, '#cfe1ff');
+    rr(g, x + 8, y + 34, 22, 22, 11, '#2b2f34', '#000'); rr(g, x + 34, y + 36, 20, 16, 2, '#e8d36a', '#8a7a24');
+    rr(g, x + 10, y + 70, 40, 30, 2, '#111', '#000'); rt(g, x + 30, y + 88, 'CPU', 5.5, '#9aa3ad', {'text-anchor':'middle'});
+    rt(g, x + 6, y + 106, `LCM-320 #${k}`, 6.2, '#e8f0ff', {'font-weight':700});
+    rt(g, x + 6, y + 116, `LOOP ${lcmSw(k)}${lem ? ' + ' + (lcmSw(k) + 1) : ''}`, 6, '#cfe1ff');
+    // SW1 loop-number switch (clickable)
+    const sw = el('g', {class:'swdial', 'data-card':k, style:'cursor:pointer'}, g);
+    el('circle', {cx:x + 22, cy:y + 150, r:10, fill:'#f2f2f2', stroke:'#555'}, sw); el('text', {x:x + 22, y:y + 153, 'text-anchor':'middle', 'font-size':8, 'font-weight':700, fill:'#222'}, sw).textContent = lcmSw(k);
+    el('title', {}, sw).textContent = `SW1 LCM-320 #${k}: Loop ${lcmSw(k)} · คลิกเพื่อเปลี่ยนเป็น 1, 3, 5, 7, 9 (LEM-320 ด้านหลังได้เลขถัดไป)`;
+    rt(g, x + 36, y + 153, 'SW1', 5.5, '#cfe1ff');
+    [[132, 'J1 DATA IN'], [166, 'J3 DATA OUT']].forEach(([dy, n]) => { rr(g, x + 104, s.y + dy - 9, 18, 18, 1, '#f1e8c8', '#8a7a4a'); rt(g, x + 100, s.y + dy + 3, n, 5.2, '#cfe1ff', {'text-anchor':'end'}); });
+  }
+  if (CARDS.aps) {
+    const s = Y.slot(Y.apsSlot);
+    rr(g, s.x, s.y + 10, 256, 182, 3, '#2b7a3f', '#0f3d1f'); rr(g, s.x + 10, s.y + 60, 120, 110, 3, '#c7ccd2', '#6c737b');
+    rt(g, s.x + 70, s.y + 112, 'APS2-6R', 9, '#2b2f34', {'text-anchor':'middle', 'font-weight':700}); rt(g, s.x + 70, s.y + 126, 'AUX POWER 24V 6A', 6, '#2b2f34', {'text-anchor':'middle'});
+    rr(g, s.x + 150, s.y + 40, 90, 60, 3, '#1b1d20', '#000'); rt(g, s.x + 195, s.y + 74, 'TRANSFORMER', 6, '#9aa3ad', {'text-anchor':'middle'});
+    rt(g, s.x + 208, s.y + 32, 'OUT 24V', 6, '#e8f5e9', {'text-anchor':'middle'}); rt(g, s.x + 46, s.y + 186, 'AC IN', 6, '#e8f5e9', {'text-anchor':'middle'});
+  }
+}
+function drawPowerReal(g, Y) {
+  const a = Y.ampsY;
+  rr(g, 16, a, 340, 84, 4, '#1f4f8f', '#0d2a52');
+  rr(g, 116, a - 2, 68, 14, 2, '#1b1d20', '#000'); rr(g, 248, a - 2, 44, 14, 2, '#1b1d20', '#000'); rr(g, 30, a - 2, 56, 14, 2, '#1b1d20', '#000');
+  rt(g, 58, a + 22, 'SLC (addr.)', 6, '#cfe1ff', {'text-anchor':'middle'}); rt(g, 150, a + 22, 'TB1 MAIN 24V', 6, '#cfe1ff', {'text-anchor':'middle'}); rt(g, 270, a + 22, 'AUX 24V', 6, '#cfe1ff', {'text-anchor':'middle'});
+  rt(g, 26, a + 60, 'AMPS-24 MAIN POWER SUPPLY', 7.5, '#e8f0ff', {'font-weight':700});
+  el('circle', {cx:330, cy:a + 30, r:3, fill:'#555', id:'cabAcLed'}, g); rt(g, 324, a + 33, 'AC', 5.5, '#cfe1ff', {'text-anchor':'end'});
+  // CPS-24E power module (perforated cover)
+  rr(g, 60, a + 92, 270, 160, 4, '#c8cdd2', '#6c737b');
+  for (let i = 0; i < 9; i++) for (let j = 0; j < 5; j++) el('circle', {cx:170 + i * 17, cy:a + 150 + j * 19, r:5.5, fill:'#5b6168'}, g);
+  rr(g, 70, a + 100, 150, 40, 2, '#f4f4f4', '#999'); rt(g, 76, a + 112, '⚠ CAUTION HAZARDOUS VOLTAGES', 6, '#222'); rt(g, 76, a + 124, 'SEVERAL SOURCES OF POWER', 5.5, '#444');
+  rr(g, 250, a + 234, 74, 14, 2, '#e14a7a', '#8a1d44'); rt(g, 287, a + 244, 'CPS-24E', 7, '#fff', {'text-anchor':'middle', 'font-weight':700});
+  rt(g, 72, a + 176, 'AC IN', 6, '#2b2f34'); rt(g, 316, a + 206, 'BATTERY', 6, '#2b2f34', {'text-anchor':'end'});
+  // building AC feed
+  rr(g, 404, a + 182, 136, 66, 3, '#2b2f34', '#000'); rt(g, 472, a + 176, 'AC 220V IN (จากตู้ไฟ)', 6.5, '#cfd3d8', {'text-anchor':'middle'});
+  rt(g, 472, a + 226, 'BREAKER ON', 6, '#8fd19e', {'text-anchor':'middle'});
+}
+function drawFacpReal(g) {
+  const Y = facpLayout();
+  cabShell(g, Y, true); drawCpuReal(g, Y); drawDvcReal(g, Y); drawCardsReal(g, Y); drawPowerReal(g, Y);
+  facpTerms().forEach(t => { if (t[4] === 't' || t[4] === 'b' || t[4] === 'r' || t[4] === 'l') screw(g, t[2] + (t[4] === 'r' ? -5 : t[4] === 'l' ? 5 : 0), t[3] + (t[4] === 't' ? 5 : t[4] === 'b' ? -5 : 0), 3.4); });
+}
+function drawFacp(g) {
+  const Y = facpLayout();
+  cabShell(g, Y, false);
+  const blk = (x, y, w, h, ttl, cls = '') => { el('rect', {class:'blk ' + cls, x, y, width:w, height:h, rx:3}, g); el('text', {class:'blkttl', x:x + 8, y:y + 16}, g).textContent = ttl; };
+  el('text', {class:'ttl', x:12, y:20}, g).textContent = 'NFS2-3030 FIRE ALARM CONTROL PANEL';
+  blk(16, Y.cpuY, 340, Y.cpuB - Y.cpuY, 'CPU2-3030D');
+  [['TB4 ALARM', 30], ['TB3 TBL', 84], ['TB2 SUPV', 138], ['TB1 SEC', 192], ['TB7 ACS', 246]].forEach(([n, x]) => el('text', {class:'glabel', x, y:Y.cpuY + 40}, g).textContent = n);
+  el('text', {class:'glabel', x:40, y:Y.cpuB - 22}, g).textContent = 'J13 POWER'; el('text', {class:'glabel', x:276, y:Y.cpuB - 22}, g).textContent = 'J7 SLC DATA';
+  if (CARDS.dvc) { blk(16, Y.kdY, 340, Y.kdH, 'DVC-KD / DVC-EM · VOICE'); blk(370, Y.cpuY, 174, Y.cpuB - Y.cpuY, 'MIC / FFT HANDSET'); } else blk(16, Y.kdY, 340, Y.kdH, 'BLANK PLATE', 'empty');
+  for (let k = 1; k <= Y.nLCM; k++) {
+    const s = Y.slot(k - 1);
+    blk(s.x, s.y + 10, 124, 182, `LCM-320 #${k}`);
+    el('text', {class:'glabel', x:s.x + 8, y:s.y + 48}, g).textContent = `LOOP ${lcmSw(k)}${lcmHasLem(k) ? ' | LEM ' + (lcmSw(k) + 1) : ''}`;
+    const sw = el('g', {class:'swdial', 'data-card':k, style:'cursor:pointer'}, g);
+    el('rect', {x:s.x + 8, y:s.y + 140, width:44, height:18, rx:3, fill:'none', stroke:'currentColor'}, sw); el('text', {class:'glabel', x:s.x + 12, y:s.y + 153}, sw).textContent = `SW1=${lcmSw(k)}`;
+    el('title', {}, sw).textContent = 'คลิกเพื่อตั้ง Loop number (1, 3, 5, 7, 9)';
+  }
+  if (CARDS.aps) { const s = Y.slot(Y.apsSlot); blk(s.x, s.y + 10, 256, 182, 'APS2-6R AUX POWER 6A'); }
+  blk(16, Y.ampsY, 340, 84, 'AMPS-24 MAIN POWER SUPPLY'); blk(60, Y.ampsY + 92, 270, 160, 'CPS-24E'); blk(404, Y.ampsY + 182, 136, 66, 'AC 220V IN');
+}
+// cabinet LCD / LEDs mirror the front panel
+function cabMirror() {
+  const t = $('cabLcd'); if (!t) return;
+  const on = running, rows = on ? ($('lcd').textContent || '').split('\n').slice(0, 9) : [];
+  t.innerHTML = rows.map((r, i) => `<tspan x="90" dy="${i ? 8.4 : 0}">${r.replace(/&/g, '&amp;').replace(/</g, '&lt;').slice(0, 40)}</tspan>`).join('');
+  const lit = [...document.querySelectorAll('#leds .led')].map(d => d.classList.contains('lit') ? getComputedStyle(d).getPropertyValue('--c') || '#ffd34d' : null);
+  lit.forEach((c, i) => { const e = $('cabLed' + i); if (e) e.setAttribute('fill', c ? c.trim() : '#555'); });
+  const ac = $('cabAcLed'); if (ac) ac.setAttribute('fill', result && result.acOK ? '#3fd16f' : '#555');
+}
+setInterval(cabMirror, 500);
+board.addEventListener('click', ev => {
+  const s = ev.target.closest('.swdial'); if (!s) return;
+  ev.stopPropagation();
+  const k = +s.dataset.card; CARDS.sw = CARDS.sw || []; const opts = [1, 3, 5, 7, 9];
+  CARDS.sw[k - 1] = opts[(opts.indexOf(lcmSw(k)) + 1) % 5];
+  hint(`SW1 ของ LCM-320 #${k} = Loop ${lcmSw(k)}${lcmHasLem(k) ? ` (LEM-320 ด้านหลัง = Loop ${lcmSw(k) + 1})` : ''} · เลข Loop ต้องไม่ซ้ำกัน (Installation Manual 3.8.3)`);
+  changed();
+}, true);
+
 function drawTerms() {
   gTerms.innerHTML = '';
   for (const [key, t] of Object.entries(TERM)) {
@@ -1614,6 +1773,14 @@ function wirePath(a, b, id = 0) {
   const da = SD[A.side], db = SD[B.side], L = 12;
   const a1 = [A.x + da[0] * L, A.y + da[1] * L], b1 = [B.x + db[0] * L, B.y + db[1] * L];
   const jog = ((id % 5) - 2) * 4;
+  const fa = A.part.t === 'facp', fb = B.part.t === 'facp';
+  if (fa !== fb) {   // field wiring leaves the cabinet through the wire duct on its right side
+    const [pA, pB] = fa ? [a1, b1] : [b1, a1], P0 = fa ? A : B, Q0 = fa ? B : A;
+    const dx = P0.part.x + FW - 14 + ((id % 9) - 4) * 1.5;
+    const pts = [[P0.x, P0.y], pA, [dx, pA[1]], [dx, pB[1]], pB, [Q0.x, Q0.y]];
+    if (!fa) pts.reverse();
+    return 'M' + pts.map(q => q.join(' ')).join(' L');
+  }
   const hA = da[0] !== 0, hB = db[0] !== 0;
   let mid;
   if (hA && hB) { const mx = Math.round((a1[0] + b1[0]) / 2) + jog; mid = `L${mx} ${a1[1]} L${mx} ${b1[1]}`; }
@@ -1630,7 +1797,7 @@ function drawWires() {
     cnt[w.a] = (cnt[w.a] || 0) + 1; cnt[w.b] = (cnt[w.b] || 0) + 1;
     const d = wirePath(w.a, w.b, w.id);
     el('path', {class:'wire-halo', d}, gWires);
-    el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':2.4}, gWires);
+    el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':w.color === 'rib' ? 5 : 2.4}, gWires);
     if (running && !w.cut && netNow) {
       const r = netNow(w.a);
       if (hotRoots.has(r)) el('path', {class:'flow hot', d}, gWires);
@@ -1649,9 +1816,11 @@ const HINT = TOUCH ? 'แตะขั้วสกรูตัวแรก แล
 function hint(t) { $('hint').textContent = t || HINT; }
 function autoColor(k) {
   const t = TERM[k];
+  if (CONNK(k)) return 'rib';
+  if (/^P\.[apq]L$|^P\.acL$/.test(k)) return 'brn'; if (/^P\.(acN|pN|qN)$/.test(k)) return 'blu'; if (/^P\.(acG|pG|qG)$/.test(k)) return 'grn';
   if (t.pol === '+') return 'red';
   if (t.pol === '-') return 'blk';
-  if (k === 'P.aa' || k === 'P.ab' || (t.part.t === 'ann' && (t.k === 'a' || t.k === 'b')) || T(t.part) && T(t.part).role === 'rsink' || t.part.t === 'rm' || /^P\.r/.test(k)) return 'blu';
+  if (k === 'P.aa' || k === 'P.ab' || (t.part.t === 'ann' && (t.k === 'a' || t.k === 'b')) || T(t.part) && T(t.part).role === 'rsink' || t.part.t === 'rm' || /^P\.[rtuy](c|no|nc)$/.test(k)) return 'blu';
   return 'yel';
 }
 function svgPt(ev) { const pt = board.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; return pt.matrixTransform(board.getScreenCTM().inverse()); }
@@ -1793,9 +1962,10 @@ $('palette').addEventListener('click', ev => {
 function renderCards() {
   $('cards').innerHTML = `
     <label class="fixed"><input type="checkbox" checked disabled><span><b>CPU2-3030D</b><small>CPU + จอ · รีเลย์ Form-C TB1–TB4 · ACS EIA-485 (TB7) · ไม่มี NAC บนบอร์ด</small></span></label>
-    <label class="fixed"><input type="checkbox" checked disabled><span><b>AMPS-24</b><small>Power supply · AUX 24V · ชาร์จแบตเตอรี่</small></span></label>
+    <label class="fixed"><input type="checkbox" checked disabled><span><b>AMPS-24</b><small>Main power supply + CPS-24E · AUX 24V · ชาร์จแบตเตอรี่ · ต่อ J13 กับไฟ AC เอง</small></span></label>
     <div class="loopcards"><span><b>SLC Loop (LCM-320 / LEM-320)</b><small>${CARDS.loops + 1} loop · LCM-320 × ${Math.ceil((CARDS.loops + 1) / 2)} · LEM-320 × ${Math.floor((CARDS.loops + 1) / 2)} (สูงสุด ${MAXLOOPS} loop)</small></span>
       <span class="stepper"><button class="btn" type="button" id="loopMinus" aria-label="ถอด loop สุดท้าย" ${CARDS.loops ? '' : 'disabled'}>−</button><output id="loopN">${CARDS.loops + 1}</output><button class="btn" type="button" id="loopPlus" aria-label="เพิ่ม loop" ${CARDS.loops < MAXLOOPS - 1 ? '' : 'disabled'}>+</button></span></div>
+    <label for="cAps"><input type="checkbox" id="cAps" ${CARDS.aps ? 'checked' : ''}><span><b>APS2-6R</b><small>Auxiliary power supply 24V 6A (ใช้ 2 ช่องใน CHS-4L) ต้องต่อไฟ AC เอง</small></span></label>
     <label for="cDvc"><input type="checkbox" id="cDvc" ${CARDS.dvc ? 'checked' : ''}><span><b>ระบบเสียง DVC-EM / DAA2</b><small>เสียงประกาศอพยพ วงจรลำโพง 25V</small></span></label>`;
 }
 $('cards').addEventListener('click', ev => {
@@ -1804,16 +1974,18 @@ $('cards').addEventListener('click', ev => {
   if (add) CARDS.loops = Math.min(MAXLOOPS - 1, CARDS.loops + 1);
   else {
     const gone = CARDS.loops + 1;
-    const lost = wires.filter(w => w.a.startsWith(`P.l${gone}`) || w.b.startsWith(`P.l${gone}`)).length;
+    const before = wires.length;
     CARDS.loops = Math.max(0, CARDS.loops - 1);
-    hint(`ถอด ${loopCard(gone)} (Loop ${gone}) แล้ว` + (lost ? ` สาย ${lost} เส้นที่ต่อกับการ์ดถูกลบ` : ''));
+    rebuildTerms(); const lost = before - wires.filter(w => TERM[w.a] && TERM[w.b]).length;
+    hint(`ถอดการ์ด Loop ออก 1 Loop แล้ว` + (lost ? ` สาย ${lost} เส้นที่ต่อกับการ์ดถูกลบ` : ''));
   }
   rebuildTerms(); wires = wires.filter(w => TERM[w.a] && TERM[w.b]);
   changed();
-  if (add) hint(`ติด ${loopCard(CARDS.loops + 1)} แล้ว ได้ Loop ${CARDS.loops + 1} ขั้ว SLC${CARDS.loops + 1} อยู่ที่ขอบขวาของตู้ ตั้ง Loop ของอุปกรณ์ได้ใน Properties`);
+  if (add) hint(`เพิ่ม Loop แล้ว (${CARDS.loops + 1} Loop) ${(CARDS.loops + 1) % 2 ? 'ติด LCM-320 ใหม่ ต้องต่อสายแพจาก J3 ของ LCM ก่อนหน้าเข้า J1 และตั้ง SW1' : 'ติด LEM-320 ด้านหลัง LCM-320'} ขั้ว TB1 อยู่ขอบบนของการ์ด`);
 });
 $('cards').addEventListener('change', ev => {
   if (ev.target.id === 'cDvc') CARDS.dvc = ev.target.checked;
+  if (ev.target.id === 'cAps') CARDS.aps = ev.target.checked;
   rebuildTerms(); wires = wires.filter(w => TERM[w.a] && TERM[w.b]);
   changed();
 });
@@ -1834,7 +2006,7 @@ function renderInsp() {
   { const w = !selP && wires.find(x => x.id === selW); if (w && TERM[w.a] && TERM[w.b]) { renderWireInsp(w); return; } }
   const p = byId(selP);
   if (!p) { $('insp').innerHTML = '<p>คลิกอุปกรณ์บนแผ่นงานเพื่อดูวิธีต่อ ตั้ง Loop และ Address หรือลบอุปกรณ์</p>'; return; }
-  if (p.t === 'facp') { $('insp').innerHTML = '<h3>U1 · NFS2-3030</h3><p>ตู้ NFS2-3030 ในตัวตู้ CHS-M3 ประกอบด้วย CPU2-3030D (รีเลย์ Form-C 2 A @30 VDC: TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security · TB7 ACS EIA-485 · ไม่มี NAC บนบอร์ด ใช้ FCM-1 หรือ FCPS-24S), การ์ด LCM-320 / LEM-320 สำหรับ SLC (สูงสุด 10 loop), ชุดเสียง DVC-EM / DAA2 (เลือกติด) และ power supply AMPS-24 (AUX 24V และแบตเตอรี่) ขั้วของการ์ดที่ติดจะอยู่ที่ขอบขวาของตู้</p><dl class="kv"><dt>Ref</dt><dd>U1</dd><dt>Loops</dt><dd>' + (CARDS.loops + 1) + ' / 10</dd><dt>Relays</dt><dd>4 × Form-C 2 A</dd><dt>Capacity</dt><dd>159 D + 159 M ต่อ loop</dd></dl>'; return; }
+  if (p.t === 'facp') { $('insp').innerHTML = '<h3>U1 · NFS2-3030</h3><p>ตู้ NFS2-3030 ในตัวตู้ CHS-M3 ประกอบด้วย CPU2-3030D (รีเลย์ Form-C 2 A @30 VDC: TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security · TB7 ACS EIA-485 · ไม่มี NAC บนบอร์ด ใช้ FCM-1 หรือ FCPS-24S), การ์ด LCM-320 / LEM-320 สำหรับ SLC (สูงสุด 10 loop), ชุดเสียง DVC-EM / DAA2 (เลือกติด) และ power supply AMPS-24 (AUX 24V และแบตเตอรี่) ขั้วของการ์ดที่ติดจะอยู่ที่ขอบขวาของตู้</p><dl class="kv"><dt>Ref</dt><dd>U1</dd><dt>Loops</dt><dd>' + (CARDS.loops + 1) + ' / 10</dd><dt>Relays</dt><dd>4 × Form-C 2 A</dd><dt>Capacity</dt><dd>159 D + 159 M ต่อ loop</dd></dl><p><b>สายภายในตู้ (ต่อเอง)</b>: สาย 75637 จาก CPU <b>J13</b> ไป AMPS-24 <b>MAIN 24V</b> · สายแพ 75565 จาก CPU <b>J7</b> ไป <b>J1</b> ของ LCM-320 ตัวแรก แล้วจาก <b>J3</b> ไป J1 ตัวถัดไป · ไฟ AC 220V <b>L N G</b> เข้า CPS-24E (และ APS2-6R ถ้าติด) · แบตเตอรี่เข้า BAT+/BAT− · ตั้ง Loop number ที่ปุ่ม <b>SW1</b> บน LCM (1, 3, 5, 7, 9)</p><div class="row"><button class="btn" type="button" id="iWireIn">ต่อสายภายในตู้ให้อัตโนมัติ</button><button class="btn" type="button" id="iUnwireIn">ถอดสายภายในตู้ (ฝึกต่อเอง)</button></div>'; return; }
   const ty = T(p);
   let kv = '';
   if (ty.addrType === 'A') kv += `<label for="iAddr">Address</label><input id="iAddr" type="number" min="1" max="32" value="${p.addr}">`;
@@ -1902,6 +2074,8 @@ $('insp').addEventListener('input', ev => {
   $('iTitle').textContent = `${refdes(p)} · ${label(p)}`;
 });
 $('insp').addEventListener('click', ev => {
+  if (ev.target.id === 'iWireIn') { wireInternal(); changed({keepInsp:true}); hint('ต่อสายภายในตู้ครบแล้ว: J13 ↔ AMPS-24, สายแพ J7 → J1 → J3 → J1, ไฟ AC L N G'); return; }
+  if (ev.target.id === 'iUnwireIn') { const n = unwireInternal(); changed({keepInsp:true}); hint(`ถอดสายภายในตู้ ${n} เส้น ลองต่อเองตามคู่มือ: J13 ↔ MAIN 24V, J7 → J1 (Data in), J3 → J1 ตัวถัดไป, AC L/N/G → CPS-24E`); return; }
   if (ev.target.id === 'iWAll') { const w = wires.find(x => x.id === selW); if (!w) return; wires.forEach(x => { x.awg = wAwg(w); x.kind = w.kind || 'tup'; }); save(); render(); hint(`ตั้งทุกเส้นเป็น ${wAwg(w)} AWG · ${WKIND[w.kind || 'tup']}`); return; }
   if (ev.target.id === 'iProg') { const p = byId(selP); openProgram(PROG[addrStr(p)] ? 'point' : 'auto', p); return; }
   if (ev.target.id !== 'iDel') return;
@@ -1914,8 +2088,8 @@ const end = (e, pol) => e.id + (pol === '+' ? '.a' : '.b');
 function build(full) {
   parts = [{id:'P', t:'facp', x:20, y:20, n:1}];
   wires = []; wseq = 1; alarm = null; selP = null;
-  CARDS.loops = full ? 1 : 0; CARDS.dvc = full;
-  const A = (t, x, y, e) => addPart(t, x, y, e);
+  CARDS.loops = full ? 1 : 0; CARDS.dvc = full; CARDS.aps = full; CARDS.sw = [];
+  const A = (t, x, y, e) => addPart(t, x + FW - 300, y, e);
   const iso1 = A('iso', 370, 175), s1 = A('smoke', 370, 30, {addr:1}), s2 = A('smoke', 520, 30, {addr:2}), iso2 = A('iso', 670, 175), h1 = A('heat', 670, 30, {addr:3});
   const mm1 = A('mm', 880, 30, {addr:1});
   const mm2 = full ? A('mm', 880, 175, {addr:2}) : null;
@@ -1927,10 +2101,10 @@ function build(full) {
   const b1 = A('bat', 380, 1040), b2 = A('bat', 560, 1040);
   const L = [];
   // SLC loop 1: panel -> ISO1 -> D1 -> D2 -> ISO2 -> D3 -> modules (-> back to A in the full example)
-  const hop = [['P.l1b', iso1.id + '.i'], [iso1.id + '.o', s1.id + '.s'], [s1.id + '.s', s2.id + '.s'], [s2.id + '.s', iso2.id + '.i'], [iso2.id + '.o', h1.id + '.s']];
+  const hop = [[slcTerm(1, 'b'), iso1.id + '.i'], [iso1.id + '.o', s1.id + '.s'], [s1.id + '.s', s2.id + '.s'], [s2.id + '.s', iso2.id + '.i'], [iso2.id + '.o', h1.id + '.s']];
   const mods = [h1, mm1, ...(mm2 ? [mm2] : []), cm1, rm1, cm2];
   for (let i = 0; i < mods.length - 1; i++) hop.push([mods[i].id + '.s', mods[i + 1].id + '.s']);
-  if (full) hop.push([cm2.id + '.s', 'P.l1a']);
+  if (full) hop.push([cm2.id + '.s', slcTerm(1, 'a')]);
   for (const [a, b] of hop) for (const pol of ['+', '-']) L.push(W(a + pol, b + pol));
   L.push(W('P.x+', cm2.id + '.v+'), W('P.x-', cm2.id + '.v-'));
   for (const pol of ['+', '-']) L.push(W(cm2.id + '.o' + pol, n1.id + '.' + pol), W(n1.id + '.' + pol, n2.id + '.' + pol), W(n2.id + '.' + pol, end(e3, pol)));
@@ -1943,11 +2117,11 @@ function build(full) {
     const tam = A('tamper', 1100, 185), e4 = A('eol47', 1110, 270);
     L.push(W(mm2.id + '.i+', tam.id + '.c1', 'red'), W(tam.id + '.c1', e4.id + '.a', 'red'), W(mm2.id + '.i-', tam.id + '.c2', 'blk'), W(tam.id + '.c2', e4.id + '.b', 'blk'));
     const a1 = A('smoke', 1330, 30, {loop:2, addr:1}), a2 = A('multi', 1330, 170, {loop:2, addr:2}), a3 = A('duct', 1500, 170, {loop:2, addr:3});
-    for (const pol of ['+', '-']) L.push(W('P.l2b' + pol, a1.id + '.s' + pol), W(a1.id + '.s' + pol, a2.id + '.s' + pol), W(a2.id + '.s' + pol, a3.id + '.s' + pol));
+    for (const pol of ['+', '-']) L.push(W(slcTerm(2, 'b') + pol, a1.id + '.s' + pol), W(a1.id + '.s' + pol, a2.id + '.s' + pol), W(a2.id + '.s' + pol, a3.id + '.s' + pol));
     const sp1 = A('spk', 1330, 340), sp2 = A('spk', 1500, 340), e5 = A('eol47', 1510, 440);
     for (const pol of ['+', '-']) L.push(W('P.sp' + pol, sp1.id + '.' + pol), W(sp1.id + '.' + pol, sp2.id + '.' + pol), W(sp2.id + '.' + pol, end(e5, pol)));
     const cm3 = A('cm', 880, 850, {addr:6}); L.push(W('P.x+', cm3.id + '.v+'), W('P.x-', cm3.id + '.v-'));
-    for (const pol of ['+', '-']) { L.splice(L.findIndex(w => w.a === cm2.id + '.s' + pol && w.b === 'P.l1a' + pol), 1); L.push(W(cm2.id + '.s' + pol, cm3.id + '.s' + pol), W(cm3.id + '.s' + pol, 'P.l1a' + pol)); }
+    for (const pol of ['+', '-']) { L.splice(L.findIndex(w => w.a === cm2.id + '.s' + pol && w.b === slcTerm(1, 'a') + pol), 1); L.push(W(cm2.id + '.s' + pol, cm3.id + '.s' + pol), W(cm3.id + '.s' + pol, slcTerm(1, 'a') + pol)); }
     const ps = A('psu', 370, 450), e6 = A('eol47', 610, 455), hp = A('hs', 640, 560), e7 = A('eol47', 660, 660);
     const pb1 = A('bat', 380, 760), pb2 = A('bat', 560, 760);
     for (const pol of ['+', '-']) L.push(W(cm3.id + '.o' + pol, ps.id + '.in' + pol), W(ps.id + '.in' + pol, end(e6, pol)), W(ps.id + '.o1' + pol, hp.id + '.' + pol), W(hp.id + '.' + pol, end(e7, pol)));
@@ -1959,6 +2133,7 @@ function build(full) {
   }
   rebuildTerms();
   wires = L.map(w => ({id:wseq++, a:w.a, b:w.b, color:w.color || autoColor(w.a), cut:false}));
+  wireInternal();
   programAll();
   changed();
   $('fileName').textContent = full ? 'ระบบเต็ม.fsim' : 'ระบบพื้นฐาน.fsim';
@@ -1967,9 +2142,10 @@ function build(full) {
 $('exBasic').addEventListener('click', () => build(false));
 $('exFull').addEventListener('click', () => build(true));
 function newBlank() {
-  parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loops = 0; CARDS.dvc = false;
-  addPart('bat', 380, 1040); addPart('bat', 560, 1040);
+  parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; CARDS.loops = 0; CARDS.dvc = false; CARDS.aps = false; CARDS.sw = [];
+  addPart('bat', FW + 80, 1040); addPart('bat', FW + 260, 1040);
   wires = []; selP = null; selW = null; alarm = null; PROG = {}; changed();
+  setTimeout(() => hint('งานใหม่: ตู้ยังไม่ได้ต่อสายภายใน ต่อ AC 220V L/N/G → CPS-24E, J13 → AMPS-24 MAIN 24V, สายแพ J7 → J1 ของ LCM-320 และแบตเตอรี่ → BAT+/BAT− (หรือคลิกตู้ › ต่อสายภายในตู้ให้อัตโนมัติ)'), 50);
   $('fileName').textContent = 'ไม่มีชื่อ.fsim';
   hint('แผ่นงานใหม่: ตู้ NFS2-3030 (LCM-320 1 loop) กับแบตเตอรี่ 2 ลูก เลือกอุปกรณ์จากคลังอุปกรณ์มาวาง แล้วเริ่มต่อสาย');
 }
@@ -2055,7 +2231,7 @@ function progKeyOf(p) {
 }
 function triggerDevice(id) {
   const p = byId(id); if (!p) return;
-  if (!running) { selectPart(id); hint(`กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) ก่อน แล้วคลิกที่ ${refdes(p)} อีกครั้งเพื่อสั่งงาน`); return; }
+  if (!simOn) { selectPart(id); hint(`กด ▶ เริ่มจำลอง (จ่ายไฟให้ตู้) ก่อน แล้วคลิกที่ ${refdes(p)} อีกครั้งเพื่อสั่งงาน`); return; }
   if (isAnalog(p)) { const S = sensTab(p); p.lvl = p.act ? S.base : Math.max(S.full, sensOf(p).alarm * 1.3); analogTick(); } else p.act = !p.act;
   const det = T(p).cat === 'det';
   plog('INFO', `${refdes(p)} ${det ? (isHeat(p) ? (p.act ? 'HEAT APPLIED' : 'COOLED DOWN') : (p.act ? 'SMOKE APPLIED' : 'SMOKE CLEARED')) : (p.act ? 'ACTIVATED' : 'RESTORED')} (FIELD)`);
@@ -4320,21 +4496,21 @@ $('soundBtn').addEventListener('click', () => {
 });
 
 /* ================= run / stop ================= */
-let running = false, runStart = 0, runTimer = null;
+let running = false, simOn = false, runStart = 0, runTimer = null;
 function toggleRun() {
-  running = !running;
+  simOn = !simOn; if (!simOn) running = false;
   const b = $('runBtn');
-  b.classList.toggle('on', running);
-  b.querySelector('.lbl').textContent = running ? 'หยุดจำลอง' : 'เริ่มจำลอง';
-  b.querySelector('svg').innerHTML = running ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
-  if (!running) { parts.forEach(q => { q.act = false; q.lvl = undefined; q.initUntil = 0; q.wasResp = undefined; q.actT = 0; q.reported = false; }); PX.latchT.clear(); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
-  else { plog('POWER', `NFS2-3030 POWER UP · ${CARDS.loops + 1} SLC LOOP(S)`); runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: คลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
+  b.classList.toggle('on', simOn);
+  b.querySelector('.lbl').textContent = simOn ? 'หยุดจำลอง' : 'เริ่มจำลอง';
+  b.querySelector('svg').innerHTML = simOn ? '<rect x="6" y="6" width="12" height="12"/>' : '<path d="M7 4l13 8-13 8z"/>';
+  if (!simOn) { parts.forEach(q => { q.act = false; q.lvl = undefined; q.initUntil = 0; q.wasResp = undefined; q.actT = 0; q.reported = false; }); PX.latchT.clear(); drawAll(); PX.events = []; PX.silenced = false; PX.drill = false; PX.resetting = false; plog('POWER', 'PANEL POWER DOWN'); clearInterval(runTimer); $('testMsg').textContent = 'หยุดจำลองแล้ว (ตู้ไม่มีไฟ) กด ▶ เริ่มจำลอง เพื่อทดสอบใหม่'; }
+  else { runStart = Date.now(); runTimer = setInterval(simClock, 1000); $('testMsg').textContent = 'ตู้มีไฟแล้ว: คลิกที่หัวควันเพื่อพ่นควัน หรือคลิกที่แมนนวลเพื่อดึง แล้วใช้ปุ่มหน้าตู้ ACK / SIGNAL SILENCE / RESET'; }
   simClock(); renderTests(); render();
 }
 function simClock() {
   const s = Math.floor((Date.now() - runStart) / 1000);
-  $('sbSim').textContent = running ? `● กำลังจำลอง ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : '■ หยุดจำลอง';
-  $('sbSim').classList.toggle('on', running);
+  $('sbSim').textContent = simOn ? `● กำลังจำลอง ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : '■ หยุดจำลอง';
+  $('sbSim').classList.toggle('on', simOn);
 }
 $('runBtn').addEventListener('click', toggleRun);
 $('vReal').addEventListener('click', () => setView('real'));
@@ -4364,12 +4540,20 @@ const pad = (a, b = '') => { a = String(a); b = String(b); return (a + ' '.repea
 function render() {
   analogTick();
   result = analyze();
+  { const want = simOn && !!result.cpuPower;   // the panel only runs when AMPS-24 feeds J13
+    if (want !== running) {
+      running = want;
+      if (want) plog('POWER', `NFS2-3030 POWER UP · ${loopsList().length} SLC LOOP(S)`);
+      else if (simOn) { PX.events = []; PX.silenced = false; PX.drill = false; PM = null; plog('POWER', 'CPU POWER LOST'); $('testMsg').textContent = 'ตู้ดับ: CPU2-3030 ไม่มีไฟ ตรวจสาย J13 ↔ AMPS-24, ไฟ AC และแบตเตอรี่ (ERC หัวข้อ ภายในตู้)'; }
+    }
+    if (simOn && !running) $('testMsg').textContent = 'เริ่มจำลองแล้วแต่ตู้ยังไม่ติด: ต่อไฟ AC 220V เข้า CPS-24E, สาย J13 ↔ AMPS-24 MAIN 24V (ดู ERC หัวข้อ ภายในตู้)';
+    result = analyze(); }
   initTick(result);
   syncPanel(result);
   const S = simulate(result); lastS = S;
   netNow = netFn(); liveRoots = new Set(); hotRoots = new Set();
   if (running) {
-    Object.keys(TERM).filter(k => k.startsWith('P.') && !/^P\.r/.test(k)).forEach(k => { if (termUsed(k)) liveRoots.add(netNow(k)); });
+    Object.keys(TERM).filter(k => /^P\.(c\d+[me][ab][+-]|x[+-]|t[+-]|sp[+-]|aa|ab|q[+-]|acL|acN|pL|pN|qL|qN)$/.test(k)).forEach(k => { if (termUsed(k)) liveRoots.add(netNow(k)); });
     parts.filter(p => p.t === 'psu').forEach(p => ['o1+', 'o1-', 'o2+', 'o2-', 't+', 't-'].forEach(k => liveRoots.add(netNow(p.id + '.' + k))));
     S.active.forEach(id => { const o = result.outs[id].o; hotRoots.add(netNow(o.sp)); hotRoots.add(netNow(o.sn)); });
   }
