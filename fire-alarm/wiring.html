@@ -449,6 +449,8 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
   body.mob #mmenu{display:inline-flex;align-items:center;gap:4px;border:1px solid currentColor;background:none;color:var(--title-fg);border-radius:6px;padding:6px 12px;font:inherit;font-size:.82rem;font-weight:700;min-height:36px}
   body.mob.mtools #mmenu{background:var(--title-fg);color:var(--title)}
   body.mob .titlebar .model{display:none}
+  body.mob .titlebar > b{display:none}
+  body.mob .titlebar .file{display:block;max-width:60vw;font-size:.82rem;opacity:.95}
   body.mob #msheet{position:fixed;left:0;right:0;top:var(--mtop,44px);bottom:var(--mnavh,60px);z-index:70;background:var(--chrome);overflow:auto;padding:10px 12px 20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
   body.mob #msheet .toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px;background:none;border:0;overflow:visible}
   body.mob #msheet .tgrp{display:contents}
@@ -472,6 +474,14 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
 .part.overlap .selbox{stroke:#d92c2c!important;stroke-width:2.4;stroke-dasharray:6 3}
 .part.dragging .selbox{stroke:var(--sel);stroke-width:1.6;stroke-dasharray:5 3}
 @media (max-width:920px){ #mhint .mbtns .nud{min-width:38px;padding:4px 8px;background:var(--chrome-3);color:inherit;border-color:var(--chrome-line)} }
+
+#mzoom button[disabled]{opacity:.35}
+.pjrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px;border:1px solid var(--chrome-line);border-radius:8px;margin-bottom:8px}
+.pjrow.cur{border-color:var(--sel)}
+.pjinfo{display:flex;flex-direction:column;min-width:0}
+.pjinfo small{color:var(--chrome-muted)}
+.pjbtns{display:flex;flex-wrap:wrap;gap:4px}
+.pjbtns .btn{min-height:34px}
 </style>
 </head>
 <body>
@@ -488,10 +498,16 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
   <nav class="menubar" id="menubar" aria-label="เมนู">
     <div class="menu"><button type="button" aria-haspopup="true">ไฟล์</button><div class="drop" role="menu">
       <button type="button" data-do="new">ใหม่ (ตู้เปล่า)</button>
+      <button type="button" data-do="pSave">บันทึกงาน <kbd>Ctrl+S</kbd></button>
+      <button type="button" data-do="pSaveAs">บันทึกเป็นงานใหม่… <kbd>Ctrl+Shift+S</kbd></button>
+      <button type="button" data-do="pList">งานของฉัน… <kbd>Ctrl+O</kbd></button>
+      <hr><button type="button" data-do="pExport">ส่งออกเป็นไฟล์ (.json)</button>
+      <button type="button" data-do="pImport">เปิดไฟล์จากเครื่อง…</button>
       <hr><button type="button" data-do="exBasic">เปิดตัวอย่าง: ระบบพื้นฐาน</button>
       <button type="button" data-do="exFull">เปิดตัวอย่าง: ระบบเต็ม</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">แก้ไข</button><div class="drop" role="menu">
-      <button type="button" data-do="undo">ย้อนสายล่าสุด <kbd>Ctrl+Z</kbd></button>
+      <button type="button" data-do="undo">ย้อนกลับ <kbd>Ctrl+Z</kbd></button>
+      <button type="button" data-do="redo">ทำซ้ำ <kbd>Ctrl+Y</kbd></button>
       <button type="button" data-do="delW">ลบสายที่เลือก <kbd>Del</kbd></button>
       <button type="button" data-do="delP">ลบอุปกรณ์ที่เลือก <kbd>Del</kbd></button>
       <button type="button" data-do="cutW">จำลองสายขาด / ต่อคืน</button>
@@ -519,7 +535,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
       <button class="tb" type="button" id="exFull" title="ตัวอย่าง: ระบบเต็ม"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">ระบบเต็ม</span></button>
     </div>
     <div class="tgrp">
-      <button class="tb" type="button" id="undo" title="ย้อนสายล่าสุด (Ctrl+Z)" aria-label="ย้อนสาย"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+      <button class="tb" type="button" id="undo" title="ย้อนกลับ (Ctrl+Z)" aria-label="ย้อนกลับ"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button><button class="tb" type="button" id="redo" title="ทำซ้ำ (Ctrl+Y)" aria-label="ทำซ้ำ"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button><button class="tb" type="button" id="saveBtn" title="บันทึกงาน (Ctrl+S)" aria-label="บันทึกงาน"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg><span class="lbl">บันทึก</span></button><button class="tb" type="button" id="projBtn" title="งานของฉัน (Ctrl+O)" aria-label="งานของฉัน"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg><span class="lbl">งานของฉัน</span></button>
       <button class="tb" type="button" id="delW" title="ลบสายที่เลือก" aria-label="ลบสาย" disabled><svg viewBox="0 0 24 24"><path d="M3 12h7M14 12h7"/><path d="M10 9l4 6M14 9l-4 6"/></svg></button>
       <button class="tb" type="button" id="cutW" title="จำลองสายขาด" aria-label="จำลองสายขาด" disabled><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M8 15L18 4M16 15L6 4"/></svg></button>
       <button class="tb" type="button" id="delP" title="ลบอุปกรณ์ที่เลือก" aria-label="ลบอุปกรณ์" disabled><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
@@ -606,7 +622,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
   <button type="button" data-mv="erc"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>ตรวจวงจร<span class="bdg" id="bdgErc"></span></button>
 </nav>
 <button type="button" id="mfab">▶ เริ่มจำลอง</button>
-<div id="mzoom" role="group" aria-label="ซูมแผ่นงาน"><button type="button" data-z="out" aria-label="ซูมออก">−</button><output id="mzLbl">62%</output><button type="button" data-z="in" aria-label="ซูมเข้า">+</button><button type="button" data-z="fit" aria-label="พอดีจอ">⤢</button></div>
+<div id="mzoom" role="group" aria-label="ซูมแผ่นงาน"><button type="button" id="mUndo" data-z="undo" aria-label="ย้อนกลับ">↶</button><button type="button" id="mRedo" data-z="redo" aria-label="ทำซ้ำ">↷</button><button type="button" data-z="out" aria-label="ซูมออก">−</button><output id="mzLbl">62%</output><button type="button" data-z="in" aria-label="ซูมเข้า">+</button><button type="button" data-z="fit" aria-label="พอดีจอ">⤢</button></div>
   <footer class="statusbar">
     <span id="hint"></span>
     <span id="sbCoord" class="mono">X 0  Y 0</span>
@@ -682,6 +698,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>ย้อนกลับ / ทำซ้ำ และบันทึกงาน</b>: ↶ ย้อนกลับ (Ctrl+Z) ↷ ทำซ้ำ (Ctrl+Y) ได้ทุกการแก้ไข ทั้งเพิ่ม/ลบ/ย้ายอุปกรณ์ ต่อ/ลบสาย เปลี่ยน Address และการ์ด (สูงสุด 120 ขั้น ไม่รวมการตั้งโปรแกรมในตู้และสถานะจำลอง) · บันทึกงาน (Ctrl+S) เก็บได้หลายงานในเบราว์เซอร์ ชื่องานแสดงที่แถบบน มีจุด • เมื่อยังไม่ได้บันทึก · งานของฉัน (Ctrl+O): เปิด เปลี่ยนชื่อ ทำสำเนา ลบ ส่งออกไฟล์ · ส่งออกเป็นไฟล์ .fsim.json เพื่อเก็บหรือส่งให้คนอื่น และ เปิดไฟล์จากเครื่อง (รวมสาย อุปกรณ์ การ์ด โปรแกรมในตู้ และค่า Panel)</li>
     <li><b>บนโทรศัพท์</b>: ต่อสายโดยลากนิ้วจากขั้วสกรูไปยังขั้วปลายทาง (ขั้วที่ใกล้นิ้วขึ้นสีเขียว ปล่อยนิ้วเพื่อต่อ เลื่อนแผ่นงานให้อัตโนมัติเมื่อลากไปขอบจอ) หรือแตะขั้วแรกแล้วแตะขั้วปลายทาง (ขั้วทั้งหมดเปลี่ยนเป็นสีเหลือง) · ซูมด้วยการถ่างสองนิ้ว (ซูมรอบนิ้วและเลื่อนพร้อมกันได้) แตะสองครั้งที่พื้นว่างเพื่อซูมเข้า/ออก หรือปุ่ม − % + ⤢ มุมซ้ายล่าง ซูมได้ถึง 300% · แตะอุปกรณ์แล้วจะมีปุ่ม พ่นควัน/ดึง/สั่งทำงาน, ตั้งค่า, ลบ · ย้ายอุปกรณ์: แตะค้างที่อุปกรณ์ตัวไหนก็ได้ประมาณครึ่งวินาที (เครื่องสั่นเบาๆ) แล้วลาก หรือลากอุปกรณ์ที่เลือกอยู่ได้ทันที ลากไปขอบจอแผ่นงานจะเลื่อนตาม ถ้ากรอบขึ้นสีแดงแปลว่าทับอุปกรณ์อื่น ปล่อยแล้วจะเลื่อนไปช่องว่างที่ใกล้ที่สุด ปุ่ม ◀ ▲ ▼ ▶ ในแถบล่างเลื่อนทีละช่อง (คอมพิวเตอร์ใช้ปุ่มลูกศร, Shift = 5 ช่อง) · ปุ่มหมุน Address ต้องเลือกอุปกรณ์ก่อนจึงจะหมุนได้ (กันแตะโดนพลาด)</li>
     <li><b>อ่านสายง่ายขึ้น</b>: สายของวงจรต่างกันจะถูกแยกเป็นช่องขนานห่างกัน ไม่วิ่งทับกันและไม่ผ่านตัวอุปกรณ์ · จุดที่สายข้ามกันโดยไม่ต่อถึงกัน สายแนวนอนจะโค้งข้าม (hop) ส่วนจุดที่ต่อกันจริงจะอยู่ที่ขั้วสกรูและมีจุดกลมทึบ · ชี้เมาส์ที่สายหรือขั้ว (หรือแตะเลือกสาย/อุปกรณ์บนมือถือ) วงจรนั้นทั้งเส้นจะเด่นขึ้นและสายอื่นจางลง</li>
     <li><b>ตู้แบบของจริง (CAB-4 + CHS-4L) และสายภายในตู้</b>: CPU2-3030D + คีย์บอร์ด/จอ (TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security, TB7 ACS ที่ขอบบน · J13 Power, J7 SLC Data ที่ขอบล่าง) · DVC-KD + กล่องไมค์/หูโทรศัพท์ (ถ้าติด DVC) · CHS-4L: LCM-320 (LEM-320 ติดด้านหลัง) TB1 = B+ A+ B− A− · APS2-6R (เลือกติด) · AMPS-24 + CPS-24E ด้านล่าง และขั้ว AC 220V IN · ต้องต่อเอง: สาย 75637 J13 ↔ AMPS-24 MAIN 24V (ไม่ต่อ = ตู้ดับ) · สายแพ 75565 J7 → J1 (Data in) ของ LCM ตัวแรก, J3 (Data out) → J1 ตัวถัดไป (ไม่ต่อ = LOOP x-y COMM FAILURE) · AC L/N/G → CPS-24E (ไม่มี AC แต่มีแบต = AC FAIL) · ตั้ง SW1 บน LCM เป็น Loop 1, 3, 5, 7, 9 ห้ามซ้ำ (LEM ได้เลขถัดไป) · สายภาคสนามออกทางรางสายด้านขวาของตู้ · คลิกตู้เพื่อ "ต่อสายภายในตู้ให้อัตโนมัติ" หรือ "ถอดสายภายในตู้ (ฝึกต่อเอง)"</li>
@@ -831,10 +848,10 @@ function freeSpot(t) {
 /* ================= persistence ================= */
 const KEY = 'facp-wiring-v3';
 let PROG = {};   // panel program database: point key (L1D001) -> {t, type, label, ext, zone, on}
-function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG, layout:2})); } catch (e) {} }
-function load() {
+function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG, layout:2})); } catch (e) {} if (typeof histCommit === 'function' && HIST.i >= 0) histCommit(); }
+function load() { try { return loadDoc(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { return false; } }
+function loadDoc(s) {
   try {
-    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!s || !Array.isArray(s.parts) || !s.parts.some(p => p.id === 'P')) return false;
     parts = s.parts.filter(p => p.t === 'facp' || TYPES[p.t]);
     const c = s.cards || {};
@@ -2200,7 +2217,7 @@ document.addEventListener('keydown', ev => {
   if ((ev.key === 'Delete' || ev.key === 'Backspace') && selW) delSel();
   else if ((ev.key === 'Delete' || ev.key === 'Backspace') && selP && selP !== 'P') delPart();
   if (ev.key === 'F5') { ev.preventDefault(); toggleRun(); }
-  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') { ev.preventDefault(); $('undo').click(); }
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z' && !ev.shiftKey) { ev.preventDefault(); histGo(-1); }
 });
 function selectPart(id) {
   selP = id;
@@ -2215,7 +2232,8 @@ function selectPart(id) {
 function delSel() { wires = wires.filter(w => w.id !== selW); selW = null; hint(); changed(); }
 $('delW').addEventListener('click', delSel);
 $('cutW').addEventListener('click', () => { const w = wires.find(x => x.id === selW); if (!w) return; w.cut = !w.cut; changed(); });
-$('undo').addEventListener('click', () => { wires.pop(); selW = null; changed(); });
+$('undo').addEventListener('click', () => histGo(-1));
+$('redo').addEventListener('click', () => histGo(1));
 function updateBtns() {
   $('delW').disabled = !selW; $('cutW').disabled = !selW;
   $('delP').disabled = !selP || selP === 'P';
@@ -2440,7 +2458,7 @@ function build(full) {
   wireInternal();
   programAll();
   changed();
-  $('fileName').textContent = full ? 'ระบบเต็ม.fsim' : 'ระบบพื้นฐาน.fsim';
+  curProj = null; savedSnap = null; try { localStorage.removeItem(CURKEY); } catch (e) {} projDirty();
   hint(full ? 'ตัวอย่างระบบเต็ม NFS2-3030: Loop 1 (LCM-320) แบบ Class A + Isolator, Loop 2 (LEM-320), DVC, FCPS-24S สั่งจาก FCM-1, ACS annunciator, ลิฟต์และ AHU' : 'ตัวอย่างระบบพื้นฐาน NFS2-3030: Loop 1 (LCM-320) แบบ Class B + Isolator, FMM-1 / FCM-1 (NAC) / FRM-1 และแบตเตอรี่ที่ AMPS-24');
 }
 $('exBasic').addEventListener('click', () => build(false));
@@ -2450,7 +2468,7 @@ function newBlank() {
   addPart('bat', FW + 80, 1040); addPart('bat', FW + 260, 1040);
   wires = []; selP = null; selW = null; alarm = null; PROG = {}; changed();
   setTimeout(() => hint('งานใหม่: ตู้ยังไม่ได้ต่อสายภายใน ต่อ AC 220V L/N/G → CPS-24E, J13 → AMPS-24 MAIN 24V, สายแพ J7 → J1 ของ LCM-320 และแบตเตอรี่ → BAT+/BAT− (หรือคลิกตู้ › ต่อสายภายในตู้ให้อัตโนมัติ)'), 50);
-  $('fileName').textContent = 'ไม่มีชื่อ.fsim';
+  curProj = null; savedSnap = null; try { localStorage.removeItem(CURKEY); } catch (e) {} projDirty();
   hint('แผ่นงานใหม่: ตู้ NFS2-3030 (LCM-320 1 loop) กับแบตเตอรี่ 2 ลูก เลือกอุปกรณ์จากคลังอุปกรณ์มาวาง แล้วเริ่มต่อสาย');
 }
 $('clear').addEventListener('click', () => modal('สร้างแผ่นงานใหม่', '<p>ล้างอุปกรณ์และสายทั้งหมด เหลือเฉพาะตู้ NFS2-3030 กับแบตเตอรี่ 2 ลูก งานที่ต่ออยู่ตอนนี้จะหายไป</p>', [['ยกเลิก', ''], ['สร้างใหม่', 'pri', newBlank]]));
@@ -2478,6 +2496,11 @@ menubar.addEventListener('click', ev => {
   closeMenus();
   const k = it.dataset.do;
   if (k === 'new') $('clear').click();
+  else if (k === 'pSave') projSave(false);
+  else if (k === 'pSaveAs') projSave(true);
+  else if (k === 'pList') projList();
+  else if (k === 'pExport') exportFile(null, projName());
+  else if (k === 'pImport') $('fileIn').click();
   else if (k === 'pgTable') openProgram();
   else if (k === 'guide') showGuide();
   else if (k === 'howto') modal('วิธีใช้โปรแกรม', $('howtoTpl').innerHTML);
@@ -4956,7 +4979,7 @@ function mobSelButtons(p, m) {
   const a = p.t !== 'facp' && actLabel(p);
   if (a) m.append(mBtn(a, () => triggerDevice(p.id), 'act'));
   m.append(mBtn(p.t === 'facp' ? 'สายภายในตู้ ›' : 'ตั้งค่า ›', () => setMV('props')));
-  if (p.t !== 'facp') { m.append(mBtn('ลบ', () => { if (confirm(`ลบ ${refdes(p)}?`)) delPart(); }, 'del')); [['◀', -1, 0], ['▲', 0, -1], ['▼', 0, 1], ['▶', 1, 0]].forEach(([t, dx, dy]) => m.append(mBtn(t, () => nudge(dx, dy), 'nud'))); }
+  if (p.t !== 'facp') { m.append(mBtn('ลบ', () => modal('ลบอุปกรณ์', `<p>ลบ ${refdes(p)} และสายที่ต่ออยู่? (กด ↶ เพื่อย้อนกลับได้)</p>`, [['ยกเลิก', ''], ['ลบ', 'dng', () => { selP = p.id; delPart(); }]]), 'del')); [['◀', -1, 0], ['▲', 0, -1], ['▼', 0, 1], ['▶', 1, 0]].forEach(([t, dx, dy]) => m.append(mBtn(t, () => nudge(dx, dy), 'nud'))); }
 }
 function mobSel(p) { hint(`เลือก ${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : label(p)}${p.t !== 'facp' ? ' · ลากตัวอุปกรณ์เพื่อย้าย (หรือแตะค้างที่อุปกรณ์ใดก็ได้แล้วลาก) · ปุ่มลูกศรเลื่อนทีละช่อง' : ''}`); }
 function mobWireBar(msg) {
@@ -4990,6 +5013,7 @@ function mobLayout() {
   const place = () => document.body.style.setProperty('--mbot', ($('mnav').offsetHeight + $('mhint').offsetHeight + 10) + 'px');
   if (window.ResizeObserver) { const ro = new ResizeObserver(place); ro.observe($('mhint')); ro.observe($('mnav')); } else setInterval(place, 500);
   $('mzoom').addEventListener('click', ev => { const b = ev.target.closest('[data-z]'); if (!b) return; const w = $('boardWrap').getBoundingClientRect(), cx = w.left + w.width / 2, cy = w.top + w.height / 2;
+    if (b.dataset.z === 'undo') return histGo(-1); if (b.dataset.z === 'redo') return histGo(1);
     if (b.dataset.z === 'in') setZoomAt(zoom * 1.3, cx, cy); else if (b.dataset.z === 'out') setZoomAt(zoom / 1.3, cx, cy); else setZoom(fitZoom()); });
   window.addEventListener('resize', mobLayout);
   mobLayout();
@@ -5030,6 +5054,139 @@ function mobLayout() {
   }, 400);
 })();
 
+/* ================= undo / redo history ================= */
+const RUNTIME_KEYS = ['act', 'lvl', 'initUntil', 'wasResp', 'actT', 'reported', 'verT', 'wtLogged', 'vcount', 'peak', 'force', 'pollT', 'reportAt', 'dirt'];
+const cleanPart = p => { const o = {...p}; RUNTIME_KEYS.forEach(k => delete o[k]); return o; };
+const snapOf = () => JSON.stringify({parts:parts.map(cleanPart), wires, cards:CARDS});
+const HIST = {stack:[], i:-1, restoring:false};
+function histReset() { HIST.stack = [snapOf()]; HIST.i = 0; histBtns(); }
+function histCommit() {
+  if (HIST.restoring) return;
+  const s = snapOf();
+  if (HIST.stack[HIST.i] === s) return;
+  HIST.stack.splice(HIST.i + 1); HIST.stack.push(s);
+  if (HIST.stack.length > 120) HIST.stack.shift();
+  HIST.i = HIST.stack.length - 1; histBtns(); projDirty();
+}
+function histGo(d) {
+  const j = HIST.i + d; if (j < 0 || j >= HIST.stack.length) { hint(d < 0 ? 'ไม่มีขั้นตอนให้ย้อนแล้ว' : 'ไม่มีขั้นตอนให้ทำซ้ำ'); return; }
+  const s = JSON.parse(HIST.stack[j]), act = new Map(parts.map(p => [p.id, p]));
+  HIST.i = j; HIST.restoring = true;
+  parts = s.parts.map(p => { const o = act.get(p.id); if (o) RUNTIME_KEYS.forEach(k => { if (o[k] !== undefined) p[k] = o[k]; }); return p; });
+  wires = s.wires; Object.assign(CARDS, s.cards);
+  wseq = wires.reduce((m, w) => Math.max(m, w.id), 0) + 1;
+  if (selP && !byId(selP)) selP = null; selW = null; pending = null;
+  rebuildTerms(); changed(); HIST.restoring = false;
+  histBtns(); projDirty();
+  hint(d < 0 ? `ย้อนกลับแล้ว (เหลือย้อนได้อีก ${HIST.i} ขั้น)` : `ทำซ้ำแล้ว (ทำซ้ำได้อีก ${HIST.stack.length - 1 - HIST.i} ขั้น)`);
+}
+function histBtns() {
+  const u = HIST.i > 0, r = HIST.i < HIST.stack.length - 1;
+  ['undo', 'mUndo'].forEach(id => { if ($(id)) $(id).disabled = !u; });
+  ['redo', 'mRedo'].forEach(id => { if ($(id)) $(id).disabled = !r; });
+}
+
+/* ================= projects (browser) and files ================= */
+const PKEY = 'facp-projects', CURKEY = 'facp-current';
+let curProj = null, savedSnap = null;
+try { curProj = localStorage.getItem(CURKEY) || null; } catch (e) {}
+const projAll = () => { try { return JSON.parse(localStorage.getItem(PKEY) || '{}'); } catch (e) { return {}; } };
+const projPut = all => { try { localStorage.setItem(PKEY, JSON.stringify(all)); return true; } catch (e) { modal('บันทึกไม่ได้', '<p>พื้นที่เก็บข้อมูลของเบราว์เซอร์เต็มหรือถูกปิดไว้ ลองลบงานเก่าในงานของฉัน หรือส่งออกเป็นไฟล์แทน</p>'); return false; } };
+function docOf(name) {
+  return {format:'facp-wiring-lab', version:2, layout:2, name, saved:new Date().toISOString(),
+    parts:parts.map(cleanPart), wires, cards:{...CARDS}, prog:PROG, node:NODE_LABEL, pset:typeof PSET !== 'undefined' ? PSET : undefined};
+}
+function projName() { const all = projAll(); return curProj && all[curProj] ? all[curProj].name : null; }
+function projDirty() {
+  const n = projName(), dirty = !n || savedSnap !== snapOf();
+  $('fileName').textContent = (n || 'งานใหม่ (ยังไม่ได้บันทึก)') + (n && dirty ? ' •' : '');
+  $('fileName').title = n ? (dirty ? 'มีการแก้ไขที่ยังไม่ได้บันทึก' : 'บันทึกแล้ว') : 'ยังไม่ได้บันทึกเป็นงาน';
+}
+function projSave(asNew) {
+  const all = projAll();
+  if (!curProj || !all[curProj] || asNew) {
+    askName(asNew && projName() ? projName() + ' (สำเนา)' : '', name => {
+      const id = 'p' + Date.now().toString(36); all[id] = {name, updated:Date.now(), data:docOf(name)};
+      if (projPut(all)) { curProj = id; try { localStorage.setItem(CURKEY, id); } catch (e) {} savedSnap = snapOf(); projDirty(); hint(`บันทึกงาน "${name}" แล้ว`); }
+    });
+    return;
+  }
+  const P = all[curProj]; P.data = docOf(P.name); P.updated = Date.now();
+  if (projPut(all)) { savedSnap = snapOf(); projDirty(); hint(`บันทึกงาน "${P.name}" แล้ว`); }
+}
+function askName(def, done) {
+  modal('ตั้งชื่องาน', `<label for="pjName" style="display:block;margin-bottom:6px">ชื่องาน</label><input id="pjName" type="text" maxlength="60" style="width:100%;font:inherit;padding:8px;border:1px solid var(--chrome-line);border-radius:6px" placeholder="เช่น อาคาร A ชั้น 2">`,
+    [['ยกเลิก', ''], ['บันทึก', 'pri', () => { const v = ($('pjNameKeep') || {}).value; done((v || '').trim() || `งาน ${new Date().toLocaleDateString('th-TH')}`); }]]);
+  const inp = $('pjName'); inp.value = def;
+  // keep the typed value after the dialog body is cleared
+  let keep = $('pjNameKeep'); if (!keep) { keep = document.createElement('input'); keep.type = 'hidden'; keep.id = 'pjNameKeep'; document.body.append(keep); }
+  keep.value = def; inp.addEventListener('input', () => { keep.value = inp.value; });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('mFoot').lastChild.click(); });
+  setTimeout(() => inp.focus(), 30);
+}
+function loadDocInto(d, name, id) {
+  if (!d || !Array.isArray(d.parts) || !d.parts.some(p => p.id === 'P')) { modal('เปิดไม่ได้', '<p>ไฟล์นี้ไม่ใช่งานของ FACP Wiring Lab หรือไฟล์เสียหาย</p>'); return false; }
+  if (!loadDoc(d)) { modal('เปิดไม่ได้', '<p>อ่านข้อมูลในไฟล์ไม่สำเร็จ</p>'); return false; }
+  if (d.node) { NODE_LABEL = d.node; saveNode(); }
+  if (d.pset && typeof PSET !== 'undefined') { Object.assign(PSET, d.pset); savePanel(); }
+  curProj = id || null; try { if (id) localStorage.setItem(CURKEY, id); else localStorage.removeItem(CURKEY); } catch (e) {}
+  selP = null; selW = null; pending = null;
+  changed(); histReset(); savedSnap = id ? snapOf() : null; projDirty();
+  hint(`เปิดงาน "${name || d.name || 'ไม่มีชื่อ'}" แล้ว`);
+  return true;
+}
+function projList() {
+  const all = projAll(), ids = Object.keys(all).sort((a, b) => all[b].updated - all[a].updated);
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
+  const rows = ids.map(id => { const P = all[id], n = (P.data.parts || []).length - 1;
+    return `<div class="pjrow${id === curProj ? ' cur' : ''}" data-id="${id}"><div class="pjinfo"><b>${esc(P.name)}</b><small>${new Date(P.updated).toLocaleString('th-TH')} · อุปกรณ์ ${n} ชิ้น · สาย ${(P.data.wires || []).length} เส้น${id === curProj ? ' · งานที่เปิดอยู่' : ''}</small></div>
+      <div class="pjbtns"><button class="btn pri" type="button" data-a="open">เปิด</button><button class="btn" type="button" data-a="ren">เปลี่ยนชื่อ</button><button class="btn" type="button" data-a="dup">ทำสำเนา</button><button class="btn" type="button" data-a="exp">ส่งออกไฟล์</button><button class="btn dng" type="button" data-a="del">ลบ</button></div></div>`; }).join('');
+  modal('งานของฉัน', (rows || '<p class="note">ยังไม่มีงานที่บันทึกไว้ กด "บันทึกงาน" เพื่อเก็บงานที่ทำอยู่</p>') + '<p class="note" style="margin-top:10px">งานเก็บไว้ในเบราว์เซอร์ของเครื่องนี้ ถ้าล้างข้อมูลเบราว์เซอร์งานจะหาย ควรส่งออกเป็นไฟล์เก็บไว้ด้วย</p>',
+    [['เปิดไฟล์จากเครื่อง…', '', () => $('fileIn').click()], ['บันทึกงานที่ทำอยู่', '', () => projSave(false)], ['ปิด', 'pri']]);
+  $('mBody').onclick = ev => {
+    const b = ev.target.closest('[data-a]'); if (!b) return;
+    const id = b.closest('.pjrow').dataset.id, all2 = projAll(), P = all2[id]; if (!P) return;
+    const a = b.dataset.a;
+    if (a === 'open') { closeModal(); loadDocInto(P.data, P.name, id); }
+    else if (a === 'exp') exportFile(P.data, P.name);
+    else if (a === 'dup') { const nid = 'p' + Date.now().toString(36); all2[nid] = {name:P.name + ' (สำเนา)', updated:Date.now(), data:{...P.data, name:P.name + ' (สำเนา)'}}; projPut(all2); projList(); }
+    else if (a === 'ren') askName(P.name, name => { const all3 = projAll(); if (all3[id]) { all3[id].name = name; all3[id].data.name = name; projPut(all3); } projDirty(); projList(); });
+    else if (a === 'del') modal('ลบงาน', `<p>ลบงาน "${esc(P.name)}" ออกจากเครื่องนี้? ลบแล้วกู้คืนไม่ได้</p>`, [['ยกเลิก', '', projList], ['ลบ', 'dng', () => { const all3 = projAll(); delete all3[id]; projPut(all3); if (id === curProj) { curProj = null; try { localStorage.removeItem(CURKEY); } catch (e) {} } projDirty(); projList(); }]]);
+  };
+}
+async function exportFile(doc, name) {
+  const data = JSON.stringify(doc || docOf(projName() || 'งาน FACP'), null, 1), filename = `${(name || projName() || 'งาน FACP').replace(/[\\/:*?"<>|]/g, '_')}.fsim.json`;
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({filename, data}); hint(`ส่งออกไฟล์ ${filename} แล้ว`); }
+    catch (e) { if (e && e.code === 'declined') hint('ยกเลิกการบันทึกไฟล์'); else modal('ส่งออกไฟล์ไม่ได้', `<p>หน้านี้บันทึกไฟล์ลงเครื่องไม่ได้ (${(e && e.code) || 'unavailable'}) ลองเปิดในเบราว์เซอร์บนคอมพิวเตอร์</p>`); }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type:'application/json'})); a.download = filename; document.body.append(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); hint(`ส่งออกไฟล์ ${filename} แล้ว`);
+}
+(function initProjects() {
+  $('saveBtn').addEventListener('click', () => projSave(false));
+  $('projBtn').addEventListener('click', projList);
+  const fi = document.createElement('input'); fi.type = 'file'; fi.id = 'fileIn'; fi.accept = '.json,.fsim,application/json'; fi.hidden = true; document.body.append(fi);
+  fi.addEventListener('change', () => {
+    const f = fi.files && fi.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { let d = null; try { d = JSON.parse(r.result); } catch (e) {} fi.value = '';
+      if (d && loadDocInto(d, d.name || f.name.replace(/\.(fsim\.)?json$/, ''), null)) hint(`เปิดไฟล์ ${f.name} แล้ว กด "บันทึกงาน" เพื่อเก็บเป็นงานในเครื่อง`); else if (!d) modal('เปิดไม่ได้', '<p>ไฟล์นี้ไม่ใช่ JSON ของ FACP Wiring Lab</p>'); };
+    r.readAsText(f);
+  });
+  document.addEventListener('keydown', ev => {
+    if (/input|select|textarea/i.test(document.activeElement.tagName)) return;
+    const k = ev.key.toLowerCase();
+    if ((ev.ctrlKey || ev.metaKey) && k === 's') { ev.preventDefault(); projSave(ev.shiftKey); }
+    else if ((ev.ctrlKey || ev.metaKey) && (k === 'y' || (k === 'z' && ev.shiftKey))) { ev.preventDefault(); histGo(1); }
+    else if ((ev.ctrlKey || ev.metaKey) && k === 'o') { ev.preventDefault(); projList(); }
+  });
+  window.addEventListener('beforeunload', e => { if (projName() && savedSnap !== snapOf()) { e.preventDefault(); e.returnValue = ''; } });
+})();
+
 /* ================= boot ================= */
 hint();
 setZoom(narrow() ? 0.62 : TOUCH ? 0.75 : Math.max(fitZoom(), 0.55), false);
@@ -5037,6 +5194,8 @@ simClock();
 if (narrow()) $('cardsBox').open = false;
 $('vReal').setAttribute('aria-pressed', String(VIEW === 'real')); $('vSch').setAttribute('aria-pressed', String(VIEW === 'sch'));
 if (!load()) build(false); else changed();
+histReset();
+{ const P = curProj && projAll()[curProj]; if (P) savedSnap = JSON.stringify({parts:P.data.parts, wires:P.data.wires, cards:P.data.cards}); else curProj = null; projDirty(); }
 })();
 </script>
 
