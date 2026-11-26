@@ -407,7 +407,12 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
   body.mob[data-mv=lib] .dock.left,body.mob[data-mv=props] .dock.right,body.mob[data-mv=panel] .dock.right{display:flex;height:100%;overflow:auto}
   body.mob[data-mv=props] .dock.right .mv-panel,body.mob[data-mv=panel] .dock.right .mv-props,body.mob[data-mv=panel] .dock.right .mv-tests{display:none}
   body.mob .lib-item{min-height:44px}
-  #mhint{display:block;flex:none;padding:6px 12px;font-size:.78rem;line-height:1.35;background:var(--chrome-2);border-top:1px solid var(--chrome-line);color:var(--chrome-fg,inherit);max-height:4.2em;overflow:auto}
+  #mhint{display:block;flex:none;padding:6px 12px;font-size:.78rem;line-height:1.35;background:var(--chrome-2);border-top:1px solid var(--chrome-line);color:var(--chrome-fg,inherit)}
+  #mhint .mtxt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #mhint .mbtns{display:flex;align-items:center;gap:6px;margin-top:5px;overflow-x:auto}
+  #mhint .mbtns:empty{display:none}
+  #mhint .mbtns b{font-size:.74rem;white-space:nowrap}
+  #mhint .mbtns button{margin:0;white-space:nowrap;min-height:34px;padding:4px 12px}
   #mhint button{margin-left:6px;font:inherit;font-weight:700;padding:2px 8px;border-radius:5px;border:1px solid var(--sel);background:var(--sel);color:var(--sel-fg);min-height:28px}
   #mnav{display:grid;grid-template-columns:repeat(5,1fr);flex:none;background:var(--chrome-3);border-top:1px solid var(--chrome-line);padding-bottom:env(safe-area-inset-bottom)}
   #mnav button{position:relative;border:0;background:none;padding:6px 2px 7px;min-height:54px;font:inherit;font-size:.66rem;color:var(--chrome-muted);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
@@ -416,7 +421,7 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
   #mnav .bdg{position:absolute;top:4px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d92c2c;color:#fff;font-size:.6rem;line-height:16px;font-weight:700;display:none}
   #mnav .bdg.on{display:block}
   #mnav .bdg.warn{background:#c98a00}
-  #mfab{display:none;position:fixed;right:14px;bottom:calc(120px + env(safe-area-inset-bottom));z-index:30;border:0;border-radius:28px;padding:12px 18px;font:inherit;font-weight:700;font-size:.85rem;color:#fff;background:#2d6d3c;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  #mfab{display:none;position:fixed;right:14px;bottom:var(--mbot, 130px);z-index:30;border:0;border-radius:28px;padding:12px 18px;font:inherit;font-weight:700;font-size:.85rem;color:#fff;background:#2d6d3c;box-shadow:0 4px 14px rgba(0,0,0,.35)}
   #mfab.on{background:#b3262e}
   body.mob[data-mv=board] #mfab{display:block}
   body.mob[data-mv=props] #mhint button{display:none}
@@ -424,6 +429,20 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
 svg.board.wfocus .wire:not(.hl),svg.board.wfocus .wire-halo:not(.hl),svg.board.wfocus .flow:not(.hl),svg.board.wfocus .junc:not(.hl){opacity:.14}
 svg.board.wfocus .wire.hl{stroke-width:3.4}
 svg.board.wfocus .wire-halo.hl{stroke-width:7.5}
+
+#mzoom{display:none}
+@media (max-width:920px){
+  body.mob[data-mv=board] #mzoom{display:flex;position:fixed;left:10px;bottom:var(--mbot, 130px);z-index:30;align-items:center;background:var(--chrome-3);border:1px solid var(--chrome-line);border-radius:24px;box-shadow:0 4px 14px rgba(0,0,0,.25);overflow:hidden}
+  #mzoom button{border:0;background:none;font:inherit;font-size:1.25rem;font-weight:700;width:44px;height:44px;color:inherit}
+  #mzoom output{font-size:.72rem;min-width:40px;text-align:center}
+  #mhint .act{background:#2d6d3c;border-color:#2d6d3c}
+  #mhint .del{background:#b3262e;border-color:#b3262e}
+}
+.term{touch-action:none}
+svg.board.wiring .term .pinend{fill:#ffd34d;stroke:#8a6d00;stroke-width:1.6}
+svg.board.wiring .term.sel .pinend{fill:var(--sel);stroke:var(--sel)}
+svg.board .term.snap .pinend{fill:#3fd16f;stroke:#1b6b34;stroke-width:2.4}
+svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
 </style>
 </head>
 <body>
@@ -556,6 +575,7 @@ svg.board.wfocus .wire-halo.hl{stroke-width:7.5}
   <button type="button" data-mv="erc"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>ตรวจวงจร<span class="bdg" id="bdgErc"></span></button>
 </nav>
 <button type="button" id="mfab">▶ เริ่มจำลอง</button>
+<div id="mzoom" role="group" aria-label="ซูมแผ่นงาน"><button type="button" data-z="out" aria-label="ซูมออก">−</button><output id="mzLbl">62%</output><button type="button" data-z="in" aria-label="ซูมเข้า">+</button><button type="button" data-z="fit" aria-label="พอดีจอ">⤢</button></div>
   <footer class="statusbar">
     <span id="hint"></span>
     <span id="sbCoord" class="mono">X 0  Y 0</span>
@@ -631,6 +651,7 @@ svg.board.wfocus .wire-halo.hl{stroke-width:7.5}
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
+    <li><b>บนโทรศัพท์</b>: ต่อสายโดยลากนิ้วจากขั้วสกรูไปยังขั้วปลายทาง (ขั้วที่ใกล้นิ้วขึ้นสีเขียว ปล่อยนิ้วเพื่อต่อ เลื่อนแผ่นงานให้อัตโนมัติเมื่อลากไปขอบจอ) หรือแตะขั้วแรกแล้วแตะขั้วปลายทาง (ขั้วทั้งหมดเปลี่ยนเป็นสีเหลือง) · ซูมด้วยการถ่างสองนิ้ว (ซูมรอบนิ้วและเลื่อนพร้อมกันได้) แตะสองครั้งที่พื้นว่างเพื่อซูมเข้า/ออก หรือปุ่ม − % + ⤢ มุมซ้ายล่าง ซูมได้ถึง 300% · แตะอุปกรณ์แล้วจะมีปุ่ม พ่นควัน/ดึง/สั่งทำงาน, ตั้งค่า, ลบ · ลากอุปกรณ์ที่เลือกอยู่เพื่อย้าย · ปุ่มหมุน Address ต้องเลือกอุปกรณ์ก่อนจึงจะหมุนได้ (กันแตะโดนพลาด)</li>
     <li><b>อ่านสายง่ายขึ้น</b>: สายของวงจรต่างกันจะถูกแยกเป็นช่องขนานห่างกัน ไม่วิ่งทับกันและไม่ผ่านตัวอุปกรณ์ · จุดที่สายข้ามกันโดยไม่ต่อถึงกัน สายแนวนอนจะโค้งข้าม (hop) ส่วนจุดที่ต่อกันจริงจะอยู่ที่ขั้วสกรูและมีจุดกลมทึบ · ชี้เมาส์ที่สายหรือขั้ว (หรือแตะเลือกสาย/อุปกรณ์บนมือถือ) วงจรนั้นทั้งเส้นจะเด่นขึ้นและสายอื่นจางลง</li>
     <li><b>ตู้แบบของจริง (CAB-4 + CHS-4L) และสายภายในตู้</b>: CPU2-3030D + คีย์บอร์ด/จอ (TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security, TB7 ACS ที่ขอบบน · J13 Power, J7 SLC Data ที่ขอบล่าง) · DVC-KD + กล่องไมค์/หูโทรศัพท์ (ถ้าติด DVC) · CHS-4L: LCM-320 (LEM-320 ติดด้านหลัง) TB1 = B+ A+ B− A− · APS2-6R (เลือกติด) · AMPS-24 + CPS-24E ด้านล่าง และขั้ว AC 220V IN · ต้องต่อเอง: สาย 75637 J13 ↔ AMPS-24 MAIN 24V (ไม่ต่อ = ตู้ดับ) · สายแพ 75565 J7 → J1 (Data in) ของ LCM ตัวแรก, J3 (Data out) → J1 ตัวถัดไป (ไม่ต่อ = LOOP x-y COMM FAILURE) · AC L/N/G → CPS-24E (ไม่มี AC แต่มีแบต = AC FAIL) · ตั้ง SW1 บน LCM เป็น Loop 1, 3, 5, 7, 9 ห้ามซ้ำ (LEM ได้เลขถัดไป) · สายภาคสนามออกทางรางสายด้านขวาของตู้ · คลิกตู้เพื่อ "ต่อสายภายในตู้ให้อัตโนมัติ" หรือ "ถอดสายภายในตู้ (ฝึกต่อเอง)"</li>
     <li><b>FlashScan / CLIP (SLC Wiring Manual 1.5, 1.9 · Programming Manual 3.3.4, ภาคผนวก F)</b>: ตั้งที่ PANEL PROGRAM › MORE › LOOP CONFIGURATION (DETECTOR POLL / MODULE POLL / RAPID POLL / BLINK MODE) · FlashScan ถามเป็นกลุ่ม พบข้อมูลใหม่จึงถามตัวนั้นตรงๆ (ตอบสนองเร็ว) · CLIP ถามทีละ Address และใช้ Address ได้แค่ 01–99 (เกินนั้นตู้แจ้ง NO ANSWER) เกิน 99 จุดตอบสนองช้า · ไฟ LED บนอุปกรณ์ตามตาราง 1.4: FlashScan ปกติกะพริบเขียว / CLIP กะพริบแดง (Control module กะพริบเขียว) · Alarm แดงค้าง · Control module ทำงานเขียวค้าง · Prealarm (FlashScan) เขียวค้าง · BLINK MODE OFF ไฟหัวและ Monitor ดับ · Walk Test แบบ FlashScan กะพริบเลข Address (37 = 3 ครั้ง เว้น 7 ครั้ง) · ทดสอบหัวเป็นระยะ ไฟเขียวค้างไม่กี่วินาที · หัวที่เพิ่ง Autoprogram เพิ่ม/เปลี่ยน หรือกลับมาจาก NO ANSWER ต้อง Initialize ~2.5 นาที (เขียวค้าง ไม่รายงานเหตุ ตู้ขึ้น SYSTEM INITIALIZATION) · แท็บ "SLC Poll" แสดงการถามจริงแบบเคลื่อนไหวและเวลาที่ตู้ใช้รับรู้เหตุ (ตัวเลขเวลาเป็นค่าสาธิต คู่มือไม่ได้ระบุ)</li>
@@ -1944,12 +1965,21 @@ board.addEventListener('pointerout', ev => { if (ev.target.closest('.wire-hit') 
 
 /* ================= interaction ================= */
 const TOUCH = window.matchMedia && matchMedia('(pointer:coarse)').matches;
-const HINT = TOUCH ? 'แตะขั้วสกรูตัวแรก แล้วแตะขั้วปลายทางเพื่อต่อสาย · ปัดเพื่อเลื่อนบอร์ด · แตะอุปกรณ์เพื่อเลือก แล้วลากเพื่อย้าย · แตะสายเพื่อลบหรือจำลองสายขาด' : 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
+const HINT = TOUCH ? 'ต่อสาย: ลากนิ้วจากขั้วสกรูไปขั้วปลายทาง (หรือแตะขั้วแรกแล้วแตะขั้วปลายทาง) · ซูม: ถ่างสองนิ้ว / แตะสองครั้ง / ปุ่ม − + · แตะอุปกรณ์เพื่อเลือก แล้วลากเพื่อย้าย' : 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
 function hint(t) {
   $('hint').textContent = t || HINT;
   const m = $('mhint'); if (!m) return;
-  m.textContent = t || HINT;
-  if (document.body.classList.contains('mob') && document.body.dataset.mv !== 'panel' && /หน้าตู้|ACK|RESET/.test(t || '')) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'หน้าตู้ ›'; b.addEventListener('click', () => setMV('panel')); m.append(' ', b); }
+  if (!document.body.classList.contains('mob')) { m.textContent = t || HINT; return; }
+  if (pending && TERM[pending]) { mobWireBar(t); return; }
+  const p = selP && byId(selP), bx = mobStrip(t || (p ? '' : HINT));
+  if (document.body.dataset.mv !== 'panel' && /หน้าตู้|ACK|RESET/.test(t || '')) bx.append(mBtn('หน้าตู้ ›', () => setMV('panel')));
+  if (p) mobSelButtons(p, bx);
+}
+function mobStrip(text) {   // message (max two lines) + a row of buttons that always stays visible
+  const m = $('mhint'); m.innerHTML = '';
+  const tx = document.createElement('span'); tx.className = 'mtxt'; tx.textContent = text; tx.title = text;
+  const bx = document.createElement('div'); bx.className = 'mbtns';
+  m.append(tx, bx); return bx;
 }
 function autoColor(k) {
   const t = TERM[k];
@@ -1963,15 +1993,60 @@ function autoColor(k) {
 function svgPt(ev) { const pt = board.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; return pt.matrixTransform(board.getScreenCTM().inverse()); }
 function clickTerm(k) {
   selW = null;
-  if (!pending) { pending = k; hint(`เลือก ${nameOf(TERM[k].part)} ขั้ว ${TERM[k].lb || TERM[k].k} แล้ว คลิกขั้วปลายทาง`); drawTerms(); return; }
-  if (pending === k) { pending = null; hint(); drawTerms(); gRubber.style.display = 'none'; return; }
+  if (!pending) { pending = k; board.classList.add('wiring'); hint(`เลือก ${nameOf(TERM[k].part)} ขั้ว ${TERM[k].lb || TERM[k].k} แล้ว ${TOUCH ? 'แตะ' : 'คลิก'}ขั้วปลายทาง (ขั้วที่ต่อได้เป็นสีเหลือง) หรือลากนิ้วจากขั้วไปยังขั้วปลายทาง`); drawTerms(); mobWireBar(); return; }
+  if (pending === k) { pending = null; board.classList.remove('wiring'); hint(); drawTerms(); gRubber.style.display = 'none'; return; }
   const a = pending, b = k;
-  pending = null; gRubber.style.display = 'none';
+  pending = null; board.classList.remove('wiring'); gRubber.style.display = 'none';
   if (wires.some(w => (w.a === a && w.b === b) || (w.a === b && w.b === a))) { hint('มีสายเส้นนี้อยู่แล้ว'); drawTerms(); return; }
   hint(TERM[a].part === TERM[b].part && TERM[a].part.t !== 'facp' ? 'ต่อสายคร่อมขั้วของอุปกรณ์ตัวเดียวกัน (ลัดวงจร)' : '');
   wires.push({id:wseq++, a, b, color: color === 'auto' ? autoColor(a) : color, cut:false});
   changed();
 }
+// drag from a terminal to another terminal to wire it (finger or mouse); tap-tap still works
+let wdrag = null;
+function nearestTerm(pt, skip) {
+  const s = board.getBoundingClientRect().width / BW, lim = (TOUCH ? 34 : 18) / s;
+  let best = null, bd = lim;
+  for (const [k, t] of Object.entries(TERM)) { if (k === skip) continue; const d = Math.hypot(t.x - pt.x, t.y - pt.y); if (d < bd) { bd = d; best = k; } }
+  return best;
+}
+function markSnap(k) { board.querySelectorAll('.term.snap').forEach(e => e.classList.remove('snap')); if (k) { const e = board.querySelector(`.term[data-k="${CSS.escape(k)}"]`); if (e) e.classList.add('snap'); } }
+function cancelWireDrag() { if (!wdrag) return; wdrag = null; markSnap(null); gRubber.style.display = 'none'; board.classList.toggle('wiring', !!pending); }
+board.addEventListener('pointerdown', ev => {
+  const t = ev.target.closest('.term'); if (!t || ev.button > 0) return;
+  wdrag = {k:t.dataset.k, id:ev.pointerId, x:ev.clientX, y:ev.clientY, moved:false};
+});
+board.addEventListener('pointermove', ev => {
+  if (!wdrag || ev.pointerId !== wdrag.id) return;
+  if (!wdrag.moved && Math.hypot(ev.clientX - wdrag.x, ev.clientY - wdrag.y) < 8) return;
+  if (!wdrag.moved) { wdrag.moved = true; try { board.setPointerCapture(ev.pointerId); } catch (e) {} pending = wdrag.k; selW = null; drawTerms(); board.classList.add('wiring'); }
+  const pt = svgPt(ev), A = TERM[wdrag.k], k = nearestTerm(pt, wdrag.k), B = k && TERM[k];
+  gRubber.setAttribute('d', `M${A.x} ${A.y} L${B ? B.x : pt.x} ${B ? B.y : pt.y}`); gRubber.style.display = '';
+  markSnap(k); wdrag.target = k;
+  hint(k ? `ปล่อยเพื่อต่อสาย ${refdes(A.part)} ${A.lb || A.k} → ${refdes(B.part)} ${B.lb || B.k}` : `ลากไปที่ขั้วปลายทาง (ขั้วที่ใกล้นิ้วจะขึ้นสีเขียว)`);
+  const w = $('boardWrap'), r = w.getBoundingClientRect(), e = 36, sp = 12, mx = ev.clientX - wdrag.x, my = ev.clientY - wdrag.y;   // auto-scroll near the edge the finger moves toward
+  if (Math.hypot(mx, my) > 40) {
+    if (ev.clientX < r.left + e && mx < 0) w.scrollLeft -= sp; else if (ev.clientX > r.right - e && mx > 0) w.scrollLeft += sp;
+    if (ev.clientY < r.top + e && my < 0) w.scrollTop -= sp; else if (ev.clientY > r.bottom - e && my > 0) w.scrollTop += sp;
+  }
+});
+const endWire = ev => {
+  if (!wdrag || ev.pointerId !== wdrag.id) return;
+  const d = wdrag; wdrag = null; markSnap(null);
+  if (!d.moved) { if (ev.pointerType === 'touch' && ev.type === 'pointerup') { justDragged = true; setTimeout(() => justDragged = false, 60); clickTerm(d.k); } return; }   // a tap: wire tap-by-tap
+  justDragged = true; setTimeout(() => justDragged = false, 60);
+  pending = d.k;
+  if (d.target && ev.type === 'pointerup') clickTerm(d.target);
+  else { pending = null; gRubber.style.display = 'none'; drawTerms(); hint('ยกเลิกการลากสาย'); }
+  board.classList.toggle('wiring', !!pending);
+};
+board.addEventListener('pointerup', endWire); board.addEventListener('pointercancel', endWire);
+// SVG children ignore CSS touch-action, so stop the browser from turning a drag on a terminal / the selected device into a scroll
+board.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1 || !e.target.closest) return;
+  const g = e.target.closest('.part');
+  if (e.target.closest('.term') || (g && g.dataset.p === selP && selP !== 'P' && !e.target.closest('.hot, .adial'))) e.preventDefault();
+}, {passive:false});
 let drag = null;
 board.addEventListener('pointerdown', ev => {
   if (ev.target.closest('.term') || ev.target.closest('.wire-hit') || ev.target.closest('.hot') || ev.target.closest('.adial')) return;
@@ -2013,6 +2088,7 @@ board.addEventListener('pointercancel', endDrag);
 board.addEventListener('click', ev => {
   if (justDragged) return;
   const ad = ev.target.closest('.adial');
+  if (ad && TOUCH && selP !== ad.dataset.p) { selectPart(ad.dataset.p); hint(`เลือก ${refdes(byId(ad.dataset.p))} แล้ว แตะปุ่มหมุนอีกครั้งเพื่อเปลี่ยน Address`); return; }
   if (ad) { stepAddr(ad.dataset.p, ad.dataset.d, ev.shiftKey ? -1 : 1); return; }
   const hot = ev.target.closest('.hot');
   if (hot) { triggerDevice(hot.dataset.trig); return; }
@@ -2022,7 +2098,7 @@ board.addEventListener('click', ev => {
   if (w) { selW = +w.dataset.w; pending = null; selP = null; renderInsp(); gRubber.style.display = 'none'; const W = wires.find(x => x.id === selW); hint(`เลือกสาย ${nameOf(TERM[W.a].part)} ${TERM[W.a].lb} → ${nameOf(TERM[W.b].part)} ${TERM[W.b].lb}`); drawTerms(); drawWires(); updateBtns(); return; }
   const g = ev.target.closest('.part');
   if (g) { selectPart(g.dataset.p); return; }
-  if (pending || selW) { pending = null; selW = null; gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
+  if (pending || selW) { pending = null; selW = null; board.classList.remove('wiring'); gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
 });
 board.addEventListener('keydown', ev => {
   if (ev.key !== 'Enter' && ev.key !== ' ') return;
@@ -2031,7 +2107,7 @@ board.addEventListener('keydown', ev => {
 });
 document.addEventListener('keydown', ev => {
   if (/input|select/i.test(document.activeElement.tagName)) return;
-  if (ev.key === 'Escape') { pending = null; selW = null; gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
+  if (ev.key === 'Escape') { pending = null; selW = null; board.classList.remove('wiring'); gRubber.style.display = 'none'; hint(); drawTerms(); drawWires(); updateBtns(); }
   if ((ev.key === 'Delete' || ev.key === 'Backspace') && selW) delSel();
   else if ((ev.key === 'Delete' || ev.key === 'Backspace') && selP && selP !== 'P') delPart();
   if (ev.key === 'F5') { ev.preventDefault(); toggleRun(); }
@@ -4746,11 +4822,20 @@ function changed(opts = {}) { save(); drawAll(); renderCards(); if (!opts.keepIn
 const narrow = () => window.innerWidth <= 920;
 let zoom = 1;
 const fitZoom = () => Math.max(0.3, ($('boardWrap').clientWidth - 2) / BW);
+const ZMAX = () => (narrow() || TOUCH ? 3 : 2);
+function setZoomAt(z, cx, cy) {   // keep the sheet point under (cx, cy) fixed on screen
+  const wrap = $('boardWrap'), r0 = board.getBoundingClientRect(), s0 = r0.width / BW;
+  const sx = (cx - r0.left) / s0, sy = (cy - r0.top) / s0;
+  setZoom(z, false);
+  const r1 = board.getBoundingClientRect(), s1 = r1.width / BW;
+  wrap.scrollLeft += r1.left + sx * s1 - cx; wrap.scrollTop += r1.top + sy * s1 - cy;
+}
 function setZoom(z, keepCenter = true) {
   const wrap = $('boardWrap');
   const old = board.getBoundingClientRect().width || BW * zoom;
   const cx = (wrap.scrollLeft + wrap.clientWidth / 2) / old, cy = (wrap.scrollTop + wrap.clientHeight / 2) / (old * BH / BW);
-  zoom = Math.min(2, Math.max(0.3, z));
+  zoom = Math.min(ZMAX(), Math.max(0.3, z));
+  if ($('mzLbl')) $('mzLbl').textContent = Math.round(Math.min(ZMAX(), Math.max(0.3, z)) * 100) + '%';
   board.style.width = Math.round(BW * zoom) + 'px';
   $('zLbl').textContent = $('sbZoom').textContent = Math.round(zoom * 100) + '%';
   if (keepCenter) { const nw = BW * zoom; wrap.scrollLeft = cx * nw - wrap.clientWidth / 2; wrap.scrollTop = cy * nw * BH / BW - wrap.clientHeight / 2; }
@@ -4768,12 +4853,26 @@ function setMV(v) {
   if (v === 'board') setTimeout(() => setZoom(zoom), 0);
   try { localStorage.setItem('facp-mv', v); } catch (e) {}
 }
-function mobSel(p) {
-  const m = $('mhint');
-  m.innerHTML = '';
-  m.append(`เลือก ${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : label(p)} `);
-  const b = document.createElement('button'); b.type = 'button'; b.textContent = p.t === 'facp' ? 'สายภายในตู้ ›' : 'ตั้งค่า ›';
-  b.addEventListener('click', () => setMV('props')); m.append(b);
+const mBtn = (txt, fn, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; if (cls) b.className = cls; b.addEventListener('click', fn); return b; };
+function actLabel(p) {
+  const ty = T(p); if (!ty) return null;
+  if (ty.cat === 'det' && ty.role !== 'refl') return p.act ? (isHeat(p) ? 'ทำให้เย็น' : 'ไล่ควัน') : (isHeat(p) ? 'ให้ความร้อน' : 'พ่นควัน');
+  if (p.t === 'pull' || p.t === 'apull') return p.act ? 'รีเซ็ตแมนนวล' : 'ดึงแมนนวล';
+  if (ty.role === 'contact') return p.act ? 'คืนสภาพ' : 'สั่งทำงาน';
+  return null;
+}
+function mobSelButtons(p, m) {
+  const tag = document.createElement('b'); tag.textContent = refdes(p); m.append(tag);
+  const a = p.t !== 'facp' && actLabel(p);
+  if (a) m.append(mBtn(a, () => triggerDevice(p.id), 'act'));
+  m.append(mBtn(p.t === 'facp' ? 'สายภายในตู้ ›' : 'ตั้งค่า ›', () => setMV('props')));
+  if (p.t !== 'facp') m.append(mBtn('ลบ', () => { if (confirm(`ลบ ${refdes(p)}?`)) delPart(); }, 'del'));
+}
+function mobSel(p) { hint(`เลือก ${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : label(p)}${p.t !== 'facp' ? ' · ลากตัวอุปกรณ์เพื่อย้าย · ลากนิ้วจากขั้วสกรูเพื่อต่อสาย' : ''}`); }
+function mobWireBar(msg) {
+  if (!document.body.classList.contains('mob') || !pending) return;
+  const t = TERM[pending], m = mobStrip(msg && /ปล่อย|ลาก/.test(msg) ? msg : `ต่อสายจาก ${refdes(t.part)} ${t.lb || t.k} → แตะขั้วปลายทาง (สีเหลือง) หรือลากนิ้วไปที่ขั้ว`);
+  m.append(mBtn('ยกเลิก', () => { pending = null; board.classList.remove('wiring'); gRubber.style.display = 'none'; drawTerms(); hint(); }, 'del'));
 }
 function mobLayout() {
   const on = narrow();
@@ -4785,13 +4884,36 @@ function mobLayout() {
   if (dr[0]) dr[0].classList.add('mv-props'); if (dr[1]) dr[1].classList.add('mv-panel'); if (dr[2]) dr[2].classList.add('mv-tests');
   $('mnav').addEventListener('click', ev => { const b = ev.target.closest('[data-mv]'); if (b) setMV(b.dataset.mv); });
   $('mfab').addEventListener('click', () => $('runBtn').click());
+  const place = () => document.body.style.setProperty('--mbot', ($('mnav').offsetHeight + $('mhint').offsetHeight + 10) + 'px');
+  if (window.ResizeObserver) { const ro = new ResizeObserver(place); ro.observe($('mhint')); ro.observe($('mnav')); } else setInterval(place, 500);
+  $('mzoom').addEventListener('click', ev => { const b = ev.target.closest('[data-z]'); if (!b) return; const w = $('boardWrap').getBoundingClientRect(), cx = w.left + w.width / 2, cy = w.top + w.height / 2;
+    if (b.dataset.z === 'in') setZoomAt(zoom * 1.3, cx, cy); else if (b.dataset.z === 'out') setZoomAt(zoom / 1.3, cx, cy); else setZoom(fitZoom()); });
   window.addEventListener('resize', mobLayout);
   mobLayout();
   // pinch to zoom the sheet
   const w = $('boardWrap'); let pz0 = null;
   const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-  w.addEventListener('touchstart', e => { if (e.touches.length === 2) pz0 = {d:dist(e.touches), z:zoom}; }, {passive:true});
-  w.addEventListener('touchmove', e => { if (pz0 && e.touches.length === 2) { e.preventDefault(); setZoom(pz0.z * dist(e.touches) / pz0.d); } }, {passive:false});
+  const mid = t => [(t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2];
+  w.addEventListener('touchstart', e => { if (e.touches.length === 2) { pz0 = {d:dist(e.touches), z:zoom, m:mid(e.touches)}; if (wdrag) cancelWireDrag(); } }, {passive:true});
+  w.addEventListener('touchmove', e => {
+    if (!pz0 || e.touches.length !== 2) return;
+    e.preventDefault();
+    const m = mid(e.touches);
+    setZoomAt(pz0.z * dist(e.touches) / pz0.d, m[0], m[1]);
+    w.scrollLeft -= m[0] - pz0.m[0]; w.scrollTop -= m[1] - pz0.m[1]; pz0.m = m;   // two-finger pan
+  }, {passive:false});
+  // double-tap on empty sheet: zoom in there, or back to fit when already close
+  let lastTap = 0, tapStart = null, multi = 0, lastPinch = 0;
+  w.addEventListener('touchstart', e => { multi = Math.max(multi, e.touches.length); if (e.touches.length > 1) lastPinch = Date.now(); }, {passive:true});
+  w.addEventListener('touchend', e => { if (!e.touches.length) setTimeout(() => { multi = 0; }, 0); }, {passive:true});
+  w.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') tapStart = {x:e.clientX, y:e.clientY, t:Date.now()}; });
+  w.addEventListener('pointerup', e => {
+    if (e.pointerType !== 'touch' || e.target.closest('.part, .term, .wire-hit, .hot')) return;
+    const now = Date.now();
+    if (multi > 1 || now - lastPinch < 400 || !tapStart || now - tapStart.t > 260 || Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) > 12) { lastTap = 0; return; }
+    if (now - lastTap < 320) { lastTap = 0; if (zoom > 1.3) setZoom(fitZoom()); else setZoomAt(Math.min(ZMAX(), zoom * 1.8), e.clientX, e.clientY); }
+    else lastTap = now;
+  });
   w.addEventListener('touchend', e => { if (e.touches.length < 2) pz0 = null; }, {passive:true});
   // badges + run button state
   setInterval(() => {
