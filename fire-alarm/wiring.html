@@ -443,6 +443,30 @@ svg.board.wiring .term .pinend{fill:#ffd34d;stroke:#8a6d00;stroke-width:1.6}
 svg.board.wiring .term.sel .pinend{fill:var(--sel);stroke:var(--sel)}
 svg.board .term.snap .pinend{fill:#3fd16f;stroke:#1b6b34;stroke-width:2.4}
 svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
+
+#mmenu{display:none}
+@media (max-width:920px){
+  body.mob #mmenu{display:inline-flex;align-items:center;gap:4px;border:1px solid currentColor;background:none;color:var(--title-fg);border-radius:6px;padding:6px 12px;font:inherit;font-size:.82rem;font-weight:700;min-height:36px}
+  body.mob.mtools #mmenu{background:var(--title-fg);color:var(--title)}
+  body.mob .titlebar .model{display:none}
+  body.mob #msheet{position:fixed;left:0;right:0;top:var(--mtop,44px);bottom:var(--mnavh,60px);z-index:70;background:var(--chrome);overflow:auto;padding:10px 12px 20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  body.mob #msheet .toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px;background:none;border:0;overflow:visible}
+  body.mob #msheet .tgrp{display:contents}
+  body.mob #msheet .tb{min-height:44px;padding:6px 10px;border:1px solid var(--chrome-line);border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
+  body.mob #msheet .tb:not(#runBtn):not([aria-pressed=true]){background:var(--chrome-3)}
+  body.mob #msheet .tb[aria-pressed=true]{background:var(--sel);color:var(--sel-fg);border-color:var(--sel)}
+  body.mob #msheet .tb:not(:has(.lbl))::after{content:attr(title);font-size:.78rem}
+  body.mob #msheet .tb[disabled]{opacity:.45}
+  body.mob #msheet .swatches{display:flex;align-items:center;gap:6px;width:100%;padding:4px 0}
+  body.mob #msheet .sw{width:36px;height:36px}
+  body.mob #msheet .menubar{display:block;padding:0;border:0;background:none}
+  body.mob #msheet .menu{margin-top:8px}
+  body.mob #msheet .menu > button{pointer-events:none;font-weight:700;font-size:.8rem;color:var(--chrome-muted);padding:6px 2px}
+  body.mob #msheet .drop{display:block;position:static;box-shadow:none;min-width:0;padding:2px;border-radius:8px}
+  body.mob #msheet .drop button{min-height:44px;padding:8px 12px;font-size:.88rem}
+  body.mob #msheet .drop kbd{display:none}
+  body.mob .app > .menubar,body.mob .app > .toolbar{display:none}
+}
 </style>
 </head>
 <body>
@@ -453,6 +477,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     <span class="file" id="fileName">ระบบพื้นฐาน.fsim</span>
     <span class="model" title="รุ่นตู้ที่จำลอง">NFS2-3030</span>
     <span class="sp"></span>
+    <button type="button" id="mmenu" aria-expanded="false" aria-controls="msheet">☰ เมนู</button>
   </header>
 
   <nav class="menubar" id="menubar" aria-label="เมนู">
@@ -566,6 +591,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     </aside>
   </main>
 
+<div id="msheet" role="dialog" aria-label="เมนูและเครื่องมือ" hidden></div>
 <div id="mhint" aria-live="polite"></div>
 <nav id="mnav" aria-label="มุมมองบนโทรศัพท์">
   <button type="button" data-mv="board"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h4v6h6"/></svg>แผ่นงาน</button>
@@ -4874,9 +4900,19 @@ function mobWireBar(msg) {
   const t = TERM[pending], m = mobStrip(msg && /ปล่อย|ลาก/.test(msg) ? msg : `ต่อสายจาก ${refdes(t.part)} ${t.lb || t.k} → แตะขั้วปลายทาง (สีเหลือง) หรือลากนิ้วไปที่ขั้ว`);
   m.append(mBtn('ยกเลิก', () => { pending = null; board.classList.remove('wiring'); gRubber.style.display = 'none'; drawTerms(); hint(); }, 'del'));
 }
+function mobSheet(open) {
+  const sh = $('msheet'), on = document.body.classList.contains('mob');
+  open = on && open;
+  document.body.classList.toggle('mtools', open); sh.hidden = !open; $('mmenu').setAttribute('aria-expanded', String(open));
+  if (open) { document.body.style.setProperty('--mtop', document.querySelector('.titlebar').getBoundingClientRect().bottom + 'px'); document.body.style.setProperty('--mnavh', $('mnav').offsetHeight + 'px'); }
+}
 function mobLayout() {
   const on = narrow();
   document.body.classList.toggle('mob', on);
+  // the menubar and toolbar live in the ☰ sheet on a phone, back in the window on a wide screen
+  const sh = $('msheet'), mb = $('menubar'), tb = document.querySelector('.toolbar'), app = document.querySelector('.app'), work = document.querySelector('.work');
+  if (on && mb.parentElement !== sh) { sh.append(tb, mb); }
+  else if (!on && mb.parentElement === sh) { app.insertBefore(mb, work); app.insertBefore(tb, work); mobSheet(false); }
   if (on && !document.body.dataset.mv) { let v = 'board'; try { v = localStorage.getItem('facp-mv') || 'board'; } catch (e) {} setMV(v); }
 }
 (function initMobile() {
@@ -4884,6 +4920,9 @@ function mobLayout() {
   if (dr[0]) dr[0].classList.add('mv-props'); if (dr[1]) dr[1].classList.add('mv-panel'); if (dr[2]) dr[2].classList.add('mv-tests');
   $('mnav').addEventListener('click', ev => { const b = ev.target.closest('[data-mv]'); if (b) setMV(b.dataset.mv); });
   $('mfab').addEventListener('click', () => $('runBtn').click());
+  $('mmenu').addEventListener('click', ev => { ev.stopPropagation(); mobSheet(!document.body.classList.contains('mtools')); });
+  $('msheet').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b || b.closest('.menu > button') === b) return; setTimeout(() => mobSheet(false), 0); });
+  $('mnav').addEventListener('click', () => mobSheet(false), true);
   const place = () => document.body.style.setProperty('--mbot', ($('mnav').offsetHeight + $('mhint').offsetHeight + 10) + 'px');
   if (window.ResizeObserver) { const ro = new ResizeObserver(place); ro.observe($('mhint')); ro.observe($('mnav')); } else setInterval(place, 500);
   $('mzoom').addEventListener('click', ev => { const b = ev.target.closest('[data-z]'); if (!b) return; const w = $('boardWrap').getBoundingClientRect(), cx = w.left + w.width / 2, cy = w.top + w.height / 2;
