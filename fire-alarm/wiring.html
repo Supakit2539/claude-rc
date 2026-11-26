@@ -4,10 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>body{margin:0}[hidden]{display:none!important}</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#26364a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FACP Lab">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<meta name="description" content="ฝึกต่อสายและใช้งานตู้แจ้งเหตุเพลิงไหม้ NFS2-3030 ใช้งานออฟไลน์ได้">
 <title>FACP Wiring Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /* Layout: desktop circuit-simulator shell — title bar, menu bar, toolbar; library dock | schematic sheet + ERC messages | properties/instrument/stimulus dock; status bar. Stacks to one column on phones. */
 :root{
@@ -411,6 +419,13 @@ body.exmode #tabEx{display:inline-flex}
 .xm{fill:none;stroke-width:3;stroke-dasharray:6 4;pointer-events:none}
 .xm.ok{stroke:#1f9d55}.xm.bad{stroke:#e0352b}
 @media (max-width:760px){#ibar{font-size:.78rem;padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;gap:5px}#ibar .xstat{white-space:nowrap}#ibar .btn{padding:6px 8px;white-space:nowrap;flex:none}#xbar{font-size:.78rem;padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;gap:5px}#xbar .xstat{white-space:nowrap}#xbar .btn{padding:6px 8px;white-space:nowrap;flex:none}}
+#appBtn{background:none;border:1px solid transparent;color:inherit;border-radius:6px;padding:3px 6px;cursor:pointer;display:inline-flex;align-items:center}
+#appBtn:hover{border-color:currentColor}
+#appBtn.glow{border-color:#ffd166;color:#ffd166}
+.titlebar .chip.net{background:#b98900;color:#fff;border:0;font-size:.7rem;padding:1px 7px}
+html,body{overscroll-behavior:none}
+body.standalone.mob .titlebar{padding-top:max(6px,env(safe-area-inset-top))}
+body.standalone.mob #mnav{padding-bottom:env(safe-area-inset-bottom)}
 #mnav,#mfab,#mhint{display:none}
 @media (max-width:920px){
   body.mob{display:block;height:100dvh;overflow:hidden;padding:0;margin:0}
@@ -514,7 +529,9 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     <b>FACP Wiring Lab</b>
     <span class="file" id="fileName">ระบบพื้นฐาน.fsim</span>
     <span class="model" title="รุ่นตู้ที่จำลอง">NFS2-3030</span>
+    <span class="chip net" id="netChip" hidden title="ไม่มีอินเทอร์เน็ต ใช้งานต่อได้ งานบันทึกในเครื่อง">ออฟไลน์</span>
     <span class="sp"></span>
+    <button type="button" id="appBtn" title="ใช้เป็นแอป / ใช้ออฟไลน์" aria-label="ใช้เป็นแอป / ใช้ออฟไลน์"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7v7m-3-3 3 3 3-3"/><path d="M10.5 18.5h3"/></svg></button>
     <button type="button" id="mmenu" aria-expanded="false" aria-controls="msheet">☰ เมนู</button>
   </header>
 
@@ -526,6 +543,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
       <button type="button" data-do="pList">งานของฉัน… <kbd>Ctrl+O</kbd></button>
       <hr><button type="button" data-do="pExport">ส่งออกเป็นไฟล์ (.json)</button>
       <button type="button" data-do="pImport">เปิดไฟล์จากเครื่อง…</button>
+      <hr><button type="button" data-do="appInst">ใช้เป็นแอปบนมือถือ / ใช้ออฟไลน์…</button>
       <hr><button type="button" data-do="exBasic">เปิดตัวอย่าง: ระบบพื้นฐาน</button>
       <button type="button" data-do="exFull">เปิดตัวอย่าง: ระบบเต็ม</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">แก้ไข</button><div class="drop" role="menu">
@@ -2528,6 +2546,7 @@ menubar.addEventListener('click', ev => {
   else if (k === 'pList') projList();
   else if (k === 'pExport') exportFile(null, projName());
   else if (k === 'pImport') $('fileIn').click();
+  else if (k === 'appInst') appDialog();
   else if (k === 'pgTable') openProgram();
   else if (k === 'exercise') exStartDialog();
   else if (k === 'install') instStartDialog();
@@ -5688,6 +5707,59 @@ function instPanel() {
   $('tabErc').before(tab); tab.addEventListener('click', () => setTab('inst'));
   $('instBtn').addEventListener('click', instStartDialog);
   document.addEventListener('click', ev => { if (!INST.on) return; const b = ev.target.closest('#clear,#exBasic,#exFull,[data-do=new],[data-do=exBasic],[data-do=exFull],[data-do=pImport],[data-do=pList],#projBtn,#exBtn,[data-do=exercise]'); if (!b) return; ev.stopPropagation(); ev.preventDefault(); hint('ระหว่างทำโจทย์ใช้คำสั่งนี้ไม่ได้ กด "ออก" ที่แถบโจทย์ก่อน'); }, true);
+})();
+
+/* ================= phone app (PWA) + offline ================= */
+const APPV = {prompt:null, sw:false, ready:false};
+const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const hasManifest = () => !!document.querySelector('link[rel=manifest]');
+function netChip() { const c = $('netChip'); if (!c) return; c.hidden = navigator.onLine !== false; }
+async function offlineFile() {
+  // the published page carries a self-contained copy (fonts embedded) next to it
+  const r = await fetch('facp-offline.html', {cache:'no-cache'});
+  if (!r.ok) throw new Error('missing');
+  return r.text();
+}
+async function saveOffline() {
+  let data;
+  try { data = await offlineFile(); } catch (e) { modal('ดาวน์โหลดไม่ได้', '<p>หน้านี้ไม่มีไฟล์ออฟไลน์แนบมา หรือตอนนี้ไม่ได้ต่ออินเทอร์เน็ต</p>'); return; }
+  const name = 'FACP-Wiring-Lab.html';
+  try { const dl = window.claude && await window.claude.use('downloads'); if (dl) { await dl.save({filename:name, data}); return; } } catch (e) { if (e && e.code === 'declined') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type:'text/html'})); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function appDialog() {
+  const inst = isStandalone(), can = !!APPV.prompt, pwa = hasManifest();
+  let status;
+  if (inst) status = `<p class="c-ok"><b>✓ เปิดอยู่ในรูปแบบแอปแล้ว</b>${APPV.ready ? ' · พร้อมใช้งานออฟไลน์' : ''}</p>`;
+  else if (pwa && APPV.ready) status = '<p class="c-ok"><b>✓ หน้านี้พร้อมใช้งานออฟไลน์แล้ว</b> (เก็บไว้ในเครื่องแล้ว)</p>';
+  else status = '';
+  const how = isIOS()
+    ? '<ol><li>เปิดหน้านี้ใน <b>Safari</b></li><li>แตะปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรขึ้น)</li><li>เลือก <b>เพิ่มไปยังหน้าจอโฮม</b> (Add to Home Screen) แล้วแตะ <b>เพิ่ม</b></li></ol>'
+    : '<ol><li>เปิดหน้านี้ใน <b>Chrome</b> (Android) หรือ Edge/Chrome บนคอม</li><li>แตะเมนู <b>⋮</b> แล้วเลือก <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></li></ol>';
+  const body = `${status}
+    ${pwa ? `<p><b>ติดตั้งเป็นแอปบนโทรศัพท์</b> ไอคอนจะอยู่บนหน้าจอโฮม เปิดเต็มจอเหมือนแอป และใช้งานได้แม้ไม่มีอินเทอร์เน็ต (งานที่บันทึกเก็บอยู่ในเครื่อง)</p>${can ? '' : inst ? '' : how}`
+      : `<p><b>ติดตั้งเป็นแอป:</b> เปิดเวอร์ชันแอปที่โฮสต์บนเว็บ (GitHub Pages) แล้วใช้คำสั่ง "เพิ่มไปยังหน้าจอโฮม" / "ติดตั้งแอป" ของเบราว์เซอร์</p>`}
+    <p><b>ไฟล์ใช้งานออฟไลน์:</b> ดาวน์โหลดเป็นไฟล์ .html ไฟล์เดียว (มีฟอนต์ในตัว) เปิดได้ด้วยเบราว์เซอร์โดยไม่ต้องต่ออินเทอร์เน็ต เหมาะกับคอมพิวเตอร์และแท็บเล็ต</p>
+    <p class="note">งานที่บันทึกเก็บแยกตามที่เปิดใช้ (แอป / ไฟล์ / หน้าเว็บ) ย้ายงานได้ด้วย ไฟล์ › ส่งออกเป็นไฟล์ แล้ว เปิดไฟล์จากเครื่อง</p>`;
+  const btns = [['ปิด', '']];
+  btns.push(['ดาวน์โหลดไฟล์ออฟไลน์', '', saveOffline]);
+  if (can && !inst) btns.push(['ติดตั้งแอป', 'pri', async () => { const p = APPV.prompt; APPV.prompt = null; p.prompt(); try { const r = await p.userChoice; if (r.outcome === 'accepted') hint('ติดตั้งแอปแล้ว เปิดได้จากไอคอนบนหน้าจอ'); } catch (e) {} }]);
+  modal('ใช้เป็นแอป / ใช้งานออฟไลน์', body, btns);
+}
+(function initPWA() {
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); APPV.prompt = e; const b = $('appBtn'); if (b) b.classList.add('glow'); });
+  window.addEventListener('appinstalled', () => { APPV.prompt = null; hint('ติดตั้งแอปแล้ว'); });
+  window.addEventListener('online', netChip); window.addEventListener('offline', netChip); netChip();
+  if (isStandalone()) document.body.classList.add('standalone');
+  if ('serviceWorker' in navigator && hasManifest() && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      APPV.sw = true;
+      navigator.serviceWorker.ready.then(() => { APPV.ready = true; });
+      reg.addEventListener('updatefound', () => { const n = reg.installing; if (!n) return; n.addEventListener('statechange', () => { if (n.state === 'installed' && navigator.serviceWorker.controller) { hint('มีเวอร์ชันใหม่ของแอป · ปิดแล้วเปิดใหม่เพื่ออัปเดต'); } }); });
+    }).catch(() => {});
+  }
+  $('appBtn').addEventListener('click', appDialog);
 })();
 
 /* ================= boot ================= */
