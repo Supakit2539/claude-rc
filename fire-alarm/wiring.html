@@ -388,9 +388,20 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
 .pane-h .ftabs[role=tablist] .chip{white-space:nowrap;flex:none}
 
 /* ---------- phone layout: one view at a time + bottom tab bar ---------- */
-#xbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 10px;background:color-mix(in srgb,#d9a400 18%,var(--chrome));border-bottom:1px solid var(--chrome-line);font-size:.85rem}
-#xbar .xstat{font-weight:600;margin-right:auto;font-variant-numeric:tabular-nums}
-#xbar .btn{padding:4px 10px}
+#xbar,#ibar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 10px;background:color-mix(in srgb,#d9a400 18%,var(--chrome));border-bottom:1px solid var(--chrome-line);font-size:.85rem}
+#xbar .xstat,#ibar .xstat{font-weight:600;margin-right:auto;font-variant-numeric:tabular-nums}
+#xbar .btn,#ibar .btn{padding:4px 10px}
+#ibar{background:color-mix(in srgb,#2b7bd6 16%,var(--chrome))}
+body.instmode .app{grid-template-rows:auto auto auto auto minmax(0,1fr) auto}
+body.nohelp #tabErc,body.nohelp #tabPoll,body.nohelp #ercFilters,body.nohelp #score{display:none!important}
+#tabInst{display:none}
+body.instmode #tabInst{display:inline-flex}
+.scl{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.scrow{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border:1px solid var(--chrome-line);border-radius:6px;cursor:pointer}
+.scrow input{margin-top:3px;flex:none}
+.ckl{margin:0;padding-left:1.1em;list-style:none}
+.ckl li{margin:2px 0;text-indent:-1.1em;padding-left:0}
+.ckl li span:first-child{display:inline-block;width:1.1em;text-indent:0;font-weight:700}
 body.exmode .app{grid-template-rows:auto auto auto auto minmax(0,1fr) auto}
 body.exmode #tabErc,body.exmode #tabPoll,body.exmode #ercFilters,body.exmode #score{display:none!important}
 #tabEx{display:none}
@@ -399,7 +410,7 @@ body.exmode #tabEx{display:inline-flex}
 .exopts .btn{text-align:left;white-space:normal;min-height:38px}
 .xm{fill:none;stroke-width:3;stroke-dasharray:6 4;pointer-events:none}
 .xm.ok{stroke:#1f9d55}.xm.bad{stroke:#e0352b}
-@media (max-width:760px){#xbar{font-size:.78rem;padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;gap:5px}#xbar .xstat{white-space:nowrap}#xbar .btn{padding:6px 8px;white-space:nowrap;flex:none}}
+@media (max-width:760px){#ibar{font-size:.78rem;padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;gap:5px}#ibar .xstat{white-space:nowrap}#ibar .btn{padding:6px 8px;white-space:nowrap;flex:none}#xbar{font-size:.78rem;padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;gap:5px}#xbar .xstat{white-space:nowrap}#xbar .btn{padding:6px 8px;white-space:nowrap;flex:none}}
 #mnav,#mfab,#mhint{display:none}
 @media (max-width:920px){
   body.mob{display:block;height:100dvh;overflow:hidden;padding:0;margin:0}
@@ -534,7 +545,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     <div class="menu"><button type="button" aria-haspopup="true">จำลอง</button><div class="drop" role="menu">
       <button type="button" data-do="runBtn">เริ่ม / หยุดจำลอง <kbd>F5</kbd></button>
       <button type="button" data-do="rstBtn">SYSTEM RESET</button>
-      <hr><button type="button" data-do="exercise">ฝึกหาจุดเสีย (แบบฝึกหัด)…</button><hr><button type="button" data-do="pgTable">ตารางโปรแกรมตู้ (ตัวช่วยดู/แก้)…</button></div></div>
+      <hr><button type="button" data-do="install">ฝึกติดตั้งตามโจทย์…</button><button type="button" data-do="exercise">ฝึกหาจุดเสีย (แบบฝึกหัด)…</button><hr><button type="button" data-do="pgTable">ตารางโปรแกรมตู้ (ตัวช่วยดู/แก้)…</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">ช่วยเหลือ</button><div class="drop" role="menu">
       <button type="button" data-do="guide">หลักการต่อสายแต่ละส่วน</button>
       <button type="button" data-do="howto">วิธีใช้โปรแกรม</button></div></div>
@@ -546,6 +557,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
       <button class="tb" type="button" id="exBasic" title="ตัวอย่าง: ระบบพื้นฐาน"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">พื้นฐาน</span></button>
       <button class="tb" type="button" id="exFull" title="ตัวอย่าง: ระบบเต็ม"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">ระบบเต็ม</span></button>
       <button class="tb" type="button" id="exBtn" title="ฝึกหาจุดเสีย (แบบฝึกหัด)"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/><path d="M8 10.5h5M10.5 8v5"/></svg><span class="lbl">ฝึกหาจุดเสีย</span></button>
+      <button class="tb" type="button" id="instBtn" title="ฝึกติดตั้งตามโจทย์"><svg viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="M8.5 13l2.5 2.5 4.5-5"/></svg><span class="lbl">ฝึกติดตั้ง</span></button>
     </div>
     <div class="tgrp">
       <button class="tb" type="button" id="undo" title="ย้อนกลับ (Ctrl+Z)" aria-label="ย้อนกลับ"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button><button class="tb" type="button" id="redo" title="ทำซ้ำ (Ctrl+Y)" aria-label="ทำซ้ำ"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button><button class="tb" type="button" id="saveBtn" title="บันทึกงาน (Ctrl+S)" aria-label="บันทึกงาน"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg><span class="lbl">บันทึก</span></button><button class="tb" type="button" id="projBtn" title="งานของฉัน (Ctrl+O)" aria-label="งานของฉัน"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg><span class="lbl">งานของฉัน</span></button>
@@ -2003,7 +2015,7 @@ function drawWires() {
   for (const [li, {w, net}] of list.entries()) {
     const d = ds[li];
     el('path', {class:'wire-halo', d, 'data-net':net}, gWires);
-    const hid = EX.on && w.hid; el('path', {class:'wire' + (w.cut && !hid ? ' cut' : '') + (w.fault && !hid ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && !EX.on && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':w.color === 'rib' ? 5 : 2.4, 'data-net':net}, gWires);
+    const hid = EX.on && w.hid; el('path', {class:'wire' + (w.cut && !hid ? ' cut' : '') + (w.fault && !hid ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && !EX.on && !(INST.on && INST.noHelp) && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':w.color === 'rib' ? 5 : 2.4, 'data-net':net}, gWires);
     if (running && !w.cut && netNow) {
       const r = netNow(w.a);
       if (hotRoots.has(r)) el('path', {class:'flow hot', d, 'data-net':net}, gWires);
@@ -2518,6 +2530,7 @@ menubar.addEventListener('click', ev => {
   else if (k === 'pImport') $('fileIn').click();
   else if (k === 'pgTable') openProgram();
   else if (k === 'exercise') exStartDialog();
+  else if (k === 'install') instStartDialog();
   else if (k === 'guide') showGuide();
   else if (k === 'howto') modal('วิธีใช้โปรแกรม', $('howtoTpl').innerHTML);
   else if (k === 'autoAddr') autoAddress();
@@ -4643,6 +4656,8 @@ setInterval(() => { if (running && !PX.lamp) renderPanel(); }, 1000);
 let bottomTab = 'erc';
 function setTab(t) {
   if (EX.on && (t === 'erc' || t === 'poll')) t = 'ex';
+  if (INST.on && INST.noHelp && (t === 'erc' || t === 'poll')) t = 'inst';
+  if ($('tabInst')) $('tabInst').setAttribute('aria-pressed', String(t === 'inst'));
   bottomTab = t;
   if ($('tabEx')) $('tabEx').setAttribute('aria-pressed', String(t === 'ex'));
   $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist')); $('tabPrn').setAttribute('aria-pressed', String(t === 'prn')); $('tabPoll').setAttribute('aria-pressed', String(t === 'poll'));
@@ -4897,7 +4912,7 @@ function render() {
     result = analyze(); }
   initTick(result);
   syncPanel(result);
-  const S = simulate(result); lastS = S;
+  const S = simulate(result); lastS = S; instObserve(result, S);
   netNow = netFn(); liveRoots = new Set(); hotRoots = new Set();
   if (running) {
     Object.keys(TERM).filter(k => /^P\.(c\d+[me][ab][+-]|x[+-]|t[+-]|sp[+-]|aa|ab|q[+-]|acL|acN|pL|pN|qL|qN)$/.test(k)).forEach(k => { if (termUsed(k)) liveRoots.add(netNow(k)); });
@@ -4933,17 +4948,18 @@ function render() {
     rows += `<tr class="grp"><td class="ic ${LBL[c.state][1]}">${IC[c.state === 'todo' ? 'inf' : c.state][0]}</td><td>${c.title}</td><td><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></td></tr>`;
     rows += items.map(([l, t]) => `<tr><td class="ic ${IC[l][1]}">${IC[l][0]}</td><td colspan="2">${t}</td></tr>`).join('');
   }
-  if (bottomTab === 'ex') exPanel();
+  if (bottomTab === 'inst') instPanel();
+  else if (bottomTab === 'ex') exPanel();
   else if (bottomTab === 'poll') renderPoll();
   else if (bottomTab === 'prn') renderPrinter();
   else if (bottomTab === 'hist') renderHistory();
   else $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
   const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
-  $('sbErr').textContent = EX.on ? `แบบฝึกหัดหาจุดเสีย · ${parts.length} อุปกรณ์ · ${wires.length} สาย` : `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
+  $('sbErr').textContent = INST.on && INST.noHelp ? `โจทย์ติดตั้ง · ${parts.length} อุปกรณ์ · ${wires.length} สาย` : EX.on ? `แบบฝึกหัดหาจุดเสีย · ${parts.length} อุปกรณ์ · ${wires.length} สาย` : `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
   const circs = result.circ.filter(c => !['x', 'loose', 'l2x', 'prog'].includes(c.key));
   const pass = circs.filter(c => c.state === 'ok').length;
   const allOk = pass === circs.length && !result.circ.some(c => ['x', 'l2x'].includes(c.key));
-  $('score').textContent = EX.on ? 'แบบฝึกหัด' : `ผ่าน ${pass}/${circs.length} วงจร`;
+  $('score').textContent = EX.on ? 'แบบฝึกหัด' : INST.on && INST.noHelp ? 'โจทย์' : `ผ่าน ${pass}/${circs.length} วงจร`;
   $('score').className = 'chip ' + (allOk ? 'c-ok' : 'c-muted');
   updateBtns();
 }
@@ -5069,7 +5085,7 @@ function mobLayout() {
     const un = PX.events.filter(e => !e.acked).length, fire = PX.events.some(e => e.type === 'FIRE ALARM' && !e.acked);
     const bp = $('bdgPanel'); bp.textContent = un || ''; bp.classList.toggle('on', !!un); bp.classList.toggle('warn', !!un && !fire);
     const nErr = result ? result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0) : 0;
-    const be = $('bdgErc'); be.textContent = EX.on ? '' : nErr || ''; be.classList.toggle('on', !!nErr && !EX.on);
+    const be = $('bdgErc'); const hideE = EX.on || (INST.on && INST.noHelp); be.textContent = hideE ? '' : nErr || ''; be.classList.toggle('on', !!nErr && !hideE);
     const bs = $('bdgProps'); bs.textContent = selP && selP !== 'P' ? '1' : ''; bs.classList.toggle('on', !!(selP && selP !== 'P')); bs.classList.add('warn');
   }, 400);
 })();
@@ -5302,6 +5318,7 @@ function exInject(level) {
 }
 const fmtT = ms => { const s = Math.floor(ms / 1000); return `${pz(Math.floor(s / 60))}:${pz(s % 60)}`; };
 function exStartDialog() {
+  if (INST.on) { hint('กำลังทำโจทย์ติดตั้งอยู่ ออกจากโจทย์ก่อน'); return; }
   if (EX.on) { exPanel(); return; }
   const best = (() => { try { return JSON.parse(localStorage.getItem('facp-ex-hist') || '[]'); } catch (e) { return []; } })();
   const hist = best.slice(0, 5).map(r => `<li>${new Date(r.at).toLocaleString('th-TH')} · ระดับ ${r.level} · ${r.found}/${r.n} จุด · ${fmtT(r.ms)} · ${r.score} คะแนน (${r.grade})</li>`).join('');
@@ -5433,6 +5450,244 @@ function exMarks() {
   const tab = document.createElement('button'); tab.type = 'button'; tab.id = 'tabEx'; tab.setAttribute('aria-pressed', 'false'); tab.textContent = 'แบบฝึกหัด';
   $('tabErc').before(tab); tab.addEventListener('click', () => setTab('ex'));
   $('exBtn').addEventListener('click', exStartDialog);
+})();
+
+/* ================= install-from-scenario exercises ================= */
+const INST = {on:false, sc:null, t0:0, checks:0, last:null, obs:null, prev:null, timer:null, noHelp:true, done:false};
+const DETS = ['smoke', 'heat', 'multi', 'duct'];
+function instBase(kind) {
+  parts = [{id:'P', t:'facp', x:20, y:20, n:1}]; wires = []; wseq = 1; alarm = null; selP = null; selW = null; pending = null; PROG = {};
+  CARDS.loops = 0; CARDS.dvc = false; CARDS.aps = false; CARDS.sw = [];
+  const b1 = addPart('bat', FW + 80, 1040), b2 = addPart('bat', FW + 260, 1040);
+  rebuildTerms();
+  const W = (a, b, color) => wires.push({id:wseq++, a, b, color:color || autoColor(a), cut:false});
+  if (kind !== 'empty') { wireInternal(); W('P.t+', b1.id + '.+'); W(b1.id + '.-', b2.id + '.+'); W(b2.id + '.-', 'P.t-'); }
+  if (kind === 'loop') {
+    const s1 = addPart('smoke', FW + 70, 30, {addr:1}), s2 = addPart('smoke', FW + 220, 30, {addr:2});
+    rebuildTerms();
+    for (const pol of ['+', '-']) { W(slcTerm(1, 'b') + pol, s1.id + '.s' + pol); W(s1.id + '.s' + pol, s2.id + '.s' + pol); }
+    programAll();
+  }
+  rebuildTerms();
+}
+// helpers the checks use (R = analyze() result)
+function instCtx(R) {
+  const f = netFn();
+  const resp = (t, loop = 1) => parts.filter(p => (Array.isArray(t) ? t.includes(p.t) : p.t === t) && R.resp[p.id] && (p.loop || 1) === loop);
+  const prog = p => { const pr = PROG[addrStr(p)]; return !!(pr && pr.on && TYPECODES[p.t] && TYPECODES[p.t].includes(pr.type)); };
+  const slcAll = parts.filter(p => T(p) && T(p).role === 'slc' && partUsed(p));
+  const on = (a, b) => f(a) === f(b);
+  const outOk = p => !!(R.outs[p.id] && R.outs[p.id].state === 'ok');
+  const circ = k => R.circ.find(c => c.key === k);
+  const dual = R.panel.some(x => /DUAL ADDRESS/.test(x[1])) || R.circ.some(c => c.items.some(i => i[0] === 'err' && /^Address /.test(i[1])));
+  const contactOn = (mm, t) => parts.some(q => q.t === t && (on(q.id + '.c1', mm.id + '.i+') || on(q.id + '.c2', mm.id + '.i+')));
+  return {f, resp, prog, slcAll, on, outOk, circ, dual, contactOn};
+}
+const SCEN = [
+  {id:'pwr', lv:'พื้นฐาน', title:'เปิดตู้ครั้งแรก: เดินสายภายในตู้', base:'empty',
+    brief:'ตู้ NFS2-3030 มาจากโรงงานยังไม่ได้ต่อสายภายใน ให้ต่อไฟ AC เข้าแหล่งจ่าย ต่อไฟ 24V เข้า CPU ต่อแบตเตอรี่สำรอง และต่อสายแพข้อมูลไปที่การ์ด Loop แล้วเปิดตู้ทดสอบไฟสำรอง',
+    tips:['ขั้วอยู่ในตู้ (มุมมองของจริง): AC L/N/G ที่ขั้วต่อด้านล่าง → CPS-24E ของ AMPS-24', 'J13 ของ CPU2-3030 → MAIN 24V ของ AMPS-24 (สายแพ)', 'J7 ของ CPU → J1 ของ LCM-320', 'แบตเตอรี่ 12V 2 ลูกต่ออนุกรม: BAT+ → + ลูก 1, − ลูก 1 → + ลูก 2, − ลูก 2 → BAT−'],
+    req:[
+      ['ไฟ AC 220V (L, N, G) เข้า CPS-24E ถูกขั้ว', (R) => !!R.acOK],
+      ['สาย J13 ของ CPU2-3030 ↔ AMPS-24 MAIN 24V (CPU มีไฟ)', (R) => !!R.cpuPower],
+      ['แบตเตอรี่ 2 ลูกอนุกรม 24V เข้า BAT+ / BAT− ถูกขั้ว', (R) => !R.panel.some(x => x[1] === 'BATTERY')],
+      ['สายแพ J7 → J1 ของ LCM-320 (การ์ด Loop ได้รับ Data)', (R) => !!(R.lcmOK && R.lcmOK[1])]],
+    test:[
+      ['เปิดจำลองแล้วตู้ติด (ไฟ POWER ที่หน้าตู้)', O => O.power],
+      ['ถอดสาย AC ระหว่างจำลอง: ตู้ยังทำงานด้วยแบตเตอรี่และแจ้ง AC FAIL', O => O.trbl.has('AC FAIL') && O.power]]},
+  {id:'slcb', lv:'พื้นฐาน', title:'SLC Loop 1 แบบ Class B', base:'cab',
+    brief:'ตู้ต่อสายภายในพร้อมแล้ว ให้ติดหัวตรวจจับ 3 ตัวและแมนนวลแบบ Addressable 1 ตัวบน Loop 1 (Class B) ตั้ง Address ไม่ให้ซ้ำ ลงโปรแกรมในตู้ แล้วทดสอบการแจ้งเหตุ',
+    tips:['ลากสาย SLC+/SLC− จากขั้ว Loop 1 (B) ของ LCM-320 ไปทีละอุปกรณ์', 'หัวตรวจจับใช้ Address แบบ D (L1D001…) แมนนวล/โมดูลใช้แบบ M (L1M001…) เลขซ้ำข้ามชนิดได้', 'ลงโปรแกรม: MAIN MENU › PROGRAMMING › AUTOPROGRAM หรือเมนู จำลอง › ตารางโปรแกรมตู้', 'ทดสอบ: แตะอุปกรณ์ระหว่างจำลองเพื่อสั่งทำงาน แล้วกด SYSTEM RESET'],
+    req:[
+      ['หัวตรวจจับอย่างน้อย 3 ตัวบน Loop 1 ตอบตู้', (R, X) => X.resp(DETS).length >= 3],
+      ['แมนนวลแบบ Addressable (NBG-12LX) 1 ตัวบน Loop 1 ตอบตู้', (R, X) => X.resp('apull').length >= 1],
+      ['Address ไม่ซ้ำกัน', (R, X) => !X.dual],
+      ['ลงโปรแกรมครบทุกจุด และ Type Code ตรงกับอุปกรณ์จริง', (R, X) => X.slcAll.length > 0 && X.slcAll.every(X.prog)],
+      ['สาย SLC Loop 1 ไม่มีข้อผิดพลาด', (R, X) => { const c = X.circ('slc1'); return !!c && c.state !== 'err'; }]],
+    test:[
+      ['สั่งหัวตรวจจับทำงาน: ตู้แจ้ง FIRE ALARM จากหัวตรวจจับ', O => O.kinds.has('det')],
+      ['ดึงแมนนวล: ตู้แจ้ง FIRE ALARM จากแมนนวล', O => O.kinds.has('apull')],
+      ['กด SYSTEM RESET แล้วตู้กลับสู่สภาวะปกติ (ไม่มีเหตุค้าง)', O => O.cleared]]},
+  {id:'slca', lv:'กลาง', title:'SLC Class A พร้อม Isolator', base:'cab',
+    brief:'เดินสาย Loop 1 แบบ Class A (สายกลับเข้าขั้ว A ของการ์ด) มีหัวตรวจจับอย่างน้อย 4 ตัว แบ่งช่วงด้วย ISO-X อย่างน้อย 2 ตัว ห้ามมี T-tap แล้วทดสอบสายขาด 1 จุด ตู้ต้องแจ้ง CLASS A แต่อุปกรณ์ยังตอบครบ',
+    tips:['ISO-X: สายเข้า IN+/IN− ออก OUT+/OUT−', 'อุปกรณ์ตัวสุดท้ายเดินสายกลับไปที่ขั้ว Loop 1 (A) ของ LCM-320', 'ทุกอุปกรณ์ต้องอยู่บนเส้นทางวงเดียว (ห้ามแตกกิ่ง T-tap)', 'ทดสอบสายขาด: เลือกสายบน Loop แล้วกดปุ่มกรรไกร (จำลองสายขาด)'],
+    req:[
+      ['หัวตรวจจับอย่างน้อย 4 ตัวบน Loop 1 ตอบตู้', (R, X) => X.resp(DETS).length >= 4],
+      ['ISO-X อย่างน้อย 2 ตัวต่ออยู่บน Loop', (R) => parts.filter(p => p.t === 'iso' && partUsed(p)).length >= 2 && !(R.circ.find(c => c.key === 'slc1') || {items:[]}).items.some(i => /ไม่มี Isolator/.test(i[1]))],
+      ['Class A ครบวง ไม่มี T-tap', (R, X) => { const c = X.circ('slc1'); return !!c && c.items.some(i => i[0] === 'ok' && /Class A ครบวง/.test(i[1])); }],
+      ['Address ไม่ซ้ำ และลงโปรแกรมครบ Type ตรง', (R, X) => !X.dual && X.slcAll.length > 0 && X.slcAll.every(X.prog)]],
+    test:[
+      ['จำลองสายขาด 1 จุดบน Loop: ตู้แจ้ง CLASS A POS/NEG LOOP 1', O => [...O.trbl].some(t => /^CLASS A (POS|NEG) LOOP 1/.test(t))],
+      ['ต่อสายคืนแล้วกด SYSTEM RESET: ตู้กลับสู่สภาวะปกติ', O => O.cleared]]},
+  {id:'nac', lv:'กลาง', title:'วงจรเสียงเตือน (NAC) ผ่าน FCM-1', base:'loop',
+    brief:'Loop 1 มีหัวควัน 2 ตัวลงโปรแกรมแล้ว ให้ติด Control module FCM-1 ป้อนไฟ 24V จาก AUX ของ AMPS-24 ต่อ Horn/Strobe อย่างน้อย 2 ตัวบน OUT ปิดท้ายด้วย EOL 47kΩ ลงโปรแกรม แล้วทดสอบว่าเกิดเหตุแล้วเสียงดัง และกด SIGNAL SILENCE แล้วเงียบ',
+    tips:['FCM-1: SLC+/SLC− เข้า Loop · 24V+/24V− จาก AUX ของ AMPS-24 · OUT+/OUT− ไปที่ Horn/Strobe', 'Horn/Strobe ต่อแบบผ่าน (+ ต่อ +, − ต่อ −) ตัวสุดท้ายคร่อม EOL 47kΩ', 'ตั้ง Type ของ FCM-1 เป็น CONTROL หรือ HORN/STROBE'],
+    req:[
+      ['FCM-1 ตอบตู้บน Loop 1 และลงโปรแกรม Type ตรง', (R, X) => { const c = X.resp('cm'); return c.length >= 1 && c.every(X.prog); }],
+      ['FCM-1 ได้ไฟ 24VDC จาก AUX ของ AMPS-24', (R, X) => X.resp('cm').some(c => R.power[c.id])],
+      ['Horn/Strobe อย่างน้อย 2 ตัวบนวงจร OUT ของ FCM-1', (R, X) => X.resp('cm').some(c => instNacOf(c, X).length >= 2)],
+      ['วงจร OUT ถูกขั้ว ปิดท้าย EOL 47kΩ ไม่มีข้อผิดพลาด', (R, X) => X.resp('cm').some(c => X.outOk(c) && instNacOf(c, X).length >= 2)],
+      ['Address ไม่ซ้ำ และลงโปรแกรมครบทุกจุด', (R, X) => !X.dual && X.slcAll.every(X.prog)]],
+    test:[
+      ['เกิด FIRE ALARM แล้ว Horn/Strobe บน FCM-1 ดังครบทุกตัว', O => O.nacAll],
+      ['กด SIGNAL SILENCE แล้วเสียงหยุด', O => O.silenced],
+      ['กด SYSTEM RESET แล้วตู้กลับสู่สภาวะปกติ', O => O.cleared]]},
+  {id:'mon', lv:'กลาง', title:'Flow switch และ Tamper (Supervisory)', base:'loop',
+    brief:'ระบบสปริงเกลอร์ต้องการให้ตู้รู้เมื่อมีน้ำไหล (แจ้ง FIRE ALARM) และเมื่อวาล์วถูกปิด (แจ้ง SUPERVISORY) ให้ใช้ FMM-1 สองตัว ต่อ Flow switch และ Tamper switch เข้า IDC ปลายสายมี EOL 47kΩ ตั้ง Type Code ให้ถูก แล้วทดสอบ',
+    tips:['FMM-1: SLC+/SLC− เข้า Loop · IDC+/IDC− ไปที่หน้าสัมผัสของสวิตช์ แล้วคร่อม EOL 47kΩ ที่ปลาย', 'ตั้ง Type: ตัวที่ต่อ Flow = WATERFLOW, ตัวที่ต่อ Tamper = TAMPER (MAIN MENU › PROGRAMMING › POINT หรือ ตารางโปรแกรมตู้)'],
+    req:[
+      ['FMM-1 ต่อ Flow switch ตอบตู้ วงจร IDC ปกติ (มี EOL 47kΩ)', (R, X) => X.resp('mm').some(m => X.contactOn(m, 'flow') && X.outOk(m))],
+      ['FMM-1 ต่อ Tamper switch ตอบตู้ วงจร IDC ปกติ (มี EOL 47kΩ)', (R, X) => X.resp('mm').some(m => X.contactOn(m, 'tamper') && X.outOk(m))],
+      ['Type Code: Flow = WATERFLOW', (R, X) => X.resp('mm').some(m => X.contactOn(m, 'flow') && (PROG[addrStr(m)] || {}).type === 'WATERFLOW')],
+      ['Type Code: Tamper = TAMPER', (R, X) => X.resp('mm').some(m => X.contactOn(m, 'tamper') && (PROG[addrStr(m)] || {}).type === 'TAMPER')],
+      ['Address ไม่ซ้ำ และลงโปรแกรมครบทุกจุด', (R, X) => !X.dual && X.slcAll.every(X.prog)]],
+    test:[
+      ['สั่ง Flow switch ทำงาน: ตู้แจ้ง FIRE ALARM', O => O.kinds.has('flow')],
+      ['สั่ง Tamper ทำงาน: ตู้แจ้ง SUPERVISORY', O => O.kinds.has('tamper-sup')],
+      ['กด SYSTEM RESET แล้วตู้กลับสู่สภาวะปกติ', O => O.cleared]]},
+  {id:'ahu', lv:'ยาก', title:'สั่งหยุดพัดลม AHU ด้วย FRM-1', base:'loop',
+    brief:'เมื่อเกิดเพลิงไหม้ พัดลมระบบปรับอากาศ (AHU) ต้องหยุดเพื่อไม่ให้ควันกระจาย ให้ติด Relay module FRM-1 ต่อหน้าสัมผัสเข้าวงจรสตาร์ทเตอร์ AHU ให้ปกติพัดลมทำงาน และหยุดเมื่อมี Alarm ลงโปรแกรม แล้วทดสอบ',
+    tips:['ปกติพัดลมต้องทำงาน → ใช้หน้าสัมผัส C กับ NC (ปกติปิด) ของ FRM-1', 'FRM-1 ไม่ต้องใช้ไฟ 24V และไม่มี EOL (หน้าสัมผัสแห้ง)', 'ตั้ง Type เป็น HVAC SHUTDN หรือ RELAY'],
+    req:[
+      ['FRM-1 ตอบตู้บน Loop 1 และลงโปรแกรม Type ตรง', (R, X) => { const r = X.resp('rm'); return r.length >= 1 && r.every(X.prog); }],
+      ['หน้าสัมผัส C–NC ของ FRM-1 ต่อเข้า AHU (ปกติพัดลมทำงาน)', (R) => R.relays.some(r => r.p.t === 'ahu' && r.src && byId(r.src.id) && byId(r.src.id).t === 'rm' && r.mode === 'nc')],
+      ['วงจร AHU ไม่มีข้อผิดพลาด', (R) => parts.some(p => p.t === 'ahu' && (R.circ.find(c => c.key === 'rs-' + p.id) || {}).state === 'ok')],
+      ['Address ไม่ซ้ำ และลงโปรแกรมครบทุกจุด', (R, X) => !X.dual && X.slcAll.every(X.prog)]],
+    test:[
+      ['เกิด FIRE ALARM แล้วพัดลม AHU หยุด (FAN STOP)', O => O.ahuStop],
+      ['กด SYSTEM RESET แล้วพัดลมกลับมาทำงาน', O => O.ahuStop && O.cleared]]},
+];
+function instNacOf(cm, X) { return parts.filter(h => ['hs', 'strobe', 'bell'].includes(h.t) && (X.on(h.id + '.+', cm.id + '.o+') || X.on(h.id + '.-', cm.id + '.o+'))); }
+function instObsReset() { INST.obs = {power:false, trbl:new Set(), kinds:new Set(), cleared:false, hadEvent:false, nacAll:false, silenced:false, ahuStop:false}; }
+// called from render() on every update while a scenario is open
+function instObserve(R, S) {
+  if (!INST.on || INST.done) return;
+  const O = INST.obs;
+  if (!running) return;
+  O.power = true;
+  const fire = PX.events.some(e => e.type === 'FIRE ALARM');
+  for (const e of PX.events) {
+    const src = String(e.src || '').slice(2);
+    if (e.type === 'TROUBLE') O.trbl.add(src);
+    if (e.type === 'FIRE ALARM' || e.type === 'SUPERVISORY') {
+      O.hadEvent = true;
+      const raw = String(e.src || ''), k = ptKey(src), p = byId(raw) || (k && partAt(k));
+      if (p) {
+        const fire = e.type === 'FIRE ALARM', sup = e.type === 'SUPERVISORY';
+        if (DETS.includes(p.t) && fire) O.kinds.add('det');
+        if (p.t === 'apull' && fire) O.kinds.add('apull');
+        if (fire && (p.t === 'flow' || (p.t === 'mm' && instCtx(R).contactOn(p, 'flow')))) O.kinds.add('flow');
+        if (sup && (p.t === 'tamper' || (p.t === 'mm' && instCtx(R).contactOn(p, 'tamper')))) O.kinds.add('tamper-sup');
+      }
+    }
+  }
+  if (PX.events.some(e => e.type === 'TROUBLE' && /^(CLASS A|AC FAIL)/.test(String(e.src || '').slice(2)))) O.hadEvent = true;
+  if (fire && !PX.silenced) {
+    const X = instCtx(R);
+    for (const c of X.resp('cm')) { const hs = instNacOf(c, X); if (hs.length >= 2 && hs.every(h => S.sound.has(h.id))) O.nacAll = true; }
+  }
+  if (fire && PX.silenced && O.nacAll && !parts.some(p => ['hs', 'strobe', 'bell'].includes(p.t) && S.sound.has(p.id))) O.silenced = true;
+  if (fire) for (const r of R.relays) if (r.p.t === 'ahu' && r.mode === 'nc' && r.src && S.relayOn.has(r.src.id)) O.ahuStop = true;
+  if (O.hadEvent && !PX.events.some(e => e.type === 'FIRE ALARM' || e.type === 'SUPERVISORY' || (e.type === 'TROUBLE' && /^(CLASS A|AC FAIL)/.test(String(e.src || '').slice(2)))) && !parts.some(p => p.act)) O.cleared = true;
+}
+function instEval() {
+  const R = analyze(), X = instCtx(R), sc = INST.sc;
+  return {req:sc.req.map(([t, fn]) => { let ok = false; try { ok = !!fn(R, X); } catch (e) {} return {t, ok}; }), test:sc.test.map(([t, fn]) => ({t, ok:!!fn(INST.obs)}))};
+}
+function instHist() { try { return JSON.parse(localStorage.getItem('facp-inst-hist') || '{}'); } catch (e) { return {}; } }
+function instStartDialog() {
+  if (EX.on) { hint('กำลังทำแบบฝึกหัดหาจุดเสียอยู่ ออกจากแบบฝึกหัดก่อน'); return; }
+  if (INST.on) { setTab('inst'); instBrief(); return; }
+  const H = instHist();
+  modal('ฝึกติดตั้งตามโจทย์', `<p>เลือกโจทย์ แล้วต่อสายและตั้งโปรแกรมให้ครบตามข้อกำหนด เมื่อพร้อมกด <b>ตรวจงาน</b> ระบบจะตรวจข้อกำหนดทีละข้อ ส่วน <b>การทดสอบ</b> ต้องทำจริงระหว่างจำลอง (สั่งอุปกรณ์ทำงาน กดปุ่มหน้าตู้) ระบบจะติ๊กให้เมื่อเห็นผล</p>
+    <div class="scl">${SCEN.map((s, i) => `<label class="scrow"><input type="radio" name="scPick" value="${i}" ${i === 0 ? 'checked' : ''}><span><b>${i + 1}. ${s.title}</b> <span class="chip c-muted">${s.lv}</span>${H[s.id] ? ` <span class="chip c-ok">ดีที่สุด ${H[s.id].best}</span>` : ''}<br><span class="note">${s.brief}</span></span></label>`).join('')}</div>
+    <label class="scrow" style="margin-top:8px"><input type="checkbox" id="scHelp" checked><span>ซ่อนผลตรวจวงจร (ERC) ระหว่างทำ เหมือนหน้างานจริง</span></label>`,
+    [['ยกเลิก', ''], ['เริ่มโจทย์', 'pri', () => instStart(+INST.pick || 0, INST.pickHelp !== false)]]);
+  INST.pick = 0; INST.pickHelp = true;
+  $('mBody').addEventListener('change', ev => { if (ev.target.name === 'scPick') INST.pick = +ev.target.value; if (ev.target.id === 'scHelp') INST.pickHelp = ev.target.checked; });
+}
+function instStart(i, noHelp) {
+  const sc = SCEN[i]; if (!sc) return;
+  INST.prev = {doc:docOf(projName() || 'งาน'), curProj, savedSnap};
+  if (simOn) toggleRun();
+  instBase(sc.base);
+  Object.assign(INST, {on:true, sc, t0:Date.now(), checks:0, last:null, noHelp, done:false, end:0});
+  instObsReset();
+  curProj = null; savedSnap = null; try { localStorage.removeItem(CURKEY); } catch (e) {}
+  document.body.classList.add('instmode'); document.body.classList.toggle('nohelp', noHelp);
+  changed(); histReset(); projDirty();
+  setTab('inst'); instBar();
+  clearInterval(INST.timer); INST.timer = setInterval(instBar, 1000);
+  try { setZoom(fitZoom()); } catch (e) {}
+  plog('INFO', `เริ่มโจทย์ติดตั้ง: ${sc.title}`);
+  hint(`โจทย์: ${sc.title} · ต่อสายตามข้อกำหนด แล้วกด "ตรวจงาน" ที่แถบสีฟ้า`);
+  instBrief();
+}
+function instBrief() {
+  const sc = INST.sc; if (!sc) return;
+  modal(`โจทย์: ${sc.title}`, `<p>${sc.brief}</p><p><b>ข้อกำหนด</b></p><ol>${sc.req.map(r => `<li>${r[0]}</li>`).join('')}</ol><p><b>การทดสอบ (ทำระหว่างจำลอง)</b></p><ol>${sc.test.map(r => `<li>${r[0]}</li>`).join('')}</ol><details><summary>เคล็ดลับจากคู่มือ</summary><ul class="note">${sc.tips.map(t => `<li>${t}</li>`).join('')}</ul></details>`);
+}
+function instCheck() {
+  if (!INST.on || INST.done) return;
+  INST.checks++;
+  const E = instEval(); INST.last = E;
+  const all = [...E.req, ...E.test], ok = all.filter(x => x.ok).length;
+  instPanel(); instBar();
+  if (ok === all.length) { instFinish(); return; }
+  const row = x => `<li>${x.ok ? '<span class="c-ok">✓</span>' : '<span class="c-err">✕</span>'} ${x.t}</li>`;
+  modal(`ตรวจงานครั้งที่ ${INST.checks}: ผ่าน ${ok}/${all.length}`, `<p><b>ข้อกำหนด</b></p><ul class="ckl">${E.req.map(row).join('')}</ul><p><b>การทดสอบ</b></p><ul class="ckl">${E.test.map(row).join('')}</ul>${E.test.some(x => !x.ok) ? `<p class="note">${simOn ? 'ทำการทดสอบที่ยังไม่ผ่านระหว่างจำลอง ระบบจะติ๊กให้เมื่อเห็นผลที่หน้าตู้' : 'กด ▶ เริ่มจำลอง แล้วทำการทดสอบ ระบบจะติ๊กให้เมื่อเห็นผลที่หน้าตู้'}</p>` : ''}`);
+}
+function instFinish() {
+  INST.done = true; INST.end = Date.now(); clearInterval(INST.timer);
+  const ms = INST.end - INST.t0, score = Math.max(50, 100 - 10 * (INST.checks - 1)) - (INST.noHelp ? 0 : 10);
+  const grade = score >= 90 ? 'ดีเยี่ยม' : score >= 75 ? 'ดี' : score >= 60 ? 'ผ่าน' : 'ควรฝึกเพิ่ม';
+  const H = instHist(), id = INST.sc.id, old = H[id];
+  H[id] = {best:Math.max(score, old ? old.best : 0), last:score, ms, at:Date.now(), n:(old ? old.n : 0) + 1};
+  try { localStorage.setItem('facp-inst-hist', JSON.stringify(H)); } catch (e) {}
+  instBar(); instPanel();
+  modal('ผ่านโจทย์ 🎉', `<p><b>${INST.sc.title}</b></p><p>เวลา ${fmtT(ms)} · ตรวจงาน ${INST.checks} ครั้ง${INST.noHelp ? '' : ' · เปิดดู ERC ระหว่างทำ (−10)'}</p><p style="font-size:1.2rem"><b>${score} คะแนน · ${grade}</b>${old && score > old.best ? ' · สถิติใหม่!' : ''}</p>`,
+    [['ดูแผ่นงาน', ''], ['บันทึกงานนี้เป็นโปรเจกต์', '', () => { instExit(true, true); projSave(true); }], ['โจทย์ต่อไป', '', () => { instExit(true); instStartDialog(); }], ['ออก', 'pri', () => instExit()]]);
+}
+function instExit(silent, keepWork) {
+  if (!INST.on) return;
+  clearInterval(INST.timer); INST.on = false; INST.done = false;
+  document.body.classList.remove('instmode', 'nohelp');
+  if (simOn) toggleRun();
+  if (!keepWork && INST.prev) { const P = INST.prev; loadDoc(P.doc); curProj = P.curProj; savedSnap = P.savedSnap; selP = null; selW = null; pending = null; changed(); histReset(); projDirty(); }
+  INST.prev = null; instBar(); setTab('erc');
+  if (!silent) hint('ออกจากโจทย์แล้ว กลับสู่งานเดิม');
+}
+function instBar() {
+  const b = $('ibar'); if (!b) return;
+  if (!INST.on) { b.hidden = true; return; }
+  b.hidden = false;
+  const E = INST.last, n = INST.sc.req.length + INST.sc.test.length, tOk = INST.sc.test.filter(([, fn]) => fn(INST.obs)).length;
+  b.querySelector('.xstat').textContent = `📋 ${INST.sc.title} · ${fmtT((INST.end || Date.now()) - INST.t0)} · ตรวจ ${INST.checks} ครั้ง${E ? ` · ผ่านล่าสุด ${[...E.req, ...E.test].filter(x => x.ok).length}/${n}` : ''} · ทดสอบ ${tOk}/${INST.sc.test.length}`;
+  b.querySelector('[data-i=chk]').disabled = INST.done;
+}
+function instPanel() {
+  if (!INST.on || bottomTab !== 'inst') return;
+  const sc = INST.sc, E = INST.last;
+  const mark = ok => ok === undefined ? '<span class="c-muted">·</span>' : ok ? '<span class="c-ok">✓</span>' : '<span class="c-err">✕</span>';
+  $('res').innerHTML = `<div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+    <div><b>โจทย์: ${sc.title}</b> <span class="chip c-muted">${sc.lv}</span>${INST.done ? ' <span class="chip c-ok">ผ่านแล้ว</span>' : ''}</div>
+    <div class="note">${sc.brief}</div>
+    <div><b>ข้อกำหนด</b>${E ? ` <span class="note">(ผลตรวจครั้งที่ ${INST.checks})</span>` : ' <span class="note">(กด ตรวจงาน เพื่อดูผล)</span>'}</div>
+    <ul class="ckl">${sc.req.map((r, i) => `<li>${mark(E ? E.req[i].ok : undefined)} ${r[0]}</li>`).join('')}</ul>
+    <div><b>การทดสอบ</b> <span class="note">(ติ๊กอัตโนมัติเมื่อเห็นผลระหว่างจำลอง)</span></div>
+    <ul class="ckl">${sc.test.map(r => `<li>${mark(r[1](INST.obs) || undefined)} ${r[0]}</li>`).join('')}</ul></div>`;
+}
+(function initInstall() {
+  const bar = document.createElement('div'); bar.id = 'ibar'; bar.className = 'xbar'; bar.hidden = true;
+  bar.innerHTML = '<span class="xstat"></span><button type="button" class="btn pri" data-i="chk">ตรวจงาน</button><button type="button" class="btn" data-i="brief">ดูโจทย์</button><button type="button" class="btn" data-i="exit">ออก</button>';
+  $('xbar').after(bar);
+  bar.addEventListener('click', ev => { const b = ev.target.closest('[data-i]'); if (!b || b.disabled) return; const x = b.dataset.i;
+    if (x === 'chk') instCheck(); else if (x === 'brief') instBrief();
+    else modal('ออกจากโจทย์?', '<p>กลับไปที่งานเดิมก่อนเริ่มโจทย์ สิ่งที่ต่อไว้ในโจทย์นี้จะไม่ถูกเก็บ</p>', [['ทำต่อ', ''], ['ออก', 'pri', () => instExit()]]); });
+  const tab = document.createElement('button'); tab.type = 'button'; tab.id = 'tabInst'; tab.setAttribute('aria-pressed', 'false'); tab.textContent = 'โจทย์';
+  $('tabErc').before(tab); tab.addEventListener('click', () => setTab('inst'));
+  $('instBtn').addEventListener('click', instStartDialog);
+  document.addEventListener('click', ev => { if (!INST.on) return; const b = ev.target.closest('#clear,#exBasic,#exFull,[data-do=new],[data-do=exBasic],[data-do=exFull],[data-do=pImport],[data-do=pList],#projBtn,#exBtn,[data-do=exercise]'); if (!b) return; ev.stopPropagation(); ev.preventDefault(); hint('ระหว่างทำโจทย์ใช้คำสั่งนี้ไม่ได้ กด "ออก" ที่แถบโจทย์ก่อน'); }, true);
 })();
 
 /* ================= boot ================= */
