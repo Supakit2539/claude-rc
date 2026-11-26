@@ -467,6 +467,11 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
   body.mob #msheet .drop kbd{display:none}
   body.mob .app > .menubar,body.mob .app > .toolbar{display:none}
 }
+
+.part.lifted{filter:drop-shadow(0 10px 14px rgba(0,0,0,.35))}
+.part.overlap .selbox{stroke:#d92c2c!important;stroke-width:2.4;stroke-dasharray:6 3}
+.part.dragging .selbox{stroke:var(--sel);stroke-width:1.6;stroke-dasharray:5 3}
+@media (max-width:920px){ #mhint .mbtns .nud{min-width:38px;padding:4px 8px;background:var(--chrome-3);color:inherit;border-color:var(--chrome-line)} }
 </style>
 </head>
 <body>
@@ -677,7 +682,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     <li><b>สั่ง Alarm ที่อุปกรณ์</b>: คลิกที่หัวตรวจจับเพื่อพ่นควัน คลิกที่แมนนวลเพื่อดึง (Flow / Tamper คลิกเพื่อให้ทำงาน) คลิกซ้ำเพื่อคืนสภาพ อุปกรณ์ที่คืนสภาพแล้วตู้ยังค้างเหตุไว้จนกว่าจะกด SYSTEM RESET ถ้ายังไม่คืนสภาพ RESET แล้วจะขึ้นใหม่</li>
     <li><b>หน้าตู้ CPU2-3030D</b>: ฝึกตอบสนองเหมือนตู้จริง ACK/STEP รับทราบ (ไฟหยุดกะพริบ Piezo เงียบ) · SIGNAL SILENCE หยุดเสียง NAC · DRILL กดค้าง 2 วินาทีเพื่อสั่งอพยพ · SYSTEM RESET ล้างเหตุ (ถ้าต้นเหตุยังอยู่จะขึ้นใหม่) · Fire Alarm และ Supervisory ค้าง (Latching) ส่วน Trouble หายเองเมื่อแก้สายแล้ว</li>
     <li><b>ตั้งโปรแกรมที่หน้าตู้ (ตามคู่มือ NFS2-3030 Programming Manual P/N 52545:N4)</b>: Soft key ข้างจอ ซ้าย 5 ขวา 5 · กด Soft key ใดก็ได้เพื่อเปิด MAIN MENU › PROGRAM/ALTER STATUS › พิมพ์รหัส 8 หลัก (ค่าโรงงาน Master 00000000, User 11111111) › ACCEPT · เมนู PROGRAM/ALTER STATUS: ALTER STATUS MENU, AUTOPROGRAM MENU, PANEL PROGRAM MENU, POINT PROGRAM MENU, DELETE PROGRAM MENU · POINT PROGRAM: กด POINT SELECT: เลือก DETECTOR/MODULE แล้วพิมพ์ LyyDzzz (เช่น L01D004) › ACCEPT · หน้า DETECTOR POINT PROGRAMMING: TYPE:, FLASHSCAN TYPE:, POINT LABEL: (20 ตัว), EXTENDED LABEL: (12 ตัว), ZONE MAP:, MORE (หน้า 2–3: ALARM VERIFICATION, LOCAL MODE, SENSITIVITY, PREALARM, SILENCEABLE) · ACCEPT บันทึก BACK ไม่บันทึก · NEXT SEL / PREV SEL เลื่อนรายการ · AUTOPROGRAM: เลือก ALL, 1+2 … › ACCEPT › YES › หน้า CONFIRMATION › REVIEW (ADD POINT? YES/NO/EDIT, DELETE POINT?, MISMATCHED, DOUBLE ADDRESS) หรือ ACCEPT ALL · ALTER STATUS › DISABLE/ENABLE · ระหว่างโปรแกรมตู้ขึ้น Trouble "PROGRAM MODE ACTIVATED" ห้ามเข้าโปรแกรมขณะมี Alarm ที่ยังไม่ Acknowledge และถ้ามีเหตุเข้า ตู้ออกจากโปรแกรมไปหน้า EVENT COUNTS</li>
-    <li><b>บนโทรศัพท์</b>: ต่อสายโดยลากนิ้วจากขั้วสกรูไปยังขั้วปลายทาง (ขั้วที่ใกล้นิ้วขึ้นสีเขียว ปล่อยนิ้วเพื่อต่อ เลื่อนแผ่นงานให้อัตโนมัติเมื่อลากไปขอบจอ) หรือแตะขั้วแรกแล้วแตะขั้วปลายทาง (ขั้วทั้งหมดเปลี่ยนเป็นสีเหลือง) · ซูมด้วยการถ่างสองนิ้ว (ซูมรอบนิ้วและเลื่อนพร้อมกันได้) แตะสองครั้งที่พื้นว่างเพื่อซูมเข้า/ออก หรือปุ่ม − % + ⤢ มุมซ้ายล่าง ซูมได้ถึง 300% · แตะอุปกรณ์แล้วจะมีปุ่ม พ่นควัน/ดึง/สั่งทำงาน, ตั้งค่า, ลบ · ลากอุปกรณ์ที่เลือกอยู่เพื่อย้าย · ปุ่มหมุน Address ต้องเลือกอุปกรณ์ก่อนจึงจะหมุนได้ (กันแตะโดนพลาด)</li>
+    <li><b>บนโทรศัพท์</b>: ต่อสายโดยลากนิ้วจากขั้วสกรูไปยังขั้วปลายทาง (ขั้วที่ใกล้นิ้วขึ้นสีเขียว ปล่อยนิ้วเพื่อต่อ เลื่อนแผ่นงานให้อัตโนมัติเมื่อลากไปขอบจอ) หรือแตะขั้วแรกแล้วแตะขั้วปลายทาง (ขั้วทั้งหมดเปลี่ยนเป็นสีเหลือง) · ซูมด้วยการถ่างสองนิ้ว (ซูมรอบนิ้วและเลื่อนพร้อมกันได้) แตะสองครั้งที่พื้นว่างเพื่อซูมเข้า/ออก หรือปุ่ม − % + ⤢ มุมซ้ายล่าง ซูมได้ถึง 300% · แตะอุปกรณ์แล้วจะมีปุ่ม พ่นควัน/ดึง/สั่งทำงาน, ตั้งค่า, ลบ · ย้ายอุปกรณ์: แตะค้างที่อุปกรณ์ตัวไหนก็ได้ประมาณครึ่งวินาที (เครื่องสั่นเบาๆ) แล้วลาก หรือลากอุปกรณ์ที่เลือกอยู่ได้ทันที ลากไปขอบจอแผ่นงานจะเลื่อนตาม ถ้ากรอบขึ้นสีแดงแปลว่าทับอุปกรณ์อื่น ปล่อยแล้วจะเลื่อนไปช่องว่างที่ใกล้ที่สุด ปุ่ม ◀ ▲ ▼ ▶ ในแถบล่างเลื่อนทีละช่อง (คอมพิวเตอร์ใช้ปุ่มลูกศร, Shift = 5 ช่อง) · ปุ่มหมุน Address ต้องเลือกอุปกรณ์ก่อนจึงจะหมุนได้ (กันแตะโดนพลาด)</li>
     <li><b>อ่านสายง่ายขึ้น</b>: สายของวงจรต่างกันจะถูกแยกเป็นช่องขนานห่างกัน ไม่วิ่งทับกันและไม่ผ่านตัวอุปกรณ์ · จุดที่สายข้ามกันโดยไม่ต่อถึงกัน สายแนวนอนจะโค้งข้าม (hop) ส่วนจุดที่ต่อกันจริงจะอยู่ที่ขั้วสกรูและมีจุดกลมทึบ · ชี้เมาส์ที่สายหรือขั้ว (หรือแตะเลือกสาย/อุปกรณ์บนมือถือ) วงจรนั้นทั้งเส้นจะเด่นขึ้นและสายอื่นจางลง</li>
     <li><b>ตู้แบบของจริง (CAB-4 + CHS-4L) และสายภายในตู้</b>: CPU2-3030D + คีย์บอร์ด/จอ (TB4 Alarm, TB3 Trouble, TB2 Supervisory, TB1 Security, TB7 ACS ที่ขอบบน · J13 Power, J7 SLC Data ที่ขอบล่าง) · DVC-KD + กล่องไมค์/หูโทรศัพท์ (ถ้าติด DVC) · CHS-4L: LCM-320 (LEM-320 ติดด้านหลัง) TB1 = B+ A+ B− A− · APS2-6R (เลือกติด) · AMPS-24 + CPS-24E ด้านล่าง และขั้ว AC 220V IN · ต้องต่อเอง: สาย 75637 J13 ↔ AMPS-24 MAIN 24V (ไม่ต่อ = ตู้ดับ) · สายแพ 75565 J7 → J1 (Data in) ของ LCM ตัวแรก, J3 (Data out) → J1 ตัวถัดไป (ไม่ต่อ = LOOP x-y COMM FAILURE) · AC L/N/G → CPS-24E (ไม่มี AC แต่มีแบต = AC FAIL) · ตั้ง SW1 บน LCM เป็น Loop 1, 3, 5, 7, 9 ห้ามซ้ำ (LEM ได้เลขถัดไป) · สายภาคสนามออกทางรางสายด้านขวาของตู้ · คลิกตู้เพื่อ "ต่อสายภายในตู้ให้อัตโนมัติ" หรือ "ถอดสายภายในตู้ (ฝึกต่อเอง)"</li>
     <li><b>FlashScan / CLIP (SLC Wiring Manual 1.5, 1.9 · Programming Manual 3.3.4, ภาคผนวก F)</b>: ตั้งที่ PANEL PROGRAM › MORE › LOOP CONFIGURATION (DETECTOR POLL / MODULE POLL / RAPID POLL / BLINK MODE) · FlashScan ถามเป็นกลุ่ม พบข้อมูลใหม่จึงถามตัวนั้นตรงๆ (ตอบสนองเร็ว) · CLIP ถามทีละ Address และใช้ Address ได้แค่ 01–99 (เกินนั้นตู้แจ้ง NO ANSWER) เกิน 99 จุดตอบสนองช้า · ไฟ LED บนอุปกรณ์ตามตาราง 1.4: FlashScan ปกติกะพริบเขียว / CLIP กะพริบแดง (Control module กะพริบเขียว) · Alarm แดงค้าง · Control module ทำงานเขียวค้าง · Prealarm (FlashScan) เขียวค้าง · BLINK MODE OFF ไฟหัวและ Monitor ดับ · Walk Test แบบ FlashScan กะพริบเลข Address (37 = 3 ครั้ง เว้น 7 ครั้ง) · ทดสอบหัวเป็นระยะ ไฟเขียวค้างไม่กี่วินาที · หัวที่เพิ่ง Autoprogram เพิ่ม/เปลี่ยน หรือกลับมาจาก NO ANSWER ต้อง Initialize ~2.5 นาที (เขียวค้าง ไม่รายงานเหตุ ตู้ขึ้น SYSTEM INITIALIZATION) · แท็บ "SLC Poll" แสดงการถามจริงแบบเคลื่อนไหวและเวลาที่ตู้ใช้รับรู้เหตุ (ตัวเลขเวลาเป็นค่าสาธิต คู่มือไม่ได้ระบุ)</li>
@@ -1991,7 +1996,7 @@ board.addEventListener('pointerout', ev => { if (ev.target.closest('.wire-hit') 
 
 /* ================= interaction ================= */
 const TOUCH = window.matchMedia && matchMedia('(pointer:coarse)').matches;
-const HINT = TOUCH ? 'ต่อสาย: ลากนิ้วจากขั้วสกรูไปขั้วปลายทาง (หรือแตะขั้วแรกแล้วแตะขั้วปลายทาง) · ซูม: ถ่างสองนิ้ว / แตะสองครั้ง / ปุ่ม − + · แตะอุปกรณ์เพื่อเลือก แล้วลากเพื่อย้าย' : 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
+const HINT = TOUCH ? 'ต่อสาย: ลากนิ้วจากขั้วสกรูไปขั้วปลายทาง · ย้ายอุปกรณ์: แตะค้างแล้วลาก · ซูม: ถ่างสองนิ้ว / แตะสองครั้ง / ปุ่ม − +' : 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
 function hint(t) {
   $('hint').textContent = t || HINT;
   const m = $('mhint'); if (!m) return;
@@ -2071,30 +2076,66 @@ board.addEventListener('pointerup', endWire); board.addEventListener('pointercan
 board.addEventListener('touchstart', e => {
   if (e.touches.length !== 1 || !e.target.closest) return;
   const g = e.target.closest('.part');
-  if (e.target.closest('.term') || (g && g.dataset.p === selP && selP !== 'P' && !e.target.closest('.hot, .adial'))) e.preventDefault();
+  if (e.target.closest('.term') || (g && g.dataset.p === selP && selP !== 'P' && !e.target.closest('.adial'))) e.preventDefault();
 }, {passive:false});
-let drag = null;
+/* ---------- moving devices: drag (mouse), long-press then drag (finger), arrow keys / nudge buttons ---------- */
+let drag = null, lpTimer = null, lpStart = null, dragRAF = 0;
+const GRID = 10;
+function partBox(p, x = p.x, y = p.y) { const ty = T(p); return {x, y, w:ty.w, h:ty.h}; }
+function overlapsAt(p, x, y) {
+  const a = partBox(p, x, y), m = 8;
+  return parts.some(q => q !== p && q.t !== 'facp' && T(q) && (() => { const b = partBox(q); return a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y; })());
+}
+function clampPos(p, x, y) { const ty = T(p); return [Math.max(FW + 70, Math.min(BW - ty.w - 4, Math.round(x / GRID) * GRID)), Math.max(16, Math.min(BH - ty.h - 4, Math.round(y / GRID) * GRID))]; }
+function nearestFree(p, x, y) {   // spiral search for the closest spot that does not overlap another device
+  for (let r = 0; r <= 400; r += GRID) for (let dx = -r; dx <= r; dx += GRID) for (const dy of r ? [-r, r] : [0]) {
+    for (const [ax, ay] of [[dx, dy], [dy, dx]]) { const [cx, cy] = clampPos(p, x + ax, y + ay); if (!overlapsAt(p, cx, cy)) return [cx, cy]; }
+  }
+  return [x, y];
+}
+function redrawMoving() { if (dragRAF) return; dragRAF = requestAnimationFrame(() => { dragRAF = 0; rebuildTerms(); drawTerms(); drawWires(); }); }
+function placePart(p, g, x, y) {
+  p.x = x; p.y = y; g.setAttribute('transform', `translate(${x} ${y})`);
+  g.classList.toggle('overlap', overlapsAt(p, x, y));
+  redrawMoving();
+}
+function startDrag(p, g, pt, pointerId) {
+  drag = {p, g, dx:pt.x - p.x, dy:pt.y - p.y, moved:false, sx:pt.x, sy:pt.y, cx:null, cy:null, ox:p.x, oy:p.y, id:pointerId};
+  g.classList.add('dragging');
+}
 board.addEventListener('pointerdown', ev => {
-  if (ev.target.closest('.term') || ev.target.closest('.wire-hit') || ev.target.closest('.hot') || ev.target.closest('.adial')) return;
+  if (ev.button > 0 || ev.target.closest('.term') || ev.target.closest('.wire-hit') || ev.target.closest('.adial')) return;
+  const hot = ev.target.closest('.hot');
   const g = ev.target.closest('.part'); if (!g) return;
   const p = byId(g.dataset.p);
   if (p.t === 'facp') return;
-  if (ev.pointerType === 'touch' && selP !== p.id) return;
   const pt = svgPt(ev);
-  drag = {p, g, dx:pt.x - p.x, dy:pt.y - p.y, moved:false, sx:pt.x, sy:pt.y};
-  g.classList.add('dragging');
+  if (ev.pointerType === 'touch' && selP !== p.id) {   // long-press picks the device up without selecting it first
+    clearTimeout(lpTimer); lpStart = {x:ev.clientX, y:ev.clientY, id:ev.pointerId};
+    lpTimer = setTimeout(() => {
+      lpTimer = null; selectPart(p.id); startDrag(p, g, pt, ev.pointerId); drag.lifted = true; g.classList.add('lifted');
+      try { navigator.vibrate && navigator.vibrate(18); } catch (e) {}
+      hint(`ยก ${refdes(p)} ขึ้นแล้ว ลากไปวางที่ใหม่ (ถ้ากรอบเป็นสีแดง แปลว่าทับอุปกรณ์อื่น)`);
+    }, 350);
+    return;
+  }
+  startDrag(p, g, pt, ev.pointerId);
+  drag.hot = hot && ev.pointerType === 'touch' ? hot.dataset.trig : null;   // a short tap on the hotspot still operates the device
 });
+// once a device is lifted the page must not scroll under the finger
+board.addEventListener('touchmove', e => { if (drag && (drag.lifted || drag.moved)) e.preventDefault(); }, {passive:false});
 board.addEventListener('pointermove', ev => {
+  if (lpTimer && lpStart && ev.pointerId === lpStart.id && Math.hypot(ev.clientX - lpStart.x, ev.clientY - lpStart.y) > 8) { clearTimeout(lpTimer); lpTimer = null; }
   if (drag) {
     const pt = svgPt(ev);
-    if (!drag.moved && Math.hypot(pt.x - drag.sx, pt.y - drag.sy) < 5) return;
+    if (!drag.moved && !drag.lifted && Math.hypot(pt.x - drag.sx, pt.y - drag.sy) < 5) return;
     if (!drag.moved) { try { board.setPointerCapture(ev.pointerId); } catch (e) {} }
     drag.moved = true;
-    const ty = T(drag.p);
-    drag.p.x = Math.max(FW + 70, Math.min(BW - ty.w - 4, Math.round((pt.x - drag.dx) / 10) * 10));
-    drag.p.y = Math.max(16, Math.min(BH - ty.h - 4, Math.round((pt.y - drag.dy) / 10) * 10));
-    drag.g.setAttribute('transform', `translate(${drag.p.x} ${drag.p.y})`);
-    rebuildTerms(); drawTerms(); drawWires();
+    const [x, y] = clampPos(drag.p, pt.x - drag.dx, pt.y - drag.dy);
+    if (x !== drag.p.x || y !== drag.p.y) placePart(drag.p, drag.g, x, y);
+    const w = $('boardWrap'), r = w.getBoundingClientRect(), e = 40, sp = 14, mx = pt.x - drag.sx, my = pt.y - drag.sy;   // auto-scroll toward the edge being approached
+    if (Math.hypot(mx, my) > 30) { if (ev.clientX < r.left + e && mx < 0) w.scrollLeft -= sp; else if (ev.clientX > r.right - e && mx > 0) w.scrollLeft += sp;
+      if (ev.clientY < r.top + e && my < 0) w.scrollTop -= sp; else if (ev.clientY > r.bottom - e && my > 0) w.scrollTop += sp; }
     return;
   }
   const q = svgPt(ev); $('sbCoord').textContent = `X ${Math.round(q.x / 10)}  Y ${Math.round(q.y / 10)}`;
@@ -2103,14 +2144,36 @@ board.addEventListener('pointermove', ev => {
   gRubber.setAttribute('d', `M${A.x} ${A.y} L${p.x} ${p.y}`); gRubber.style.display = '';
 });
 let justDragged = false;
-function endDrag() {
+function endDrag(ev) {
+  clearTimeout(lpTimer); lpTimer = null;
   if (!drag) return;
   const d = drag; drag = null;
-  d.g.classList.remove('dragging');
-  if (d.moved) { save(); justDragged = true; setTimeout(() => justDragged = false, 50); }
+  d.g.classList.remove('dragging', 'lifted');
+  if (ev && ev.type === 'pointercancel' && !d.moved) { d.g.classList.remove('overlap'); return; }
+  if (!d.moved && !d.lifted && d.hot) { justDragged = true; setTimeout(() => justDragged = false, 60); triggerDevice(d.hot); return; }
+  if (d.moved || d.lifted) {
+    if (overlapsAt(d.p, d.p.x, d.p.y)) { const [x, y] = nearestFree(d.p, d.p.x, d.p.y); placePart(d.p, d.g, x, y); hint(`${refdes(d.p)} ทับอุปกรณ์อื่น จึงเลื่อนไปช่องว่างที่ใกล้ที่สุด`); }
+    else if (d.lifted) hint(`วาง ${refdes(d.p)} แล้ว`);
+    d.g.classList.remove('overlap');
+    save(); justDragged = true; setTimeout(() => justDragged = false, 60);
+    if (!d.moved && d.lifted) mobSel(d.p);
+  }
 }
 board.addEventListener('pointerup', endDrag);
 board.addEventListener('pointercancel', endDrag);
+// arrow keys / nudge buttons move the selected device by one grid step (Shift = 5 steps)
+function nudge(dx, dy) {
+  const p = byId(selP); if (!p || p.t === 'facp') return;
+  const g = $('part-' + p.id), [x, y] = clampPos(p, p.x + dx * GRID, p.y + dy * GRID);
+  placePart(p, g, x, y); g.classList.remove('overlap');
+  save(); hint(`${refdes(p)} อยู่ที่ X ${x / 10} Y ${y / 10}${overlapsAt(p, x, y) ? ' · ทับอุปกรณ์อื่นอยู่' : ''}`);
+}
+document.addEventListener('keydown', ev => {
+  if (/input|select|textarea/i.test(document.activeElement.tagName) || document.activeElement.closest('.pnl')) return;
+  const k = {ArrowLeft:[-1, 0], ArrowRight:[1, 0], ArrowUp:[0, -1], ArrowDown:[0, 1]}[ev.key];
+  if (!k || !selP || selP === 'P') return;
+  ev.preventDefault(); nudge(k[0] * (ev.shiftKey ? 5 : 1), k[1] * (ev.shiftKey ? 5 : 1));
+});
 board.addEventListener('click', ev => {
   if (justDragged) return;
   const ad = ev.target.closest('.adial');
@@ -2456,6 +2519,7 @@ function stepAddr(id, which, delta) {
   selP = id; changed();
   hint(`ตั้ง Address ${refdes(p)} = ${addrStr(p)} (TENS ${t} · ONES ${o})` + (p.addr === 0 ? ' · Address 000 ใช้ไม่ได้' : ''));
 }
+board.addEventListener('contextmenu', ev => { if (TOUCH && ev.target.closest('.part')) ev.preventDefault(); });   // long-press is used to lift devices
 board.addEventListener('contextmenu', ev => { const ad = ev.target.closest('.adial'); if (!ad) return; ev.preventDefault(); stepAddr(ad.dataset.p, ad.dataset.d, -1); });
 function autoAddress() {
   for (const L of loopsList()) for (const ty of ['D', 'M']) {
@@ -4892,9 +4956,9 @@ function mobSelButtons(p, m) {
   const a = p.t !== 'facp' && actLabel(p);
   if (a) m.append(mBtn(a, () => triggerDevice(p.id), 'act'));
   m.append(mBtn(p.t === 'facp' ? 'สายภายในตู้ ›' : 'ตั้งค่า ›', () => setMV('props')));
-  if (p.t !== 'facp') m.append(mBtn('ลบ', () => { if (confirm(`ลบ ${refdes(p)}?`)) delPart(); }, 'del'));
+  if (p.t !== 'facp') { m.append(mBtn('ลบ', () => { if (confirm(`ลบ ${refdes(p)}?`)) delPart(); }, 'del')); [['◀', -1, 0], ['▲', 0, -1], ['▼', 0, 1], ['▶', 1, 0]].forEach(([t, dx, dy]) => m.append(mBtn(t, () => nudge(dx, dy), 'nud'))); }
 }
-function mobSel(p) { hint(`เลือก ${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : label(p)}${p.t !== 'facp' ? ' · ลากตัวอุปกรณ์เพื่อย้าย · ลากนิ้วจากขั้วสกรูเพื่อต่อสาย' : ''}`); }
+function mobSel(p) { hint(`เลือก ${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : label(p)}${p.t !== 'facp' ? ' · ลากตัวอุปกรณ์เพื่อย้าย (หรือแตะค้างที่อุปกรณ์ใดก็ได้แล้วลาก) · ปุ่มลูกศรเลื่อนทีละช่อง' : ''}`); }
 function mobWireBar(msg) {
   if (!document.body.classList.contains('mob') || !pending) return;
   const t = TERM[pending], m = mobStrip(msg && /ปล่อย|ลาก/.test(msg) ? msg : `ต่อสายจาก ${refdes(t.part)} ${t.lb || t.k} → แตะขั้วปลายทาง (สีเหลือง) หรือลากนิ้วไปที่ขั้ว`);
