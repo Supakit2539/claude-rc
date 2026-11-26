@@ -386,6 +386,41 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
 .pane-h .ftabs[role=tablist]{display:flex;flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:thin}
 .pane-h .ftabs[role=tablist] button{white-space:nowrap;flex:none}
 .pane-h .ftabs[role=tablist] .chip{white-space:nowrap;flex:none}
+
+/* ---------- phone layout: one view at a time + bottom tab bar ---------- */
+#mnav,#mfab,#mhint{display:none}
+@media (max-width:920px){
+  body.mob{display:block;height:100dvh;overflow:hidden;padding:0;margin:0}
+  body.mob .app{position:fixed;inset:0;height:100dvh;border-radius:0;border:0;display:flex;flex-direction:column;margin:0}
+  body.mob .titlebar{padding:4px 10px;min-height:0}
+  body.mob .menubar{overflow-x:auto;flex:none}
+  body.mob .toolbar{flex:none}
+  body.mob .work{flex:1;min-height:0;display:block;position:relative;overflow:hidden}
+  body.mob .work > *{display:none}
+  body.mob .statusbar{display:none}
+  body.mob[data-mv=board] .center,body.mob[data-mv=erc] .center{display:flex;flex-direction:column;height:100%}
+  body.mob[data-mv=board] .center .msgs{display:none}
+  body.mob[data-mv=board] .board-wrap{flex:1;height:auto;min-height:0}
+  body.mob[data-mv=erc] .center .tabs,body.mob[data-mv=erc] .board-wrap{display:none}
+  body.mob[data-mv=erc] .msgs{flex:1;height:auto;min-height:0}
+  body.mob[data-mv=erc] .res{max-height:none;flex:1;overflow:auto}
+  body.mob[data-mv=lib] .dock.left,body.mob[data-mv=props] .dock.right,body.mob[data-mv=panel] .dock.right{display:flex;height:100%;overflow:auto}
+  body.mob[data-mv=props] .dock.right .mv-panel,body.mob[data-mv=panel] .dock.right .mv-props,body.mob[data-mv=panel] .dock.right .mv-tests{display:none}
+  body.mob .lib-item{min-height:44px}
+  #mhint{display:block;flex:none;padding:6px 12px;font-size:.78rem;line-height:1.35;background:var(--chrome-2);border-top:1px solid var(--chrome-line);color:var(--chrome-fg,inherit);max-height:4.2em;overflow:auto}
+  #mhint button{margin-left:6px;font:inherit;font-weight:700;padding:2px 8px;border-radius:5px;border:1px solid var(--sel);background:var(--sel);color:var(--sel-fg);min-height:28px}
+  #mnav{display:grid;grid-template-columns:repeat(5,1fr);flex:none;background:var(--chrome-3);border-top:1px solid var(--chrome-line);padding-bottom:env(safe-area-inset-bottom)}
+  #mnav button{position:relative;border:0;background:none;padding:6px 2px 7px;min-height:54px;font:inherit;font-size:.66rem;color:var(--chrome-muted);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  #mnav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #mnav button[aria-pressed=true]{color:var(--sel);font-weight:700}
+  #mnav .bdg{position:absolute;top:4px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d92c2c;color:#fff;font-size:.6rem;line-height:16px;font-weight:700;display:none}
+  #mnav .bdg.on{display:block}
+  #mnav .bdg.warn{background:#c98a00}
+  #mfab{display:none;position:fixed;right:14px;bottom:calc(120px + env(safe-area-inset-bottom));z-index:30;border:0;border-radius:28px;padding:12px 18px;font:inherit;font-weight:700;font-size:.85rem;color:#fff;background:#2d6d3c;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  #mfab.on{background:#b3262e}
+  body.mob[data-mv=board] #mfab{display:block}
+  body.mob[data-mv=props] #mhint button{display:none}
+}
 </style>
 </head>
 <body>
@@ -509,6 +544,15 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
     </aside>
   </main>
 
+<div id="mhint" aria-live="polite"></div>
+<nav id="mnav" aria-label="มุมมองบนโทรศัพท์">
+  <button type="button" data-mv="board"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h4v6h6"/></svg>แผ่นงาน</button>
+  <button type="button" data-mv="lib"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>อุปกรณ์</button>
+  <button type="button" data-mv="props"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg>คุณสมบัติ<span class="bdg" id="bdgProps"></span></button>
+  <button type="button" data-mv="panel"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8v5H8z"/></svg>หน้าตู้<span class="bdg" id="bdgPanel"></span></button>
+  <button type="button" data-mv="erc"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>ตรวจวงจร<span class="bdg" id="bdgErc"></span></button>
+</nav>
+<button type="button" id="mfab">▶ เริ่มจำลอง</button>
   <footer class="statusbar">
     <span id="hint"></span>
     <span id="sbCoord" class="mono">X 0  Y 0</span>
@@ -1760,7 +1804,7 @@ function drawTerms() {
   for (const [key, t] of Object.entries(TERM)) {
     const g = el('g', {class:'term' + (t.pol === '+' ? ' pos' : '') + (t.part.t === 'facp' ? ' facp-t' : '') + (pending === key ? ' sel' : ''), 'data-k':key, tabindex:0, role:'button', 'aria-label':`${refdes(t.part)} ${nameOf(t.part)} ขา ${t.lb || t.k}`}, gTerms);
     el('line', {class:'pin', x1:t.ex, y1:t.ey, x2:t.x, y2:t.y}, g);
-    el('circle', {class:'hit', cx:t.x, cy:t.y, r:11}, g);
+    el('circle', {class:'hit', cx:t.x, cy:t.y, r:TOUCH ? 17 : 11}, g);
     el('circle', {class:'pinend', cx:t.x, cy:t.y, r:3.4}, g);
     if (t.lb) {
       const o = {r:[-5, 3.5, 'end'], l:[5, 3.5, 'start'], b:[0, -5, 'middle'], t:[0, 13, 'middle']}[t.side];
@@ -1813,7 +1857,12 @@ function drawWires() {
 /* ================= interaction ================= */
 const TOUCH = window.matchMedia && matchMedia('(pointer:coarse)').matches;
 const HINT = TOUCH ? 'แตะขั้วสกรูตัวแรก แล้วแตะขั้วปลายทางเพื่อต่อสาย · ปัดเพื่อเลื่อนบอร์ด · แตะอุปกรณ์เพื่อเลือก แล้วลากเพื่อย้าย · แตะสายเพื่อลบหรือจำลองสายขาด' : 'คลิกขั้วสกรูตัวแรก แล้วคลิกขั้วปลายทางเพื่อลากสาย · ลากตัวอุปกรณ์เพื่อย้าย · คลิกสายเพื่อลบหรือจำลองสายขาด · Esc ยกเลิก';
-function hint(t) { $('hint').textContent = t || HINT; }
+function hint(t) {
+  $('hint').textContent = t || HINT;
+  const m = $('mhint'); if (!m) return;
+  m.textContent = t || HINT;
+  if (document.body.classList.contains('mob') && document.body.dataset.mv !== 'panel' && /หน้าตู้|ACK|RESET/.test(t || '')) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'หน้าตู้ ›'; b.addEventListener('click', () => setMV('panel')); m.append(' ', b); }
+}
 function autoColor(k) {
   const t = TERM[k];
   if (CONNK(k)) return 'rib';
@@ -1906,7 +1955,8 @@ function selectPart(id) {
   renderInsp(); updateBtns();
   const p = byId(id);
   if (p) hint(`เลือก ${refdes(p)} · ${label(p)}`);
-  if (p && p.t !== 'facp' && narrow()) hint(`เลือก ${refdes(p)} แล้ว ลากเพื่อย้ายได้ · ตั้ง Address/ลบ ได้ที่ Properties ด้านล่าง`);
+  if (p && document.body.classList.contains('mob')) { mobSel(p); }
+  else if (p && p.t !== 'facp' && narrow()) hint(`เลือก ${refdes(p)} แล้ว ลากเพื่อย้ายได้ · ตั้ง Address/ลบ ได้ที่ Properties ด้านล่าง`);
 }
 function delSel() { wires = wires.filter(w => w.id !== selW); selW = null; hint(); changed(); }
 $('delW').addEventListener('click', delSel);
@@ -1954,8 +2004,8 @@ $('palette').addEventListener('click', ev => {
   changed();
   hint(`วาง ${refdes(p)} · ${nameOf(p)} แล้ว (กรอบเส้นประ) ลากย้ายได้ แล้วต่อสายที่ปลายขาของอุปกรณ์`);
   const wrap = $('boardWrap'), sc = board.getBoundingClientRect().width / BW;
-  if (narrow()) wrap.scrollIntoView({behavior:'smooth', block:'start'});
-  wrap.scrollTo({left:Math.max(0, x * sc - 60), top:Math.max(0, y * sc - 60), behavior:'smooth'});
+  if (document.body.classList.contains('mob')) { setMV('board'); mobSel(p); } else if (narrow()) wrap.scrollIntoView({behavior:'smooth', block:'start'});
+  setTimeout(() => { const sc2 = board.getBoundingClientRect().width / BW; wrap.scrollTo({left:Math.max(0, x * sc2 - 60), top:Math.max(0, y * sc2 - 60), behavior:'smooth'}); }, 60);
 });
 
 /* FACP cards */
@@ -4621,9 +4671,54 @@ $('zOut').addEventListener('click', () => setZoom(zoom / 1.25));
 $('zFit').addEventListener('click', () => setZoom(fitZoom()));
 $('boardWrap').addEventListener('wheel', ev => { if (!ev.ctrlKey) return; ev.preventDefault(); setZoom(zoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)); }, {passive:false});
 
+/* ================= phone layout controller ================= */
+function setMV(v) {
+  document.body.dataset.mv = v;
+  document.querySelectorAll('#mnav button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mv === v)));
+  if (v === 'erc') setTab(bottomTab);
+  if (v === 'board') setTimeout(() => setZoom(zoom), 0);
+  try { localStorage.setItem('facp-mv', v); } catch (e) {}
+}
+function mobSel(p) {
+  const m = $('mhint');
+  m.innerHTML = '';
+  m.append(`เลือก ${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : label(p)} `);
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = p.t === 'facp' ? 'สายภายในตู้ ›' : 'ตั้งค่า ›';
+  b.addEventListener('click', () => setMV('props')); m.append(b);
+}
+function mobLayout() {
+  const on = narrow();
+  document.body.classList.toggle('mob', on);
+  if (on && !document.body.dataset.mv) { let v = 'board'; try { v = localStorage.getItem('facp-mv') || 'board'; } catch (e) {} setMV(v); }
+}
+(function initMobile() {
+  const dr = document.querySelectorAll('.dock.right > section');
+  if (dr[0]) dr[0].classList.add('mv-props'); if (dr[1]) dr[1].classList.add('mv-panel'); if (dr[2]) dr[2].classList.add('mv-tests');
+  $('mnav').addEventListener('click', ev => { const b = ev.target.closest('[data-mv]'); if (b) setMV(b.dataset.mv); });
+  $('mfab').addEventListener('click', () => $('runBtn').click());
+  window.addEventListener('resize', mobLayout);
+  mobLayout();
+  // pinch to zoom the sheet
+  const w = $('boardWrap'); let pz0 = null;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  w.addEventListener('touchstart', e => { if (e.touches.length === 2) pz0 = {d:dist(e.touches), z:zoom}; }, {passive:true});
+  w.addEventListener('touchmove', e => { if (pz0 && e.touches.length === 2) { e.preventDefault(); setZoom(pz0.z * dist(e.touches) / pz0.d); } }, {passive:false});
+  w.addEventListener('touchend', e => { if (e.touches.length < 2) pz0 = null; }, {passive:true});
+  // badges + run button state
+  setInterval(() => {
+    if (!document.body.classList.contains('mob')) return;
+    const fab = $('mfab'); fab.textContent = simOn ? '■ หยุดจำลอง' : '▶ เริ่มจำลอง'; fab.classList.toggle('on', simOn);
+    const un = PX.events.filter(e => !e.acked).length, fire = PX.events.some(e => e.type === 'FIRE ALARM' && !e.acked);
+    const bp = $('bdgPanel'); bp.textContent = un || ''; bp.classList.toggle('on', !!un); bp.classList.toggle('warn', !!un && !fire);
+    const nErr = result ? result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0) : 0;
+    const be = $('bdgErc'); be.textContent = nErr || ''; be.classList.toggle('on', !!nErr);
+    const bs = $('bdgProps'); bs.textContent = selP && selP !== 'P' ? '1' : ''; bs.classList.toggle('on', !!(selP && selP !== 'P')); bs.classList.add('warn');
+  }, 400);
+})();
+
 /* ================= boot ================= */
 hint();
-setZoom(TOUCH || narrow() ? 0.75 : Math.max(fitZoom(), 0.55), false);
+setZoom(narrow() ? 0.62 : TOUCH ? 0.75 : Math.max(fitZoom(), 0.55), false);
 simClock();
 if (narrow()) $('cardsBox').open = false;
 $('vReal').setAttribute('aria-pressed', String(VIEW === 'real')); $('vSch').setAttribute('aria-pressed', String(VIEW === 'sch'));
