@@ -388,6 +388,18 @@ code{font-family:var(--font-mono);font-size:.8em;background:var(--chrome);border
 .pane-h .ftabs[role=tablist] .chip{white-space:nowrap;flex:none}
 
 /* ---------- phone layout: one view at a time + bottom tab bar ---------- */
+#xbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 10px;background:color-mix(in srgb,#d9a400 18%,var(--chrome));border-bottom:1px solid var(--chrome-line);font-size:.85rem}
+#xbar .xstat{font-weight:600;margin-right:auto;font-variant-numeric:tabular-nums}
+#xbar .btn{padding:4px 10px}
+body.exmode .app{grid-template-rows:auto auto auto auto minmax(0,1fr) auto}
+body.exmode #tabErc,body.exmode #tabPoll,body.exmode #ercFilters,body.exmode #score{display:none!important}
+#tabEx{display:none}
+body.exmode #tabEx{display:inline-flex}
+.exopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
+.exopts .btn{text-align:left;white-space:normal;min-height:38px}
+.xm{fill:none;stroke-width:3;stroke-dasharray:6 4;pointer-events:none}
+.xm.ok{stroke:#1f9d55}.xm.bad{stroke:#e0352b}
+@media (max-width:760px){#xbar{font-size:.78rem;padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;gap:5px}#xbar .xstat{white-space:nowrap}#xbar .btn{padding:6px 8px;white-space:nowrap;flex:none}}
 #mnav,#mfab,#mhint{display:none}
 @media (max-width:920px){
   body.mob{display:block;height:100dvh;overflow:hidden;padding:0;margin:0}
@@ -522,7 +534,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
     <div class="menu"><button type="button" aria-haspopup="true">จำลอง</button><div class="drop" role="menu">
       <button type="button" data-do="runBtn">เริ่ม / หยุดจำลอง <kbd>F5</kbd></button>
       <button type="button" data-do="rstBtn">SYSTEM RESET</button>
-      <hr><button type="button" data-do="pgTable">ตารางโปรแกรมตู้ (ตัวช่วยดู/แก้)…</button></div></div>
+      <hr><button type="button" data-do="exercise">ฝึกหาจุดเสีย (แบบฝึกหัด)…</button><hr><button type="button" data-do="pgTable">ตารางโปรแกรมตู้ (ตัวช่วยดู/แก้)…</button></div></div>
     <div class="menu"><button type="button" aria-haspopup="true">ช่วยเหลือ</button><div class="drop" role="menu">
       <button type="button" data-do="guide">หลักการต่อสายแต่ละส่วน</button>
       <button type="button" data-do="howto">วิธีใช้โปรแกรม</button></div></div>
@@ -533,6 +545,7 @@ svg.board .term.snap .hit{fill:rgba(63,209,111,.28)}
       <button class="tb" type="button" id="clear" title="ใหม่ (ตู้เปล่า)" aria-label="ใหม่"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></button>
       <button class="tb" type="button" id="exBasic" title="ตัวอย่าง: ระบบพื้นฐาน"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">พื้นฐาน</span></button>
       <button class="tb" type="button" id="exFull" title="ตัวอย่าง: ระบบเต็ม"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg><span class="lbl">ระบบเต็ม</span></button>
+      <button class="tb" type="button" id="exBtn" title="ฝึกหาจุดเสีย (แบบฝึกหัด)"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/><path d="M8 10.5h5M10.5 8v5"/></svg><span class="lbl">ฝึกหาจุดเสีย</span></button>
     </div>
     <div class="tgrp">
       <button class="tb" type="button" id="undo" title="ย้อนกลับ (Ctrl+Z)" aria-label="ย้อนกลับ"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button><button class="tb" type="button" id="redo" title="ทำซ้ำ (Ctrl+Y)" aria-label="ทำซ้ำ"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button><button class="tb" type="button" id="saveBtn" title="บันทึกงาน (Ctrl+S)" aria-label="บันทึกงาน"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg><span class="lbl">บันทึก</span></button><button class="tb" type="button" id="projBtn" title="งานของฉัน (Ctrl+O)" aria-label="งานของฉัน"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg><span class="lbl">งานของฉัน</span></button>
@@ -848,7 +861,7 @@ function freeSpot(t) {
 /* ================= persistence ================= */
 const KEY = 'facp-wiring-v3';
 let PROG = {};   // panel program database: point key (L1D001) -> {t, type, label, ext, zone, on}
-function save() { try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG, layout:2})); } catch (e) {} if (typeof histCommit === 'function' && HIST.i >= 0) histCommit(); }
+function save() { if (EX.on) return; try { localStorage.setItem(KEY, JSON.stringify({parts, wires, cards:CARDS, prog:PROG, layout:2})); } catch (e) {} if (typeof histCommit === 'function' && HIST.i >= 0) histCommit(); }
 function load() { try { return loadDoc(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch (e) { return false; } }
 function loadDoc(s) {
   try {
@@ -1980,6 +1993,7 @@ function drawWires() {
   const list = [];
   for (const w of wires) {
     if (!TERM[w.a] || !TERM[w.b]) continue;
+    if (w.hid && w.fault && EX.on) continue;
     cnt[w.a] = (cnt[w.a] || 0) + 1; cnt[w.b] = (cnt[w.b] || 0) + 1;
     const g = wirePts(w.a, w.b, w.id);
     list.push({w, pts:g.pts, free:g.free, duct:g.duct, ductX:g.ductX, net:String(nf(w.a))});
@@ -1989,7 +2003,7 @@ function drawWires() {
   for (const [li, {w, net}] of list.entries()) {
     const d = ds[li];
     el('path', {class:'wire-halo', d, 'data-net':net}, gWires);
-    el('path', {class:'wire' + (w.cut ? ' cut' : '') + (w.fault ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':w.color === 'rib' ? 5 : 2.4, 'data-net':net}, gWires);
+    const hid = EX.on && w.hid; el('path', {class:'wire' + (w.cut && !hid ? ' cut' : '') + (w.fault && !hid ? ' fault' : '') + (selW === w.id ? ' selw' : '') + (result && !EX.on && result.bad.has(w.id) ? ' bad' : ''), d, stroke:COLORS[w.color], 'stroke-width':w.color === 'rib' ? 5 : 2.4, 'data-net':net}, gWires);
     if (running && !w.cut && netNow) {
       const r = netNow(w.a);
       if (hotRoots.has(r)) el('path', {class:'flow hot', d, 'data-net':net}, gWires);
@@ -2000,6 +2014,7 @@ function drawWires() {
   }
   // junction dots where two or more wires land on one pin
   for (const [k, n] of Object.entries(cnt)) if (n >= 2) { const t = TERM[k]; const w = wires.find(x => x.a === k || x.b === k); el('circle', {class:'junc', cx:t.x, cy:t.y, r:3.8, fill:COLORS[w.color], 'data-net':String(nf(k))}, gWires); }
+  exMarks();
   applyFocus(focusFor());
 }
 // hover a wire or a terminal: light up its whole circuit
@@ -2235,7 +2250,7 @@ $('cutW').addEventListener('click', () => { const w = wires.find(x => x.id === s
 $('undo').addEventListener('click', () => histGo(-1));
 $('redo').addEventListener('click', () => histGo(1));
 function updateBtns() {
-  $('delW').disabled = !selW; $('cutW').disabled = !selW;
+  $('delW').disabled = !selW; $('cutW').disabled = !selW || EX.on;
   $('delP').disabled = !selP || selP === 'P';
   const w = wires.find(x => x.id === selW);
   $('cutW').title = w && w.cut ? 'ต่อสายที่ขาดคืน' : 'จำลองสายขาด';
@@ -2502,6 +2517,7 @@ menubar.addEventListener('click', ev => {
   else if (k === 'pExport') exportFile(null, projName());
   else if (k === 'pImport') $('fileIn').click();
   else if (k === 'pgTable') openProgram();
+  else if (k === 'exercise') exStartDialog();
   else if (k === 'guide') showGuide();
   else if (k === 'howto') modal('วิธีใช้โปรแกรม', $('howtoTpl').innerHTML);
   else if (k === 'autoAddr') autoAddress();
@@ -2570,6 +2586,7 @@ function triggerDevice(id) {
   else if (ev) hint(`${refdes(p)} ${det ? ((isHeat(p) ? 'ร้อนเกินกำหนด' : 'มีควัน') + (T(p).role === 'zone' ? ' (ตู้เห็นเป็นทั้งโซนของ ' + ev.l3 + ')' : '')) : p.t === 'pull' || p.t === 'apull' ? 'ถูกดึง' : 'ทำงาน'} → ตู้รับเหตุ ${ev.type} แล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้ แล้วคลิก ${refdes(p)} อีกครั้งเพื่อคืนสภาพก่อน RESET`);
   else if (p.act && progKeyOf(p) && partAt(progKeyOf(p)) && partAt(progKeyOf(p)).initUntil > Date.now()) hint(`${refdes(p)} ทำงาน แต่ ${progKeyOf(p)} กำลัง Detector Initialization (ภาคผนวก F.1) อีก ${Math.ceil((partAt(progKeyOf(p)).initUntil - Date.now()) / 1000)} วินาที ระหว่างนี้หัวยังไม่ป้องกันอัคคีภัย`);
   else if (p.act && p.actT && !p.reported) { hint(`${refdes(p)} ทำงาน ตู้กำลังรอ ${pollMode(partAt(progKeyOf(p)) ? partAt(progKeyOf(p)).loop : p.loop, (progKeyOf(p) || 'D')[progKeyOf(p) ? progKeyOf(p).search(/[DM]/) : 0]) === 'CLIP' ? 'CLIP poll ถึง Address นี้' : 'FlashScan poll'} (ดูแท็บ SLC Poll)`); setTimeout(() => { if (p.reported) hint(`${refdes(p)} → ตู้รับเหตุแล้ว กด ACK / SIGNAL SILENCE ที่หน้าตู้`); }, (p.reportAt || Date.now()) - Date.now() + 100); }
+  else if (EX.on) hint(`${refdes(p)} ทำงานแล้ว · ดูผลที่หน้าตู้`);
   else if (progKeyOf(p) && !PROG[progKeyOf(p)]) hint(`${refdes(p)} ทำงานแล้ว แต่ ${progKeyOf(p)} ยังไม่ได้ลงโปรแกรมในตู้ ตู้จึงไม่สนใจ → กด PROGRAM ที่หน้าตู้ › AUTOPROGRAM`);
   else if (progKeyOf(p) && !PROG[progKeyOf(p)].on) hint(`${refdes(p)} ทำงานแล้ว แต่ ${progKeyOf(p)} ถูก Disable ในโปรแกรมตู้ ตู้จึงไม่รับเหตุ → PROGRAM › DISABLE/ENABLE`);
   else hint(`${refdes(p)} ทำงานแล้ว แต่ตู้ไม่ได้รับสัญญาณ: ${p.t === 'beam' ? 'หัว Beam ต้องตอบบน SLC มีไฟ 24V และมีแผ่นสะท้อนวางตรงกันในระยะ 5–70 ม.' : T(p).role === 'zone' ? 'หัว Conventional ต้องต่อคร่อม ZONE ของ FZM-1 ที่ตอบบน SLC และมีไฟ 24V' : p.t === 'apull' ? 'แมนนวลไม่ตอบบน SLC (ตรวจสาย/Address/Loop · ต่อ SLC ตรง ไม่ต้องผ่าน FMM-1)' : det ? 'หัวไม่ตอบบน SLC (ตรวจสาย/Address/Loop)' : 'หน้าสัมผัสไม่ได้ต่อคร่อม IDC ของ FMM-1/FZM-1 ที่ตอบบน SLC'}`);
@@ -4625,7 +4642,9 @@ setInterval(() => { if (running && !PX.lamp) renderPanel(); }, 1000);
 /* bottom pane tabs: ERC / History */
 let bottomTab = 'erc';
 function setTab(t) {
+  if (EX.on && (t === 'erc' || t === 'poll')) t = 'ex';
   bottomTab = t;
+  if ($('tabEx')) $('tabEx').setAttribute('aria-pressed', String(t === 'ex'));
   $('tabErc').setAttribute('aria-pressed', String(t === 'erc')); $('tabHist').setAttribute('aria-pressed', String(t === 'hist')); $('tabPrn').setAttribute('aria-pressed', String(t === 'prn')); $('tabPoll').setAttribute('aria-pressed', String(t === 'poll'));
   $('ercFilters').hidden = t !== 'erc'; $('histTools').hidden = t !== 'hist';
   render();
@@ -4914,16 +4933,17 @@ function render() {
     rows += `<tr class="grp"><td class="ic ${LBL[c.state][1]}">${IC[c.state === 'todo' ? 'inf' : c.state][0]}</td><td>${c.title}</td><td><span class="chip ${LBL[c.state][1]}">${LBL[c.state][0]}</span></td></tr>`;
     rows += items.map(([l, t]) => `<tr><td class="ic ${IC[l][1]}">${IC[l][0]}</td><td colspan="2">${t}</td></tr>`).join('');
   }
-  if (bottomTab === 'poll') renderPoll();
+  if (bottomTab === 'ex') exPanel();
+  else if (bottomTab === 'poll') renderPoll();
   else if (bottomTab === 'prn') renderPrinter();
   else if (bottomTab === 'hist') renderHistory();
   else $('res').innerHTML = rows ? `<table class="erc"><thead><tr><th></th><th>วงจร / ข้อความ</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="note" style="padding:10px">ไม่พบข้อผิดพลาด ทุกวงจรผ่านการตรวจ</p>';
   const nErr = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0), nWarn = result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'warn').length, 0);
-  $('sbErr').textContent = `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
+  $('sbErr').textContent = EX.on ? `แบบฝึกหัดหาจุดเสีย · ${parts.length} อุปกรณ์ · ${wires.length} สาย` : `ERC: ${nErr} ข้อผิดพลาด · ${nWarn} คำเตือน · ${parts.length} อุปกรณ์ · ${wires.length} สาย`;
   const circs = result.circ.filter(c => !['x', 'loose', 'l2x', 'prog'].includes(c.key));
   const pass = circs.filter(c => c.state === 'ok').length;
   const allOk = pass === circs.length && !result.circ.some(c => ['x', 'l2x'].includes(c.key));
-  $('score').textContent = `ผ่าน ${pass}/${circs.length} วงจร`;
+  $('score').textContent = EX.on ? 'แบบฝึกหัด' : `ผ่าน ${pass}/${circs.length} วงจร`;
   $('score').className = 'chip ' + (allOk ? 'c-ok' : 'c-muted');
   updateBtns();
 }
@@ -5049,7 +5069,7 @@ function mobLayout() {
     const un = PX.events.filter(e => !e.acked).length, fire = PX.events.some(e => e.type === 'FIRE ALARM' && !e.acked);
     const bp = $('bdgPanel'); bp.textContent = un || ''; bp.classList.toggle('on', !!un); bp.classList.toggle('warn', !!un && !fire);
     const nErr = result ? result.circ.reduce((a, c) => a + c.items.filter(i => i[0] === 'err').length, 0) : 0;
-    const be = $('bdgErc'); be.textContent = nErr || ''; be.classList.toggle('on', !!nErr);
+    const be = $('bdgErc'); be.textContent = EX.on ? '' : nErr || ''; be.classList.toggle('on', !!nErr && !EX.on);
     const bs = $('bdgProps'); bs.textContent = selP && selP !== 'P' ? '1' : ''; bs.classList.toggle('on', !!(selP && selP !== 'P')); bs.classList.add('warn');
   }, 400);
 })();
@@ -5069,6 +5089,7 @@ function histCommit() {
   HIST.i = HIST.stack.length - 1; histBtns(); projDirty();
 }
 function histGo(d) {
+  if (EX.on) { hint('ระหว่างแบบฝึกหัดใช้ย้อนกลับไม่ได้'); return; }
   const j = HIST.i + d; if (j < 0 || j >= HIST.stack.length) { hint(d < 0 ? 'ไม่มีขั้นตอนให้ย้อนแล้ว' : 'ไม่มีขั้นตอนให้ทำซ้ำ'); return; }
   const s = JSON.parse(HIST.stack[j]), act = new Map(parts.map(p => [p.id, p]));
   HIST.i = j; HIST.restoring = true;
@@ -5103,6 +5124,7 @@ function projDirty() {
   $('fileName').title = n ? (dirty ? 'มีการแก้ไขที่ยังไม่ได้บันทึก' : 'บันทึกแล้ว') : 'ยังไม่ได้บันทึกเป็นงาน';
 }
 function projSave(asNew) {
+  if (EX.on) { hint('ระหว่างแบบฝึกหัดบันทึกงานไม่ได้ ออกจากแบบฝึกหัดก่อน'); return; }
   const all = projAll();
   if (!curProj || !all[curProj] || asNew) {
     askName(asNew && projName() ? projName() + ' (สำเนา)' : '', name => {
@@ -5185,6 +5207,232 @@ async function exportFile(doc, name) {
     else if ((ev.ctrlKey || ev.metaKey) && k === 'o') { ev.preventDefault(); projList(); }
   });
   window.addEventListener('beforeunload', e => { if (projName() && savedSnap !== snapOf()) { e.preventDefault(); e.returnValue = ''; } });
+})();
+
+/* ================= fault-finding exercise ================= */
+const EX = {on:false, faults:[], t0:0, mistakes:0, hints:0, prev:null, timer:null, done:false, level:1, base:''};
+const FAULT_TYPES = {
+  open:'สายขาด', short:'สายช็อต (+ กับ − ชนกัน)', eol:'EOL ผิดค่า', rev:'ต่อกลับขั้ว', addr:'Address ซ้ำ',
+  ribbon:'สายแพข้อมูลหลุด', bat:'แบตเตอรี่หลุด', ac:'ไฟ AC ไม่เข้า', pwr24:'ไฟ 24V เข้าโมดูลขาด', ptype:'โปรแกรมผิดชนิดอุปกรณ์ (Type)', disabled:'จุดถูก Disable ในโปรแกรม'};
+const LEVELS = {1:{n:1, pool:['open', 'eol', 'disabled', 'bat', 'addr']}, 2:{n:2, pool:['open', 'eol', 'disabled', 'bat', 'addr', 'short', 'rev', 'ptype', 'pwr24']}, 3:{n:3, pool:Object.keys(FAULT_TYPES)}};
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const ends = w => [TERM[w.a] && TERM[w.a].part, TERM[w.b] && TERM[w.b].part];
+const isField = w => { const [a, b] = ends(w); return a && b && !(a.t === 'facp' && b.t === 'facp') && !isInternal(w.a) && !isInternal(w.b); };
+function signature() {
+  const R = analyze();
+  return JSON.stringify([R.panel.map(x => x.join(':')).sort(), R.circ.map(c => c.key + c.state + c.items.map(i => i[0] + i[1]).join('|')), Object.entries(R.resp).filter(e => e[1]).map(e => e[0]).sort(), !!R.cpuPower, !!R.acOK]);
+}
+// each maker injects one fault, returns its record (with undo) or null when the system has nothing suitable
+const MAKERS = {
+  open() {
+    const w = rnd(shuffle(wires.filter(w => isField(w) && !w.cut && !w.hid))); if (!w) return null;
+    w.cut = true; w.hid = true;
+    return {type:'open', target:{wire:w.id, parts:ends(w).map(p => p.id)}, where:`สาย ${refdes(ends(w)[0])} → ${refdes(ends(w)[1])}`, undo:() => { w.cut = false; delete w.hid; }};
+  },
+  short() {
+    const p = rnd(shuffle(parts.filter(q => T(q) && ((T(q).role === 'slc' && !isoBase(q)) || T(q).role === 'nac') && partUsed(q)))); if (!p) return null;
+    const [kp, kn] = T(p).role === 'slc' ? ['s+', 's-'] : ['+', '-'];
+    const w = {id:wseq++, a:p.id + '.' + kp, b:p.id + '.' + kn, color:'yel', cut:false, fault:true, hid:true}; wires.push(w);
+    return {type:'short', target:{parts:[p.id]}, where:`ที่ขั้ว ${refdes(p)}`, undo:() => { wires = wires.filter(x => x !== w); }};
+  },
+  eol() {
+    const p = rnd(shuffle(parts.filter(q => q.t === 'eol47' && partUsed(q)))); if (!p) return null;
+    p.t = 'eol22';
+    return {type:'eol', target:{parts:[p.id]}, where:`${refdes(p)} (ใส่ 2.2kΩ แทน 47kΩ)`, undo:() => { p.t = 'eol47'; }};
+  },
+  rev() {
+    const p = rnd(shuffle(parts.filter(q => T(q) && T(q).role === 'nac' && termUsed(q.id + '.+') && termUsed(q.id + '.-')))); if (!p) return null;
+    const sw = () => wires.forEach(w => ['a', 'b'].forEach(e => { if (w[e] === p.id + '.+') w[e] = p.id + '.-'; else if (w[e] === p.id + '.-') w[e] = p.id + '.+'; }));
+    sw();
+    return {type:'rev', target:{parts:[p.id]}, where:`${refdes(p)} สลับ + กับ −`, undo:sw};
+  },
+  addr() {
+    const cand = shuffle(parts.filter(q => T(q) && T(q).role === 'slc' && PROG[addrStr(q)]));
+    for (const p of cand) {
+      const other = parts.find(q => q !== p && T(q) && T(q).addrType === T(p).addrType && q.loop === p.loop && T(q).role === 'slc');
+      if (!other) continue;
+      const old = p.addr; p.addr = other.addr;
+      return {type:'addr', target:{parts:[p.id, other.id]}, where:`${refdes(p)} ตั้ง Address ซ้ำกับ ${refdes(other)} (${addrStr(other)})`, undo:() => { p.addr = old; }};
+    }
+    return null;
+  },
+  ribbon() {
+    const w = rnd(wires.filter(x => CONNK(x.a) === 'data' && !x.cut)); if (!w) return null;
+    w.cut = true; w.hid = true;
+    return {type:'ribbon', target:{wire:w.id, parts:['P']}, where:`สายแพ ${TERM[w.a].lb} → ${TERM[w.b].lb}`, undo:() => { w.cut = false; delete w.hid; }};
+  },
+  bat() {
+    const w = rnd(wires.filter(x => (x.a === 'P.t+' || x.b === 'P.t+' || x.a === 'P.t-' || x.b === 'P.t-') && !x.cut)); if (!w) return null;
+    w.cut = true; w.hid = true;
+    return {type:'bat', target:{wire:w.id, parts:ends(w).map(p => p.id)}, where:'สายแบตเตอรี่ที่ AMPS-24', undo:() => { w.cut = false; delete w.hid; }};
+  },
+  ac() {
+    const w = wires.find(x => [x.a, x.b].includes('P.pL') && !x.cut); if (!w) return null;
+    w.cut = true; w.hid = true;
+    return {type:'ac', target:{wire:w.id, parts:['P']}, where:'สาย L ของไฟ AC เข้า CPS-24E', undo:() => { w.cut = false; delete w.hid; }};
+  },
+  pwr24() {
+    const w = rnd(shuffle(wires.filter(x => /\.v\+$/.test(x.a + ' ' + x.b) && [x.a, x.b].some(k => /^cm\d|^fzm\d|^beam\d/.test(k)) && !x.cut))); if (!w) return null;
+    w.cut = true; w.hid = true; const p = ends(w).find(q => q.t !== 'facp') || ends(w)[0];
+    return {type:'pwr24', target:{wire:w.id, parts:ends(w).filter(q => q.t !== 'facp').map(q => q.id)}, where:`สายไฟ 24V+ เข้า ${refdes(p)}`, undo:() => { w.cut = false; delete w.hid; }};
+  },
+  ptype() {
+    const p = rnd(shuffle(parts.filter(q => T(q) && T(q).role === 'slc' && T(q).addrType === 'D' && PROG[addrStr(q)] && q.t !== 'heat' && analyze().resp[q.id]))); if (!p) return null;
+    const k = addrStr(p), old = PROG[k].type; PROG[k].type = 'HEAT';
+    return {type:'ptype', target:{parts:[p.id]}, where:`${k} ตั้งเป็น HEAT แต่ติดหัว ${T(p).short}`, undo:() => { if (PROG[k]) PROG[k].type = old; }};
+  },
+  disabled() {
+    const p = rnd(shuffle(parts.filter(q => T(q) && T(q).role === 'slc' && PROG[addrStr(q)] && PROG[addrStr(q)].on))); if (!p) return null;
+    const k = addrStr(p); PROG[k].on = false;
+    return {type:'disabled', target:{parts:[p.id]}, where:`${k} ถูก Disable`, undo:() => { if (PROG[k]) PROG[k].on = true; }};
+  },
+};
+function exInject(level) {
+  const L = LEVELS[level], out = [], used = new Set();
+  for (let tries = 0; out.length < L.n && tries < 200; tries++) {
+    const type = rnd(L.pool.filter(t => !out.some(f => f.type === t) || L.pool.length < L.n));
+    const before = signature(), f = MAKERS[type]();
+    if (!f) continue;
+    const key = (f.target.wire || '') + ':' + f.target.parts.join(',');
+    if (used.has(key) || (!['disabled', 'ptype'].includes(f.type) && signature() === before) || (f.type !== 'ac' && f.type !== 'bat' && !(analyze().cpuPower))) { f.undo(); continue; }   // must show a symptom, keep the panel alive
+    used.add(key); out.push(f);
+  }
+  return out;
+}
+const fmtT = ms => { const s = Math.floor(ms / 1000); return `${pz(Math.floor(s / 60))}:${pz(s % 60)}`; };
+function exStartDialog() {
+  if (EX.on) { exPanel(); return; }
+  const best = (() => { try { return JSON.parse(localStorage.getItem('facp-ex-hist') || '[]'); } catch (e) { return []; } })();
+  const hist = best.slice(0, 5).map(r => `<li>${new Date(r.at).toLocaleString('th-TH')} · ระดับ ${r.level} · ${r.found}/${r.n} จุด · ${fmtT(r.ms)} · ${r.score} คะแนน (${r.grade})</li>`).join('');
+  modal('ฝึกหาจุดเสีย', `<p>ระบบจะซ่อนจุดเสียไว้ในวงจร แล้วเปิดตู้ให้ ใช้ <b>หน้าตู้</b> (ข้อความ Trouble, READ STATUS, ประวัติ) และการ <b>ดูสาย/อุปกรณ์</b> เพื่อหาจุดเสีย ระหว่างฝึกจะซ่อนผลตรวจวงจร (ERC) และแท็บ SLC Poll</p>
+    <p>เมื่อเจอแล้ว ให้แตะ/คลิกเลือก <b>สายหรืออุปกรณ์</b> ที่เสีย (สายแพ/ไฟ AC/แบตเตอรี่ เลือกสายนั้นหรือตัวตู้) แล้วกด <b>แจ้งจุดเสีย</b> และเลือกชนิดความเสีย ถ้าถูก ระบบจะซ่อมให้ ถ้าผิดจะเสียคะแนน</p>
+    <div class="kv" style="margin-top:8px"><label for="exLvl">ระดับ</label><select id="exLvl"><option value="1">ง่าย · 1 จุด (สายขาด, EOL, แบต, Address, Disable)</option><option value="2">กลาง · 2 จุด (+ ช็อต, กลับขั้ว, โปรแกรมผิด, ไฟ 24V)</option><option value="3">ยาก · 3 จุด (+ สายแพ, ไฟ AC)</option></select>
+    <label for="exBase">ระบบที่ใช้ฝึก</label><select id="exBase"><option value="basic">ตัวอย่างระบบพื้นฐาน</option><option value="full" selected>ตัวอย่างระบบเต็ม</option><option value="cur">งานที่เปิดอยู่</option></select></div>
+    ${hist ? `<p style="margin-top:10px"><b>ผลล่าสุด</b></p><ul class="note">${hist}</ul>` : ''}`,
+    [['ยกเลิก', ''], ['เริ่มฝึก', 'pri', () => exStart(+($('exLvlKeep').value || 1), $('exBaseKeep').value || 'full')]]);
+  ['exLvl', 'exBase'].forEach(id => { let k = $(id + 'Keep'); if (!k) { k = document.createElement('input'); k.type = 'hidden'; k.id = id + 'Keep'; document.body.append(k); } k.value = $(id).value; $(id).addEventListener('change', () => { k.value = $(id).value; }); });
+}
+function exStart(level, base) {
+  EX.prev = {doc:docOf(projName() || 'งาน'), curProj, savedSnap, view:bottomTab};
+  if (base === 'basic') build(false); else if (base === 'full') build(true);
+  else if (!Object.keys(PROG).length) { modal('ใช้งานนี้ฝึกไม่ได้', '<p>งานที่เปิดอยู่ยังไม่ได้ลงโปรแกรมในตู้ (Autoprogram) จึงไม่มีอาการให้หา เลือกตัวอย่างระบบแทน</p>'); EX.prev = null; return; }
+  const sig0 = signature();
+  const faults = exInject(level);
+  if (!faults.length) { modal('สร้างแบบฝึกหัดไม่ได้', '<p>ระบบนี้มีอุปกรณ์ไม่พอให้ซ่อนจุดเสียที่มีอาการ ลองเลือกตัวอย่างระบบเต็ม</p>'); exRestore(); return; }
+  Object.assign(EX, {on:true, faults, t0:Date.now(), mistakes:0, hints:0, done:false, level, base, sig0});
+  faults.forEach(f => f.found = false);
+  document.body.classList.add('exmode');
+  selP = null; selW = null; pending = null;
+  if (!simOn) toggleRun(); else changed();
+  setTab('ex'); exPanel(); exBar();
+  clearInterval(EX.timer); EX.timer = setInterval(exBar, 1000);
+  plog('INFO', `เริ่มแบบฝึกหัดหาจุดเสีย ระดับ ${level} (${faults.length} จุด)`);
+  hint(`ซ่อนจุดเสียไว้ ${faults.length} จุด ดูอาการที่หน้าตู้ แล้วเลือกสาย/อุปกรณ์ที่เสียและกด "แจ้งจุดเสีย"`);
+  if (document.body.classList.contains('mob')) setMV('panel');
+}
+function exReport() {
+  if (!EX.on || EX.done) return;
+  const w = selW && wires.find(x => x.id === selW), p = selP && byId(selP);
+  if (!w && !p) { modal('เลือกจุดที่สงสัยก่อน', '<p>แตะหรือคลิก <b>สาย</b> หรือ <b>อุปกรณ์</b> ที่คิดว่าเสีย (ปัญหาภายในตู้ เช่น สายแพ ไฟ AC เลือกที่สายนั้นหรือที่ตัวตู้) แล้วกด "แจ้งจุดเสีย" อีกครั้ง</p>'); return; }
+  const what = w ? `สาย ${refdes(TERM[w.a].part)} ${TERM[w.a].lb || ''} → ${refdes(TERM[w.b].part)} ${TERM[w.b].lb || ''}` : `${refdes(p)} · ${p.t === 'facp' ? 'ตู้ NFS2-3030' : nameOf(p)}`;
+  modal('แจ้งจุดเสีย', `<p>จุดที่เลือก: <b>${what.replace(/</g, '&lt;')}</b></p><p>ความเสียคืออะไร?</p><div class="exopts">${Object.entries(FAULT_TYPES).map(([k, t]) => `<button class="btn" type="button" data-ft="${k}">${t}</button>`).join('')}</div>`, [['ยกเลิก', '']]);
+  $('mBody').onclick = ev => { const b = ev.target.closest('[data-ft]'); if (!b) return; closeModal(); exCheck(b.dataset.ft, w, p); };
+}
+function exCheck(type, w, p) {
+  const hit = EX.faults.find(f => !f.found && f.type === type && ((w && (f.target.wire === w.id || (f.type === 'short' && f.target.parts.some(id => w.a.startsWith(id + '.') || w.b.startsWith(id + '.'))))) || (p && f.target.parts.includes(p.id))));
+  if (!hit) {
+    EX.mistakes++;
+    const near = EX.faults.some(f => !f.found && ((w && f.target.wire === w.id) || (p && f.target.parts.includes(p.id))));
+    modal('ยังไม่ถูก', `<p>${near ? 'ตำแหน่งนี้มีจุดเสียจริง แต่ชนิดความเสียไม่ใช่ ' + FAULT_TYPES[type] : 'ตรงนี้ไม่ใช่จุดเสีย'} · หัก 15 คะแนน</p>`);
+    exBar(); exPanel(); return;
+  }
+  hit.found = true; hit.foundAt = Date.now(); hit.undo(); hit.repaired = true;
+  plog('INFO', `แบบฝึกหัด: พบจุดเสีย ${FAULT_TYPES[hit.type]} · ${hit.where}`);
+  changed(); exBar(); exPanel();
+  const left = EX.faults.filter(f => !f.found).length;
+  if (!left) exFinish(false);
+  else modal('ถูกต้อง ✓', `<p>${FAULT_TYPES[hit.type]}: ${hit.where.replace(/</g, '&lt;')}</p><p>ซ่อมให้แล้ว เหลืออีก ${left} จุด (Trouble แบบค้าง เช่น CLASS A ต้องกด SYSTEM RESET ที่ตู้)</p>`);
+}
+function exScore() {
+  const n = EX.faults.length, found = EX.faults.filter(f => f.found && !f.revealed).length, ms = (EX.end || Date.now()) - EX.t0;
+  const score = Math.max(0, found * 100 - EX.mistakes * 15 - EX.hints * 20 - Math.floor(ms / 1000 / 15));
+  const pct = score / (n * 100), grade = pct >= 0.9 ? 'ดีเยี่ยม' : pct >= 0.75 ? 'ดี' : pct >= 0.5 ? 'ผ่าน' : 'ควรฝึกเพิ่ม';
+  return {n, found, ms, score, grade};
+}
+function exFinish(gaveUp) {
+  EX.done = true; EX.end = Date.now(); clearInterval(EX.timer);
+  if (gaveUp) EX.faults.filter(f => !f.found).forEach(f => f.revealed = true);
+  const r = exScore();
+  try { const h = JSON.parse(localStorage.getItem('facp-ex-hist') || '[]'); h.unshift({at:Date.now(), level:EX.level, ...r}); localStorage.setItem('facp-ex-hist', JSON.stringify(h.slice(0, 30))); } catch (e) {}
+  drawWires(); exPanel(); exBar();
+  const list = EX.faults.map(f => `<li>${f.found ? '✓' : '✕'} <b>${FAULT_TYPES[f.type]}</b> · ${f.where.replace(/</g, '&lt;')}</li>`).join('');
+  modal(gaveUp ? 'เฉลยจุดเสีย' : 'หาครบแล้ว 🎉', `<p>เวลา ${fmtT(r.ms)} · พบเอง ${r.found}/${r.n} จุด · ตอบผิด ${EX.mistakes} ครั้ง · ใช้คำใบ้ ${EX.hints} ครั้ง</p><p style="font-size:1.2rem"><b>${r.score} คะแนน · ${r.grade}</b></p><ul>${list}</ul>${gaveUp ? '<p class="note">จุดที่ยังไม่พบมีกรอบสีแดงบนแผ่นงาน</p>' : ''}`,
+    [['ดูแผ่นงาน', ''], ['ฝึกอีกครั้ง', '', () => { exExit(true); exStartDialog(); }], ['ออกจากแบบฝึกหัด', 'pri', () => exExit()]]);
+}
+function exHint() {
+  const f = EX.faults.find(x => !x.found); if (!f || EX.done) return;
+  EX.hints++;
+  const p = byId(f.target.parts[0]);
+  let msg;
+  if (['ribbon', 'ac', 'bat'].includes(f.type)) msg = 'จุดเสียอยู่ภายในตู้ (ดูสายในตู้: สายแพ ไฟ AC แบตเตอรี่)';
+  else if (p && T(p) && T(p).role === 'slc') msg = `จุดเสียเกี่ยวกับอุปกรณ์บน Loop ${p.loop} (ดู READ STATUS / ข้อความ Trouble ที่หน้าตู้)`;
+  else msg = 'จุดเสียอยู่ในวงจรที่ไฮไลต์ (สายอื่นจางลง)';
+  if (f.target.wire || p) { const nets = new Set(); if (f.target.wire) { const w = wires.find(x => x.id === f.target.wire); if (w && netNow) nets.add(String(netNow(w.a))); } if (p && p.t !== 'facp') termsOf(p).forEach(t => { const k = p.id + '.' + t[0]; if (TERM[k] && termUsed(k) && netNow) nets.add(String(netNow(k))); }); applyFocus(nets); }
+  modal('คำใบ้ (หัก 20 คะแนน)', `<p>${msg}</p>`); exBar(); exPanel();
+}
+function exRestore() {
+  const P = EX.prev; EX.prev = null; if (!P) return;
+  loadDoc(P.doc); curProj = P.curProj; savedSnap = P.savedSnap;
+  selP = null; selW = null; pending = null; changed(); histReset(); projDirty();
+}
+function exExit(silent) {
+  if (!EX.on) return;
+  clearInterval(EX.timer);
+  EX.on = false; EX.faults = []; document.body.classList.remove('exmode');
+  if (simOn) toggleRun();
+  exRestore(); exBar(); setTab('erc');
+  if (!silent) hint('ออกจากแบบฝึกหัดแล้ว กลับสู่งานเดิม');
+}
+function exBar() {
+  const b = $('xbar'); if (!b) return;
+  if (!EX.on) { b.hidden = true; return; }
+  b.hidden = false;
+  const found = EX.faults.filter(f => f.found).length, ms = (EX.end || Date.now()) - EX.t0;
+  b.querySelector('.xstat').textContent = `🧪 ${fmtT(ms)} · พบ ${found}/${EX.faults.length} · ผิด ${EX.mistakes}${EX.hints ? ' · ใบ้ ' + EX.hints : ''}`;
+  b.querySelector('[data-x=rep]').disabled = EX.done; b.querySelector('[data-x=hint]').disabled = EX.done; b.querySelector('[data-x=give]').disabled = EX.done;
+}
+function exPanel() {
+  if (!EX.on || bottomTab !== 'ex') return;
+  const r = exScore();
+  $('res').innerHTML = `<div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+    <div><b>แบบฝึกหัดหาจุดเสีย · ระดับ ${EX.level}</b> · เวลา ${fmtT(r.ms)} · พบ ${EX.faults.filter(f => f.found).length}/${r.n} · ตอบผิด ${EX.mistakes} · คำใบ้ ${EX.hints} · คะแนนตอนนี้ ${r.score}</div>
+    <ol style="margin:0;padding-left:1.2em">${EX.faults.map((f, i) => `<li>${f.found ? `✓ ${FAULT_TYPES[f.type]} · ${f.where.replace(/</g, '&lt;')}` : f.revealed ? `✕ (เฉลย) ${FAULT_TYPES[f.type]} · ${f.where.replace(/</g, '&lt;')}` : 'ยังไม่พบ'}</li>`).join('')}</ol>
+    <p class="note" style="margin:0">ผลตรวจวงจร (ERC) ถูกซ่อนระหว่างฝึก · ใช้หน้าตู้: ข้อความ Trouble, MAIN MENU › READ STATUS, HISTORY · ดูสีสาย ขั้ว ค่า EOL และ Address บนอุปกรณ์</p></div>`;
+}
+// markers for found / revealed faults
+function exMarks() {
+  if (!EX.on) return;
+  for (const f of EX.faults) {
+    if (!f.found && !f.revealed) continue;
+    const cls = f.found ? 'xm ok' : 'xm bad';
+    if (f.target.wire) { const w = wires.find(x => x.id === f.target.wire); if (w && TERM[w.a] && TERM[w.b]) el('circle', {class:cls, cx:(TERM[w.a].x + TERM[w.b].x) / 2, cy:(TERM[w.a].y + TERM[w.b].y) / 2, r:14}, gWires); }
+    f.target.parts.forEach(id => { const p = byId(id); if (p && p.t !== 'facp') { const ty = T(p); el('rect', {class:cls, x:p.x - 6, y:p.y - 6, width:ty.w + 12, height:ty.h + 12, rx:6}, gWires); } });
+  }
+}
+(function initExercise() {
+  const bar = document.createElement('div'); bar.id = 'xbar'; bar.hidden = true;
+  bar.innerHTML = '<span class="xstat"></span><button type="button" class="btn pri" data-x="rep">แจ้งจุดเสีย</button><button type="button" class="btn" data-x="hint">คำใบ้</button><button type="button" class="btn" data-x="give">เฉลย</button><button type="button" class="btn" data-x="exit">ออก</button>';
+  document.querySelector('main.work').before(bar);
+  // block actions that would wipe or reveal the exercise
+  document.addEventListener('click', ev => { if (!EX.on) return; const b = ev.target.closest('#clear,#exBasic,#exFull,#cutW,#undo,#redo,[data-do=new],[data-do=exBasic],[data-do=exFull],[data-do=pImport],[data-do=pList],[data-do=pSave],[data-do=pSaveAs],[data-do=cutW],[data-do=undo],[data-do=redo],[data-do=autoAddr],#projBtn,#saveBtn,#mUndo,#mRedo'); if (!b) return; ev.stopPropagation(); ev.preventDefault(); hint('ระหว่างแบบฝึกหัดใช้คำสั่งนี้ไม่ได้ กด "ออก" ที่แถบแบบฝึกหัดก่อน'); }, true);
+  bar.addEventListener('click', ev => { const b = ev.target.closest('[data-x]'); if (!b || b.disabled) return; const x = b.dataset.x;
+    if (x === 'rep') exReport(); else if (x === 'hint') exHint();
+    else if (x === 'give') modal('ยอมแพ้และดูเฉลย?', '<p>จุดที่ยังไม่พบจะไม่ได้คะแนน</p>', [['ฝึกต่อ', ''], ['ดูเฉลย', 'dng', () => exFinish(true)]]);
+    else if (x === 'exit') modal('ออกจากแบบฝึกหัด?', '<p>กลับไปที่งานเดิมก่อนเริ่มฝึก ผลการฝึกรอบนี้จะไม่ถูกบันทึกถ้ายังไม่จบ</p>', [['ฝึกต่อ', ''], ['ออก', 'pri', () => exExit()]]); });
+  const tab = document.createElement('button'); tab.type = 'button'; tab.id = 'tabEx'; tab.setAttribute('aria-pressed', 'false'); tab.textContent = 'แบบฝึกหัด';
+  $('tabErc').before(tab); tab.addEventListener('click', () => setTab('ex'));
+  $('exBtn').addEventListener('click', exStartDialog);
 })();
 
 /* ================= boot ================= */
