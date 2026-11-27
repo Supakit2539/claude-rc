@@ -73,3 +73,15 @@ UF ประมาณจากตารางตามดัชนีห้อ�
 ## แอปอื่นใน repo: แผงทดลองวงจรไฟฟ้า
 เปิด `circuit-lab.html` ในเบราว์เซอร์ เพื่อจำลองวงจร DC/AC 1 เฟส/3 เฟส ตู้ควบคุมมอเตอร์ PLC (แลดเดอร์/ข้อความ) และ HMI
 มีวงจรตัวอย่างให้เลือกจากเมนูด้านบน · รายละเอียดสำหรับนักพัฒนาอยู่ใน `CLAUDE.md` · ทดสอบด้วย `node tests/circuit-lab.test.js`
+
+---
+
+# แผงทดลองวงจรไฟฟ้า (Circuit Lab) — ติดตั้งเป็นแอปบนโทรศัพท์
+
+`circuit-lab.html` เป็นแอปแบบ PWA: ติดตั้งลงหน้าจอโทรศัพท์ได้ มีไอคอน เปิดเต็มจอ และใช้งานออฟไลน์ได้หลังเปิดครั้งแรก
+
+1. เปิด GitHub Pages ของ repo นี้: **Settings → Pages → Build and deployment → Source: Deploy from a branch** เลือก branch และโฟลเดอร์ `/ (root)` แล้วกด Save
+2. เปิด `https://<ชื่อผู้ใช้>.github.io/<ชื่อ repo>/circuit-lab.html` บนโทรศัพท์
+3. Android (Chrome): ⋯ เมนูของแอป → **📲 ติดตั้งแอป** (หรือเมนู Chrome → ติดตั้งแอป) · iPhone/iPad (Safari): ปุ่มแชร์ → **เพิ่มไปยังหน้าจอโฮม**
+
+ต้องการไฟล์ APK สำหรับ Android: นำ URL ข้างต้นไปสร้างที่ PWABuilder (pwabuilder.com) → Android → ได้แพ็กเกจแบบ Trusted Web Activity

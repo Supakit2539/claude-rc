@@ -2,7 +2,12 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Circuit Lab">
 <title>แผงทดลองวงจรไฟฟ้า</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -273,6 +278,7 @@ button,select,.pi,summary{touch-action:manipulation}
   #fwrap{border-left:0;border-top:1px solid var(--line)}
 }
 #bMore,#more[hidden],#kbar{display:none}
+@media (display-mode:standalone){header{padding-top:calc(6px + env(safe-area-inset-top));padding-left:calc(8px + env(safe-area-inset-left));padding-right:calc(8px + env(safe-area-inset-right))}}
 @media (max-width:600px){
   header h1{display:none}
   header>:not(#bPal):not(#bInsp):not(#bRun):not(#bMore){display:none !important}
@@ -357,7 +363,7 @@ button,select,.pi,summary{touch-action:manipulation}
 <div id="fmenu" class="pop" hidden>
   <button data-f="save">💾 บันทึกเป็นไฟล์ (.json)</button><button data-f="open">📂 เปิดไฟล์…</button>
   <button data-f="share">🔗 แชร์ (โค้ด/ลิงก์)</button><button data-f="import">📥 นำเข้าโค้ด/ข้อความ</button>
-  <button data-f="png">🖼 ส่งออกภาพวงจร (PNG)</button><button data-f="report">📄 รายงาน (PDF / HTML)</button><button data-f="paste">📋 วาง (Ctrl+V)</button><button data-f="new">✚ วงจรใหม่</button>
+  <button data-f="png">🖼 ส่งออกภาพวงจร (PNG)</button><button data-f="report">📄 รายงาน (PDF / HTML)</button><button data-f="install" id="finstall" hidden>📲 ติดตั้งเป็นแอปบนเครื่อง</button><button data-f="paste">📋 วาง (Ctrl+V)</button><button data-f="new">✚ วงจรใหม่</button>
 </div>
 <div id="vmenu" class="pop" hidden>
   <label><input type="checkbox" data-d="on"> <b>แสดงป้ายค่าบนแผง</b></label>
@@ -8917,6 +8923,7 @@ async function fileAct(a){
   if (a === 'import') modal(`<h3>นำเข้าวงจร</h3><p class="anhint">วางโค้ดแชร์ (CL1.…), ข้อความ JSON ของวงจร หรือข้อความที่คัดลอกจากแอป</p>
       <textarea id="mcode" rows="6" placeholder="วางที่นี่"></textarea><div class="row"><button class="btn on" data-m="imp">เปิดวงจร</button><button class="btn" data-m="close">ยกเลิก</button></div><div id="merr" class="anhint"></div>`);
   if (a === 'report'){ reportOpen(); return; }
+  if (a === 'install'){ pwaInstall(); return; }
   if (a === 'png'){ const u = circuitPNG(); if (u) anSave('วงจร.png', u); else toast('ยังไม่มีวงจร'); }
   if (a === 'new'){ if (confirm('เริ่มวงจรใหม่ (วงจรปัจจุบันย้อนกลับได้ด้วยปุ่มย้อนกลับ)?')) loadEx('blank'); }
   if (a === 'paste'){ if (CLIP) pasteClip(); else toast('ยังไม่ได้คัดลอกอะไร'); }
@@ -9103,11 +9110,13 @@ const MORE = [
   ['ไฟล์', [['bFile','💾','ไฟล์ / แชร์'],['bUndo','↶','ย้อนกลับ'],['bRedo','↷','ทำซ้ำ'],['bFit','⤢','พอดีจอ'],['bBox','⬚','เลือกหลายชิ้น'],['bProbe','🔎','มิเตอร์จิ้มวัด']]],
   ['เครื่องมือ', [['bLad','⌨','เขียนโปรแกรม'],['b3d','🏭','โรงงาน 3D'],['bTrend','📈','เทรนด์'],['bExp','🧪','ทดลองชุด'],['bAn','∿','วิเคราะห์ SPICE'],['bEx','🎓','แบบฝึกหัด']]],
   ['แสดงผล', [['bVal','🏷','ป้ายค่า'],['bTheme','◐','สลับธีม']]],
+  ['แอป', [['finstall','📲','ติดตั้งแอป']]],
 ];
 function moreOpen(){
   const opt = id => $('#' + id).innerHTML, on = id => $('#' + id).classList.contains('on') ? ' on' : '';
+  const MV = MORE.map(([h, it]) => [h, it.filter(([id]) => id !== 'finstall' || pwaCanInstall())]).filter(([, it]) => it.length);
   $('#mbody').innerHTML = `<label>ตัวอย่างวงจร<select data-msel="ex">${opt('ex')}</select></label><label>ความเร็วจำลอง<select data-msel="spd">${opt('spd')}</select></label>`
-    + MORE.map(([h, it]) => `<h4>${h}</h4><div class="mg">${it.map(([id, ic, nm]) => `<button class="btn${on(id)}" data-mp="${id}" ${$('#' + id).disabled ? 'disabled' : ''}><i>${ic}</i>${nm}</button>`).join('')}</div>`).join('');
+    + MV.map(([h, it]) => `<h4>${h}</h4><div class="mg">${it.map(([id, ic, nm]) => `<button class="btn${on(id)}" data-mp="${id}" ${$('#' + id).disabled ? 'disabled' : ''}><i>${ic}</i>${nm}</button>`).join('')}</div>`).join('');
   $('#mbody').querySelectorAll('[data-msel]').forEach(x => x.value = $('#' + x.dataset.msel).value);
   $('#more').hidden = false;
 }
@@ -9410,6 +9419,28 @@ window.__sim = {
   trend: () => ({t:TRD.t, v:TRD.v, sig:trendSigs()}), sigVal, trendCSV, trendOpen, expRunSync, expMetrics, expCSV, expOpen, reportHTML,
 };
 
+/* ---------- แอปบนโทรศัพท์ (PWA): manifest + service worker + ปุ่มติดตั้ง ----------
+   ทำงานเมื่อเปิดผ่าน http(s) จากเว็บโฮสต์ของตัวเอง (เช่น GitHub Pages) — ใน file:// หรือหน้าแสดงตัวอย่างของ claude.ai ข้ามทั้งหมด */
+let PWA_EV = null;
+const pwaHost = () => /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
+const pwaStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pwaIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const pwaCanInstall = () => pwaHost() && !pwaStandalone() && (!!PWA_EV || pwaIOS());
+function pwaRefresh(){ const b = $('#finstall'); if (b) b.hidden = !pwaCanInstall(); }
+async function pwaInstall(){
+  if (PWA_EV){ PWA_EV.prompt(); try { const r = await PWA_EV.userChoice; toast(r.outcome === 'accepted' ? 'ติดตั้งแล้ว — เปิดจากไอคอน Circuit Lab บนหน้าจอ' : 'ยกเลิกการติดตั้ง'); } catch (e){} PWA_EV = null; pwaRefresh(); return; }
+  if (pwaIOS()) modal(`<h3>ติดตั้งบน iPhone / iPad</h3><ol style="line-height:1.9;padding-left:20px"><li>เปิดหน้านี้ใน <b>Safari</b></li><li>แตะปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรขึ้น)</li><li>เลือก <b>เพิ่มไปยังหน้าจอโฮม</b> แล้วแตะ <b>เพิ่ม</b></li></ol><div class="row"><button class="btn on" data-m="close">เข้าใจแล้ว</button></div>`);
+  else toast('ใช้เมนูของเบราว์เซอร์ → "ติดตั้งแอป" หรือ "เพิ่มลงในหน้าจอหลัก"');
+}
+(function pwaInit(){
+  if (!pwaHost()) return;
+  const add = (rel, href, extra) => { const l = document.createElement('link'); l.rel = rel; l.href = href; Object.assign(l, extra || {}); document.head.appendChild(l); };
+  add('manifest', 'circuit-lab.webmanifest'); add('apple-touch-icon', 'icons/circuit-lab-apple-180.png'); add('icon', 'icons/circuit-lab-192.png', {type:'image/png'});
+  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('circuit-lab-sw.js').catch(() => {}));
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); PWA_EV = e; pwaRefresh(); });
+  window.addEventListener('appinstalled', () => { PWA_EV = null; pwaRefresh(); toast('ติดตั้งแอปแล้ว'); });
+  pwaRefresh();
+})();
 (function init(){
   try { const t = localStorage.getItem('circuit-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   readColors(); resize(); buildPalette(); setTool('sel'); setRunning(true);

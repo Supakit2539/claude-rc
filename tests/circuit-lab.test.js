@@ -751,6 +751,21 @@ const path = require('path');
     && lint.str.length === 1 && lint.str[0].startsWith('2') && lint.nosetup === 1, JSON.stringify(lint)]);
   checks.push(['ระบายสีโค้ด: โทเคน ชนิด/ฟังก์ชัน/ตัวเลข/ค่าคงที่/คอมเมนต์ · ชั้นสีตรงกับเคอร์เซอร์ textarea · จุดแดงที่เลขบรรทัด, ขีดเส้นหยัก, รายการปัญหาคลิกได้',
     lint.tok === 'ht:void hf:digitalWrite hn:13 hc:HIGH hm:// c' && lint.ui[0] === 4 && lint.ui[1] === 5 && lint.ui[2] && lint.align.every(Boolean), JSON.stringify([lint.tok, lint.ui, lint.align])]);
+  // แอปบนโทรศัพท์ (PWA): เสิร์ฟผ่าน http ชั่วคราว → manifest + ไอคอน + service worker → ตัดเน็ตแล้วยังเปิดได้
+  { const http = require('http'), fs = require('fs'), path = require('path'), ROOT = path.resolve(__dirname, '..');
+    const TY = {'.html':'text/html; charset=utf-8', '.js':'text/javascript', '.webmanifest':'application/manifest+json', '.png':'image/png'};
+    const srv = http.createServer((q, r) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()){ r.writeHead(404); r.end(); return; }
+      r.writeHead(200, {'content-type': TY[path.extname(f)] || 'application/octet-stream'}); fs.createReadStream(f).pipe(r); });
+    await new Promise(z => srv.listen(0, '127.0.0.1', z));
+    const pctx = await browser.newContext(), pp = await pctx.newPage(), perr = []; pp.on('pageerror', e => perr.push(e.message));
+    try {
+      await pp.goto(`http://127.0.0.1:${srv.address().port}/circuit-lab.html`); await pp.waitForTimeout(1200);
+      const pr = await pp.evaluate(async () => { const reg = await navigator.serviceWorker.ready; const mf = await (await fetch(document.querySelector('link[rel=manifest]').href)).json();
+        return [!!reg.active, mf.short_name, mf.display, (await Promise.all(mf.icons.map(i => fetch(i.src).then(x => x.status)))).every(x => x === 200), mf.icons.some(i => i.purpose === 'maskable')]; });
+      await pp.reload(); await pp.waitForTimeout(800); await pctx.setOffline(true); await pp.reload(); await pp.waitForTimeout(1200);
+      pr.push(await pp.evaluate(() => typeof __sim === 'object' && __sim.S.comps.length > 0));
+      checks.push(['แอปบนโทรศัพท์ (PWA): manifest "Circuit Lab" standalone, ไอคอน 192/512/maskable, service worker ทำงาน, ตัดเน็ตแล้วเปิดแอปได้', pr[0] && pr[1] === 'Circuit Lab' && pr[2] === 'standalone' && pr[3] && pr[4] && pr[5] && !perr.length, JSON.stringify([pr, perr])]);
+    } finally { await pctx.close(); srv.close(); } }
   checks.push(['ไม่มี error ในหน้าเว็บ', errors.length === 0, errors.join(' | ')]);
 
   let fail = 0;
