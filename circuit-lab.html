@@ -84,6 +84,15 @@ input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var
 @media (max-width:600px){#fhud .fcard{font-size:12px;padding:6px 8px}#fhud .btn{min-height:32px;padding:2px 10px;font-size:13px}#fhud .sub{display:none}#views.split #fwrap{flex:0 0 42%}}
 .fcard{background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
 .fcard .row{margin:6px 0 4px}
+.fcard .fhmin{float:right;margin:-2px -2px 0 6px;padding:0 8px;min-height:26px}
+#fhud .fcard.min{display:flex;align-items:center;gap:6px;padding:4px 6px;max-width:100%;overflow-x:auto;scrollbar-width:none;background:color-mix(in srgb,var(--panel) 78%,transparent)}
+#fhud .fcard.min::-webkit-scrollbar{display:none}
+#fhud .fcard.min .fhmin{float:none;order:9;margin:0;flex:none}
+#fhud .fcard.min>b{flex:none;font-size:12px}
+#fhud .fcard.min .row{display:flex;flex-wrap:nowrap;gap:4px;margin:0;flex:none}
+#fhud .fcard.min .row .btn:not([data-press]),#fhud .fcard.min .sub,#fhud .fcard.min #fcnt,#fhud .fcard.min #fstat,#fhud .fcard.min .row:not(:first-of-type){display:none}
+#fhud .fcard.min .btn{min-height:30px;padding:2px 10px;flex:none}
+#fhud .fcard.min .e{font-size:11px;flex:none;white-space:nowrap}
 .fcard .e{color:var(--bad);font-size:12px}
 .fcard select{max-width:190px}
 .fprop{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px;display:grid;gap:3px;max-width:330px}
@@ -7187,9 +7196,11 @@ function fxHud(force){
         <div class="row"><select data-f="newscene"><option value="">— เพิ่มฉากให้วงจรนี้ —</option>${opts}</select><button class="btn on" data-f="ex">เปิดตัวอย่างสายพานคัดแยก</button></div></div>`; }
     return; }
   const miss = fxMissing(), c = FXS.cnt, it = fx.edit ? fxSel() : null, hasEmit = S.fac.items.some(i => i.k === 'emit');
-  const k = [fx.edit, fx.sel, FXS.auto, fx.hv, miss.join(), hasEmit].join('|');
+  if (fx.hmin == null) fx.hmin = phone();
+  const k = [fx.edit, fx.sel, FXS.auto, fx.hv, miss.join(), hasEmit, fx.hmin && !fx.edit, fxOrphan()].join('|');
   if (force || el.dataset.k !== k){ el.dataset.k = k;
-    let h = `<div class="fcard"><b>โรงงาน 3D</b> <span id="fstat" class="mono"></span><div class="row">` +
+    const mn = fx.hmin && !fx.edit && !fxOrphan();
+    let h = `<div class="fcard${mn ? ' min' : ''}"><button class="btn fhmin" data-f="hmin" title="${mn ? 'ขยายแผงควบคุม' : 'ย่อแผงควบคุม (ดูฉาก 3D เต็มที่)'}">${mn ? '▸' : '▾'}</button><b>โรงงาน 3D</b> <span id="fstat" class="mono"></span><div class="row">` +
       (S.fac.btn || []).map(n => `<button class="btn run ${/STOP|หยุด/i.test(n) ? 'stopped' : ''}" data-press="${esc(n)}" title="กดปุ่ม ${esc(n)} บนแผง">${esc(n)}</button>`).join('') +
       (hasEmit ? `<button class="btn ${FXS.auto ? 'on' : ''}" data-f="auto" title="ปล่อยกล่องอัตโนมัติ">ปล่อยอัตโนมัติ</button><button class="btn" data-f="m">+ โลหะ</button><button class="btn" data-f="o">+ กระดาษ</button>` : '') +
       `<button class="btn" data-f="reset">รีเซ็ตฉาก</button><button class="btn ${fx.edit ? 'on' : ''}" data-f="edit">แก้ไขฉาก</button></div>`;
@@ -7231,8 +7242,11 @@ function setView(m){
 function fxPress(c){
   if (c.t === 'estop'){ c.act = !c.act; commit(); return; }
   if (c.t === 'sw'){ c.on = !c.on; commit(); return; }
-  c._pr = true; needSolve = true;
-  const up = () => { c._pr = false; needSolve = true; window.removeEventListener('pointerup', up); }; window.addEventListener('pointerup', up);
+  c._pr = true; needSolve = true; const t0 = performance.now();
+  // แตะสั้น ๆ บนจอสัมผัส: ค้างปุ่มไว้อย่างน้อย 0.2 s ให้ PLC/วงจรสแกนทัน
+  const up = () => { window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+    setTimeout(() => { c._pr = false; needSolve = true; }, Math.max(0, 200 - (performance.now() - t0))); };
+  window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
 }
 (function fxEvents(){
   const cvs = $('#fx'), wrap = $('#fwrap'), hud = $('#fhud');
@@ -7266,6 +7280,7 @@ function fxPress(c){
   hud.addEventListener('pointerdown', e => { const b = e.target.closest('[data-press]'); if (!b) return; const c = fcomp(b.dataset.press); if (c) fxPress(c); });
   const act = f => { const it = fxSel();
     if (f === 'auto'){ FXS.auto = !FXS.auto; fxHud(true); } else if (f === 'm') facSpawn(true); else if (f === 'o') facSpawn(false);
+    else if (f === 'hmin'){ fx.hmin = !fx.hmin; fxHud(true); }
     else if (f === 'dropfac'){ S.fac = null; commit(); setView('off'); }
     else if (f === 'hide3d') setView('off');
     else if (f === 'reset'){ facReset(); fxHud(true); } else if (f === 'ex') loadEx('factory');

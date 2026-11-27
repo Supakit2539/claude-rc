@@ -607,8 +607,13 @@ const path = require('path');
     m2.ph3d = await mp.evaluate(() => { __sim.load('gate'); const a = fx.mode; __sim.load('rs232'); S.fac = facPreset('gate'); setView('split'); fxHud(true);
       const btn = !!document.querySelector('#fhud [data-f="dropfac"]'); txtZ = 0.5; let sz = 0; const f = ctx.fillText; ctx.fillText = function(){ sz = parseFloat(ctx.font.split(' ')[1]); }; text('X', 0, 0, 9, '#000'); ctx.fillText = f; return [a, btn, sz]; });
     await mp.tap('#fhud [data-f="dropfac"]'); m2.drop = await mp.evaluate(() => [fx.mode, !!S.fac]);
-    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ; · ตัวอย่างมีฉากไม่แบ่งจอเอง, ฉากที่ไม่ผูกอุปกรณ์มีปุ่มลบ, ตัวอักษรบนแผงขยายเมื่อซูมออก',
-      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)' && m2.ph3d[0] === 'off' && m2.ph3d[1] && m2.ph3d[2] === 16.2 && m2.drop[0] === 'off' && !m2.drop[1], JSON.stringify(m2)]);
+    await mp.evaluate(() => { __sim.load('factory'); setView('split'); fx.hmin = null; fxHud(true); }); await mp.waitForTimeout(300);
+    m2.hud = await mp.evaluate(() => { const c = document.querySelector('#fhud .fcard'); return [c.classList.contains('min'), Math.round(c.getBoundingClientRect().height)]; });
+    await mp.tap('#fhud [data-press="START"]'); await mp.waitForTimeout(500);
+    m2.hud.push(await mp.evaluate(() => { __sim.run(2); return Math.abs(frt(S.fac.items.find(i => i.k === 'conv')).v) > 0.02; }));
+    await mp.tap('#fhud [data-f="hmin"]'); m2.hud.push(await mp.evaluate(() => !document.querySelector('#fhud .fcard').classList.contains('min'))); await mp.evaluate(() => setView('off'));
+    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ; · ตัวอย่างมีฉากไม่แบ่งจอเอง, ฉากที่ไม่ผูกอุปกรณ์มีปุ่มลบ, ตัวอักษรบนแผงขยายเมื่อซูมออก · แผง 3D ย่อเป็นแถบ แตะ START ครั้งเดียวสายพานวิ่ง',
+      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)' && m2.ph3d[0] === 'off' && m2.ph3d[1] && m2.ph3d[2] === 16.2 && m2.drop[0] === 'off' && !m2.drop[1] && m2.hud[0] && m2.hud[1] < 60 && m2.hud[2] && m2.hud[3], JSON.stringify(m2)]);
     await mctx.close(); }
   const ed = await page.evaluate(async () => { const s = __sim, o = {};
     // เลือกหลายชิ้น + คัดลอก/วาง + ย้อนกลับ/ทำซ้ำ + ย้ายทั้งชุด
