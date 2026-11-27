@@ -611,9 +611,13 @@ const path = require('path');
     m2.hud = await mp.evaluate(() => { const c = document.querySelector('#fhud .fcard'); return [c.classList.contains('min'), Math.round(c.getBoundingClientRect().height)]; });
     await mp.tap('#fhud [data-press="START"]'); await mp.waitForTimeout(500);
     m2.hud.push(await mp.evaluate(() => { __sim.run(2); return Math.abs(frt(S.fac.items.find(i => i.k === 'conv')).v) > 0.02; }));
+    { await mp.evaluate(() => setView('full')); await mp.waitForTimeout(300); const d0 = await mp.evaluate(() => [fx.dist, fx.yaw]);
+      await TT('touchStart', [[150,500],[250,500]]); for (let k = 1; k <= 8; k++) await TT('touchMove', [[150 - k*10,500],[250 + k*10,500]]); await TT('touchEnd', []);
+      const d1 = await mp.evaluate(() => [fx.dist, fx.yaw]); await mp.tap('#fzoom [data-z="out"]'); const d2 = await mp.evaluate(() => fx.dist);
+      m2.z3d = [d1[0] < d0[0]*0.6, d1[1] === d0[1], d2 > d1[0]*1.2]; await mp.evaluate(() => setView('split')); }
     await mp.tap('#fhud [data-f="hmin"]'); m2.hud.push(await mp.evaluate(() => !document.querySelector('#fhud .fcard').classList.contains('min'))); await mp.evaluate(() => setView('off'));
-    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ; · ตัวอย่างมีฉากไม่แบ่งจอเอง, ฉากที่ไม่ผูกอุปกรณ์มีปุ่มลบ, ตัวอักษรบนแผงขยายเมื่อซูมออก · แผง 3D ย่อเป็นแถบ แตะ START ครั้งเดียวสายพานวิ่ง',
-      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)' && m2.ph3d[0] === 'off' && m2.ph3d[1] && m2.ph3d[2] === 16.2 && m2.drop[0] === 'off' && !m2.drop[1] && m2.hud[0] && m2.hud[1] < 60 && m2.hud[2] && m2.hud[3], JSON.stringify(m2)]);
+    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ; · ตัวอย่างมีฉากไม่แบ่งจอเอง, ฉากที่ไม่ผูกอุปกรณ์มีปุ่มลบ, ตัวอักษรบนแผงขยายเมื่อซูมออก · แผง 3D ย่อเป็นแถบ แตะ START ครั้งเดียวสายพานวิ่ง · ฉาก 3D ถ่างสองนิ้วซูมเข้า (ไม่หมุน) ปุ่ม − ซูมออก',
+      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)' && m2.ph3d[0] === 'off' && m2.ph3d[1] && m2.ph3d[2] === 16.2 && m2.drop[0] === 'off' && !m2.drop[1] && m2.hud[0] && m2.hud[1] < 60 && m2.hud[2] && m2.hud[3] && m2.z3d.every(Boolean), JSON.stringify(m2)]);
     await mctx.close(); }
   const ed = await page.evaluate(async () => { const s = __sim, o = {};
     // เลือกหลายชิ้น + คัดลอก/วาง + ย้อนกลับ/ทำซ้ำ + ย้ายทั้งชุด
