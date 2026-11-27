@@ -591,6 +591,21 @@ const path = require('path');
     const z1 = await mp.evaluate(() => view.z), I = await mp.evaluate(() => __sim.RES.comp[__sim.find('H1').id].Ir);
     checks.push(['มือถือ (iPhone): ส่วนหัวแถวเดียว ≤ 60 px, แผงวงจรเต็มกว้าง, ไม่เลื่อนแนวนอน, แถบอุปกรณ์เป็นลิ้นชักเปิด/ปิดได้, ซูมสองนิ้วได้ วงจรเดิม',
       lay.hdr <= 60 && lay.cvW >= lay.vw - 2 && !lay.over && lay.palHidden && palOpen && z1 > z0*1.5 && nr(I, 0.25, 0.01) && merr.length === 0, JSON.stringify({lay, palOpen, z0, z1, I, merr})]);
+    // เมนู ⋯ / ลิ้นชักเต็มจอ / แถวสัญลักษณ์ / ไม่เปิดหน้าต่างเองบนมือถือ
+    const m2 = {};
+    await mp.evaluate(() => __sim.load('pidtank')); await mp.waitForTimeout(200);
+    m2.auto = await mp.evaluate(() => [document.querySelector('#trwin').hidden, document.querySelector('header').scrollWidth <= innerWidth, [...document.querySelectorAll('header > *')].filter(e => getComputedStyle(e).display !== 'none').length]);
+    await mp.tap('#bMore'); m2.sheet = await mp.evaluate(() => !document.querySelector('#more').hidden && document.querySelectorAll('#mbody [data-mp]').length);
+    await mp.tap('[data-mp="bLad"]'); await mp.waitForTimeout(250);
+    m2.lad = await mp.evaluate(() => { const r = document.querySelector('#lad').getBoundingClientRect(); return [document.querySelector('#more').hidden, Math.round(r.bottom) >= innerHeight - 1, r.top < 80]; });
+    await mp.evaluate(() => { ladOpen = false; ladStruct(); __sim.load('arduino'); const c = __sim.S.comps.find(x => x.t === 'uno'); ladPid = c.id; ladOpen = true; ladStruct(); });
+    m2.off3d = await mp.evaluate(() => fx.mode);
+    await mp.evaluate(() => { const t = document.querySelector('#mcode'); t.focus(); t.setSelectionRange(0, 0); });
+    await mp.tap('#kbar [data-kb="()"]'); await mp.tap('#kbar [data-kb=";"]');
+    m2.kb = await mp.evaluate(() => document.querySelector('#mcode').value.slice(0, 3));
+    await mp.evaluate(() => { ladOpen = false; ladStruct(); });
+    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ;',
+      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)', JSON.stringify(m2)]);
     await mctx.close(); }
   const ed = await page.evaluate(async () => { const s = __sim, o = {};
     // เลือกหลายชิ้น + คัดลอก/วาง + ย้อนกลับ/ทำซ้ำ + ย้ายทั้งชุด

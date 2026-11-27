@@ -260,14 +260,50 @@ button,select,.pi,summary{touch-action:manipulation}
   #views.split{flex-direction:column}
   #fwrap{border-left:0;border-top:1px solid var(--line)}
 }
+#bMore,#more[hidden],#kbar{display:none}
 @media (max-width:600px){
   header h1{display:none}
+  header>:not(#bPal):not(#bInsp):not(#bRun):not(#bMore){display:none !important}
+  header{-webkit-mask-image:none;mask-image:none;padding-right:8px;justify-content:space-between}
+  #bPal,#bInsp,#bRun,#bMore{flex:1 1 0;justify-content:center;min-width:0;padding:4px 6px}
+  #bMore{display:inline-flex;order:2}
+  #more{display:flex;position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.38);align-items:flex-end}
+  #more .msheet{background:var(--panel);width:100%;max-height:86%;overflow:auto;border-radius:16px 16px 0 0;padding:6px 12px calc(14px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+  #more .dclose{margin:-6px -12px 8px}
+  #mbody .mg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  #mbody .mg .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;white-space:normal;text-align:center;font-size:13px;line-height:1.25;padding:6px 4px}
+  #mbody .mg .btn i{font-style:normal;font-size:20px;line-height:1}
+  #mbody label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);margin-bottom:10px}
+  #mbody h4{margin:4px 0 6px;font-size:13px;color:var(--muted)}
+  .pop{left:8px !important;right:8px;top:auto !important;bottom:calc(8px + env(safe-area-inset-bottom));min-width:0;max-height:75vh;overflow:auto}
+  .pop button{padding:12px 12px}
+  /* ลิ้นชักเขียนโปรแกรม: เต็มจอ (ย่อครึ่งจอได้) */
+  #lad.open{position:fixed;left:0;right:0;bottom:0;top:var(--hdr,52px);height:auto;z-index:12;box-shadow:0 -6px 20px rgba(0,0,0,.25)}
+  #lad.open.half{top:48%}
+  .ladbar{flex-wrap:wrap;row-gap:6px}
+  .ladbar .ltools,.ladbar .lfields{display:flex;gap:4px;align-items:center;flex:1 0 100%;order:5;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .ladbar .lfields{order:6}
+  .ladbar .ltools::-webkit-scrollbar,.ladbar .lfields::-webkit-scrollbar{display:none}
+  .ladbar .ltools .btn{flex:none;min-width:44px}
+  .ladbar .lfields label{flex:none;display:flex;align-items:center;gap:4px}
+  .ladbar>.sep{display:none}
+  #ladbody.mcu{grid-template-rows:minmax(0,1fr) 120px !important}
+  #kbar{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  #kbar::-webkit-scrollbar{display:none}
+  #kbar button{flex:none;min-width:38px;min-height:36px;font:600 16px 'IBM Plex Mono',monospace;padding:0 8px}
+  /* หน้าต่างลอย: หัวติดด้านบน ปุ่มเลื่อนแนวนอน */
+  #scopewin .swh,#anwin .swh,#trwin .swh,#exwin .swh{position:sticky;top:0;z-index:3;background:var(--panel);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;cursor:default}
+  .swh::-webkit-scrollbar{display:none}
+  .swh .anhint{display:none}
+  .swh>*{flex:none}
+  .swh [data-tb="x"],.swh [data-eb="x"],.swh [data-sa="close"],.swh [data-aa="close"]{position:sticky;right:0;z-index:2;box-shadow:-12px 0 10px var(--panel)}
+  .swh>b{font-size:14px}
+  #ftools{gap:3px;padding:4px;width:calc(100% - 16px);max-width:440px;justify-content:space-between}
+  #ftools .btn{min-width:0;flex:1 1 0;padding:4px 2px;font-size:12px}
   #insp{top:auto;left:0;right:0;width:auto;height:58%;transform:translateY(105%);border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #hint{display:none}
   #ftools{display:flex;position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;gap:4px;padding:5px;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.22);max-width:calc(100% - 16px);overflow-x:auto}
-  #ftools .btn{min-width:44px;padding:4px 8px;font-size:13px}
   #lad.open ~ #ftools,#main.inspopen #ftools{display:none}
-  #lad.open{height:62%}
   #scopewin,#anwin,#trwin,#exwin{left:0 !important;right:0 !important;top:0 !important;width:100% !important;max-height:100% !important;height:100%;border-radius:0}
   #scv{height:38vh}
   .swc{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -303,7 +339,9 @@ button,select,.pi,summary{touch-action:manipulation}
   <select id="spd" title="ความเร็วจำลอง"><option value="1" selected>×1</option><option value="5">×5</option><option value="20">×20</option></select>
   <button class="btn" id="bVal" title="แสดงค่า/แรงดัน/กระแสที่สัญลักษณ์อุปกรณ์">ค่า ▾</button>
   <button class="btn" id="bTheme" title="สลับธีม">ธีม</button>
+  <button class="btn cmp" id="bMore" title="เมนูทั้งหมด">⋯ เมนู</button>
 </header>
+<div id="more" hidden><div class="msheet"><div class="dclose"><span>เมนู</span><button class="btn" data-mclose="1">✕ ปิด</button></div><div id="mbody"></div></div></div>
 <div id="fmenu" class="pop" hidden>
   <button data-f="save">💾 บันทึกเป็นไฟล์ (.json)</button><button data-f="open">📂 เปิดไฟล์…</button>
   <button data-f="share">🔗 แชร์ (โค้ด/ลิงก์)</button><button data-f="import">📥 นำเข้าโค้ด/ข้อความ</button>
@@ -6090,11 +6128,11 @@ function ladStruct(){
     <select id="lplc" title="เลือก PLC">${plcs.map(c => `<option value="${c.id}" ${c === p ? 'selected' : ''}>${esc(c.n)}</option>`).join('')}</select>
     <button class="btn ${md === 'lad' ? 'on' : ''}" data-mode="lad">แลดเดอร์</button><button class="btn ${md === 'txt' ? 'on' : ''}" data-mode="txt">ข้อความ</button>
     <span class="sep"></span>
-    ${md === 'lad' ? TOOLS.map(t => `<button class="btn mono" data-tool="${t[0]}" title="${t[2]}">${t[1]}</button>`).join('') +
-      `<span class="sep"></span><label>ที่อยู่ <input id="laddr" class="mono" placeholder="I0"></label><label>เวลา/ค่า <input id="lpre" class="mono" style="width:50px" placeholder="s"></label>
+    ${md === 'lad' ? '<span class="ltools">' + TOOLS.map(t => `<button class="btn mono" data-tool="${t[0]}" title="${t[2]}">${t[1]}</button>`).join('') + '</span>' +
+      `<span class="sep"></span><span class="lfields"><label>ที่อยู่ <input id="laddr" class="mono" placeholder="I0"></label><label>เวลา/ค่า <input id="lpre" class="mono" style="width:50px" placeholder="s"></label>
        <span class="sep"></span><button class="btn" data-op="addrow">+ แถว</button><button class="btn" data-op="delrow">− แถว</button><button class="btn" data-op="addrung">+ รัง</button><button class="btn" data-op="delrung">− รัง</button>
-       <label>หมายเหตุ <input id="lcmt" style="width:180px" value="${esc(rung ? rung.cmt : '')}"></label>` : ''}
-    <span style="flex:1"></span><span id="lstat" class="mono"></span><button class="btn" id="lclose">ปิด</button></div>
+       <label>หมายเหตุ <input id="lcmt" style="width:180px" value="${esc(rung ? rung.cmt : '')}"></label></span>` : ''}
+    <span style="flex:1"></span><span id="lstat" class="mono"></span>${ladHalfBtn()}<button class="btn" id="lclose">ปิด</button></div>
     <div id="ladbody"></div><div id="ladmsg"></div>`;
   $('#lclose').onclick = () => { ladOpen = false; ladStruct(); };
   $('#lplc').onchange = e => { ladPid = +e.target.value; ladSel = {ri:0, row:0, col:0}; ladStruct(); };
@@ -6250,7 +6288,8 @@ function mcuStruct(c){
     <button class="btn on" id="mup" title="คอมไพล์แล้วเริ่มรันโค้ดใหม่">อัปโหลด ▶</button>
     <button class="btn" id="mrst" title="เริ่มโปรแกรมใหม่ (กดปุ่ม RESET)">รีเซ็ต</button>
     <button class="btn" id="mclr">ล้าง Serial</button>
-    <span style="flex:1"></span><span id="lstat" class="mono"></span><button class="btn" id="lclose">ปิด</button></div>
+    <span style="flex:1"></span><span id="lstat" class="mono"></span>${ladHalfBtn()}<button class="btn" id="lclose">ปิด</button></div>
+    <div id="kbar">${KBAR.map(k => `<button class="btn" data-kb="${esc(k[0])}" title="${esc(k[1] || k[0])}">${esc(k[1] || k[0])}</button>`).join('')}</div>
     <div id="ladbody" class="mcu"><div class="cedit"><div class="cgut" id="cgut"></div><div class="cwrap"><pre id="chl" aria-hidden="true"></pre><textarea id="mcode" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="soft"></textarea></div></div><div class="serial"><div class="cap">Serial Monitor</div><pre id="mser"></pre><div class="sin"><input id="msin" placeholder="ส่งข้อความเข้าบอร์ด (Serial) แล้วกด Enter"><button class="btn" id="msend">ส่ง</button></div></div></div>
     <div id="ladmsg"></div>`;
   const ta = $('#mcode'); ta.value = c.code || '';
@@ -6259,7 +6298,7 @@ function mcuStruct(c){
   $('#cgut').onclick = e => { const d = e.target.closest('[data-ln]'); if (d) edGoto(ta, +d.dataset.ln); };
   ta.onchange = () => commit();
   ta.onkeydown = e => { if (acKey(ta, e)) return; if (e.key === 'Tab'){ e.preventDefault(); if (!e.shiftKey && acNextArg(ta)) return; const a = ta.selectionStart; ta.setRangeText('  ', a, ta.selectionEnd, 'end'); ta.oninput(); } };
-  acAttach(ta, c);
+  acAttach(ta, c); kbarAttach(ta);
   $('#mup').onclick = () => { c.code = ta.value; c._lint = codeLint(c.code, c); edRender(ta, c); const ne = c._lint.filter(q => q.sev === 'e');
     if (ne.length && !confirm(`พบข้อผิดพลาด ${ne.length} จุด (บรรทัด ${ne.slice(0, 5).map(q => q.line).join(', ')}) — ยังต้องการอัปโหลดหรือไม่?`)){ edGoto(ta, ne[0].line); mcuMon(c, true); return; }
     c._dirty = false; mcuBoot(c); commit(); };
@@ -9016,6 +9055,42 @@ function select(s){ const ch = s && s.k === 'c' && !(sel && sel.k === 'c' && sel
   if (ch && compact() && !$('#main').classList.contains('inspopen')){ const b = $('#bInsp'); b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); } }
 // ---------- จอเล็ก: ลิ้นชักอุปกรณ์ / ข้อมูล ----------
 const compact = () => window.matchMedia('(max-width:1100px)').matches;
+const phone = () => window.matchMedia('(max-width:600px)').matches;
+/* ---------- มือถือ: เมนู ⋯ (แผ่นล่าง), ลิ้นชักโปรแกรมเต็มจอ/ครึ่งจอ, แถวสัญลักษณ์สำหรับพิมพ์โค้ด ---------- */
+const MORE = [
+  ['ไฟล์', [['bFile','💾','ไฟล์ / แชร์'],['bUndo','↶','ย้อนกลับ'],['bRedo','↷','ทำซ้ำ'],['bFit','⤢','พอดีจอ'],['bBox','⬚','เลือกหลายชิ้น'],['bProbe','🔎','มิเตอร์จิ้มวัด']]],
+  ['เครื่องมือ', [['bLad','⌨','เขียนโปรแกรม'],['b3d','🏭','โรงงาน 3D'],['bTrend','📈','เทรนด์'],['bExp','🧪','ทดลองชุด'],['bAn','∿','วิเคราะห์ SPICE'],['bEx','🎓','แบบฝึกหัด']]],
+  ['แสดงผล', [['bVal','🏷','ป้ายค่า'],['bTheme','◐','สลับธีม']]],
+];
+function moreOpen(){
+  const opt = id => $('#' + id).innerHTML, on = id => $('#' + id).classList.contains('on') ? ' on' : '';
+  $('#mbody').innerHTML = `<label>ตัวอย่างวงจร<select data-msel="ex">${opt('ex')}</select></label><label>ความเร็วจำลอง<select data-msel="spd">${opt('spd')}</select></label>`
+    + MORE.map(([h, it]) => `<h4>${h}</h4><div class="mg">${it.map(([id, ic, nm]) => `<button class="btn${on(id)}" data-mp="${id}" ${$('#' + id).disabled ? 'disabled' : ''}><i>${ic}</i>${nm}</button>`).join('')}</div>`).join('');
+  $('#mbody').querySelectorAll('[data-msel]').forEach(x => x.value = $('#' + x.dataset.msel).value);
+  $('#more').hidden = false;
+}
+$('#bMore').onclick = moreOpen;
+$('#more').addEventListener('click', e => { if (e.target.id === 'more' || e.target.closest('[data-mclose]')){ $('#more').hidden = true; return; }
+  const b = e.target.closest('[data-mp]'); if (b){ $('#more').hidden = true; setTimeout(() => $('#' + b.dataset.mp).click(), 0); } });
+$('#more').addEventListener('change', e => { const k = e.target.dataset.msel; if (!k) return; const o = $('#' + k); o.value = e.target.value; o.dispatchEvent(new Event('change')); $('#more').hidden = true; });
+const ladHalfBtn = () => `<button class="btn" id="lhalf" title="ย่อ/ขยายลิ้นชัก (ดูวงจรไปพร้อมกัน)">${$('#lad').classList.contains('half') ? '⤒' : '⤓'}</button>`;
+$('#lad').addEventListener('click', e => { if (e.target.closest('#lhalf')){ const l = $('#lad'); l.classList.toggle('half'); e.target.closest('#lhalf').textContent = l.classList.contains('half') ? '⤒' : '⤓'; } });
+function hdrVar(){ const h = $('header'); document.documentElement.style.setProperty('--hdr', h.getBoundingClientRect().bottom + 'px'); }
+window.addEventListener('resize', hdrVar); setTimeout(hdrVar, 0);
+// แถวสัญลักษณ์เหนือโค้ด (คีย์บอร์ดมือถือพิมพ์อักขระเหล่านี้ยาก) — [แทรก, ป้าย]; ↹ = ย่อหน้า, ⇥ = อาร์กิวเมนต์ถัดไป
+const KBAR = [[';'],['{}','{ }'],['()','( )'],['[]','[ ]'],['""','" "'],['='],['=='],['<'],['>'],['&&'],['||'],['!'],['+'],['-'],['*'],['/'],['%'],[','],['.'],['\t','⇥'],['//','//'],['\n','⏎']];
+function kbarAttach(ta){
+  const kb = $('#kbar'); if (!kb) return;
+  kb.addEventListener('pointerdown', e => { if (e.target.closest('[data-kb]')) e.preventDefault(); });      // คงโฟกัส/คีย์บอร์ดไว้
+  kb.onclick = e => { const b = e.target.closest('[data-kb]'); if (!b) return; const k = b.dataset.kb; ta.focus();
+    if (k === '\t'){ if (!acNextArg(ta)){ const a = ta.selectionStart; ta.setRangeText('  ', a, ta.selectionEnd, 'end'); } ta.dispatchEvent(new Event('input')); return; }
+    if (k === '\n'){ const p = ta.selectionStart, ls = ta.value.lastIndexOf('\n', p - 1) + 1, ind = (/^[ \t]*/.exec(ta.value.slice(ls)) || [''])[0] + (/\{\s*$/.test(ta.value.slice(ls, p)) ? '  ' : '');
+      ta.setRangeText('\n' + ind, p, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); return; }
+    const pair = /^[{(\["]{1}[})\]"]$/.test(k) ? k : null, a = ta.selectionStart, sel = ta.value.slice(a, ta.selectionEnd);
+    if (pair){ ta.setRangeText(k[0] + sel + k[1], a, ta.selectionEnd, 'end'); const p = a + 1 + sel.length; ta.setSelectionRange(p, p); }
+    else ta.setRangeText(k, a, ta.selectionEnd, 'end');
+    ta.dispatchEvent(new Event('input')); };
+}
 function drawer(w){ const m = $('#main'); m.classList.toggle('palopen', w === 'pal'); m.classList.toggle('inspopen', w === 'insp'); }
 function refreshUI(){ renderInsp(); liveUI(); if (ladOpen) ladStruct(); $('#bUndo').disabled = !hist.length; $('#bRedo').disabled = !fut.length; $('#bVal').classList.toggle('on', showVal); }
 function onLoaded(){ if (scopeWin && !S.comps.some(c => c.id === scopeWin)) scopeWin = null; setTimeout(scopeUI, 0); fx.hv++; fx.sel = null; fxFrame(); ladSel = {ri:0, row:0, col:0}; if (!S.comps.some(c => c.id === ladPid)) ladPid = null; }
@@ -9032,8 +9107,8 @@ function fit(){
 function loadEx(k){
   if (cur !== null) pushHist(); fut = [];
   simT = 0; load(EX[k].f()); cur = ser(); save(); simT = 0; fit(); refreshUI();
-  if (S.fac && fx.mode === 'off') setView('split');
-  if (S.trend) trendOpen(); else { $('#trwin').hidden = true; $('#bTrend').classList.remove('on'); }
+  if (S.fac && fx.mode === 'off') setView('split'); else if (!S.fac && fx.mode === 'split') setView('off');
+  if (S.trend && !phone()) trendOpen(); else { $('#trwin').hidden = true; $('#bTrend').classList.remove('on'); if (S.trend) toast('ตัวอย่างนี้มีกราฟเทรนด์ — เปิดได้จาก ⋯ เมนู → เทรนด์'); }
   EXP.res = null; if (!$('#exwin').hidden) expUI();
 }
 function place(gx, gy, keep){
