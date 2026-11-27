@@ -759,6 +759,8 @@ const path = require('path');
     await new Promise(z => srv.listen(0, '127.0.0.1', z));
     const pctx = await browser.newContext(), pp = await pctx.newPage(), perr = []; pp.on('pageerror', e => perr.push(e.message));
     try {
+      // เปิดหน้า root ก่อน (index.html) — ต้องไม่ทับสำเนาของแอปในแคช
+      await pp.goto(`http://127.0.0.1:${srv.address().port}/`); await pp.waitForTimeout(400);
       await pp.goto(`http://127.0.0.1:${srv.address().port}/circuit-lab.html`); await pp.waitForTimeout(1200);
       const pr = await pp.evaluate(async () => { const reg = await navigator.serviceWorker.ready; const mf = await (await fetch(document.querySelector('link[rel=manifest]').href)).json();
         return [!!reg.active, mf.short_name, mf.display, (await Promise.all(mf.icons.map(i => fetch(i.src).then(x => x.status)))).every(x => x === 200), mf.icons.some(i => i.purpose === 'maskable')]; });
