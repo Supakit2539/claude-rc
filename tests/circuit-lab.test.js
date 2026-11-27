@@ -604,8 +604,11 @@ const path = require('path');
     await mp.tap('#kbar [data-kb="()"]'); await mp.tap('#kbar [data-kb=";"]');
     m2.kb = await mp.evaluate(() => document.querySelector('#mcode').value.slice(0, 3));
     await mp.evaluate(() => { ladOpen = false; ladStruct(); });
-    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ;',
-      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)', JSON.stringify(m2)]);
+    m2.ph3d = await mp.evaluate(() => { __sim.load('gate'); const a = fx.mode; __sim.load('rs232'); S.fac = facPreset('gate'); setView('split'); fxHud(true);
+      const btn = !!document.querySelector('#fhud [data-f="dropfac"]'); txtZ = 0.5; let sz = 0; const f = ctx.fillText; ctx.fillText = function(){ sz = parseFloat(ctx.font.split(' ')[1]); }; text('X', 0, 0, 9, '#000'); ctx.fillText = f; return [a, btn, sz]; });
+    await mp.tap('#fhud [data-f="dropfac"]'); m2.drop = await mp.evaluate(() => [fx.mode, !!S.fac]);
+    checks.push(['มือถือ: ส่วนหัวเหลือ 4 ปุ่มไม่ล้นจอ, เมนู ⋯ แผ่นล่างสั่งเปิดตัวเขียนโปรแกรมเต็มจอ, ไม่เปิดเทรนด์เอง, ตัวอย่างไม่มีฉากปิด 3D, แถวสัญลักษณ์แทรก ( ) และ ; · ตัวอย่างมีฉากไม่แบ่งจอเอง, ฉากที่ไม่ผูกอุปกรณ์มีปุ่มลบ, ตัวอักษรบนแผงขยายเมื่อซูมออก',
+      m2.auto[0] && m2.auto[1] && m2.auto[2] === 4 && m2.sheet >= 14 && m2.lad.every(Boolean) && m2.off3d === 'off' && m2.kb === '(;)' && m2.ph3d[0] === 'off' && m2.ph3d[1] && m2.ph3d[2] === 16.2 && m2.drop[0] === 'off' && !m2.drop[1], JSON.stringify(m2)]);
     await mctx.close(); }
   const ed = await page.evaluate(async () => { const s = __sim, o = {};
     // เลือกหลายชิ้น + คัดลอก/วาง + ย้อนกลับ/ทำซ้ำ + ย้ายทั้งชุด
